@@ -17,8 +17,8 @@
       "seoTitle": "Atlas Carry-on | Shoppp",
       "seoDescription": "Meet the Atlas Carry-on: durable shell, quiet wheels, and an international cabin-friendly profile.",
       "status": "published",
-      "collectionIds": ["col_01J00000000000000000000001"],
-      "collectionSlugs": ["travel-essentials"],
+      "collectionIds": [],
+      "collectionSlugs": [],
       "variants": [
         {
           "id": "var_01J00000000000000000000000",
@@ -52,6 +52,65 @@
       "status": "published",
       "collectionIds": ["col_01J00000000000000000000001"],
       "collectionSlugs": ["travel-essentials"],
+      "optionDefinitions": [
+        {
+          "name": "color",
+          "presentation": "color",
+          "values": [
+            { "label": "Gold", "swatch": "#d4af37" },
+            { "label": "Blue", "swatch": "#5881bf" },
+            { "label": "Green", "swatch": "#87a968" }
+          ]
+        },
+        {
+          "name": "size",
+          "presentation": "text",
+          "values": [{ "label": "S" }, { "label": "M" }, { "label": "L" }, { "label": "XL" }]
+        }
+      ],
+      "presentation": {
+        "brand": "Zalando",
+        "defaultVariantId": "var_01JFSHIRTGREENXL000000001",
+        "detail": {
+          "eyebrow": "We make you feel special",
+          "heading": "Unique and quirky designs for the latest trends product.",
+          "body": "Relaxed corduroy shirt with a soft structured finish.",
+          "bullets": [
+            "Made from soft yet durable 100% organic cotton twill.",
+            "Front and back yoke seams allow a full range of shoulder.",
+            "Interior storm flap and zipper garage at chin for comfort.",
+            "Color may slightly vary depending on your screen."
+          ]
+        },
+        "detailMediaId": "media_01JFS8DETAIL000000000007",
+        "reviewDisplay": {
+          "averageRating": 5,
+          "count": 165,
+          "entries": [
+            {
+              "author": "Herman miller",
+              "date": "06 April 2023",
+              "text": "Lorem ipsum dolor sit sed do eiusmod tempor incididunt labore enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+            },
+            {
+              "author": "Wilbur haddock",
+              "date": "26 April 2023",
+              "text": "Lorem ipsum dolor sit sed do eiusmod tempor incididunt labore enim ad minim veniam nisi ut aliquip ex ea commodo consequat."
+            },
+            {
+              "author": "Colene landin",
+              "date": "28 April 2023",
+              "text": "Lorem ipsum dolor sit sed do eiusmod tempor incididunt labore enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+            }
+          ],
+          "provenance": "fashion-store historical Vue demonstration snapshot",
+          "updatedAt": "2026-09-16T00:00:00.000Z"
+        },
+        "specifications": [
+          { "label": "Material", "value": "Organic cotton twill" },
+          { "label": "Style", "value": "Relaxed corduroy shirt" }
+        ]
+      },
       "variants": [
         {
           "id": "var_01JFSHIRTGOLDS00000000001",
@@ -60,7 +119,7 @@
           "status": "active",
           "optionValues": { "color": "Gold", "size": "S" },
           "weightGrams": 400,
-          "prices": [{ "currency": "USD", "amount": 6500 }]
+          "prices": [{ "currency": "USD", "amount": 6500, "compareAtAmount": 8500 }]
         },
         {
           "id": "var_01JFSHIRTGOLDM00000000001",
@@ -159,13 +218,180 @@
           "status": "active",
           "optionValues": { "color": "Green", "size": "XL" },
           "weightGrams": 460,
-          "prices": [{ "currency": "USD", "amount": 6500 }]
+          "prices": [{ "currency": "USD", "amount": 6500, "compareAtAmount": 8500 }]
         }
       ],
       "media": [
         {
-          "src": "/media/relaxed-corduroy-shirt.jpg",
-          "alt": "Relaxed corduroy shirt in green",
+          "id": "media_01JFS8DETAIL000000000001",
+          "src": "https://pub-4e1c398c57fa4b9f9781bc1abcb507a5.r2.dev/catalog/fashion-store/2026-09-13-v1/relaxed-corduroy-shirt/01-demo-fashion-store-product-detail-01.jpg",
+          "alt": "Relaxed corduroy shirt front view",
+          "width": 600,
+          "height": 765
+        },
+        {
+          "id": "media_01JFS8DETAIL000000000002",
+          "src": "https://pub-4e1c398c57fa4b9f9781bc1abcb507a5.r2.dev/catalog/fashion-store/2026-09-13-v1/relaxed-corduroy-shirt/02-demo-fashion-store-product-detail-02.jpg",
+          "alt": "Relaxed corduroy shirt side view",
+          "width": 600,
+          "height": 765
+        },
+        {
+          "id": "media_01JFS8DETAIL000000000003",
+          "src": "https://pub-4e1c398c57fa4b9f9781bc1abcb507a5.r2.dev/catalog/fashion-store/2026-09-13-v1/relaxed-corduroy-shirt/03-demo-fashion-store-product-detail-03.jpg",
+          "alt": "Relaxed corduroy shirt fabric detail",
+          "width": 600,
+          "height": 765
+        },
+        {
+          "id": "media_01JFS8DETAIL000000000004",
+          "src": "https://pub-4e1c398c57fa4b9f9781bc1abcb507a5.r2.dev/catalog/fashion-store/2026-09-13-v1/relaxed-corduroy-shirt/04-demo-fashion-store-product-detail-04.jpg",
+          "alt": "Relaxed corduroy shirt sleeve detail",
+          "width": 600,
+          "height": 765
+        },
+        {
+          "id": "media_01JFS8DETAIL000000000005",
+          "src": "https://pub-4e1c398c57fa4b9f9781bc1abcb507a5.r2.dev/catalog/fashion-store/2026-09-13-v1/relaxed-corduroy-shirt/05-demo-fashion-store-product-detail-05.jpg",
+          "alt": "Relaxed corduroy shirt collar detail",
+          "width": 600,
+          "height": 765
+        },
+        {
+          "id": "media_01JFS8DETAIL000000000006",
+          "src": "https://pub-4e1c398c57fa4b9f9781bc1abcb507a5.r2.dev/catalog/fashion-store/2026-09-13-v1/relaxed-corduroy-shirt/06-demo-fashion-store-product-detail-06.jpg",
+          "alt": "Relaxed corduroy shirt back view",
+          "width": 600,
+          "height": 765
+        },
+        {
+          "id": "media_01JFS8DETAIL000000000007",
+          "src": "/media/fashion-store-theme/demo-fashion-store-product-detail-07.jpg",
+          "alt": "Relaxed corduroy shirt design detail",
+          "width": 600,
+          "height": 765
+        }
+      ]
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000001",
+      "slug": "textured-sweater-01",
+      "name": "Textured sweater",
+      "description": "A textured knit sweater.",
+      "seoTitle": "Textured sweater | Shoppp",
+      "seoDescription": "Shop the textured sweater.",
+      "status": "published",
+      "collectionIds": ["col_01J00000000000000000000001"],
+      "collectionSlugs": ["travel-essentials"],
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000001",
+          "sku": "FS-TEXTURED-SWEATER-01",
+          "title": "Blue / M",
+          "status": "active",
+          "optionValues": { "color": "Blue", "size": "M" },
+          "weightGrams": 400,
+          "prices": [{ "currency": "USD", "amount": 18900, "compareAtAmount": 20000 }]
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000001",
+          "src": "https://pub-4e1c398c57fa4b9f9781bc1abcb507a5.r2.dev/catalog/fashion-store/2026-09-13-v1/textured-sweater-01/01-demo-fashion-store-product-01.jpg",
+          "alt": "Blue textured sweater",
+          "width": 600,
+          "height": 765
+        }
+      ]
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000002",
+      "slug": "traveller-shirt-02",
+      "name": "Traveller shirt",
+      "description": "A comfortable traveller shirt.",
+      "seoTitle": "Traveller shirt | Shoppp",
+      "seoDescription": "Shop the traveller shirt.",
+      "status": "published",
+      "collectionIds": ["col_01J00000000000000000000001"],
+      "collectionSlugs": ["travel-essentials"],
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000002",
+          "sku": "FS-TRAVELLER-SHIRT-02",
+          "title": "Brown / XL",
+          "status": "active",
+          "optionValues": { "color": "Brown", "size": "XL" },
+          "weightGrams": 400,
+          "prices": [{ "currency": "USD", "amount": 28900, "compareAtAmount": 35000 }]
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000002",
+          "src": "https://pub-4e1c398c57fa4b9f9781bc1abcb507a5.r2.dev/catalog/fashion-store/2026-09-13-v1/traveller-shirt-02/01-demo-fashion-store-product-02.jpg",
+          "alt": "Brown traveller shirt",
+          "width": 600,
+          "height": 765
+        }
+      ]
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000003",
+      "slug": "crewneck-sweatshirt-03",
+      "name": "Crewneck sweatshirt",
+      "description": "A soft crewneck sweatshirt.",
+      "seoTitle": "Crewneck sweatshirt | Shoppp",
+      "seoDescription": "Shop the crewneck sweatshirt.",
+      "status": "published",
+      "collectionIds": ["col_01J00000000000000000000001"],
+      "collectionSlugs": ["travel-essentials"],
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000003",
+          "sku": "FS-CREWNECK-SWEATSHIRT-03",
+          "title": "Green / L",
+          "status": "active",
+          "optionValues": { "color": "Green", "size": "L" },
+          "weightGrams": 400,
+          "prices": [{ "currency": "USD", "amount": 19900, "compareAtAmount": 22000 }]
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000003",
+          "src": "https://pub-4e1c398c57fa4b9f9781bc1abcb507a5.r2.dev/catalog/fashion-store/2026-09-13-v1/crewneck-sweatshirt-03/01-demo-fashion-store-product-03.jpg",
+          "alt": "Green crewneck sweatshirt",
+          "width": 600,
+          "height": 765
+        }
+      ]
+    },
+    {
+      "id": "prod_01JFS8SHOP00000000000004",
+      "slug": "skinny-trousers-04",
+      "name": "Skinny trousers",
+      "description": "Black skinny trousers.",
+      "seoTitle": "Skinny trousers | Shoppp",
+      "seoDescription": "Shop the skinny trousers.",
+      "status": "published",
+      "collectionIds": ["col_01J00000000000000000000001"],
+      "collectionSlugs": ["travel-essentials"],
+      "variants": [
+        {
+          "id": "var_01JFS8SHOP00000000000004",
+          "sku": "FS-SKINNY-TROUSERS-04",
+          "title": "Black / S",
+          "status": "active",
+          "optionValues": { "color": "Black", "size": "S" },
+          "weightGrams": 400,
+          "prices": [{ "currency": "USD", "amount": 25900, "compareAtAmount": 30000 }]
+        }
+      ],
+      "media": [
+        {
+          "id": "media_01JFS8SHOP0000000000004",
+          "src": "https://pub-4e1c398c57fa4b9f9781bc1abcb507a5.r2.dev/catalog/fashion-store/2026-09-13-v1/skinny-trousers-04/01-demo-fashion-store-product-04.jpg",
+          "alt": "Black skinny trousers",
           "width": 600,
           "height": 765
         }
@@ -181,8 +407,20 @@
       "seoTitle": "Travel essentials | Shoppp",
       "seoDescription": "Browse durable travel essentials for international journeys.",
       "status": "published",
-      "productIds": ["prod_01J00000000000000000000001", "prod_01J00000000000000000000002"],
-      "productSlugs": ["atlas-carry-on", "relaxed-corduroy-shirt"]
+      "productIds": [
+        "prod_01J00000000000000000000002",
+        "prod_01JFS8SHOP00000000000001",
+        "prod_01JFS8SHOP00000000000002",
+        "prod_01JFS8SHOP00000000000003",
+        "prod_01JFS8SHOP00000000000004"
+      ],
+      "productSlugs": [
+        "relaxed-corduroy-shirt",
+        "textured-sweater-01",
+        "traveller-shirt-02",
+        "crewneck-sweatshirt-03",
+        "skinny-trousers-04"
+      ]
     }
   ],
   "policies": [
@@ -317,7 +555,11 @@
     "/policies/shipping",
     "/policies/terms",
     "/products/atlas-carry-on",
-    "/products/relaxed-corduroy-shirt"
+    "/products/crewneck-sweatshirt-03",
+    "/products/relaxed-corduroy-shirt",
+    "/products/skinny-trousers-04",
+    "/products/textured-sweater-01",
+    "/products/traveller-shirt-02"
   ],
   "redirects": [
     {

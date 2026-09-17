@@ -21,11 +21,14 @@ import { formatCommerceMoney } from "./runtime-commerce";
 import {
   platformRoutePresentationViewModelSchema,
   presentationShellViewModelSchema,
+  productViewModelSchema,
+  publicPaymentBrands,
   presentationViewModelSchema,
   type PlatformRoutePresentationViewModel,
   type PresentationProductCard,
   type PresentationShellViewModel,
   type PresentationViewModel,
+  type ProductPageModel,
 } from "./view-models";
 
 type CatalogProduct = CanonicalCatalogRelease["products"][number];
@@ -151,12 +154,23 @@ function productViewModel(
   productsById: ReadonlyMap<string, CatalogProduct>,
   product: CatalogProduct,
   locale: string,
-  settings: Readonly<Record<string, unknown>>,
   relatedCollection?: CatalogCollection,
-): PresentationViewModel | undefined {
+  settings: Readonly<Record<string, unknown>> = {},
+): ProductPageModel | undefined {
   const pricedProduct = activeVariantsWithDefaultMoney(product, release.site.defaultCurrency);
   if (!pricedProduct) return undefined;
-  const { money, variants } = pricedProduct;
+  const { variants } = pricedProduct;
+  const presentation = product.presentation;
+  const presentationMedia = product.media
+    .filter(({ id }) => !presentation?.detailMediaId || id !== presentation.detailMediaId)
+    .map(stripCatalogMediaId);
+  const selectedVariantId =
+    presentation?.defaultVariantId &&
+    variants.some(({ id }) => id === presentation.defaultVariantId)
+      ? presentation.defaultVariantId
+      : variants[0]!.id;
+  const selectedVariant = variants.find(({ id }) => id === selectedVariantId)!;
+  const money = selectedVariant.money;
   const optionGroups = new Map<string, string[]>();
   for (const variant of variants) {
     for (const [name, value] of Object.entries(variant.optionValues)) {
@@ -165,11 +179,27 @@ function productViewModel(
       optionGroups.set(name, values);
     }
   }
+  const hasExplicitOptionDefinitions = Boolean(
+    product.optionDefinitions && product.optionDefinitions.length > 0,
+  );
+  const optionDefinitions = hasExplicitOptionDefinitions
+    ? product.optionDefinitions!
+    : [...optionGroups].map(([name, values]) => ({
+        name,
+        presentation: "text" as const,
+        values: values.map((label) => ({ label })),
+      }));
+  const renderedOptionGroups = hasExplicitOptionDefinitions
+    ? optionDefinitions.map(({ name, values }) => ({
+        name,
+        values: values.map(({ label }) => label),
+      }))
+    : [...optionGroups].map(([name, values]) => ({ name, values }));
   const resource = presentationProductSchema.parse({
     availability: "unknown",
     id: product.id,
     kind: "product",
-    media: product.media,
+    media: presentationMedia,
     money,
     name: product.name,
     slug: product.slug,
@@ -188,25 +218,43 @@ function productViewModel(
       if (relatedProducts.length === 8) break;
     }
   }
-  return presentationViewModelSchema.parse({
+  const detailMedia = presentation?.detailMediaId
+    ? product.media.find(({ id }) => id === presentation.detailMediaId)
+    : undefined;
+  const shippingPolicy = release.policies.find(({ slug }) => slug === "shipping");
+  const returnsPolicy = release.policies.find(({ slug }) => slug === "returns");
+  return productViewModelSchema.parse({
     actions: [
       {
         id: "select-variant",
         intent: "variant.select",
         label: "Select variant",
-        value: variants[0]!.id,
+        value: selectedVariantId,
       },
     ],
+    brand: presentation?.brand,
     compareAtPriceLabel:
       money.compareAtAmount === undefined
         ? undefined
         : formatCommerceMoney(money.compareAtAmount, money.currency, locale),
-    description: requiredTextSetting(settings, "presentation-copy", product.description),
+    description: product.description,
+    descriptionDetail: {
+      bullets: presentation?.detail?.bullets ?? [],
+      eyebrow: presentation?.detail?.eyebrow,
+      heading: presentation?.detail?.heading ?? product.name,
+      media: detailMedia ? stripCatalogMediaId(detailMedia) : undefined,
+      text: presentation?.detail?.body ?? product.description,
+    },
     heading: product.name,
     kind: "product",
-    media: product.media,
-    optionGroups: [...optionGroups].map(([name, values]) => ({ name, values })),
+    media: presentationMedia,
+    optionDefinitions,
+    optionGroups: renderedOptionGroups,
+    paymentBrands: publicPaymentBrands.filter(
+      (brand) => settings[`payment-brand-${brand}`] === true,
+    ),
     priceLabel: formatCommerceMoney(money.amount, money.currency, locale),
+    publishedRoutes: release.routes,
     relatedProducts,
     relatedCollection: relatedCollection
       ? {
@@ -216,14 +264,71 @@ function productViewModel(
         }
       : undefined,
     resource,
+    siteName: release.site.name,
+    reviewSummary: {
+      averageRating: presentation?.reviewDisplay?.averageRating ?? 0,
+      count: presentation?.reviewDisplay?.count ?? 0,
+      label: `${presentation?.reviewDisplay?.count ?? 0} Reviews`,
+    },
+    reviews: presentation?.reviewDisplay?.entries ?? [],
+    shipping:
+      shippingPolicy && returnsPolicy
+        ? { returnBody: returnsPolicy.description, standard: shippingPolicy.description }
+        : undefined,
+    specifications: presentation?.specifications ?? [],
     state: "populated",
+    taxonomy: {
+      categories: relatedCollection ? [relatedCollection.name] : [],
+      tags: [],
+    },
     variants: variants.map((variant) => ({
+      compareAtPriceLabel:
+        variant.money.compareAtAmount === undefined
+          ? undefined
+          : formatCommerceMoney(variant.money.compareAtAmount, variant.money.currency, locale),
       id: variant.id,
       label: variant.title,
       optionValues: variant.optionValues,
-      selected: variants.length === 1,
+      priceLabel: formatCommerceMoney(variant.money.amount, variant.money.currency, locale),
+      selected: variant.id === selectedVariantId,
+      sku: variant.sku,
     })),
   });
+}
+
+export function composeProductPageModel(input: {
+  experience?: ExperienceSnapshot;
+  locale: string;
+  productId: string;
+  release: CanonicalCatalogRelease;
+  slug: string;
+}): ProductPageModel {
+  const release = canonicalCatalogReleaseSchema.parse(input.release);
+  const product = release.products.find(({ id }) => id === input.productId);
+  if (!product || product.slug !== input.slug || product.status !== "published") {
+    throw new Error("Product route identity does not match a published Catalog Release product.");
+  }
+  const productsById = new Map(release.products.map((candidate) => [candidate.id, candidate]));
+  const relatedCollection = release.collections.find(
+    ({ productIds, status }) => status === "published" && productIds.includes(product.id),
+  );
+  const productSettings = input.experience?.resolvedTemplates
+    .find(({ pageType }) => pageType === "product")
+    ?.sections.find(({ type, visible }) => visible && type === "fashion-store.product")?.settings;
+  const model = productViewModel(
+    release,
+    productsById,
+    product,
+    input.locale,
+    relatedCollection,
+    productSettings,
+  );
+  if (!model) {
+    throw new Error(
+      `Catalog product ${product.id} has no active variant price in ${release.site.defaultCurrency}.`,
+    );
+  }
+  return model;
 }
 
 function collectionViewModel(
@@ -274,7 +379,8 @@ function productCardViewModel(
   if (product.status !== "published") return [];
   const pricedProduct = activeVariantsWithDefaultMoney(product, defaultCurrency);
   if (!pricedProduct) return [];
-  const { money, variants } = pricedProduct;
+  const { variants } = pricedProduct;
+  const money = variants[0]!.money;
   const href = `/products/${product.slug}`;
   return [
     {
@@ -289,7 +395,7 @@ function productCardViewModel(
           : formatCommerceMoney(money.compareAtAmount, money.currency, locale),
       href,
       id: product.id,
-      media: product.media[0],
+      media: product.media[0] ? stripCatalogMediaId(product.media[0]) : undefined,
       name: product.name,
       priceLabel: formatCommerceMoney(money.amount, money.currency, locale),
       productId: product.id,
@@ -314,13 +420,20 @@ function productCardViewModel(
   ];
 }
 
+function stripCatalogMediaId(media: CatalogProduct["media"][number]) {
+  const { id: _id, ...presentationMedia } = media;
+  return presentationMedia;
+}
+
 function activeVariantsWithDefaultMoney(product: CatalogProduct, defaultCurrency: string) {
-  const variants = product.variants.filter(({ status }) => status === "active");
-  const prices = variants.map((variant) =>
-    variant.prices.find(({ currency }) => currency === defaultCurrency),
-  );
-  const money = prices[0];
-  return money && prices.every(Boolean) ? { money, variants } : undefined;
+  const activeVariants = product.variants.filter(({ status }) => status === "active");
+  const variants = activeVariants.flatMap((variant) => {
+    const money = variant.prices.find(({ currency }) => currency === defaultCurrency);
+    return money ? [{ ...variant, money }] : [];
+  });
+  return variants.length > 0 && variants.length === activeVariants.length
+    ? { variants }
+    : undefined;
 }
 
 function requiredTextSetting(
@@ -875,6 +988,7 @@ function composeDeclaredSections(input: {
         input.productsById,
         input.productsById.get(firstProduct.reference.id)!,
         input.locale,
+        undefined,
         section.settings,
       );
     } else if (contract.live.resolver === "home" && firstCollection && input.adapter) {
@@ -1183,20 +1297,16 @@ export function composeExperienceRoute(
     }
     if (binding.reference.kind === "product") {
       const product = productsById.get(binding.reference.id)!;
-      const relatedBinding = matches.find(
-        ({ reference, settingId }) =>
-          settingId === "related-collection" && reference.kind === "collection",
+      const relatedCollection = [...collectionsById.values()].find(
+        ({ productIds, status }) => status === "published" && productIds.includes(product.id),
       );
-      const relatedCollection = relatedBinding
-        ? collectionsById.get(relatedBinding.reference.id)
-        : [...collectionsById.values()].find(({ productIds }) => productIds.includes(product.id));
       const viewModel = productViewModel(
         release,
         productsById,
         product,
         input.locale,
-        instance.settings,
         relatedCollection,
+        instance.settings,
       );
       if (!viewModel) {
         diagnostics.push({

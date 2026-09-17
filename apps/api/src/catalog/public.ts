@@ -1,4 +1,8 @@
-import type { Product } from "@shoppp/contracts";
+import {
+  productOptionDefinitionsSchema,
+  productPresentationSchema,
+  type Product,
+} from "@shoppp/contracts";
 
 import { ApiError } from "../http/errors";
 
@@ -6,6 +10,8 @@ interface PublicProductRow {
   description: string;
   id: string;
   name: string;
+  option_definitions_json: string;
+  presentation_json: string | null;
   seo_description: string;
   seo_title: string;
   slug: string;
@@ -71,7 +77,7 @@ async function getLiveProductBy(
   const [productResult, variantsResult, mediaResult] = await db.batch([
     db
       .prepare(
-        `SELECT id, slug, name, description, status, seo_title, seo_description
+        `SELECT id, slug, name, description, option_definitions_json, presentation_json, status, seo_title, seo_description
          FROM products WHERE ${column} = ? AND status = 'published'`,
       )
       .bind(value),
@@ -132,6 +138,17 @@ async function getLiveProductBy(
       sku: variant.sku,
     };
   });
+  const storedOptionDefinitions = productOptionDefinitionsSchema.parse(
+    JSON.parse(product.option_definitions_json),
+  );
+  const optionDefinitions =
+    storedOptionDefinitions.length > 0
+      ? storedOptionDefinitions
+      : [...options].map(([name, values]) => ({
+          name,
+          presentation: "text" as const,
+          values: [...values].map((label) => ({ label })),
+        }));
   return {
     description: product.description,
     id: product.id,
@@ -144,7 +161,11 @@ async function getLiveProductBy(
       width: item.width,
     })),
     name: product.name,
+    optionDefinitions,
     options: [...options].map(([name, values]) => ({ name, values: [...values] })),
+    ...(product.presentation_json
+      ? { presentation: productPresentationSchema.parse(JSON.parse(product.presentation_json)) }
+      : {}),
     seo: { description: product.seo_description, title: product.seo_title },
     slug: product.slug,
     status: product.status,

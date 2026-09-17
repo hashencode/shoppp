@@ -3,6 +3,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { recordThemeBehaviorEvidence } from "./support/theme-behavior-evidence";
 import { expectFashionStoreProductComposition } from "./support/fashion-store-product-composition";
+import { fashionStoreProductParityProfile } from "../app/themes/fashion-store/contracts/pages/product";
 
 const sourceOrigin = `http://127.0.0.1:${Number(
   process.env.STOREFRONT_FASHION_STORE_SOURCE_PORT || 3427,
@@ -10,6 +11,53 @@ const sourceOrigin = `http://127.0.0.1:${Number(
 const productRoute = "/products/relaxed-corduroy-shirt";
 const galleryTransitionMs = 300;
 const geometryTolerancePx = 2;
+
+test("Product consumes the frozen historical Vue geometry profile", async ({ page }, testInfo) => {
+  const viewportName = isFashionStoreViewport(testInfo, "desktop")
+    ? "desktop"
+    : isFashionStoreViewport(testInfo, "mobile")
+      ? "mobile"
+      : undefined;
+  test.skip(!viewportName, "The frozen Product profile covers desktop and mobile.");
+
+  await prepareProduct(page);
+  const viewport = page.viewportSize()!;
+  const profile = fashionStoreProductParityProfile.viewports.find(
+    ({ viewport: frozenViewport }) =>
+      frozenViewport.width === viewport.width && frozenViewport.height === viewport.height,
+  );
+  expect(profile).toBeDefined();
+  if (!profile) throw new Error("Missing frozen Product viewport profile.");
+
+  const selectors = {
+    breadcrumb: ".breadcrumb",
+    footer: "footer",
+    gallery: ".fashion-product-gallery .row.overflow-hidden",
+    productInfo: ".product-info",
+    relatedHeading: ".fashion-product-related .row.mb-5",
+    tabs: ".fashion-product-tabs .nav-tabs",
+  } as const;
+  const documentSize = await page.evaluate(() => ({
+    height: document.documentElement.scrollHeight,
+    width: document.documentElement.scrollWidth,
+  }));
+  for (const dimension of ["height", "width"] as const) {
+    expect(Math.abs(documentSize[dimension] - profile.document[dimension])).toBeLessThanOrEqual(
+      profile.geometryTolerancePx,
+    );
+  }
+  for (const [name, selector] of Object.entries(selectors)) {
+    const actual = await page.locator(selector).first().boundingBox();
+    expect(actual, `${name} must exist`).not.toBeNull();
+    const expected = profile.geometry[name as keyof typeof profile.geometry];
+    for (const dimension of ["x", "y", "width", "height"] as const) {
+      expect(
+        Math.abs(actual![dimension] - expected[dimension]),
+        `${name}.${dimension}`,
+      ).toBeLessThanOrEqual(profile.geometryTolerancePx);
+    }
+  }
+});
 
 async function prepareProduct(page: Page, dismissCookie = true): Promise<void> {
   await page.goto(productRoute, { waitUntil: "networkidle" });
@@ -142,7 +190,8 @@ test("Product preserves source structure, facts, assets, and responsive geometry
   const product = page.locator("[data-fashion-store-product]");
   const viewport = page.viewportSize()!.width >= 992 ? "desktop" : "mobile";
   await expectFashionStoreProductComposition(page, {
-    colorChipCount: 3,
+    assurance: "source-shaped-empty",
+    expectedSwatches: ["#d4af37", "#5881bf", "#87a968"],
     name: "Relaxed corduroy shirt",
     relatedProductCount: 4,
     secondaryActionCount: 3,
@@ -151,23 +200,52 @@ test("Product preserves source structure, facts, assets, and responsive geometry
   await expect(product.locator(".product-image-thumb button")).toHaveCount(6);
   await expect(product.locator(".slider-product-prev, .slider-product-next")).toHaveCount(0);
   await expect(product.locator(".product-info")).toContainText("$85.00$65.00");
+  await expect(product.locator(".product-info")).toContainText("165 Reviews");
+  await expect(product.getByRole("tab", { name: "Reviews (3)" })).toHaveCount(1);
   await expect(product.locator("[role='tab']")).toHaveCount(4);
+  await expect(product.locator(".fashion-product-payments img")).toHaveCount(6);
+  await expect(product.locator(".fashion-product-payments")).not.toContainText(
+    "Payment methods are not available.",
+  );
+  const swatches = product.locator(".fashion-product-color-swatches [data-product-option-swatch]");
+  await expect(swatches).toHaveCount(3);
+  expect(
+    await swatches.evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const style = getComputedStyle(node);
+        const itemStyle = getComputedStyle(node.closest("li")!);
+        return {
+          border: style.borderStyle,
+          itemMarginRight: itemStyle.marginRight,
+          marginRight: style.marginRight,
+          nestedSpans: node.querySelectorAll("span").length,
+        };
+      }),
+    ),
+  ).toEqual([
+    { border: "none", itemMarginRight: "0px", marginRight: "6px", nestedSpans: 0 },
+    { border: "none", itemMarginRight: "0px", marginRight: "6px", nestedSpans: 0 },
+    { border: "none", itemMarginRight: "0px", marginRight: "6px", nestedSpans: 0 },
+  ]);
+  const optionInputs = product.locator(".fashion-product-option-input");
+  expect(await optionInputs.evaluateAll((inputs) => new Set(inputs.map(({ id }) => id)).size)).toBe(
+    await optionInputs.count(),
+  );
   const relatedCardActions = product.locator(
     "[data-fashion-store-product-card] .shop-hover button",
   );
-  await expect(relatedCardActions).toHaveCount(8);
+  await expect(relatedCardActions).toHaveCount(0);
+  await expect(product.locator("[data-fashion-store-product-card] .shop-footer a")).toHaveText([
+    "Textured sweater",
+    "Traveller shirt",
+    "Crewneck sweatshirt",
+    "Skinny trousers",
+  ]);
   expect(
-    await relatedCardActions.evaluateAll((controls) =>
-      controls.every((control) => {
-        const style = getComputedStyle(control);
-        return (
-          style.appearance === "none" &&
-          style.borderTopWidth === "0px" &&
-          style.paddingTop === "0px"
-        );
-      }),
-    ),
-  ).toBe(true);
+    await product
+      .locator("[data-fashion-store-product-card] a[href^='/products/']")
+      .evaluateAll((links) => new Set(links.map((link) => link.getAttribute("href"))).size),
+  ).toBe(4);
   await expect(page.locator("#cookies-model")).toBeVisible();
   await page.getByRole("button", { name: "Allow cookies" }).click();
   expect(
@@ -713,9 +791,9 @@ test("product-size-m interaction: options and quantity dispatch one bounded upda
   test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Interaction evidence runs once.");
   await prepareProduct(page);
   const product = page.locator("[data-fashion-store-product]");
-  await page.locator("label[for='product-size-m']").click();
+  await page.getByRole("radio", { name: "M", exact: true }).check();
   await expect(product).toHaveAttribute("data-option-update-count", "1");
-  await page.locator("#product-color-blue").focus();
+  await page.getByRole("radio", { name: "Blue", exact: true }).focus();
   await page.keyboard.press("Space");
   await expect(product).toHaveAttribute("data-option-update-count", "2");
   await page.getByRole("button", { name: "Increase quantity" }).click();
@@ -775,7 +853,7 @@ test("Product fixture quantity normalization preserves bounded values without Co
   expect(commerceRequests).toEqual([]);
 });
 
-test("Product fixture updates the shared cart without reaching Commerce", async ({
+test("Product release-backed preview updates the shared cart without reaching Commerce", async ({
   page,
 }, testInfo) => {
   test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Commerce evidence runs once.");
@@ -794,7 +872,7 @@ test("Product fixture updates the shared cart without reaching Commerce", async 
   const headerCartCount = page.locator(".header-cart .cart-count");
   await expect(headerCartCount).toHaveText("0");
   await page.getByRole("button", { name: "Increase quantity" }).click();
-  await page.locator(".product-info").getByRole("button", { name: "Add to wishlist" }).click();
+  await expect(page.getByRole("button", { name: "Wishlist unavailable" })).toBeDisabled();
   const addToCart = page.locator(".product-info .btn-cart");
   await addToCart.focus();
   await page.keyboard.press("Enter");
@@ -807,7 +885,7 @@ test("Product fixture updates the shared cart without reaching Commerce", async 
   expect(requestBody).toBeUndefined();
   await expect(page.locator("[data-fashion-store-product]")).toHaveAttribute(
     "data-preview-intent-count",
-    "2",
+    "1",
   );
   await expect(headerCartCount).toHaveText("2");
   await expect(page.getByText(/preview cart intent|No Commerce/i)).toHaveCount(0);
@@ -826,7 +904,7 @@ test("Product fixture updates the shared cart without reaching Commerce", async 
   });
 });
 
-test("product-reviews-tab interaction: tabs are keyboard operable and unsupported reviews stay truthful", async ({
+test("product-reviews-tab interaction: tabs are keyboard operable and released review state stays truthful", async ({
   page,
 }, testInfo) => {
   test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Interaction evidence runs once.");
@@ -836,9 +914,9 @@ test("product-reviews-tab interaction: tabs are keyboard operable and unsupporte
   await page.keyboard.press("ArrowRight");
   await expect(page.getByRole("tab", { name: "Additional information" })).toBeFocused();
   await page.getByRole("tab", { name: "Reviews (0)" }).click();
-  await expect(page.getByRole("tabpanel", { name: "Reviews (0)" })).toContainText(
-    "No published reviews are available.",
-  );
+  const reviews = page.getByRole("tabpanel", { name: "Reviews (0)" });
+  await expect(reviews).toContainText("No published reviews are available.");
+  await expect(reviews).not.toContainText("Customer feedback from the product fixture.");
   await expect(page.getByRole("button", { name: "Submit review" })).toHaveCount(0);
   recordThemeBehaviorEvidence(testInfo, {
     actionOutcome: true,

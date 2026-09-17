@@ -4,6 +4,7 @@ import type {
   ThemeManifest,
 } from "@shoppp/contracts";
 import { coreBlockDefinitions, coreSectionDefinitions } from "../../theme-engine/core-manifest";
+import { publicPaymentBrands } from "../../theme-engine/view-models";
 import { fashionStoreTemplatePageTypes } from "./page-contracts";
 import {
   FASHION_STORE_SUCCESSOR_CONFIGURATION_SCHEMA_VERSION,
@@ -384,6 +385,14 @@ const settingsByPageType = {
     ),
   ],
   product: [
+    ...publicPaymentBrands.map((brand) =>
+      boolean(
+        `payment-brand-${brand}`,
+        `Show ${brand} payment brand`,
+        "Public Product-page payment presentation only; enable after confirming checkout support.",
+        false,
+      ),
+    ),
     text(
       "presentation-copy",
       "Presentation copy",

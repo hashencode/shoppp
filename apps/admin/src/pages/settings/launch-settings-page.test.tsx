@@ -77,19 +77,25 @@ afterEach(() => {
   server.resetHandlers()
 })
 afterAll(() => server.close())
-const renderPage = (writable = true) =>
+const renderPage = (writable = true, initialEntry = '/settings/launch?from=setup-guide#payment') =>
   renderInLocale(
     <AuthTestProvider
       permissions={writable ? ['settings.read', 'settings.write'] : ['settings.read']}
     >
       <ThemeProvider>
-        <MemoryRouter initialEntries={['/settings/launch?from=setup-guide#payment']}>
+        <MemoryRouter initialEntries={[initialEntry]}>
           <LaunchSettingsPage />
         </MemoryRouter>
       </ThemeProvider>
     </AuthTestProvider>
   )
 describe('LaunchSettingsPage', () => {
+  it('does not show environment or setup-guide promotion', async () => {
+    renderPage(true, '/settings/launch')
+    await screen.findByLabelText('Support email')
+    expect(screen.queryByText('Staging')).toBeNull()
+    expect(screen.queryByRole('link', { name: 'View store setup checks' })).toBeNull()
+  })
   it('saves the complete configuration and reason even when health fails', async () => {
     server.use(
       http.get('*/admin/operations/health', () =>

@@ -35,15 +35,41 @@ describe("storefront build manifest", () => {
           description: "Published product",
           collectionSlugs: ["travel"],
           id: "prd_01J00000000000000000000000",
-          media: [],
+          media: [
+            {
+              alt: "Carry-on detail",
+              height: 1200,
+              id: "med_01J00000000000000000000000",
+              src: "https://media.example.test/carry-on.webp",
+              width: 900,
+            },
+          ],
           name: "Carry-on",
+          optionDefinitions: [
+            {
+              name: "Color",
+              presentation: "color",
+              values: [{ label: "Blue", swatch: "#5881bf" }],
+            },
+          ],
+          presentation: {
+            brand: "Shoppp",
+            defaultVariantId: "var_01J00000000000000000000000",
+            detail: {
+              body: "Built for frequent travel.",
+              bullets: ["Durable shell"],
+              heading: "Designed for the journey",
+            },
+            detailMediaId: "med_01J00000000000000000000000",
+            specifications: [{ label: "Capacity", value: "38 L" }],
+          },
           seoDescription: "Carry-on SEO",
           seoTitle: "Carry-on",
           slug: "carry-on",
           status: "published",
           variants: [
             {
-              optionValues: {},
+              optionValues: { Color: "Blue" },
               id: "var_01J00000000000000000000000",
               prices: [{ amount: 12_900, compareAtAmount: 15_000, currency: "USD" }],
               sku: "ACTIVE",
@@ -69,6 +95,7 @@ describe("storefront build manifest", () => {
           id: "prd_01J00000000000000000000001",
           media: [],
           name: "Draft",
+          optionDefinitions: [],
           seoDescription: "Draft SEO",
           seoTitle: "Draft",
           slug: "draft",
@@ -118,7 +145,20 @@ describe("storefront build manifest", () => {
     expect(manifest.schemaVersion).toBe(2);
     expect(manifest.products[0]).toMatchObject({
       collectionIds: ["col_01J00000000000000000000000"],
+      optionDefinitions: [
+        {
+          name: "Color",
+          presentation: "color",
+          values: [{ label: "Blue", swatch: "#5881bf" }],
+        },
+      ],
       id: "prd_01J00000000000000000000000",
+      presentation: {
+        brand: "Shoppp",
+        defaultVariantId: "var_01J00000000000000000000000",
+        detailMediaId: "med_01J00000000000000000000000",
+        specifications: [{ label: "Capacity", value: "38 L" }],
+      },
     });
     expect(manifest.collections[0]).toMatchObject({
       id: "col_01J00000000000000000000000",

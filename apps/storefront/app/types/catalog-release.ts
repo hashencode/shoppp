@@ -1,4 +1,5 @@
 import type {
+  CanonicalCatalogRelease,
   CanonicalCatalogReleaseCollection,
   CanonicalCatalogReleaseProduct,
   LegacyCatalogReleaseCollection,
@@ -13,7 +14,8 @@ export type CanonicalStorefrontCollection = CanonicalCatalogReleaseCollection;
 
 export interface StorefrontProductPage {
   readonly collection: Pick<StorefrontCollection, "name" | "slug"> | null;
-  readonly product: StorefrontProduct;
+  readonly product: CanonicalStorefrontProduct;
+  readonly release: CanonicalCatalogRelease;
 }
 
 export interface StorefrontCollectionPage {

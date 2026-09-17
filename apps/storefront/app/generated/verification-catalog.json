@@ -1,100 +1,51 @@
 {
   "collections": [
     {
-      "name": "Fashion Store",
-      "slug": "fashion-store"
+      "name": "Travel essentials",
+      "slug": "travel-essentials"
     }
   ],
   "products": [
     {
-      "collectionName": "Fashion Store",
+      "collectionName": null,
+      "height": 1200,
+      "name": "Atlas Carry-on",
+      "slug": "atlas-carry-on",
+      "width": 1200
+    },
+    {
+      "collectionName": "Travel essentials",
+      "height": 765,
+      "name": "Relaxed corduroy shirt",
+      "slug": "relaxed-corduroy-shirt",
+      "width": 600
+    },
+    {
+      "collectionName": "Travel essentials",
       "height": 765,
       "name": "Textured sweater",
       "slug": "textured-sweater-01",
       "width": 600
     },
     {
-      "collectionName": "Fashion Store",
+      "collectionName": "Travel essentials",
       "height": 765,
       "name": "Traveller shirt",
       "slug": "traveller-shirt-02",
       "width": 600
     },
     {
-      "collectionName": "Fashion Store",
+      "collectionName": "Travel essentials",
       "height": 765,
       "name": "Crewneck sweatshirt",
       "slug": "crewneck-sweatshirt-03",
       "width": 600
     },
     {
-      "collectionName": "Fashion Store",
+      "collectionName": "Travel essentials",
       "height": 765,
       "name": "Skinny trousers",
       "slug": "skinny-trousers-04",
-      "width": 600
-    },
-    {
-      "collectionName": "Fashion Store",
-      "height": 765,
-      "name": "Sleeve sweater",
-      "slug": "sleeve-sweater-05",
-      "width": 600
-    },
-    {
-      "collectionName": "Fashion Store",
-      "height": 765,
-      "name": "Pocket sweatshirt",
-      "slug": "pocket-sweatshirt-06",
-      "width": 600
-    },
-    {
-      "collectionName": "Fashion Store",
-      "height": 765,
-      "name": "Cotton sweater",
-      "slug": "cotton-sweater-07",
-      "width": 600
-    },
-    {
-      "collectionName": "Fashion Store",
-      "height": 765,
-      "name": "Texture regular",
-      "slug": "texture-regular-08",
-      "width": 600
-    },
-    {
-      "collectionName": "Fashion Store",
-      "height": 765,
-      "name": "Sequined dress",
-      "slug": "sequined-dress-09",
-      "width": 600
-    },
-    {
-      "collectionName": "Fashion Store",
-      "height": 765,
-      "name": "Bermuda shorts",
-      "slug": "bermuda-shorts-10",
-      "width": 600
-    },
-    {
-      "collectionName": "Fashion Store",
-      "height": 765,
-      "name": "Traveller shirt",
-      "slug": "traveller-shirt-11",
-      "width": 600
-    },
-    {
-      "collectionName": "Fashion Store",
-      "height": 765,
-      "name": "Textured sweater",
-      "slug": "textured-sweater-12",
-      "width": 600
-    },
-    {
-      "collectionName": "Fashion Store",
-      "height": 765,
-      "name": "Relaxed corduroy shirt",
-      "slug": "relaxed-corduroy-shirt",
       "width": 600
     }
   ]

@@ -21,17 +21,17 @@ current_unit: FS-F9-U4
 - **Inherited baseline:** FS-R5 R1-R15, KD1-KD3, and its Product action/data contracts remain in force. The immutable visual references are `apps/storefront/app/themes/fashion-store/upstream/demo-fashion-store-single-product.html` and the Product component immediately before commit `159fec57`.
 - **Explicit supersession:** This plan supersedes only FS-R5's Product visual-acceptance and U3 completion claim where the implementation diverged from the accepted non-live baseline. It does not supersede the shared component identity, two-provider boundary, Catalog/Commerce authority, truthful-absence policy, or completed non-Product convergence work.
 - **Parallel plans:** `REL-Pre-DC` remains the release-readiness authority and is paused as the preserved return pointer while FS-F9 is active. Completed Admin plans and unrelated Admin working-tree changes are outside this plan.
-- **Tail ownership:** Green FS-F9-U4 returns authority to `REL-Pre-DC`. Candidate selection, DC evidence, deployment, and PG state remain with REL.
+- **Tail ownership:** Human review rejected FS-F9-U4 on 2026-09-16. `FS-F11` supersedes the rejected FS-F10 attempt and owns the single-path Product correction before any return to `REL-Pre-DC`; candidate selection, DC evidence, deployment, and PG state remain with REL.
 
 ### Execution Checkpoint
 
-- **Classification:** Active bounded Fashion Product visual correction.
-- **Current unit:** `FS-F9-U4` — automated parity, review, and repository gates are complete; matched-viewport human approval remains before returning authority to REL.
+- **Classification:** Superseded after rejected human visual review; automated evidence remains retained but FS-F9 is not complete.
+- **Current unit:** `FS-F9-U4` — stopped without completion because the 2026-09-16 human review found the right-hand action/content area, lower detail content, and text-only color treatment materially incomplete.
 - **Completed units:** `FS-F9-U1` through `FS-F9-U3` — immutable contract/red characterization, provider-neutral state reconciliation, and shared renderer restoration evidence are retained in [`docs/progress/fashion-store-product-visual-regression.md`](../progress/fashion-store-product-visual-regression.md).
-- **Next unit:** `FS-F9-U4`.
-- **Blocker:** Human approval of the retained source/fixture/live desktop and mobile comparisons is pending.
-- **Next concrete action:** Review the corrected matched-viewport evidence in `test-results/u4-product-human-review/20260915T152838Z-corrected/` and approve it or identify a concrete mismatched region; approval authorizes the FS-F9-U4 completion handback.
-- **Completion handback:** `FS-F9-U4` returns to `REL-Pre-DC` without freezing or promoting a release candidate.
+- **Next unit:** None in FS-F9; successor execution continues in `FS-F11-U7`.
+- **Blocker:** The retained automated gates encoded an incomplete Product contract and cannot authorize handback.
+- **Next concrete action:** Resolve the independent-review findings and complete aggregate proof plus matched human review in [`FS-F11`](2026-09-16-1337-refactor-fashion-store-live-product-plan.md); retain FS-F10 only as intermediate history.
+- **Completion handback:** Withdrawn. Only human-approved `FS-F11-U7` may return to `REL-Pre-DC`.
 
 ---
 

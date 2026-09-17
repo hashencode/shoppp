@@ -25,13 +25,11 @@ import {
 } from "./support/fashion-store-presentation-boundary";
 import {
   fashionStoreProductPresentationSchema,
-  normalizeFashionStoreFixtureProductPresentation,
-  normalizeFashionStoreLiveProductPresentation,
+  normalizeFashionStoreProductPresentation,
   type FashionStoreProductActionPort,
 } from "../app/themes/fashion-store/contracts/product-card";
 import { resolveFashionStoreMerchandising } from "../app/themes/fashion-store/contracts/home-merchandising";
 import { resolveFashionStoreHomeSectionContext } from "../app/themes/fashion-store/components/sections/home-section-context";
-import { fashionStoreProductData } from "../app/themes/fashion-store/fixtures/pages/product";
 
 describe("storefront experience fixtures", () => {
   test("validates representative fixtures for every page type and meaningful state", () => {
@@ -275,36 +273,16 @@ describe("storefront experience fixtures", () => {
     expect(diagnostics).toEqual([]);
   });
 
-  test("normalizes equivalent fixture and live products into one Fashion render shape", () => {
-    const fixture = normalizeFashionStoreFixtureProductPresentation({
-      data: fashionStoreProductData,
-      productId: "fixture-relaxed-shirt",
-      slug: "relaxed-shirt",
-      variants: [
-        {
-          availability: "out-of-stock",
-          compareAtPriceLabel: "$85.00",
-          id: "fixture-relaxed-shirt-blue",
-          label: "Blue",
-          optionValues: { Color: "Blue" },
-          priceLabel: "$65.00",
-          selected: false,
-          sku: "FIXTURE-BLUE",
-        },
-        {
-          availability: "in-stock",
-          id: "fixture-relaxed-shirt-green",
-          label: "Green",
-          optionValues: { Color: "Green" },
-          priceLabel: "$72.00",
-          selected: true,
-          sku: "FIXTURE-GREEN",
-        },
-      ],
-    });
-    const live = normalizeFashionStoreLiveProductPresentation({
+  test("normalizes the canonical ProductPageModel into the Fashion render shape", () => {
+    const product = normalizeFashionStoreProductPresentation({
       actions: [{ id: "select", intent: "variant.select", label: "Select", value: "live-blue" }],
+      brand: "Atelier",
       description: "Release-owned description.",
+      descriptionDetail: {
+        bullets: ["Soft washed finish"],
+        heading: "Relaxed detail",
+        text: "Release-owned detail.",
+      },
       heading: "Relaxed shirt",
       kind: "product",
       media: [
@@ -317,7 +295,10 @@ describe("storefront experience fixtures", () => {
       ],
       optionGroups: [{ name: "Color", values: ["Blue"] }],
       priceLabel: "$65.00",
+      publishedRoutes: ["/", "/products/relaxed-shirt"],
       relatedProducts: [],
+      reviewSummary: { count: 0, label: "0 Reviews" },
+      siteName: "Fashion Store",
       resource: {
         availability: "unknown",
         id: "prod_01JFIXTURETEST000000000001",
@@ -335,31 +316,29 @@ describe("storefront experience fixtures", () => {
         slug: "relaxed-shirt",
         variantIds: ["var_01JFIXTURETEST0000000000001"],
       },
+      specifications: [{ label: "Material", value: "Cotton" }],
       state: "populated",
+      taxonomy: { categories: ["Shirts"], tags: [] },
       variants: [
         {
           id: "live-blue",
           label: "Blue",
           optionValues: { Color: "Blue" },
+          priceLabel: "$65.00",
           selected: false,
         },
         {
           id: "live-green",
           label: "Green",
           optionValues: { Color: "Green" },
+          priceLabel: "$65.00",
           selected: true,
         },
       ],
     });
 
-    expect(Object.keys(fixture).sort()).toEqual(Object.keys(live).sort());
-    expect(fashionStoreProductPresentationSchema.parse(fixture)).toEqual(fixture);
-    expect(fashionStoreProductPresentationSchema.parse(live)).toEqual(live);
-    expect(fixture.gallery[0]).toEqual({
-      kind: "theme-asset",
-      path: fashionStoreProductData.gallery[0],
-    });
-    expect(live.gallery[0]).toEqual({
+    expect(fashionStoreProductPresentationSchema.parse(product)).toEqual(product);
+    expect(product.gallery[0]).toEqual({
       alt: "Relaxed shirt",
       height: 800,
       kind: "url",
@@ -368,88 +347,64 @@ describe("storefront experience fixtures", () => {
     });
     expect(
       fashionStoreProductPresentationSchema.safeParse({
-        ...live,
-        gallery: [{ ...live.gallery[0]!, src: "/media/relaxed-shirt.jpg" }],
+        ...product,
+        gallery: [{ ...product.gallery[0]!, src: "/media/relaxed-shirt.jpg" }],
       }).success,
     ).toBe(true);
     expect(
       fashionStoreProductPresentationSchema.safeParse({
-        ...live,
-        gallery: [{ ...live.gallery[0]!, src: "//evil.example/relaxed-shirt.jpg" }],
+        ...product,
+        gallery: [{ ...product.gallery[0]!, src: "//evil.example/relaxed-shirt.jpg" }],
       }).success,
     ).toBe(false);
-    expect(fixture.optionalRegions).toEqual({
+    expect(product.optionalRegions).toEqual({
       assurance: "hidden",
       delivery: "hidden",
       reviews: "source-shaped-empty",
       shipping: "source-shaped-empty",
-      specifications: "source-shaped-empty",
-      taxonomy: "hidden",
+      specifications: "populated",
+      taxonomy: "populated",
     });
-    expect(live.optionalRegions).toEqual(fixture.optionalRegions);
-    expect(fixture.variants.find(({ selected }) => selected)).toMatchObject({
-      availability: "in-stock",
-      id: "fixture-relaxed-shirt-green",
-      priceLabel: "$72.00",
-      sku: "FIXTURE-GREEN",
-    });
-    const selectedLiveVariant = live.variants.find(({ selected }) => selected);
+    const selectedLiveVariant = product.variants.find(({ selected }) => selected);
     expect(selectedLiveVariant).toMatchObject({ id: "live-green" });
     expect(selectedLiveVariant).not.toHaveProperty("sku");
-    for (const normalized of [fixture, live]) {
-      expect(normalized).not.toHaveProperty("reviews");
-      expect(normalized).not.toHaveProperty("shipping");
-      expect(normalized).not.toHaveProperty("specifications");
-      expect(normalized).not.toHaveProperty("payments");
-      expect(normalized).not.toHaveProperty("brand");
-    }
-    expect(live.productId).toBe("prod_01JFIXTURETEST000000000001");
-    expect(fixture.relatedProducts[0]).toMatchObject({
-      actionState: { kind: "available" },
-      destination: {
-        href: `/products/${fashionStoreProductData.related[0]?.id}`,
-        kind: "available",
-      },
-      media: { kind: "theme-asset" },
-      name: fashionStoreProductData.related[0]?.name,
-      priceLabel: fashionStoreProductData.related[0]?.price,
-    });
-    expect(fixture).not.toHaveProperty("actions");
+    expect(product.productId).toBe("prod_01JFIXTURETEST000000000001");
+    expect(product.taxonomy).toEqual({ categories: ["Shirts"], tags: [] });
     expect(() =>
-      normalizeFashionStoreLiveProductPresentation({
-        ...live,
+      normalizeFashionStoreProductPresentation({
+        ...product,
         actions: [],
-        heading: live.name,
+        heading: product.name,
         kind: "product",
         media: [],
         optionGroups: [],
-        priceLabel: live.priceLabel,
+        priceLabel: product.priceLabel,
         relatedProducts: [],
         resource: undefined,
-        variants: live.variants,
+        variants: product.variants,
       }),
     ).toThrow("requires a Catalog product resource");
     expect(() =>
-      normalizeFashionStoreLiveProductPresentation({
-        ...live,
+      normalizeFashionStoreProductPresentation({
+        ...product,
         actions: [],
         heading: " ",
         kind: "product",
         media: [],
         optionGroups: [],
-        priceLabel: live.priceLabel,
+        priceLabel: product.priceLabel,
         relatedProducts: [],
         resource: {
           availability: "unknown",
-          id: live.productId,
+          id: product.productId,
           kind: "product",
           media: [],
           money: { amount: 6500, currency: "USD" },
-          name: live.name,
-          slug: live.slug,
-          variantIds: live.variants.map(({ id }) => id),
+          name: product.name,
+          slug: product.slug,
+          variantIds: product.variants.map(({ id }) => id),
         },
-        variants: live.variants,
+        variants: product.variants,
       }),
     ).toThrow();
   });

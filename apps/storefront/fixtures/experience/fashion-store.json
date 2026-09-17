@@ -132,6 +132,14 @@
     }
   ],
   "experienceId": "experience-fashion-store-fixture",
+  "productPaymentBrands": [
+    "visa",
+    "mastercard",
+    "american-express",
+    "discover",
+    "diners-club",
+    "union-pay"
+  ],
   "snapshotId": "snapshot-fashion-store-fixture-1",
   "version": 1
 }

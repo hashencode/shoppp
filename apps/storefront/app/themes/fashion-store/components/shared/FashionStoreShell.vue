@@ -18,11 +18,13 @@ const properties = withDefaults(
   defineProps<{
     announcement?: string;
     announcementLink?: PresentationShellViewModel["announcementLink"];
+    brandName?: string;
     contentLayout?: "source" | "wide";
     variant?: "home" | "page";
     footer?: PresentationShellViewModel["footer"];
     header?: PresentationShellViewModel["header"];
     preloadImage?: string;
+    publishedRoutes?: readonly string[];
     previewIntentCount?: number;
     resolveAsset: ThemeAssetResolver;
     showStickySocials?: boolean;
@@ -53,7 +55,7 @@ const searchOpen = ref(false);
 const noScriptMarkup = `<div class="container pt-15px pb-15px" role="region" aria-label="JavaScript limitations">
   <p>Catalog content and canonical destinations remain available without JavaScript.</p>
   <p>Shopping actions require JavaScript. Enable it to change a cart or begin checkout.</p>
-  <a href="/shop">Browse the published catalog</a>
+  <a href="/">Return to the storefront</a>
 </div>`;
 const sourceInlineGap = " ";
 const visualRuntime = useFashionStoreVisualRuntime();
@@ -169,14 +171,18 @@ onMounted(() => {
     ref="headerHandle"
     :announcement="announcement"
     :announcement-link="announcementLink"
+    :brand-name="brandName"
     :configuration="header"
     :background="variant === 'home' ? 'transparent-overlay' : 'solid'"
     :resolve-asset="resolveAsset"
+    :published-routes="publishedRoutes"
     @search-open-change="searchOpen = $event"
   />
   <slot />
   <FashionStoreFooter
+    :brand-name="brandName"
     :configuration="footer"
+    :published-routes="publishedRoutes"
     :resolve-asset="resolveAsset"
     :source-asset="sourceAsset"
   />

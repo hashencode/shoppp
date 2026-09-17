@@ -133,6 +133,7 @@ await Promise.all(
         {
           collection: collection ? { name: collection.name, slug: collection.slug } : null,
           product,
+          release,
         },
       )} satisfies StorefrontProductPage\n`,
     );

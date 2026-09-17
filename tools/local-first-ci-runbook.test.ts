@@ -245,7 +245,7 @@ describe("GitHub-managed cloud CI operations contract", () => {
     expect(recoveryText).toContain("production mutation remains disabled");
   });
 
-  test("hands the product master pointer to REL-Pre-DC after Fashion closure", async () => {
+  test("tracks the active Fashion successor while preserving the REL-Pre-DC return pointer", async () => {
     const [contents, fashionContents] = await Promise.all([productMasterPlan, fashionPlan]);
     const frontmatter = contents.slice(0, contents.indexOf("\n---", 4) + 4);
     const pointer = markdownSection(contents, "Current execution pointer");
@@ -253,16 +253,25 @@ describe("GitHub-managed cloud CI operations contract", () => {
     const fashionCheckpoint = markdownSection(fashionContents, "Execution Checkpoint");
 
     expect(frontmatter).toContain(
-      "current_plan: 2026-08-12-003-refactor-development-candidate-readiness-plan.md",
+      "current_plan: 2026-09-16-1337-refactor-fashion-store-live-product-plan.md",
     );
-    expect(frontmatter).toContain("current_unit: REL-Pre-DC");
-    expect(pointer).toContain("**Current parent/child stage:** `REL-Pre-DC`");
+    expect(frontmatter).toContain("current_unit: FS-F11-U7.2");
+    expect(pointer).toContain("**Current parent/child stage:** `FS-F11-U7.2`");
+    expect(pointer).toContain("`REL-Pre-DC` is the preserved return pointer");
 
     const activeRows = markdownTableRows(register).filter((row) =>
       row.some((cell) => cell.includes("**Active at blocked `REL-Pre-DC`")),
     );
     expect(activeRows).toHaveLength(1);
     expect(activeRows[0]![0]).toBe("`REL`");
+
+    const productFidelity = tableRow(register, "`FS-F10`");
+    expect(productFidelity[3]).toContain("**Superseded incomplete");
+    expect(productFidelity[4]).toContain("`FS-F11` owns the Product convergence");
+
+    const singleLiveProduct = tableRow(register, "`FS-F11`");
+    expect(singleLiveProduct[3]).toContain("**Active at U7");
+    expect(singleLiveProduct[4]).toContain("authority return to `REL-Pre-DC`");
 
     const fashion = tableRow(register, "`FS`");
     expect(fashion[3]).toContain("**Complete");

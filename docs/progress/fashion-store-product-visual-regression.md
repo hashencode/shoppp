@@ -75,3 +75,15 @@ candidate identity, DC state, deployment state, or PG state.
   Storefront typecheck, targeted lint/format, and `git diff --check` passed after the review fixes.
 - U4 remains open only for the plan-mandated human matched-viewport approval. Automated checks and
   screenshots do not replace that decision and no candidate, DC, deployment, or PG state advanced.
+
+## 2026-09-16 — U4 human rejection and successor handoff
+
+- Human review rejected the retained result. The Product page still lacked substantial right-hand
+  action/content and lower detail content, and Color options rendered as text rather than their
+  authoritative colors.
+- The rejection invalidates FS-F9-U4 completion and handback even though its automated gates were
+  green. Those gates are retained as evidence, not promoted to completion authority.
+- `FS-F10` supersedes the text-only color adaptation, hard-coded fixture absence policy, and FS-F9
+  boundary that excluded Admin/Catalog option metadata. It will use the frozen pre-regression Git
+  component as the implementation donor and the upstream HTML only as a parity verifier.
+- No candidate, DC, remote release, deployment, or PG state advanced.

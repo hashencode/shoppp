@@ -14,7 +14,7 @@ import {
 
 const repositoryRoot = new URL("..", import.meta.url).pathname;
 const reviewedResetPayloadDigest =
-  "bf116620e09d1ce40623a7dd596b09da80939e8a74c1a4efba2792913ba63ba8";
+  "aa9ef56377f27035ad122a2640bf5ada6ca60c052d489a176b4cb041491e92fb";
 
 function copyCatalog(catalog: FashionStoreLiveCatalog): FashionStoreLiveCatalog {
   return structuredClone(catalog);
@@ -33,6 +33,29 @@ describe("Fashion Store live catalog manifest", () => {
     expect(variants).toHaveLength(24);
     expect(shopProducts).toHaveLength(12);
     expect(relaxed?.variants).toHaveLength(12);
+    expect(relaxed?.optionDefinitions).toEqual([
+      {
+        name: "color",
+        presentation: "color",
+        values: [
+          { label: "gold", swatch: "#d4af37" },
+          { label: "blue", swatch: "#5881bf" },
+          { label: "green", swatch: "#87a968" },
+        ],
+      },
+      {
+        name: "size",
+        presentation: "text",
+        values: [{ label: "S" }, { label: "M" }, { label: "L" }, { label: "XL" }],
+      },
+    ]);
+    expect(
+      catalog.products
+        .filter(({ id }) => id !== relaxed?.id)
+        .every(({ optionDefinitions }) =>
+          optionDefinitions.every(({ presentation }) => presentation === "text"),
+        ),
+    ).toBe(true);
     expect(
       relaxed?.variants.map(
         (variant) => `${variant.optionValues.color}:${variant.optionValues.size}`,
@@ -141,6 +164,14 @@ describe("Fashion Store live catalog manifest", () => {
     await expect(verifyFashionStoreLiveCatalogMedia(missingMedia, repositoryRoot)).rejects.toThrow(
       "missing media",
     );
+
+    const inferredColor = copyCatalog(catalog);
+    inferredColor.products[0]!.optionDefinitions[0] = {
+      name: "color",
+      presentation: "color",
+      values: [{ label: "Blue" }],
+    };
+    expect(() => validateFashionStoreLiveCatalog(inferredColor)).toThrow();
   });
 
   test("produces a stable digest for identical reviewed input", async () => {
@@ -161,6 +192,12 @@ describe("Fashion Store live catalog manifest", () => {
 
     expect(plan.shopperRelease.products).toHaveLength(13);
     expect(plan.shopperRelease.products.flatMap(({ variants }) => variants)).toHaveLength(24);
+    expect(
+      plan.shopperRelease.products.find(({ slug }) => slug === "relaxed-corduroy-shirt")
+        ?.optionDefinitions,
+    ).toEqual(
+      catalog.products.find(({ slug }) => slug === "relaxed-corduroy-shirt")?.optionDefinitions,
+    );
     expect(plan.acceptanceRelease.products).toHaveLength(1);
     expect(plan.shopperRelease.products).not.toContainEqual(
       expect.objectContaining({ id: plan.applyInput.acceptanceProduct.id }),

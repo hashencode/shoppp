@@ -31,6 +31,13 @@ const product = {
   id: "prd_01J00000000000000000000000",
   media: [],
   name: "Travel Bottle",
+  optionDefinitions: [
+    {
+      name: "Size",
+      presentation: "text",
+      values: [{ label: "500ml" }],
+    },
+  ],
   options: [{ name: "Size", values: ["500ml"] }],
   seo: {
     description: "A durable travel bottle.",

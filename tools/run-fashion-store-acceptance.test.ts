@@ -50,6 +50,16 @@ describe("Fashion Store page acceptance routing", () => {
     ]);
   });
 
+  test("selects one acceptance stage without duplicating its page or test ledger", () => {
+    const unit = buildFashionStoreAcceptancePlan({ scope: "theme", stage: "unit" });
+    const behavior = buildFashionStoreAcceptancePlan({ scope: "theme", stage: "behavior" });
+
+    expect(unit.steps.map(({ label }) => label)).toEqual(["theme/unit"]);
+    expect(behavior.pages).toHaveLength(15);
+    expect(behavior.steps).toHaveLength(15);
+    expect(behavior.steps.every(({ label }) => label.endsWith("/behavior-evidence"))).toBe(true);
+  });
+
   test("restores every generated storefront selection file after acceptance", () => {
     expect(fashionStoreGeneratedStateFiles().map((path) => path.split("/").at(-1))).toEqual([
       "active-theme.ts",

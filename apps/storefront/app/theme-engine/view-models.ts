@@ -4,6 +4,7 @@ import {
   presentationCollectionSchema,
   presentationMediaSchema,
   presentationProductSchema,
+  productOptionDefinitionsSchema,
   publicIdSchema,
   storefrontLinkTargetBehaviorSchema,
   storefrontIdentifierSchema,
@@ -19,7 +20,7 @@ import { previewActionSchema } from "./actions";
 const stateShape = {
   state: fixtureStateSchema,
 };
-const headingSchema = z.string().trim().min(1).max(160);
+const headingSchema = z.string().trim().min(1).max(300);
 const copySchema = z.string().trim().min(1).max(2_000);
 const safeMediaSourceSchema = z
   .string()
@@ -97,6 +98,15 @@ const productSummarySchema = z
     priceLabel: z.string().trim().min(1).max(80),
   })
   .strict();
+
+export const publicPaymentBrands = [
+  "visa",
+  "mastercard",
+  "american-express",
+  "discover",
+  "diners-club",
+  "union-pay",
+] as const;
 
 export const presentationProductCardSchema = z
   .object({
@@ -275,15 +285,26 @@ const footerViewModelSchema = z
     summary: copySchema,
   })
   .strict();
-const productViewModelSchema = z
+export const productViewModelSchema = z
   .object({
     ...stateShape,
     actions: z.array(previewActionSchema).min(1).max(8),
+    brand: z.string().trim().min(1).max(160).optional(),
     compareAtPriceLabel: z.string().trim().min(1).max(80).optional(),
-    description: copySchema,
+    description: z.string().trim().min(1).max(50_000),
+    descriptionDetail: z
+      .object({
+        bullets: z.array(z.string().trim().min(1).max(500)).max(20),
+        eyebrow: z.string().trim().min(1).max(160).optional(),
+        heading: z.string().trim().min(1).max(300),
+        media: mediaSchema.optional(),
+        text: z.string().trim().min(1).max(20_000),
+      })
+      .strict(),
     heading: headingSchema,
     kind: z.literal("product"),
-    media: z.array(mediaSchema).max(12),
+    media: z.array(mediaSchema).max(50),
+    optionDefinitions: productOptionDefinitionsSchema.optional(),
     optionGroups: z
       .array(
         z
@@ -294,7 +315,9 @@ const productViewModelSchema = z
           .strict(),
       )
       .max(20),
+    paymentBrands: z.array(z.enum(publicPaymentBrands)).max(publicPaymentBrands.length).optional(),
     priceLabel: z.string().trim().min(1).max(80),
+    publishedRoutes: z.array(z.string().startsWith("/")).max(1_000),
     relatedProducts: z.array(presentationProductCardSchema).max(8).default([]),
     relatedCollection: z
       .object({
@@ -305,6 +328,46 @@ const productViewModelSchema = z
       .strict()
       .optional(),
     resource: presentationProductSchema.optional(),
+    siteName: headingSchema,
+    reviewSummary: z
+      .object({
+        averageRating: z.number().min(0).max(5).default(0),
+        count: z.number().int().nonnegative(),
+        label: z.string().trim().min(1).max(80),
+      })
+      .strict(),
+    reviews: z
+      .array(
+        z
+          .object({
+            author: z.string().trim().min(1).max(160),
+            date: z.string().trim().min(1).max(160),
+            text: z.string().trim().min(1).max(2_000),
+          })
+          .strict(),
+      )
+      .max(20)
+      .default([]),
+    shipping: z
+      .object({ returnBody: z.string().trim().min(1).max(2_000), standard: copySchema })
+      .strict()
+      .optional(),
+    specifications: z
+      .array(
+        z
+          .object({
+            label: z.string().trim().min(1).max(160),
+            value: z.string().trim().min(1).max(1_000),
+          })
+          .strict(),
+      )
+      .max(30),
+    taxonomy: z
+      .object({
+        categories: z.array(z.string().trim().min(1).max(160)).max(20),
+        tags: z.array(z.string().trim().min(1).max(160)).max(20),
+      })
+      .strict(),
     variants: z
       .array(
         z
@@ -315,12 +378,15 @@ const productViewModelSchema = z
               z.string().trim().min(1).max(80),
               z.string().trim().min(1).max(160),
             ),
+            compareAtPriceLabel: z.string().trim().min(1).max(80).optional(),
+            priceLabel: z.string().trim().min(1).max(80),
             selected: z.boolean(),
+            sku: z.string().trim().min(1).max(160).optional(),
           })
           .strict(),
       )
       .min(1)
-      .max(30),
+      .max(500),
   })
   .strict();
 const cartViewModelSchema = z
@@ -433,6 +499,7 @@ export const experienceFixtureSchema = z
   .strict();
 
 export type PresentationViewModel = z.infer<typeof presentationViewModelSchema>;
+export type ProductPageModel = z.infer<typeof productViewModelSchema>;
 export type PresentationProductCard = z.infer<typeof presentationProductCardSchema>;
 export type PresentationShellViewModel = z.infer<typeof presentationShellViewModelSchema>;
 export type PresentationShellRenderViewModel = z.infer<

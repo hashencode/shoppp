@@ -26,6 +26,13 @@ const liveProduct = productSchema.parse({
     },
   ],
   name: "Selected jacket",
+  optionDefinitions: [
+    {
+      name: "Size",
+      presentation: "text",
+      values: [{ label: "M" }, { label: "L" }],
+    },
+  ],
   options: [{ name: "Size", values: ["M", "L"] }],
   seo: { description: "Selected jacket", title: "Selected jacket" },
   slug: "selected-jacket",
@@ -50,7 +57,9 @@ const liveProduct = productSchema.parse({
 
 describe("runtime commerce presentation", () => {
   test("maps only Commerce-issued mutable price and availability into the runtime projection", () => {
-    expect(toRuntimeProductState(liveProduct, "USD")).toEqual({
+    const runtime = toRuntimeProductState(liveProduct, "USD");
+    expect(runtime).not.toHaveProperty("optionDefinitions");
+    expect(runtime).toEqual({
       availability: "in-stock",
       id: liveProduct.id,
       media: liveProduct.media,

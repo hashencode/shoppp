@@ -30,7 +30,10 @@ import {
 import { fashionStoreDecorProductsMessage } from "../app/themes/fashion-store/contracts/decor-home";
 import { fashionStoreHomeFixtures } from "../app/themes/fashion-store/fixtures/home";
 import { fashionStorePreviewBuildInput } from "../scripts/prepare-theme-preview-fixture";
-import { renderActiveThemeModule } from "../scripts/prepare-experience";
+import {
+  renderActiveExperienceModule,
+  renderActiveThemeModule,
+} from "../scripts/prepare-experience";
 import {
   assertFashionStoreDecorHeroSourceTiming,
   fashionStoreDecorHeroContract,
@@ -85,23 +88,49 @@ describe("Fashion Store preview registration", () => {
   });
 
   test("keeps active Fashion Store commands on the composition-only profile", async () => {
-    const [packageSource, animationConfig, unifiedHomeSpec] = await Promise.all([
-      readFile(resolve(import.meta.dir, "../package.json"), "utf8"),
-      readFile(
-        resolve(import.meta.dir, "../playwright.fashion-store-animation-performance.config.ts"),
-        "utf8",
-      ),
-      readFile(resolve(import.meta.dir, "../e2e/fashion-store-live-unified-home.spec.ts"), "utf8"),
-    ]);
+    const [packageSource, repositoryPackageSource, animationConfig, unifiedHomeSpec] =
+      await Promise.all([
+        readFile(resolve(import.meta.dir, "../package.json"), "utf8"),
+        readFile(resolve(import.meta.dir, "../../../package.json"), "utf8"),
+        readFile(
+          resolve(import.meta.dir, "../playwright.fashion-store-animation-performance.config.ts"),
+          "utf8",
+        ),
+        readFile(
+          resolve(import.meta.dir, "../e2e/fashion-store-live-unified-home.spec.ts"),
+          "utf8",
+        ),
+      ]);
     const scripts = (JSON.parse(packageSource) as { scripts: Record<string, string> }).scripts;
+    const repositoryScripts = (
+      JSON.parse(repositoryPackageSource) as { scripts: Record<string, string> }
+    ).scripts;
 
-    expect(scripts["dev:fashion-store"]).toContain("STOREFRONT_FASHION_HOME_PROFILE=combined");
-    expect(scripts["dev:fashion-store:home-isolated"]).toContain(
-      "STOREFRONT_FASHION_HOME_PROFILE=isolated",
+    expect(scripts["dev:fashion-store"]).toBe(
+      "bun scripts/dev-fashion-store.ts --source=local --home=combined",
+    );
+    expect(scripts["dev:fashion-store:staging"]).toBe(
+      "bun scripts/dev-fashion-store.ts --source=staging",
+    );
+    expect(scripts["dev:fashion-store:isolated"]).toBe(
+      "bun scripts/dev-fashion-store.ts --source=local --home=isolated",
+    );
+    expect(scripts["dev:fashion-store:live"]).toBe("bun run dev:fashion-store:staging");
+    expect(scripts["dev:fashion-store:home-isolated"]).toBe("bun run dev:fashion-store:isolated");
+    expect(repositoryScripts["dev:fashion-store"]).toBe(
+      "bun run --cwd apps/storefront dev:fashion-store",
     );
     expect(scripts["dev:fashion-store:decor-isolated"]).toBeUndefined();
     expect(scripts["test:fashion-store-home:headers"]).toBeUndefined();
-    expect(scripts["test:fashion-store"]).not.toContain("test:fashion-store-home:headers");
+    expect(scripts["test:fashion-store"]).toBe(
+      "bun run test:fashion-store:unit && bun run test:fashion-store:browser && bun run test:fashion-store:acceptance",
+    );
+    expect(scripts["test:fashion-store:acceptance"]).toBe(
+      "bun ../../tools/run-fashion-store-acceptance.ts --scope=theme --stage=behavior",
+    );
+    expect(scripts["test:fashion-store:unit"]).toBe(
+      "bun ../../tools/run-fashion-store-acceptance.ts --scope=theme --stage=unit",
+    );
     expect(animationConfig).toContain('const profile = "combined"');
     expect(animationConfig).toContain('testMatch: "fashion-store-animation-performance.spec.ts"');
     expect(animationConfig.match(/name: "motion-/g)).toHaveLength(2);
@@ -822,6 +851,9 @@ describe("Fashion Store preview registration", () => {
     });
 
     expect(input.snapshot.themeId).toBe("fashion-store");
+    expect(input.catalogRelease?.products).toContainEqual(
+      expect.objectContaining({ slug: "relaxed-corduroy-shirt", status: "published" }),
+    );
     expect(input.snapshot.resolvedTemplates.map(({ pageType }) => pageType)).toEqual([
       "home",
       "collection",
@@ -833,6 +865,9 @@ describe("Fashion Store preview registration", () => {
     expect(source).toContain('from "../themes/fashion-store/successor/registry"');
     expect(source).not.toContain("themes/fashion/registry");
     expect(source).not.toContain("themes/decor/registry");
+    const providerSource = renderActiveExperienceModule(input);
+    expect(providerSource).toContain('mode: "fixture-preview"');
+    expect(providerSource).toContain(input.catalogRelease?.releaseId);
   });
 
   test("rejects mismatched versions and templates outside the platform vocabulary", async () => {

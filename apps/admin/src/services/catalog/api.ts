@@ -2,12 +2,39 @@ import { apiClient } from '../../infrastructure/http/api-client'
 
 export type ProductStatus = 'draft' | 'scheduled' | 'published' | 'archived'
 
+export type ProductOptionDefinition = {
+  name: string
+  presentation: 'text' | 'color'
+  values: Array<{ label: string; swatch?: string }>
+}
+
+export type ProductPresentation = {
+  brand?: string
+  defaultVariantId?: string
+  detail?: {
+    body?: string
+    bullets: string[]
+    eyebrow?: string
+    heading?: string
+  }
+  detailMediaId?: string
+  reviewDisplay?: {
+    averageRating: number
+    count: number
+    entries: Array<{ author: string; date: string; text: string }>
+    provenance: string
+    updatedAt: string
+  }
+  specifications: Array<{ label: string; value: string }>
+}
+
 export type CatalogProductListItem = {
   id: string
   name: string
   slug: string
   status: ProductStatus
   updated_at: string
+  version: number
   build_status?: string | null
   build_correlation_id?: string | null
 }
@@ -23,6 +50,8 @@ export type ProductDraftPayload = {
     width: number
   }>
   name: string
+  expectedVersion?: number
+  optionDefinitions?: ProductOptionDefinition[]
   seoDescription: string
   seoTitle: string
   slug: string
@@ -50,11 +79,15 @@ export type ProductDetail = {
     id: string
     slug: string
     name: string
+    option_definitions_json: string
+    presentation_json?: string | null
     description: string
     status: ProductStatus
     seo_title: string
     seo_description: string
     scheduled_at?: string | null
+    updated_at: string
+    version: number
   }
   variants: Array<{
     id: string
@@ -76,6 +109,7 @@ export type ProductDetail = {
   media: Array<{
     alt_text: string
     height: number
+    id: string
     r2_key: string
     width: number
   }>
@@ -129,6 +163,38 @@ export const updateCatalogProduct = async (
   return response.data.data
 }
 
+export const updateCatalogProductOptionDefinitions = async (
+  id: string,
+  optionDefinitions: ProductOptionDefinition[],
+  expectedVersion: number
+): Promise<{
+  id: string
+  optionDefinitions: ProductOptionDefinition[]
+  status: ProductStatus
+  version: number
+}> => {
+  const response = await apiClient.patch<{
+    data: {
+      id: string
+      optionDefinitions: ProductOptionDefinition[]
+      status: ProductStatus
+      version: number
+    }
+  }>(`/admin/catalog/products/${id}/option-definitions`, { expectedVersion, optionDefinitions })
+  return response.data.data
+}
+
+export const updateCatalogProductPresentation = async (
+  id: string,
+  presentation: ProductPresentation,
+  expectedVersion: number
+): Promise<{ presentation: ProductPresentation; version: number }> => {
+  const response = await apiClient.patch<{
+    data: { presentation: ProductPresentation; version: number }
+  }>(`/admin/catalog/products/${id}/presentation`, { expectedVersion, presentation })
+  return response.data.data
+}
+
 export const uploadCatalogMedia = async (
   key: string,
   file: File
@@ -154,13 +220,14 @@ export const previewCatalogProduct = async (
 
 export const publishCatalogProduct = async (
   id: string,
-  reason: string
+  reason: string,
+  expectedVersion: number
 ): Promise<{ buildCorrelationId: string; releaseId: string; status: string }> => {
   const response = await apiClient.post<{
     data: { buildCorrelationId: string; releaseId: string; status: string }
   }>(
     `/admin/catalog/products/${id}/publish`,
-    { reason },
+    { expectedVersion, reason },
     { headers: { 'Idempotency-Key': `catalog-publish-${id}-${Date.now()}` } }
   )
   return response.data.data

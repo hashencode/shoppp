@@ -4,6 +4,8 @@ import {
   experienceSnapshotSchema,
   type CanonicalCatalogRelease,
   type ExperienceSnapshot,
+  type ProductOptionDefinition,
+  type ProductPresentation,
 } from "@shoppp/contracts";
 
 import { fashionStoreEnabledPageContracts } from "../../../storefront/app/themes/fashion-store/page-contracts";
@@ -132,6 +134,8 @@ interface CatalogProduct {
   id: string;
   media: CatalogMedia[];
   name: string;
+  optionDefinitions: ProductOptionDefinition[];
+  presentation?: ProductPresentation;
   slug: string;
   status: "published";
   taxonomy: { categories: string[]; tags: string[] };
@@ -806,13 +810,15 @@ export async function applyFashionStagingCatalog(
       bindInsert(
         db,
         `INSERT INTO products
-           (id, slug, name, description, status, seo_title, seo_description, published_at, created_at, updated_at)
-         VALUES (?, ?, ?, ?, 'published', ?, ?, ?, ?, ?)`,
+           (id, slug, name, description, option_definitions_json, presentation_json, status, seo_title, seo_description, published_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, 'published', ?, ?, ?, ?, ?)`,
         [
           product.id,
           product.slug,
           product.name,
           product.description,
+          JSON.stringify(product.optionDefinitions),
+          product.presentation ? JSON.stringify(product.presentation) : null,
           `${product.name} | Shoppp`,
           product.description,
           at,

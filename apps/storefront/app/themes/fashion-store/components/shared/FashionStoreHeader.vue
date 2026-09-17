@@ -19,7 +19,9 @@ const properties = defineProps<{
   background?: "solid" | "transparent-overlay";
   announcement?: string;
   announcementLink?: HomeViewModel["announcementLink"];
+  brandName?: string;
   configuration?: HomeViewModel["shell"]["header"];
+  publishedRoutes?: readonly string[];
   resolveAsset: ThemeAssetResolver;
 }>();
 const emit = defineEmits<{
@@ -52,8 +54,14 @@ function configuredLogo(): string | undefined {
 }
 
 const configuredBrandName = computed(
-  () => properties.configuration?.logo?.alt.trim() || "Lifestyle",
+  () => properties.configuration?.logo?.alt.trim() || properties.brandName || "Lifestyle",
 );
+
+function routeHref(path: string): string | undefined {
+  return properties.publishedRoutes && !properties.publishedRoutes.includes(path)
+    ? undefined
+    : path;
+}
 
 function fallbackLogo(): string {
   return densityAsset(
@@ -178,7 +186,7 @@ defineExpose({ closeTransient });
                 >{{ configuration.socialLink.label }}</a
               >
             </div>
-            <div class="widget-text icon alt-font">
+            <div v-if="!liveMode" class="widget-text icon alt-font">
               <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
                 ><FashionStoreIcon name="map-pin" class="d-inline-block me-5px" /><span
                   class="d-none d-xxl-inline-block"
@@ -186,7 +194,7 @@ defineExpose({ closeTransient });
                 ></a
               >
             </div>
-            <div class="widget-text icon alt-font">
+            <div v-if="!liveMode" class="widget-text icon alt-font">
               <a
                 href="https://www.instagram.com/"
                 target="_blank"
@@ -253,7 +261,8 @@ defineExpose({ closeTransient });
               </li>
               <li class="nav-item dropdown submenu">
                 <a
-                  :href="fashionStoreRoutePaths['shop-left']"
+                  :href="routeHref(fashionStoreRoutePaths['shop-left'])"
+                  :aria-disabled="!routeHref(fashionStoreRoutePaths['shop-left'])"
                   data-fashion-store-route
                   class="nav-link"
                   >Shop</a
@@ -481,7 +490,7 @@ defineExpose({ closeTransient });
               </li>
               <li class="nav-item dropdown submenu">
                 <a
-                  :href="fashionStoreRoutePaths.collection"
+                  :href="routeHref(fashionStoreRoutePaths.collection)"
                   data-fashion-store-route
                   class="nav-link"
                   >Collection</a
@@ -689,7 +698,10 @@ defineExpose({ closeTransient });
             </ul>
             <ul class="navbar-nav alt-font navbar-right justify-content-start">
               <li class="nav-item">
-                <a :href="fashionStoreRoutePaths.magazine" data-fashion-store-route class="nav-link"
+                <a
+                  :href="routeHref(fashionStoreRoutePaths.magazine)"
+                  data-fashion-store-route
+                  class="nav-link"
                   >Magazine</a
                 >
               </li>
@@ -711,23 +723,42 @@ defineExpose({ closeTransient });
                 />
                 <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink3">
                   <li>
-                    <a :href="fashionStoreRoutePaths.about" data-fashion-store-route>About</a>
+                    <a :href="routeHref(fashionStoreRoutePaths.about)" data-fashion-store-route
+                      >About</a
+                    >
                   </li>
-                  <li><a :href="fashionStoreRoutePaths.faq" data-fashion-store-route>Faq</a></li>
+                  <li>
+                    <a :href="routeHref(fashionStoreRoutePaths.faq)" data-fashion-store-route
+                      >Faq</a
+                    >
+                  </li>
                   <li v-if="wishlistVisible">
-                    <a :href="fashionStoreRoutePaths.wishlist" data-fashion-store-route>Wishlist</a>
+                    <a :href="routeHref(fashionStoreRoutePaths.wishlist)" data-fashion-store-route
+                      >Wishlist</a
+                    >
                   </li>
                   <li v-if="accountVisible">
-                    <a :href="fashionStoreRoutePaths.account" data-fashion-store-route>Account</a>
+                    <a :href="routeHref(fashionStoreRoutePaths.account)" data-fashion-store-route
+                      >Account</a
+                    >
                   </li>
-                  <li><a :href="fashionStoreRoutePaths.cart" data-fashion-store-route>Cart</a></li>
                   <li>
-                    <a :href="fashionStoreRoutePaths.checkout" data-fashion-store-route>Checkout</a>
+                    <a :href="routeHref(fashionStoreRoutePaths.cart)" data-fashion-store-route
+                      >Cart</a
+                    >
+                  </li>
+                  <li>
+                    <a :href="routeHref(fashionStoreRoutePaths.checkout)" data-fashion-store-route
+                      >Checkout</a
+                    >
                   </li>
                 </ul>
               </li>
               <li class="nav-item">
-                <a :href="fashionStoreRoutePaths.contact" data-fashion-store-route class="nav-link"
+                <a
+                  :href="routeHref(fashionStoreRoutePaths.contact)"
+                  data-fashion-store-route
+                  class="nav-link"
                   >Contact</a
                 >
               </li>
@@ -743,7 +774,7 @@ defineExpose({ closeTransient });
             />
             <div v-if="accountVisible" class="widget-text icon alt-font">
               <a
-                :href="fashionStoreRoutePaths.account"
+                :href="routeHref(fashionStoreRoutePaths.account)"
                 class="fashion-store-header-labeled-action"
                 data-fashion-store-route
                 aria-label="Account"
@@ -892,6 +923,17 @@ defineExpose({ closeTransient });
 
 .fashion-store-header-canonical .navbar.disable-fixed {
   top: 0 !important;
+}
+
+.fashion-store-header-canonical .menu-logo {
+  display: flex;
+  align-items: center;
+}
+
+.fashion-store-header-canonical .navbar-brand {
+  align-items: center;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 @media (min-width: 992px) {

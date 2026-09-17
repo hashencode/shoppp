@@ -28,6 +28,7 @@ import {
   composeExperienceShell,
   composePlatformRoutePresentation,
   composeExperienceRoute as composeExperienceRouteWithoutAdapter,
+  composeProductPageModel,
   type ComposeExperienceRouteInput,
 } from "../app/theme-engine/composer";
 import {
@@ -42,6 +43,7 @@ import {
   themeRoutePaths,
   type ResolvedThemeRouteContract,
 } from "../app/theme-engine/routes";
+import { normalizeFashionStoreProductPresentation } from "../app/themes/fashion-store/contracts/product-card";
 import { fashionStoreCompositionAdapter } from "../app/themes/fashion-store/composition";
 import { fashionStoreThemeRoutes } from "../app/themes/fashion-store/page-contracts";
 import { fashionStorePreset } from "../app/themes/fashion-store/presets/source-parity";
@@ -435,6 +437,13 @@ describe("theme-neutral storefront composer", () => {
     const secondRelease = structuredClone(canonicalRelease);
     secondRelease.releaseId = "release-theme-engine-b";
     secondRelease.products[0]!.name = "Product from release B";
+    secondRelease.products[0]!.optionDefinitions = [
+      {
+        name: "size",
+        presentation: "color",
+        values: [{ label: "M", swatch: "#5881bf" }],
+      },
+    ];
 
     const first = composeExperienceRoute({
       experience: liveSnapshot,
@@ -457,6 +466,7 @@ describe("theme-neutral storefront composer", () => {
       compareAtPriceLabel: "$85.00",
       heading: "Selected product",
       kind: "product",
+      optionDefinitions: [{ name: "size", presentation: "text", values: [{ label: "M" }] }],
       optionGroups: [{ name: "size", values: ["M"] }],
       resource: { id: canonicalRelease.products[0].id, kind: "product" },
       variants: [
@@ -470,8 +480,64 @@ describe("theme-neutral storefront composer", () => {
     expect(second.viewModels.hero).toMatchObject({
       heading: "Product from release B",
       kind: "product",
+      optionDefinitions: [
+        {
+          name: "size",
+          presentation: "color",
+          values: [{ label: "M", swatch: "#5881bf" }],
+        },
+      ],
+      optionGroups: [{ name: "size", values: ["M"] }],
       resource: { id: canonicalRelease.products[0].id, kind: "product" },
     });
+  });
+
+  test("preserves explicit release option and value order independently of variant insertion", () => {
+    const release = structuredClone(canonicalRelease);
+    release.products[0]!.variants = [
+      {
+        ...structuredClone(release.products[0]!.variants[0]!),
+        id: "var_01JTHEMEENGINE000000000010",
+        optionValues: { Color: "Blue", Size: "S" },
+      },
+      {
+        ...structuredClone(release.products[0]!.variants[0]!),
+        id: "var_01JTHEMEENGINE000000000011",
+        optionValues: { Color: "Red", Size: "M" },
+      },
+    ];
+    release.products[0]!.optionDefinitions = [
+      {
+        name: "Size",
+        presentation: "text",
+        values: [{ label: "M" }, { label: "S" }],
+      },
+      {
+        name: "Color",
+        presentation: "color",
+        values: [
+          { label: "Red", swatch: "#ff0000" },
+          { label: "Blue", swatch: "#0000ff" },
+        ],
+      },
+    ];
+
+    const result = composeExperienceRoute({
+      experience: liveSnapshot,
+      locale: "en-US",
+      path: "/",
+      release,
+      route: testRoute("home", "/"),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.viewModels.hero).toMatchObject({
+      optionGroups: [
+        { name: "Size", values: ["M", "S"] },
+        { name: "Color", values: ["Red", "Blue"] },
+      ],
+    });
+    expect(result.viewModels.hero).not.toHaveProperty("optionPresentationFallback");
   });
 
   test("uses the resolved product route instead of the template's representative binding", () => {
@@ -573,6 +639,238 @@ describe("theme-neutral storefront composer", () => {
       kind: "product",
       media: release.products[0]!.media,
     });
+  });
+
+  test("composes the complete ProductPageModel from released presentation authorities", () => {
+    const release = structuredClone(canonicalRelease) as CanonicalCatalogRelease;
+    const product = release.products[0]!;
+    product.media = [
+      { ...product.media[0]!, id: "med_01JTHEMEENGINE000000000001" },
+      {
+        alt: "Selected product detail",
+        height: 900,
+        id: "med_01JTHEMEENGINE000000000002",
+        src: "https://media.example.test/catalog/selected-product-detail.jpg",
+        width: 1200,
+      },
+    ];
+    product.variants = [
+      product.variants[0]!,
+      {
+        ...product.variants[0]!,
+        id: "var_01JTHEMEENGINE000000000002",
+        optionValues: { size: "L" },
+        prices: [{ amount: 14_900, compareAtAmount: 16_900, currency: "USD" }],
+        sku: "SELECTED-L",
+        title: "Large",
+      },
+    ];
+    product.presentation = {
+      brand: "Released atelier",
+      defaultVariantId: product.variants[1]!.id,
+      detail: {
+        body: "Released detail body",
+        bullets: ["Released bullet one", "Released bullet two"],
+        eyebrow: "Released eyebrow",
+        heading: "Released detail heading",
+      },
+      detailMediaId: product.media[1]!.id,
+      specifications: [
+        { label: "Material", value: "Cotton" },
+        { label: "Fit", value: "Relaxed" },
+      ],
+    };
+    const related = {
+      ...structuredClone(product),
+      id: "prod_01JTHEMEENGINE00000000002",
+      name: "Related product",
+      presentation: undefined,
+      slug: "related-product",
+      variants: [
+        {
+          ...structuredClone(product.variants[0]!),
+          id: "var_01JTHEMEENGINE000000000003",
+          sku: "RELATED-M",
+        },
+      ],
+    };
+    release.products.push(related);
+    release.collections[0]!.productIds.push(related.id);
+    release.collections[0]!.productSlugs.push(related.slug);
+    release.policies.push(
+      {
+        description: "Released standard shipping",
+        effectiveDate: "2026-08-11",
+        sections: [{ body: "Shipping body", heading: "Shipping" }],
+        slug: "shipping",
+        title: "Shipping",
+      },
+      {
+        description: "Released return terms",
+        effectiveDate: "2026-08-11",
+        sections: [{ body: "Return body", heading: "Returns" }],
+        slug: "returns",
+        title: "Returns",
+      },
+    );
+
+    const result = composeExperienceRoute({
+      experience: {
+        ...liveSnapshot,
+        bindings: [],
+        resolvedTemplates: [
+          {
+            id: "product-template",
+            pageType: "product",
+            requiredCapabilities: [],
+            sections: [
+              {
+                blocks: [],
+                capabilities: [],
+                id: "product",
+                settings: {},
+                type: "fashion-store.product",
+                visible: true,
+              },
+            ],
+          },
+        ],
+      },
+      locale: "en-US",
+      path: "/products/selected-product",
+      release,
+      route: testRoute("product", "/products/selected-product", {
+        productId: product.id,
+        slug: product.slug,
+      }),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.viewModels.product).toMatchObject({
+      actions: [{ value: product.variants[1]!.id }],
+      brand: "Released atelier",
+      descriptionDetail: {
+        bullets: ["Released bullet one", "Released bullet two"],
+        eyebrow: "Released eyebrow",
+        heading: "Released detail heading",
+        media: {
+          alt: "Selected product detail",
+          height: 900,
+          src: "https://media.example.test/catalog/selected-product-detail.jpg",
+          width: 1200,
+        },
+        text: "Released detail body",
+      },
+      relatedProducts: [{ name: "Related product" }],
+      priceLabel: "$149.00",
+      reviewSummary: { count: 0, label: "0 Reviews" },
+      shipping: {
+        returnBody: "Released return terms",
+        standard: "Released standard shipping",
+      },
+      specifications: [
+        { label: "Material", value: "Cotton" },
+        { label: "Fit", value: "Relaxed" },
+      ],
+      taxonomy: { categories: ["Selected collection"], tags: [] },
+      variants: [
+        { id: product.variants[0]!.id, priceLabel: "$65.00", selected: false },
+        {
+          compareAtPriceLabel: "$169.00",
+          id: product.variants[1]!.id,
+          priceLabel: "$149.00",
+          selected: true,
+        },
+      ],
+    });
+    expect(result.viewModels.product.media).toEqual([
+      expect.objectContaining({ alt: product.media[0]!.alt }),
+    ]);
+  });
+
+  test("renders every media item from a contract-valid 13-image release", () => {
+    const release = structuredClone(canonicalRelease) as CanonicalCatalogRelease;
+    const product = release.products[0]!;
+    product.media = Array.from({ length: 13 }, (_, index) => ({
+      ...product.media[0]!,
+      alt: `Released image ${index + 1}`,
+      id: `med_${String(index + 1).padStart(20, "0")}`,
+      src: `https://media.example.test/catalog/released-image-${index + 1}.jpg`,
+    }));
+
+    const model = composeProductPageModel({
+      locale: "en-US",
+      productId: product.id,
+      release,
+      slug: product.slug,
+    });
+
+    expect(model.media).toHaveLength(13);
+    expect(normalizeFashionStoreProductPresentation(model).gallery).toHaveLength(13);
+  });
+
+  test("projects only enabled public Product payment brands from Experience settings", () => {
+    const release = structuredClone(canonicalRelease) as CanonicalCatalogRelease;
+    const product = release.products[0]!;
+    const experience = structuredClone(liveSnapshot) as ExperienceSnapshot;
+    experience.bindings = [];
+    experience.resolvedTemplates = [
+      {
+        id: "product-template",
+        pageType: "product",
+        requiredCapabilities: [],
+        sections: [
+          {
+            blocks: [],
+            capabilities: [],
+            id: "product",
+            settings: {
+              "payment-brand-visa": true,
+              "payment-brand-american-express": false,
+              "payment-brand-mastercard": true,
+            },
+            type: "fashion-store.product",
+            visible: true,
+          },
+        ],
+      },
+    ];
+    const result = composeExperienceRoute({
+      experience,
+      locale: "en-US",
+      path: `/products/${product.slug}`,
+      release,
+      route: testRoute("product", `/products/${product.slug}`, {
+        productId: product.id,
+        slug: product.slug,
+      }),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.viewModels.product.paymentBrands).toEqual(["visa", "mastercard"]);
+    expect(
+      normalizeFashionStoreProductPresentation(result.viewModels.product).assurance?.payments,
+    ).toEqual([
+      { kind: "theme-asset", path: "images/visa.svg", alt: "Visa" },
+      { kind: "theme-asset", path: "images/mastercard.svg", alt: "Mastercard" },
+    ]);
+    expect(
+      composeProductPageModel({
+        locale: "en-US",
+        productId: product.id,
+        release,
+        slug: product.slug,
+      }).paymentBrands,
+    ).toEqual([]);
+    expect(
+      composeProductPageModel({
+        experience,
+        locale: "en-US",
+        productId: product.id,
+        release,
+        slug: product.slug,
+      }).paymentBrands,
+    ).toEqual(["visa", "mastercard"]);
   });
 
   test("composes every generated Fashion Store product route without a product binding", () => {
@@ -1211,12 +1509,21 @@ describe("theme-neutral storefront composer", () => {
     });
     expect(product.ok).toBe(true);
     expect(product.viewModels.product).toMatchObject({
-      description: "Editor product copy",
+      description: "Selected release product",
+      descriptionDetail: {
+        bullets: [],
+        heading: "Selected product",
+        text: "Selected release product",
+      },
+      reviewSummary: { count: 0, label: "0 Reviews" },
       relatedCollection: {
         href: "/collections/selected-collection",
         id: canonicalRelease.collections[0].id,
         name: "Selected collection",
       },
+      specifications: [],
+      taxonomy: { categories: ["Selected collection"], tags: [] },
+      variants: [{ id: canonicalRelease.products[0].variants[0].id, selected: true }],
     });
 
     const productWithoutRelatedBinding = composeExperienceRoute({

@@ -1,11 +1,12 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { fixtureBindingSchema } from "@shoppp/contracts";
+import { canonicalCatalogReleaseSchema, fixtureBindingSchema } from "@shoppp/contracts";
 import * as z from "zod";
 
 import { fashionStoreManifest } from "../app/themes/fashion-store/successor/manifest";
 import { fashionStoreEnabledPageContracts } from "../app/themes/fashion-store/page-contracts";
+import { publicPaymentBrands } from "../app/theme-engine/view-models";
 import { fashionStorePreset } from "../app/themes/fashion-store/successor/presets/source-parity";
 import {
   applyFashionStoreHomeComposition,
@@ -19,6 +20,10 @@ const previewFixtureSchema = z
     approvedBy: z.string().trim().min(1).max(120),
     bindings: z.array(fixtureBindingSchema).max(100),
     experienceId: z.string().regex(/^[a-z][a-z0-9-]*$/),
+    productPaymentBrands: z
+      .array(z.enum(publicPaymentBrands))
+      .max(publicPaymentBrands.length)
+      .default([]),
     snapshotId: z.string().regex(/^[a-z][a-z0-9-]*$/),
     version: z.int().positive(),
   })
@@ -50,7 +55,11 @@ export async function themePreviewBuildInput(
   const fixture = previewFixtureSchema.parse(
     JSON.parse(await readFile(resolve(import.meta.dir, descriptor.fixturePath), "utf8")),
   );
+  const catalogRelease = canonicalCatalogReleaseSchema.parse(
+    JSON.parse(await readFile(resolve(import.meta.dir, "../fixtures/release.json"), "utf8")),
+  );
   return {
+    catalogRelease,
     environment: "preview",
     expectedOrigin,
     snapshot: {
@@ -64,9 +73,24 @@ export async function themePreviewBuildInput(
       overrides: [],
       platformContractVersion: descriptor.manifest.platformContractVersion,
       provenance: descriptor.manifest.provenance,
-      resolvedTemplates: descriptor.templates.filter(({ pageType }) =>
-        descriptor.pageTypes.has(pageType),
-      ),
+      resolvedTemplates: descriptor.templates
+        .filter(({ pageType }) => descriptor.pageTypes.has(pageType))
+        .map((template) =>
+          template.pageType === "product"
+            ? {
+                ...template,
+                sections: template.sections.map((section) => ({
+                  ...section,
+                  settings: {
+                    ...section.settings,
+                    ...Object.fromEntries(
+                      fixture.productPaymentBrands.map((brand) => [`payment-brand-${brand}`, true]),
+                    ),
+                  },
+                })),
+              }
+            : template,
+        ),
       themeId: descriptor.manifest.id,
       themeVersion: descriptor.manifest.themeVersion,
       version: fixture.version,

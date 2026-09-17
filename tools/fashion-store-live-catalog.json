@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "catalogVersion": "fashion-store-live-2026-09-13-v1",
+  "catalogVersion": "fashion-store-live-2026-09-16-v2",
   "currency": "USD",
   "r2Prefix": "catalog/fashion-store/2026-09-13-v1",
   "warehouse": {
@@ -18,6 +18,10 @@
       "id": "prod_01JFS8SHOP00000000000001",
       "slug": "textured-sweater-01",
       "name": "Textured sweater",
+      "optionDefinitions": [
+        { "name": "color", "presentation": "text", "values": [{ "label": "Blue" }] },
+        { "name": "size", "presentation": "text", "values": [{ "label": "M" }] }
+      ],
       "brand": null,
       "description": "Textured sweater in blue.",
       "status": "published",
@@ -60,6 +64,10 @@
       "id": "prod_01JFS8SHOP00000000000002",
       "slug": "traveller-shirt-02",
       "name": "Traveller shirt",
+      "optionDefinitions": [
+        { "name": "color", "presentation": "text", "values": [{ "label": "Brown" }] },
+        { "name": "size", "presentation": "text", "values": [{ "label": "XL" }] }
+      ],
       "brand": null,
       "description": "Traveller shirt in brown.",
       "status": "published",
@@ -102,6 +110,10 @@
       "id": "prod_01JFS8SHOP00000000000003",
       "slug": "crewneck-sweatshirt-03",
       "name": "Crewneck sweatshirt",
+      "optionDefinitions": [
+        { "name": "color", "presentation": "text", "values": [{ "label": "Green" }] },
+        { "name": "size", "presentation": "text", "values": [{ "label": "L" }] }
+      ],
       "brand": null,
       "description": "Green crewneck sweatshirt.",
       "status": "published",
@@ -144,6 +156,10 @@
       "id": "prod_01JFS8SHOP00000000000004",
       "slug": "skinny-trousers-04",
       "name": "Skinny trousers",
+      "optionDefinitions": [
+        { "name": "color", "presentation": "text", "values": [{ "label": "Black" }] },
+        { "name": "size", "presentation": "text", "values": [{ "label": "S" }] }
+      ],
       "brand": null,
       "description": "Black skinny trousers.",
       "status": "published",
@@ -186,6 +202,10 @@
       "id": "prod_01JFS8SHOP00000000000005",
       "slug": "sleeve-sweater-05",
       "name": "Sleeve sweater",
+      "optionDefinitions": [
+        { "name": "color", "presentation": "text", "values": [{ "label": "Orange" }] },
+        { "name": "size", "presentation": "text", "values": [{ "label": "XXL" }] }
+      ],
       "brand": null,
       "description": "Orange sleeve sweater.",
       "status": "published",
@@ -228,6 +248,10 @@
       "id": "prod_01JFS8SHOP00000000000006",
       "slug": "pocket-sweatshirt-06",
       "name": "Pocket sweatshirt",
+      "optionDefinitions": [
+        { "name": "color", "presentation": "text", "values": [{ "label": "Maroon" }] },
+        { "name": "size", "presentation": "text", "values": [{ "label": "L" }] }
+      ],
       "brand": null,
       "description": "Maroon pocket sweatshirt.",
       "status": "published",
@@ -270,6 +294,10 @@
       "id": "prod_01JFS8SHOP00000000000007",
       "slug": "cotton-sweater-07",
       "name": "Cotton sweater",
+      "optionDefinitions": [
+        { "name": "color", "presentation": "text", "values": [{ "label": "Green" }] },
+        { "name": "size", "presentation": "text", "values": [{ "label": "M" }] }
+      ],
       "brand": null,
       "description": "Green cotton sweater.",
       "status": "published",
@@ -312,6 +340,10 @@
       "id": "prod_01JFS8SHOP00000000000008",
       "slug": "texture-regular-08",
       "name": "Texture regular",
+      "optionDefinitions": [
+        { "name": "color", "presentation": "text", "values": [{ "label": "Blue" }] },
+        { "name": "size", "presentation": "text", "values": [{ "label": "L" }] }
+      ],
       "brand": null,
       "description": "Blue regular-fit textured top.",
       "status": "published",
@@ -354,6 +386,10 @@
       "id": "prod_01JFS8SHOP00000000000009",
       "slug": "sequined-dress-09",
       "name": "Sequined dress",
+      "optionDefinitions": [
+        { "name": "color", "presentation": "text", "values": [{ "label": "Maroon" }] },
+        { "name": "size", "presentation": "text", "values": [{ "label": "S" }] }
+      ],
       "brand": null,
       "description": "Maroon sequined dress.",
       "status": "published",
@@ -396,6 +432,10 @@
       "id": "prod_01JFS8SHOP00000000000010",
       "slug": "bermuda-shorts-10",
       "name": "Bermuda shorts",
+      "optionDefinitions": [
+        { "name": "color", "presentation": "text", "values": [{ "label": "Orange" }] },
+        { "name": "size", "presentation": "text", "values": [{ "label": "L" }] }
+      ],
       "brand": null,
       "description": "Orange Bermuda shorts.",
       "status": "published",
@@ -438,6 +478,10 @@
       "id": "prod_01JFS8SHOP00000000000011",
       "slug": "traveller-shirt-11",
       "name": "Traveller shirt",
+      "optionDefinitions": [
+        { "name": "color", "presentation": "text", "values": [{ "label": "Black" }] },
+        { "name": "size", "presentation": "text", "values": [{ "label": "XL" }] }
+      ],
       "brand": null,
       "description": "Black traveller shirt.",
       "status": "published",
@@ -480,6 +524,10 @@
       "id": "prod_01JFS8SHOP00000000000012",
       "slug": "textured-sweater-12",
       "name": "Textured sweater",
+      "optionDefinitions": [
+        { "name": "color", "presentation": "text", "values": [{ "label": "Brown" }] },
+        { "name": "size", "presentation": "text", "values": [{ "label": "XXL" }] }
+      ],
       "brand": null,
       "description": "Brown textured sweater.",
       "status": "published",
@@ -522,7 +570,66 @@
       "id": "prod_01JFASHIONLIVE0000000002",
       "slug": "relaxed-corduroy-shirt",
       "name": "Relaxed corduroy shirt",
+      "optionDefinitions": [
+        {
+          "name": "color",
+          "presentation": "color",
+          "values": [
+            { "label": "gold", "swatch": "#d4af37" },
+            { "label": "blue", "swatch": "#5881bf" },
+            { "label": "green", "swatch": "#87a968" }
+          ]
+        },
+        {
+          "name": "size",
+          "presentation": "text",
+          "values": [{ "label": "S" }, { "label": "M" }, { "label": "L" }, { "label": "XL" }]
+        }
+      ],
       "brand": "Zalando",
+      "presentation": {
+        "brand": "Zalando",
+        "defaultVariantId": "var_01JFSHIRTGREENXL000000001",
+        "detail": {
+          "eyebrow": "We make you feel special",
+          "heading": "Unique and quirky designs for the latest trends product.",
+          "body": "Relaxed corduroy shirt with a soft structured finish.",
+          "bullets": [
+            "Made from soft yet durable 100% organic cotton twill.",
+            "Front and back yoke seams allow a full range of shoulder.",
+            "Interior storm flap and zipper garage at chin for comfort.",
+            "Color may slightly vary depending on your screen."
+          ]
+        },
+        "detailMediaId": "media_01JFS8DETAIL000000000006",
+        "reviewDisplay": {
+          "averageRating": 5,
+          "count": 165,
+          "entries": [
+            {
+              "author": "Herman miller",
+              "date": "06 April 2023",
+              "text": "Lorem ipsum dolor sit sed do eiusmod tempor incididunt labore enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+            },
+            {
+              "author": "Wilbur haddock",
+              "date": "26 April 2023",
+              "text": "Lorem ipsum dolor sit sed do eiusmod tempor incididunt labore enim ad minim veniam nisi ut aliquip ex ea commodo consequat."
+            },
+            {
+              "author": "Colene landin",
+              "date": "28 April 2023",
+              "text": "Lorem ipsum dolor sit sed do eiusmod tempor incididunt labore enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+            }
+          ],
+          "provenance": "fashion-store historical Vue demonstration snapshot",
+          "updatedAt": "2026-09-16T00:00:00.000Z"
+        },
+        "specifications": [
+          { "label": "Material", "value": "Organic cotton twill" },
+          { "label": "Style", "value": "Relaxed corduroy shirt" }
+        ]
+      },
       "description": "Relaxed corduroy shirt with a soft structured finish.",
       "status": "published",
       "badge": null,

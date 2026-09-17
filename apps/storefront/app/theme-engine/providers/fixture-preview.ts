@@ -50,12 +50,9 @@ export function createFixturePresentationProvider(
     resolve({ expectedKind, instanceId, settings }) {
       const resolved = resolveFixtureViewModel(fixtureBinding(instanceId), input.fixtures);
       const viewModel =
-        resolved.kind === "theme-section"
-          ? {
-              ...resolved,
-              data: { ...resolved.data, presentation: settings ?? {} },
-            }
-          : resolved;
+        resolved.kind !== "theme-section"
+          ? resolved
+          : { ...resolved, data: { ...resolved.data, presentation: settings ?? {} } };
       return requireExpectedViewModelKind(viewModel, expectedKind);
     },
     resolveShell({ instanceId, resource }) {

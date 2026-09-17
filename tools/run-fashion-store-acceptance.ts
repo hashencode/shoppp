@@ -29,6 +29,8 @@ interface FashionStoreAcceptancePlan {
   steps: { command: string[]; label: string }[];
 }
 
+type FashionStoreAcceptanceStage = "all" | "behavior" | "browser" | "unit";
+
 const STOREFRONT_ROOT = resolve(import.meta.dir, "../apps/storefront");
 const GENERATED_STATE_FILES = [
   resolve(STOREFRONT_ROOT, "app/generated/active-theme.ts"),
@@ -157,6 +159,7 @@ export function fashionStoreGeneratedStateFiles(): string[] {
 export function buildFashionStoreAcceptancePlan(options: {
   page?: string;
   scope: "page" | "theme";
+  stage?: FashionStoreAcceptanceStage;
 }): FashionStoreAcceptancePlan {
   if (options.scope === "page" && !options.page)
     throw new Error("page acceptance requires --page=<id>");
@@ -166,29 +169,36 @@ export function buildFashionStoreAcceptancePlan(options: {
     options.scope === "page" ? [options.page as FashionStoreAcceptancePageId] : ALL_PAGES;
   const selection =
     options.scope === "page" ? fashionStorePageAcceptanceSelection(pages[0]!) : undefined;
+  const unitStep = {
+    command: ["bun", "test", ...(selection?.unitFiles ?? ALL_UNIT_FILES)],
+    label: options.scope === "page" ? `${pages[0]}/unit` : "theme/unit",
+  };
+  const browserStep = {
+    command: [
+      "bunx",
+      "playwright",
+      "test",
+      "--config",
+      "playwright.fashion-store.config.ts",
+      ...(selection?.e2eFiles ?? []),
+    ],
+    label: options.scope === "page" ? `${pages[0]}/browser` : "theme/browser",
+  };
+  const behaviorSteps = pages.map((page) => ({
+    command: behaviorVerificationCommand(page),
+    label: `${page}/behavior-evidence`,
+  }));
+  const stage = options.stage ?? "all";
   return {
     pages,
-    steps: [
-      {
-        command: ["bun", "test", ...(selection?.unitFiles ?? ALL_UNIT_FILES)],
-        label: options.scope === "page" ? `${pages[0]}/unit` : "theme/unit",
-      },
-      {
-        command: [
-          "bunx",
-          "playwright",
-          "test",
-          "--config",
-          "playwright.fashion-store.config.ts",
-          ...(selection?.e2eFiles ?? []),
-        ],
-        label: options.scope === "page" ? `${pages[0]}/browser` : "theme/browser",
-      },
-      ...pages.map((page) => ({
-        command: behaviorVerificationCommand(page),
-        label: `${page}/behavior-evidence`,
-      })),
-    ],
+    steps:
+      stage === "unit"
+        ? [unitStep]
+        : stage === "browser"
+          ? [browserStep]
+          : stage === "behavior"
+            ? behaviorSteps
+            : [unitStep, browserStep, ...behaviorSteps],
   };
 }
 
@@ -248,13 +258,22 @@ async function main(): Promise<void> {
       "dry-run": { type: "boolean" },
       page: { type: "string" },
       scope: { default: "theme", type: "string" },
+      stage: { default: "all", type: "string" },
     },
     strict: true,
   });
   if (values.scope !== "page" && values.scope !== "theme")
     throw new Error(`unknown Fashion Store acceptance scope: ${values.scope}`);
+  if (
+    values.stage !== "all" &&
+    values.stage !== "behavior" &&
+    values.stage !== "browser" &&
+    values.stage !== "unit"
+  )
+    throw new Error(`unknown Fashion Store acceptance stage: ${values.stage}`);
   const plan = buildFashionStoreAcceptancePlan({
     scope: values.scope,
+    stage: values.stage,
     ...(values.page ? { page: values.page } : {}),
   });
   if (values["dry-run"]) console.log(JSON.stringify(plan, null, 2));

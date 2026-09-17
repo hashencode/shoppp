@@ -4,7 +4,11 @@ import { resolve } from "node:path";
 import sharp from "../apps/storefront/node_modules/sharp";
 import {
   canonicalCatalogReleaseSchema,
+  productOptionDefinitionsSchema,
+  productPresentationSchema,
   type CanonicalCatalogRelease,
+  type ProductOptionDefinition,
+  type ProductPresentation,
 } from "../packages/contracts/src";
 import releaseFixture from "../apps/storefront/fixtures/release.json";
 
@@ -56,6 +60,8 @@ export interface FashionStoreLiveCatalogProduct {
   id: string;
   media: FashionStoreLiveCatalogMedia[];
   name: string;
+  optionDefinitions: ProductOptionDefinition[];
+  presentation?: ProductPresentation;
   shopCardOrder: number | null;
   slug: string;
   source: { fixtureId: string; kind: "product-detail" | "shop-card" };
@@ -177,6 +183,40 @@ export function validateFashionStoreLiveCatalog(
     assert(product.taxonomy.colors.length > 0, `${product.id} requires a color option`);
     assert(product.taxonomy.sizes.length > 0, `${product.id} requires a size option`);
     assert(product.media.length > 0, `${product.id} requires product media`);
+    const definitions = productOptionDefinitionsSchema.parse(product.optionDefinitions);
+    if (product.presentation) {
+      productPresentationSchema.parse(product.presentation);
+      assert(
+        !product.presentation.defaultVariantId ||
+          product.variants.some(({ id }) => id === product.presentation?.defaultVariantId),
+        `${product.id} presentation default Variant must belong to the Product`,
+      );
+      assert(
+        !product.presentation.detailMediaId ||
+          product.media.some(({ id }) => id === product.presentation?.detailMediaId),
+        `${product.id} presentation detail media must belong to the Product`,
+      );
+    }
+    const expectedDefinitions = [
+      { name: "color", values: product.taxonomy.colors },
+      { name: "size", values: product.taxonomy.sizes },
+    ];
+    assert(
+      definitions.length === expectedDefinitions.length,
+      `${product.id} requires color and size definitions`,
+    );
+    expectedDefinitions.forEach((expected, index) => {
+      const definition = definitions[index];
+      assert(
+        definition?.name === expected.name,
+        `${product.id} option definition order is invalid`,
+      );
+      assert(
+        JSON.stringify(definition.values.map(({ label }) => label)) ===
+          JSON.stringify(expected.values),
+        `${product.id} ${expected.name} definition does not match exact variant values`,
+      );
+    });
 
     const expectedOptions = combinations(product.taxonomy.colors, product.taxonomy.sizes);
     const actualOptions = product.variants
@@ -310,10 +350,13 @@ export function createFashionStoreLiveCatalogMigrationPlan(
       .map((media) => ({
         alt: media.alt,
         height: media.height,
+        id: media.id,
         src: `${mediaOrigin}/${media.r2Key}`,
         width: media.width,
       })),
     name: product.name,
+    optionDefinitions: product.optionDefinitions,
+    ...(product.presentation ? { presentation: product.presentation } : {}),
     seoDescription: product.description,
     seoTitle: `${product.name} | Shoppp`,
     slug: product.slug,
@@ -376,6 +419,13 @@ export function createFashionStoreLiveCatalogMigrationPlan(
         id: acceptanceProduct.id,
         media: [shopperProducts[0]!.media[0]!],
         name: "Unavailable acceptance product",
+        optionDefinitions: [
+          {
+            name: "state",
+            presentation: "text",
+            values: [{ label: "unavailable" }],
+          },
+        ],
         seoDescription: "Protected Fashion staging acceptance identity.",
         seoTitle: "Unavailable acceptance product | Shoppp",
         slug: acceptanceProduct.slug,

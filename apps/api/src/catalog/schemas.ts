@@ -1,5 +1,7 @@
 import * as z from "zod";
 
+import { productOptionDefinitionsSchema, productPresentationSchema } from "@shoppp/contracts";
+
 const priceSchema = z
   .object({
     amount: z.int().nonnegative(),
@@ -70,6 +72,8 @@ export const productDraftSchema = z
     description: z.string().trim().min(1).max(20_000),
     media: z.array(mediaSchema).min(1).max(20),
     name: z.string().trim().min(1).max(200),
+    expectedVersion: z.int().positive().optional(),
+    optionDefinitions: productOptionDefinitionsSchema.optional(),
     seoDescription: z.string().trim().min(1).max(320),
     seoTitle: z.string().trim().min(1).max(70),
     slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
@@ -79,6 +83,27 @@ export const productDraftSchema = z
   })
   .strict();
 
-export const publicationSchema = z.object({ reason: z.string().trim().min(3).max(500) }).strict();
+export const publicationSchema = z
+  .object({
+    expectedVersion: z.int().positive().optional(),
+    reason: z.string().trim().min(3).max(500),
+  })
+  .strict();
+
+export const productOptionDefinitionsInputSchema = z
+  .object({
+    expectedVersion: z.int().positive(),
+    optionDefinitions: productOptionDefinitionsSchema,
+  })
+  .strict();
+
+export const productPresentationInputSchema = z
+  .object({
+    expectedVersion: z.int().positive(),
+    presentation: productPresentationSchema,
+  })
+  .strict();
 
 export type ProductDraftInput = z.infer<typeof productDraftSchema>;
+export type ProductOptionDefinitionsInput = z.infer<typeof productOptionDefinitionsInputSchema>;
+export type ProductPresentationInput = z.infer<typeof productPresentationInputSchema>;

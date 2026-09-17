@@ -65,9 +65,21 @@ import {
   setCartShipping,
   updateCartLine,
 } from "../cart/service";
-import { createProduct, getProduct, listProducts, updateProduct } from "../catalog/products";
+import {
+  createProduct,
+  getProduct,
+  listProducts,
+  updateProduct,
+  updateProductOptionDefinitions,
+  updateProductPresentation,
+} from "../catalog/products";
 import { getLiveProduct, getLiveProductById } from "../catalog/public";
-import { productDraftSchema, publicationSchema } from "../catalog/schemas";
+import {
+  productDraftSchema,
+  productOptionDefinitionsInputSchema,
+  productPresentationInputSchema,
+  publicationSchema,
+} from "../catalog/schemas";
 import { transitionOrderFulfillment } from "../fulfillment/transitions";
 import { listAuditEvents } from "../iam/audit";
 import { createAdminRole, getAdminRole, listAdminRoles, updateAdminRole } from "../iam/admin-roles";
@@ -2002,6 +2014,24 @@ export function createApp(options: CreateAppOptions = {}) {
       meta: { requestId: context.get("requestId") },
     });
   });
+  app.patch("/admin/catalog/products/:id/option-definitions", async (context) => {
+    const productId = context.req.param("id");
+    await requirePermission(context, "catalog.write", { id: productId, type: "product" });
+    const input = await parseJson(context, productOptionDefinitionsInputSchema);
+    return context.json({
+      data: await updateProductOptionDefinitions(context, productId, input),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.patch("/admin/catalog/products/:id/presentation", async (context) => {
+    const productId = context.req.param("id");
+    await requirePermission(context, "catalog.write", { id: productId, type: "product" });
+    const input = await parseJson(context, productPresentationInputSchema);
+    return context.json({
+      data: await updateProductPresentation(context, productId, input),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
   app.put("/admin/media/*", async (context) =>
     context.json(
       {
@@ -2042,6 +2072,7 @@ export function createApp(options: CreateAppOptions = {}) {
             productId,
             options.buildTrigger ?? defaultBuildTrigger(context.env),
             input.reason,
+            input.expectedVersion,
           ),
           meta: { requestId: context.get("requestId") },
         },

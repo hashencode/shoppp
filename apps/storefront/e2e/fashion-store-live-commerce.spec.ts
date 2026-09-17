@@ -22,7 +22,7 @@ const shippingAddress = {
   region: "TX",
 };
 const liveProductCompositionIdentity = {
-  catalogReleaseId: "representative-release-2026-07-30",
+  catalogReleaseId: "fashion-store-live-2026-09-16-v2-shopper-release",
   productId: "prod_01JFASHIONLIVE0000000002",
   route: "/products/relaxed-corduroy-shirt",
   selectedVariantId: variantId,
@@ -118,11 +118,11 @@ function liveProduct(productId: string, mediaOrigin?: string) {
     ? [atlasVariantId]
     : ["var_01JFSHIRTGOLDS00000000001", "var_01JFSHIRTGOLDM00000000001", variantId];
   const optionValues = atlas
-    ? [{ Style: "Standard" }]
+    ? [{ color: "Black" }]
     : [
-        { Color: "Gold", Size: "M" },
-        { Color: "Gold", Size: "XL" },
-        { Color: "Green", Size: "XL" },
+        { color: "Gold", size: "M" },
+        { color: "Gold", size: "XL" },
+        { color: "Green", size: "XL" },
       ];
   return {
     description: `${name} live description`,
@@ -143,11 +143,35 @@ function liveProduct(productId: string, mediaOrigin?: string) {
         ]
       : [],
     name,
-    options: atlas
-      ? [{ name: "Style", values: ["Standard"] }]
+    optionDefinitions: atlas
+      ? [
+          {
+            name: "color",
+            presentation: "text",
+            values: [{ label: "Black" }],
+          },
+        ]
       : [
-          { name: "Color", values: ["Gold", "Green"] },
-          { name: "Size", values: ["M", "XL"] },
+          {
+            name: "color",
+            presentation: "color",
+            values: [
+              { label: "Gold", swatch: "#d4af37" },
+              { label: "Blue", swatch: "#5881bf" },
+              { label: "Green", swatch: "#87a968" },
+            ],
+          },
+          {
+            name: "size",
+            presentation: "text",
+            values: [{ label: "S" }, { label: "M" }, { label: "L" }, { label: "XL" }],
+          },
+        ],
+    options: atlas
+      ? [{ name: "color", values: ["Black"] }]
+      : [
+          { name: "color", values: ["Gold", "Green"] },
+          { name: "size", values: ["M", "XL"] },
         ],
     seo: { description: `${name} description`, title: name },
     slug,
@@ -565,10 +589,8 @@ test("live Product requires a valid grouped option combination and stays truthfu
   const product = page.locator("[data-fashion-store-product]");
   await expect(product.getByRole("group", { name: "Color" })).toBeVisible();
   await expect(product.getByRole("group", { name: "Size" })).toBeVisible();
-  await product.locator("button.btn-cart").click();
-  const optionError = product.locator("[data-product-option-error]");
-  await expect(optionError).toContainText("Choose Color and Size");
-  await expect(optionError).toBeFocused();
+  await expect(product.getByRole("radio", { name: "Gold" })).toBeChecked();
+  await expect(product.getByRole("radio", { name: "S" })).toBeChecked();
 
   await product.getByRole("radio", { name: "Green" }).check();
   await expect(product.getByRole("radio", { name: "M" })).toBeDisabled();
@@ -593,7 +615,8 @@ test("live Product requires a valid grouped option combination and stays truthfu
     .click();
   await expect(page).toHaveURL(/\/products\/atlas-carry-on$/);
   await expect(page.locator(".product-info h4")).toHaveText("Atlas Carry-on");
-  await expect(page.getByRole("group", { name: "Style" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Color" })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Black" })).toBeVisible();
   await expect(page.getByLabel("Quantity", { exact: true })).toHaveValue("1");
   await expect(page.locator("[data-fashion-store-product]")).toHaveAttribute(
     "data-cart-add-count",
@@ -696,10 +719,11 @@ test("live Product retains matched desktop and mobile composition geometry", asy
     await page.setViewportSize(size);
     await page.goto(liveProductCompositionIdentity.route, { waitUntil: "networkidle" });
     await expectFashionStoreProductComposition(page, {
-      colorChipCount: 2,
+      assurance: "source-shaped-empty",
+      expectedSwatches: ["#d4af37", "#5881bf", "#87a968"],
       name: "Relaxed corduroy shirt",
       relatedProductCount: 1,
-      secondaryActionCount: 0,
+      secondaryActionCount: 3,
       viewport,
     });
     await expect(page.getByRole("group", { name: "Color" })).toBeVisible();
@@ -752,9 +776,6 @@ test("live Product enables retry after initial Commerce revalidation fails", asy
   await expect(retry).toBeEnabled();
   productUnavailable = false;
   await retry.click();
-  await product.getByRole("radio", { name: "Green" }).check();
-  await product.getByRole("radio", { name: "XL" }).check();
-  await product.locator("button.btn-cart").click();
   await expect(product.locator("[data-live-product-status]")).toContainText(
     "was added to your cart",
   );

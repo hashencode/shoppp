@@ -25,6 +25,76 @@ async function applyIamMigration(db: D1Database): Promise<void> {
 }
 
 describe("D1 migrations", () => {
+  test("adds nullable validated Product presentation without changing existing rows", async () => {
+    await seedLaunchFixture(env.DB);
+    const before = (
+      await env.DB.prepare(
+        "SELECT id, slug, name, status, created_at, updated_at FROM products ORDER BY id",
+      ).all()
+    ).results;
+    const columns = await env.DB.prepare("PRAGMA table_info(products)").all<{
+      dflt_value: string | null;
+      name: string;
+      notnull: number;
+    }>();
+
+    expect(columns.results).toContainEqual(
+      expect.objectContaining({ dflt_value: null, name: "presentation_json", notnull: 0 }),
+    );
+    expect(
+      await env.DB.prepare("SELECT presentation_json FROM products ORDER BY id LIMIT 1").first(),
+    ).toEqual({ presentation_json: null });
+    expect(
+      (
+        await env.DB.prepare(
+          "SELECT id, slug, name, status, created_at, updated_at FROM products ORDER BY id",
+        ).all()
+      ).results,
+    ).toEqual(before);
+    await expect(
+      env.DB.prepare("UPDATE products SET presentation_json = 'not-json'").run(),
+    ).rejects.toThrow();
+    await expect(
+      env.DB.prepare("UPDATE products SET presentation_json = '[]'").run(),
+    ).rejects.toThrow();
+  });
+
+  test("adds valid empty product option definitions without changing existing product rows", async () => {
+    await seedLaunchFixture(env.DB);
+    const before = (
+      await env.DB.prepare(
+        "SELECT id, slug, name, status, created_at, updated_at FROM products ORDER BY id",
+      ).all()
+    ).results;
+    const columns = await env.DB.prepare("PRAGMA table_info(products)").all<{
+      dflt_value: string | null;
+      name: string;
+      notnull: number;
+    }>();
+
+    expect(columns.results).toContainEqual(
+      expect.objectContaining({ dflt_value: "'[]'", name: "option_definitions_json", notnull: 1 }),
+    );
+    expect(
+      await env.DB.prepare(
+        "SELECT option_definitions_json FROM products ORDER BY id LIMIT 1",
+      ).first(),
+    ).toEqual({ option_definitions_json: "[]" });
+    expect(
+      (
+        await env.DB.prepare(
+          "SELECT id, slug, name, status, created_at, updated_at FROM products ORDER BY id",
+        ).all()
+      ).results,
+    ).toEqual(before);
+    await expect(
+      env.DB.prepare("UPDATE products SET option_definitions_json = 'not-json'").run(),
+    ).rejects.toThrow();
+    await expect(
+      env.DB.prepare("UPDATE products SET option_definitions_json = '{}'").run(),
+    ).rejects.toThrow();
+  });
+
   test("adds nullable compare-at prices while preserving existing current prices", async () => {
     await seedLaunchFixture(env.DB);
     const columns = await env.DB.prepare("PRAGMA table_info(prices)").all<{

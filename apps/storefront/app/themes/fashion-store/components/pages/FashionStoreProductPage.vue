@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
-import type { PresentationViewModel } from "../../../../theme-engine/view-models";
+import type { ProductPageModel } from "../../../../theme-engine/view-models";
 import {
   normalizeFashionStoreProductPresentation,
+  type FashionStoreProductPresentation,
   type FashionStoreProductRuntimeState,
 } from "../../contracts/product-card";
 import { useFashionStoreProductActionPort } from "../../composables/useFashionStoreProductActionPort";
@@ -18,7 +19,7 @@ import FashionStoreShell from "../shared/FashionStoreShell.vue";
 const properties = defineProps<{
   instance?: unknown;
   resolveAsset: ThemeAssetResolver;
-  viewModel: PresentationViewModel;
+  viewModel: ProductPageModel;
 }>();
 const presentation = computed(() => normalizeFashionStoreProductPresentation(properties.viewModel));
 const actionPort = useFashionStoreProductActionPort(presentation);
@@ -47,15 +48,13 @@ const productGallery = ref<InstanceType<typeof FashionStoreProductGallery>>();
 const lightbox = ref<InstanceType<typeof FashionStoreProductLightbox>>();
 let revalidationVersion = 0;
 
-const displayedOptionGroups = computed(
-  () => runtimeProduct.value?.optionGroups ?? presentation.value.optionGroups,
-);
+// Labels and ordering are immutable release presentation. Commerce revalidation may only
+// refresh mutable variant availability, pricing, inventory-derived outcomes, and media.
+const displayedOptionGroups = computed(() => presentation.value.optionGroups);
 const displayedVariants = computed(
   () => runtimeProduct.value?.variants ?? presentation.value.variants,
 );
-const displayedGallery = computed(
-  () => runtimeProduct.value?.gallery ?? presentation.value.gallery,
-);
+const displayedGallery = computed(() => presentation.value.gallery);
 const galleryImages = computed(() =>
   displayedGallery.value.map((item) => (item.kind === "theme-asset" ? item.path : item)),
 );
@@ -69,8 +68,10 @@ const selectedVariant = computed(() =>
 const displayedPrice = computed(
   () => selectedVariant.value?.priceLabel ?? presentation.value.priceLabel,
 );
-const displayedCompareAtPrice = computed(
-  () => selectedVariant.value?.compareAtPriceLabel ?? presentation.value.compareAtPriceLabel,
+const displayedCompareAtPrice = computed(() =>
+  runtimeProduct.value
+    ? selectedVariant.value?.compareAtPriceLabel
+    : (selectedVariant.value?.compareAtPriceLabel ?? presentation.value.compareAtPriceLabel),
 );
 const addDisabled = computed(
   () =>
@@ -79,10 +80,9 @@ const addDisabled = computed(
     runtimeProduct.value?.availability === "out-of-stock" ||
     runtimeProduct.value?.availability === "unavailable",
 );
-const descriptionMediaSource = computed(() => gallerySource(0));
-const descriptionMediaAlt = computed(
-  () => displayedGallery.value[0]?.alt ?? presentation.value.name,
-);
+const descriptionMedia = computed(() => presentation.value.descriptionDetail.media);
+const descriptionMediaSource = computed(() => mediaSource(descriptionMedia.value));
+const descriptionMediaAlt = computed(() => descriptionMedia.value?.alt ?? presentation.value.name);
 
 function gallerySource(index: number): string {
   const item = displayedGallery.value[index];
@@ -90,6 +90,33 @@ function gallerySource(index: number): string {
   return item.kind === "theme-asset"
     ? properties.resolveAsset(fashionStoreAssetId(item.path))
     : item.src;
+}
+
+function mediaSource(item: FashionStoreProductPresentation["gallery"][number] | undefined): string {
+  if (!item) return "";
+  return item.kind === "theme-asset"
+    ? properties.resolveAsset(fashionStoreAssetId(item.path))
+    : item.src;
+}
+
+function optionDefinition(groupName: string) {
+  return presentation.value.optionDefinitions.find(({ name }) => name === groupName);
+}
+
+function optionValueDefinition(groupName: string, label: string) {
+  return optionDefinition(groupName)?.values.find((value) => value.label === label);
+}
+
+function optionInputId(groupIndex: number, valueIndex: number): string {
+  return `product-option-${groupIndex}-${valueIndex}`;
+}
+
+function optionDisplayName(name: string): string {
+  return name ? `${name[0]!.toLocaleUpperCase()}${name.slice(1)}` : name;
+}
+
+function publishedRouteHref(path: string): string | undefined {
+  return presentation.value.publishedRoutes.includes(path) ? path : undefined;
 }
 
 function optionValueAvailable(groupName: string, value: string): boolean {
@@ -266,7 +293,9 @@ watch(
 
 <template>
   <FashionStoreShell
+    :brand-name="presentation.siteName"
     :preload-image="gallerySource(0)"
+    :published-routes="presentation.publishedRoutes"
     :resolve-asset="resolveAsset"
     :show-sticky-socials="false"
   >
@@ -290,7 +319,12 @@ watch(
                   <FashionStoreIcon name="chevron-right" class="fashion-breadcrumb-separator" />
                 </li>
                 <li>
-                  <a :href="fashionStoreRoutePaths['shop-left']" data-fashion-store-route>Shop</a>
+                  <a
+                    :href="publishedRouteHref(fashionStoreRoutePaths['shop-left'])"
+                    :aria-disabled="!publishedRouteHref(fashionStoreRoutePaths['shop-left'])"
+                    data-fashion-store-route
+                    >Shop</a
+                  >
                   <FashionStoreIcon name="chevron-right" class="fashion-breadcrumb-separator" />
                 </li>
                 <li>{{ presentation.name }}</li>
@@ -332,13 +366,38 @@ watch(
                 aria-label="JavaScript limitations"
               >
                 <p>Shopping actions require JavaScript.</p>
-                <a href="/shop">Browse the published catalog</a>
+                <a href="/">Return to the storefront</a>
               </div>
               <h1 class="visually-hidden">{{ presentation.name }}</h1>
+              <span v-if="presentation.brand" class="fw-500 text-dark-gray d-block">{{
+                presentation.brand
+              }}</span>
               <h4 class="alt-font text-dark-gray fw-500 mb-5px" role="heading" aria-level="2">
                 {{ presentation.name }}
               </h4>
               <div class="d-block d-sm-flex align-items-center mb-15px">
+                <div class="me-10px xs-me-0">
+                  <span
+                    class="ls-minus-1px icon-small"
+                    role="img"
+                    :aria-label="`${presentation.reviewSummary.averageRating} out of 5 stars`"
+                  >
+                    <FashionStoreIcon
+                      v-for="star in 5"
+                      :key="star"
+                      name="star"
+                      :filled="star <= Math.round(presentation.reviewSummary.averageRating)"
+                      class="text-golden-yellow"
+                    />
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  class="me-25px text-dark-gray fw-500 section-link xs-me-0"
+                  @click="activeTab = 'reviews'"
+                >
+                  {{ presentation.reviewSummary.label }}
+                </button>
                 <div v-if="selectedVariant?.sku">
                   <span class="text-dark-gray fw-500">SKU: </span>{{ selectedVariant.sku }}
                 </div>
@@ -359,23 +418,26 @@ watch(
                   :key="group.name"
                   class="border-0 p-0 m-0"
                 >
-                  <legend class="visually-hidden">{{ group.name }}</legend>
+                  <legend class="visually-hidden">{{ optionDisplayName(group.name) }}</legend>
                   <div
                     class="d-flex align-items-center"
                     :class="groupIndex === displayedOptionGroups.length - 1 ? 'mb-35px' : 'mb-20px'"
                   >
-                    <span class="text-dark-gray alt-font me-15px fw-500">{{ group.name }}</span>
+                    <span class="text-dark-gray alt-font me-15px fw-500">{{
+                      optionDisplayName(group.name)
+                    }}</span>
                     <ul
                       :class="
-                        group.name === 'Color'
-                          ? 'shop-color fashion-product-color-text-options'
+                        optionDefinition(group.name)?.presentation === 'color' &&
+                        optionDefinition(group.name)?.values.every(({ swatch }) => Boolean(swatch))
+                          ? 'shop-color fashion-product-color-swatches'
                           : 'shop-size'
                       "
                       class="mb-0"
                     >
-                      <li v-for="value in group.values" :key="value">
+                      <li v-for="(value, valueIndex) in group.values" :key="value">
                         <input
-                          :id="`product-${group.name.toLowerCase()}-${value.toLowerCase()}`"
+                          :id="optionInputId(groupIndex, valueIndex)"
                           class="fashion-product-option-input"
                           type="radio"
                           :name="`product-${group.name}`"
@@ -389,8 +451,27 @@ watch(
                           aria-describedby="product-option-error"
                           @change="selectOption(group.name, value)"
                         />
-                        <label :for="`product-${group.name.toLowerCase()}-${value.toLowerCase()}`">
-                          <span>{{ value }}</span>
+                        <label :for="optionInputId(groupIndex, valueIndex)">
+                          <span
+                            v-if="
+                              optionDefinition(group.name)?.presentation === 'color' &&
+                              Boolean(optionValueDefinition(group.name, value)?.swatch)
+                            "
+                            data-product-option-swatch
+                            :data-product-option-label="value"
+                            :style="{
+                              backgroundColor: optionValueDefinition(group.name, value)?.swatch,
+                            }"
+                          ></span>
+                          <span
+                            v-if="
+                              optionDefinition(group.name)?.presentation === 'color' &&
+                              Boolean(optionValueDefinition(group.name, value)?.swatch)
+                            "
+                            class="visually-hidden"
+                            >{{ value }}</span
+                          >
+                          <span v-else>{{ value }}</span>
                         </label>
                       </li>
                     </ul>
@@ -440,9 +521,17 @@ watch(
                   v-if="presentation.controls.find(({ role }) => role === 'wishlist')"
                   type="button"
                   class="wishlist d-flex align-items-center justify-content-center border border-radius-5px border-color-extra-medium-gray order-2 order-sm-3"
-                  aria-label="Add to wishlist"
-                  :disabled="actionPort.authoritative"
-                  @click="perform('wishlist', 'Toggle product wishlist')"
+                  :aria-label="presentation.controls.find(({ role }) => role === 'wishlist')!.label"
+                  :disabled="
+                    !presentation.controls.find(({ role }) => role === 'wishlist')!.enabled ||
+                    actionPort.authoritative
+                  "
+                  @click="
+                    perform(
+                      'wishlist',
+                      presentation.controls.find(({ role }) => role === 'wishlist')!.label,
+                    )
+                  "
                 >
                   <FashionStoreIcon name="heart" />
                 </button>
@@ -492,6 +581,75 @@ watch(
                   </div>
                 </div>
               </div>
+              <div data-product-assurance data-product-region-state="assurance">
+                  <div class="mb-20px h-1px w-100 bg-extra-medium-gray d-block"></div>
+                  <div class="row mb-15px">
+                    <div class="col-12 icon-with-text-style-08">
+                      <div class="feature-box feature-box-left-icon d-inline-flex align-middle">
+                        <div class="feature-box-icon me-10px">
+                          <FashionStoreIcon
+                            name="truck"
+                            class="top-8px position-relative align-middle text-dark-gray"
+                          />
+                        </div>
+                        <div class="feature-box-content">
+                          <span
+                            ><span class="alt-font text-dark-gray fw-500">Estimated delivery:</span>
+                            {{ presentation.assurance?.estimatedDelivery ?? "Not available" }}</span
+                          >
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-12 icon-with-text-style-08 mb-10px">
+                      <div class="feature-box feature-box-left-icon d-inline-flex align-middle">
+                        <div class="feature-box-icon me-10px">
+                          <FashionStoreIcon
+                            name="archive"
+                            class="top-8px position-relative align-middle text-dark-gray"
+                          />
+                        </div>
+                        <div class="feature-box-content">
+                          <span
+                            ><span class="alt-font text-dark-gray fw-500"
+                              >Free shipping &amp; returns:</span
+                            >
+                            {{ presentation.assurance?.freeShippingReturns ?? "Not available" }}</span
+                          >
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    class="bg-very-light-gray ps-30px pe-30px pt-25px pb-25px mb-20px xs-p-25px border-radius-4px"
+                  >
+                    <span class="alt-font fs-17 fw-500 text-dark-gray mb-15px d-block lh-initial"
+                      >Guarantee safe and secure checkout</span
+                    >
+                    <div class="fashion-product-payments">
+                      <span
+                        v-for="(payment, index) in presentation.assurance?.payments ?? []"
+                        :key="mediaSource(payment)"
+                        role="img"
+                        :aria-label="payment.alt ?? `Payment method ${index + 1}`"
+                      >
+                        <img :src="mediaSource(payment)" class="h-30px mb-5px me-5px" alt="" />
+                      </span>
+                      <span v-if="!presentation.assurance?.payments.length"
+                        >Payment methods are not available.</span
+                      >
+                    </div>
+                  </div>
+                  <div>
+                    <div class="w-100 d-block">
+                      <span class="text-dark-gray alt-font fw-500">Category:</span>
+                      <span>{{ presentation.taxonomy.categories.join(", ") || "Not available" }}</span>
+                    </div>
+                    <div>
+                      <span class="text-dark-gray alt-font fw-500">Tags: </span>
+                      <span>{{ presentation.taxonomy.tags.join(", ") || "Not available" }}</span>
+                    </div>
+                  </div>
+                </div>
             </div>
           </div>
         </div>
@@ -525,7 +683,7 @@ watch(
                         : tab === "shipping"
                           ? "Shipping and return"
                           : tab === "reviews"
-                            ? "Reviews (0)"
+                            ? `Reviews (${presentation.reviews.length})`
                             : "Description"
                     }}
                     <span class="tab-border bg-dark-gray"></span>
@@ -547,10 +705,40 @@ watch(
                 >
                   <div class="row align-items-center justify-content-center">
                     <div class="col-lg-6 md-mb-40px">
+                      <div
+                        v-if="presentation.descriptionDetail.eyebrow"
+                        class="d-flex align-items-center mb-5px"
+                      >
+                        <div class="col-auto pe-5px">
+                          <FashionStoreIcon name="heart" filled class="text-red fs-16" />
+                        </div>
+                        <div class="col alt-font fw-500 text-dark-gray">
+                          {{ presentation.descriptionDetail.eyebrow }}
+                        </div>
+                      </div>
                       <h4 class="alt-font text-dark-gray fw-500 mb-20px w-90 lg-w-100">
-                        {{ presentation.name }}
+                        {{ presentation.descriptionDetail.heading }}
                       </h4>
-                      <p class="w-90">{{ presentation.description }}</p>
+                      <p class="w-90">{{ presentation.descriptionDetail.text }}</p>
+                      <div v-if="presentation.descriptionDetail.bullets.length">
+                        <div
+                          v-for="(bullet, index) in presentation.descriptionDetail.bullets"
+                          :key="bullet"
+                          class="feature-box feature-box-left-icon-middle"
+                          :class="{
+                            'mb-10px': index < presentation.descriptionDetail.bullets.length - 1,
+                          }"
+                        >
+                          <div
+                            class="feature-box-icon feature-box-icon-rounded w-30px h-30px rounded-circle bg-very-light-gray me-10px"
+                          >
+                            <FashionStoreIcon name="check" class="fs-12 text-dark-gray" />
+                          </div>
+                          <div class="feature-box-content">
+                            <span class="d-block text-dark-gray fw-500">{{ bullet }}</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     <div class="col-lg-6 col-md-8">
                       <img
@@ -583,8 +771,28 @@ watch(
                   aria-labelledby="product-tab-information"
                   :hidden="activeTab !== 'information'"
                 >
+                  <template v-if="presentation.optionalRegions.specifications === 'populated'">
+                    <div
+                      v-for="(specification, index) in presentation.specifications"
+                      :key="specification.label"
+                      class="row m-0"
+                      :class="{ 'bg-very-light-gray': index % 2 === 1 }"
+                      data-product-region-state="information"
+                    >
+                      <div
+                        class="col-lg-2 col-md-3 col-sm-4 pt-10px pb-10px text-dark-gray alt-font fw-500"
+                      >
+                        {{ specification.label }}
+                      </div>
+                      <div class="col-lg-10 col-md-9 col-sm-8 pt-10px pb-10px">
+                        {{ specification.value }}
+                      </div>
+                    </div>
+                  </template>
                   <div
-                    v-if="presentation.optionalRegions.specifications === 'source-shaped-empty'"
+                    v-else-if="
+                      presentation.optionalRegions.specifications === 'source-shaped-empty'
+                    "
                     class="row m-0"
                     data-product-region-state="information"
                   >
@@ -607,7 +815,23 @@ watch(
                   :hidden="activeTab !== 'shipping'"
                 >
                   <div
-                    v-if="presentation.optionalRegions.shipping === 'source-shaped-empty'"
+                    v-if="
+                      presentation.optionalRegions.shipping === 'populated' && presentation.shipping
+                    "
+                    class="row"
+                    data-product-region-state="shipping"
+                  >
+                    <div class="col-12 col-md-6 last-paragraph-no-margin sm-mb-30px">
+                      <h2 class="alt-font fs-22">Shipping information</h2>
+                      <p><strong>Standard:</strong> {{ presentation.shipping.standard }}</p>
+                    </div>
+                    <div class="col-12 col-md-6 last-paragraph-no-margin">
+                      <h2 class="alt-font fs-22">Return information</h2>
+                      <p>{{ presentation.shipping.returnBody }}</p>
+                    </div>
+                  </div>
+                  <div
+                    v-else-if="presentation.optionalRegions.shipping === 'source-shaped-empty'"
                     class="row"
                     data-product-region-state="shipping"
                   >
@@ -629,8 +853,69 @@ watch(
                   aria-labelledby="product-tab-reviews"
                   :hidden="activeTab !== 'reviews'"
                 >
+                  <template v-if="presentation.optionalRegions.reviews === 'populated'">
+                    <div class="row align-items-center mb-6 sm-mb-10">
+                      <div class="col-lg-4 col-md-12 col-sm-7 md-mb-30px text-center text-lg-start">
+                        <h5 class="alt-font text-dark-gray fw-500 mb-0 w-85 lg-w-100">
+                          Customer feedback from the product fixture.
+                        </h5>
+                      </div>
+                      <div
+                        class="col-lg-2 col-md-4 col-sm-5 text-center sm-mb-20px p-0 md-ps-15px md-pe-15px"
+                      >
+                        <div class="border-radius-4px bg-very-light-gray p-30px xl-p-20px">
+                          <h2 class="mb-5px alt-font text-dark-gray fw-600">
+                            {{ presentation.reviewSummary.averageRating.toFixed(1) }}
+                          </h2>
+                          <span
+                            class="text-golden-yellow icon-small d-block ls-minus-1px mb-5px fashion-product-rating-stars"
+                            role="img"
+                            :aria-label="`${presentation.reviewSummary.averageRating} out of 5 stars`"
+                          >
+                            <FashionStoreIcon v-for="star in 5" :key="star" name="star" filled />
+                          </span>
+                          <span
+                            class="ps-15px pe-15px pt-10px pb-10px lh-normal bg-dark-gray text-white fs-12 fw-600 text-uppercase border-radius-4px d-inline-block text-center"
+                            >{{ presentation.reviewSummary.label }}</span
+                          >
+                        </div>
+                      </div>
+                    </div>
+                    <div class="row g-0 mb-4 md-mb-35px fashion-product-reviews">
+                      <div
+                        v-for="review in presentation.reviews"
+                        :key="review.author"
+                        class="col-12 border-bottom border-color-extra-medium-gray pb-40px mb-40px xs-pb-30px xs-mb-30px"
+                      >
+                        <div class="d-block d-md-flex w-100 align-items-center">
+                          <div class="w-300px md-w-250px sm-w-100 sm-mb-10px text-center">
+                            <img
+                              v-if="review.media"
+                              :src="mediaSource(review.media)"
+                              class="rounded-circle w-90px mb-10px"
+                              alt=""
+                            />
+                            <span class="text-dark-gray fw-600 d-block">{{ review.author }}</span>
+                            <div class="fs-14 lh-18">{{ review.date }}</div>
+                          </div>
+                          <div
+                            class="w-100 last-paragraph-no-margin sm-ps-0 position-relative text-center text-md-start"
+                          >
+                            <span
+                              class="text-golden-yellow ls-minus-1px mb-5px sm-me-10px sm-mb-0 d-inline-block d-md-block fashion-product-rating-stars"
+                              role="img"
+                              aria-label="5 out of 5 stars"
+                            >
+                              <FashionStoreIcon v-for="star in 5" :key="star" name="star" filled />
+                            </span>
+                            <p class="w-85 sm-w-100 sm-mt-15px">{{ review.text }}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
                   <div
-                    v-if="presentation.optionalRegions.reviews === 'source-shaped-empty'"
+                    v-else-if="presentation.optionalRegions.reviews === 'source-shaped-empty'"
                     class="row align-items-center mb-6 sm-mb-10"
                     data-product-region-state="reviews"
                   >
@@ -647,7 +932,7 @@ watch(
         </div>
       </section>
 
-      <section v-if="presentation.relatedProducts.length" class="pt-0 fashion-product-related">
+      <section class="pt-0 fashion-product-related">
         <div class="container">
           <div class="row mb-5">
             <div class="col-12 text-center">
@@ -660,6 +945,7 @@ watch(
             </div>
           </div>
           <ul
+            v-if="presentation.relatedProducts.length"
             class="shop-modern shop-wrapper grid grid-4col md-grid-3col sm-grid-2col xs-grid-1col gutter-extra-large text-center"
           >
             <li class="grid-sizer" aria-hidden="true"></li>
@@ -670,6 +956,9 @@ watch(
               :resolve-asset="resolveAsset"
             />
           </ul>
+          <p v-else class="mb-0 text-center" data-product-region-state="related-products">
+            Related products are not available for this item.
+          </p>
         </div>
       </section>
 

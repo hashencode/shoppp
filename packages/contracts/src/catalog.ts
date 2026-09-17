@@ -56,12 +56,233 @@ export const productVariantSchema = z
     sku: z.string().min(1).max(80),
   })
   .strict();
+export const productOptionValueSchema = z
+  .object({
+    label: z.string().trim().min(1).max(160),
+    swatch: z
+      .string()
+      .regex(/^#[0-9a-f]{6}$/)
+      .optional(),
+  })
+  .strict();
+export const productOptionDefinitionSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80),
+    presentation: z.enum(["text", "color"]),
+    values: z.array(productOptionValueSchema).min(1).max(100),
+  })
+  .strict()
+  .superRefine((definition, context) => {
+    const labels = new Set<string>();
+    definition.values.forEach((value, index) => {
+      if (labels.has(value.label)) {
+        context.addIssue({
+          code: "custom",
+          message: "Option value labels must be unique within a definition.",
+          path: ["values", index, "label"],
+        });
+      }
+      labels.add(value.label);
+      if (definition.presentation === "color" && !value.swatch) {
+        context.addIssue({
+          code: "custom",
+          message: "Color-presented option values require a canonical opaque swatch.",
+          path: ["values", index, "swatch"],
+        });
+      }
+      if (definition.presentation === "text" && value.swatch) {
+        context.addIssue({
+          code: "custom",
+          message: "Text-presented option values cannot carry a swatch.",
+          path: ["values", index, "swatch"],
+        });
+      }
+    });
+  });
+export const productOptionDefinitionsSchema = z
+  .array(productOptionDefinitionSchema)
+  .max(20)
+  .superRefine((definitions, context) => {
+    const names = new Set<string>();
+    definitions.forEach((definition, index) => {
+      if (names.has(definition.name)) {
+        context.addIssue({
+          code: "custom",
+          message: "Option definition names must be unique within a product.",
+          path: [index, "name"],
+        });
+      }
+      names.add(definition.name);
+    });
+  });
+export type ProductOptionDefinition = z.infer<typeof productOptionDefinitionSchema>;
+
+export type ProductOptionDefinitionIssue = {
+  message: string;
+  path: Array<number | string>;
+};
+
+export function deriveTextProductOptionDefinitions(
+  variants: readonly { optionValues: Readonly<Record<string, string>> }[],
+): ProductOptionDefinition[] {
+  const valuesByName = new Map<string, string[]>();
+  for (const { optionValues } of variants) {
+    for (const [name, value] of Object.entries(optionValues)) {
+      const values = valuesByName.get(name) ?? [];
+      if (!values.includes(value)) values.push(value);
+      valuesByName.set(name, values);
+    }
+  }
+  return [...valuesByName].map(([name, values]) => ({
+    name,
+    presentation: "text" as const,
+    values: values.map((label) => ({ label })),
+  }));
+}
+
+export function validateProductOptionDefinitions(
+  definitions: readonly ProductOptionDefinition[],
+  variants: readonly { optionValues: Readonly<Record<string, string>> }[],
+): ProductOptionDefinitionIssue[] {
+  const issues: ProductOptionDefinitionIssue[] = [];
+  const expected = new Map(
+    deriveTextProductOptionDefinitions(variants).map(({ name, values }) => [
+      name,
+      values.map(({ label }) => label),
+    ]),
+  );
+  const signatures = new Map<string, number>();
+  variants.forEach(({ optionValues }, variantIndex) => {
+    const signature = JSON.stringify(
+      Object.entries(optionValues).sort(([left], [right]) => left.localeCompare(right)),
+    );
+    const duplicateIndex = signatures.get(signature);
+    if (duplicateIndex !== undefined) {
+      issues.push({
+        message: `Variant option combinations must be unique; duplicates variant ${duplicateIndex}.`,
+        path: ["variants", variantIndex, "optionValues"],
+      });
+    } else {
+      signatures.set(signature, variantIndex);
+    }
+  });
+  definitions.forEach((definition, definitionIndex) => {
+    const expectedValues = expected.get(definition.name);
+    if (!expectedValues) {
+      issues.push({
+        message: "Option definition name is absent from every product variant.",
+        path: ["optionDefinitions", definitionIndex, "name"],
+      });
+      return;
+    }
+    definition.values.forEach((value, valueIndex) => {
+      if (!expectedValues.includes(value.label)) {
+        issues.push({
+          message: "Option value is absent from every product variant.",
+          path: ["optionDefinitions", definitionIndex, "values", valueIndex, "label"],
+        });
+      }
+    });
+    expectedValues.forEach((value) => {
+      if (!definition.values.some(({ label }) => label === value)) {
+        issues.push({
+          message: `Option definition does not cover variant value ${value}.`,
+          path: ["optionDefinitions", definitionIndex, "values"],
+        });
+      }
+    });
+    expected.delete(definition.name);
+  });
+  for (const name of expected.keys()) {
+    issues.push({
+      message: `Option definitions do not cover variant option ${name}.`,
+      path: ["optionDefinitions"],
+    });
+  }
+  return issues;
+}
+export const productSpecificationSchema = z
+  .object({
+    label: z.string().trim().min(1).max(160),
+    value: z.string().trim().min(1).max(1_000),
+  })
+  .strict();
+export const productReviewDisplaySchema = z
+  .object({
+    averageRating: z.number().min(0).max(5),
+    count: z.int().nonnegative().max(1_000_000_000),
+    entries: z
+      .array(
+        z
+          .object({
+            author: z.string().trim().min(1).max(160),
+            date: z.string().trim().min(1).max(160),
+            text: z.string().trim().min(1).max(2_000),
+          })
+          .strict(),
+      )
+      .max(20),
+    provenance: z.string().trim().min(1).max(300),
+    updatedAt: z.iso.datetime(),
+  })
+  .strict()
+  .superRefine((reviewDisplay, context) => {
+    if (reviewDisplay.count === 0 && reviewDisplay.averageRating !== 0) {
+      context.addIssue({
+        code: "custom",
+        message: "A zero-review snapshot must have a zero average rating.",
+        path: ["averageRating"],
+      });
+    }
+    if (reviewDisplay.entries.length > reviewDisplay.count) {
+      context.addIssue({
+        code: "custom",
+        message: "Displayed review entries cannot exceed the published review count.",
+        path: ["entries"],
+      });
+    }
+  });
+export const productPresentationSchema = z
+  .object({
+    brand: z.string().trim().min(1).max(160).optional(),
+    defaultVariantId: publicIdSchema.optional(),
+    detail: z
+      .object({
+        body: z.string().trim().min(1).max(20_000).optional(),
+        bullets: z.array(z.string().trim().min(1).max(500)).max(20),
+        eyebrow: z.string().trim().min(1).max(160).optional(),
+        heading: z.string().trim().min(1).max(300).optional(),
+      })
+      .strict()
+      .optional(),
+    detailMediaId: publicIdSchema.optional(),
+    reviewDisplay: productReviewDisplaySchema.optional(),
+    specifications: z.array(productSpecificationSchema).max(30),
+  })
+  .strict()
+  .superRefine((presentation, context) => {
+    const labels = new Set<string>();
+    presentation.specifications.forEach(({ label }, index) => {
+      const normalized = label.toLocaleLowerCase();
+      if (labels.has(normalized)) {
+        context.addIssue({
+          code: "custom",
+          message: "Specification labels must be unique.",
+          path: ["specifications", index, "label"],
+        });
+      }
+      labels.add(normalized);
+    });
+  });
+export type ProductPresentation = z.infer<typeof productPresentationSchema>;
 export const productSchema = z
   .object({
     description: z.string(),
     id: publicIdSchema,
     media: z.array(productMediaSchema),
     name: z.string().min(1),
+    optionDefinitions: productOptionDefinitionsSchema,
+    presentation: productPresentationSchema.optional(),
     options: z.array(
       z
         .object({
@@ -101,6 +322,7 @@ const catalogMediaSchema = z
   .object({
     alt: z.string().trim().min(1).max(300),
     height: z.int().positive().max(16_384),
+    id: publicIdSchema.optional(),
     src: z
       .string()
       .min(1)
@@ -134,6 +356,8 @@ const catalogReleaseProductBaseSchema = z
     description: z.string().max(50_000),
     media: z.array(catalogMediaSchema).max(50),
     name: z.string().trim().min(1).max(300),
+    optionDefinitions: productOptionDefinitionsSchema.optional(),
+    presentation: productPresentationSchema.optional(),
     seoDescription: z.string().trim().min(1).max(500),
     seoTitle: z.string().trim().min(1).max(300),
     slug: catalogSlugSchema,
@@ -278,6 +502,38 @@ function validateCanonicalCatalogRelease(
     release.collections.map((collection) => [collection.id, collection]),
   );
   release.products.forEach((product, productIndex) => {
+    if (product.optionDefinitions) {
+      for (const issue of validateProductOptionDefinitions(
+        product.optionDefinitions,
+        product.variants,
+      )) {
+        addCatalogReleaseIssue(context, ["products", productIndex, ...issue.path], issue.message);
+      }
+    }
+    if (product.presentation?.defaultVariantId) {
+      const defaultVariantIndex = product.variants.findIndex(
+        ({ id }) => id === product.presentation?.defaultVariantId,
+      );
+      if (defaultVariantIndex < 0) {
+        addCatalogReleaseIssue(
+          context,
+          ["products", productIndex, "presentation", "defaultVariantId"],
+          "Product presentation references a default Variant outside the Product.",
+        );
+      }
+    }
+    if (product.presentation?.detailMediaId) {
+      const detailMediaIndex = product.media.findIndex(
+        ({ id }) => id === product.presentation?.detailMediaId,
+      );
+      if (detailMediaIndex < 0) {
+        addCatalogReleaseIssue(
+          context,
+          ["products", productIndex, "presentation", "detailMediaId"],
+          "Product presentation references detail media outside the Product.",
+        );
+      }
+    }
     validateUniqueReleaseValues(
       product.collectionIds,
       context,

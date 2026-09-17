@@ -17,7 +17,7 @@ import {
   App,
 } from 'antd'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { normalizeApiError, type ApiError } from '../../infrastructure/http/api-client'
@@ -40,11 +40,6 @@ const HEALTH_FAILURE_LABEL: Record<keyof OperationalHealth['failures'], string> 
   deadLetterJobs: 'Dead-letter jobs',
   paymentEvents: 'Payment event failures',
   reportExports: 'Report export failures',
-}
-const ENVIRONMENT_LABEL: Record<LaunchConfigurationStatus['environment'], string> = {
-  development: 'Development',
-  staging: 'Staging',
-  production: 'Production',
 }
 const SECTION_IDS = ['contacts', 'sales', 'payment', 'policies']
 
@@ -121,12 +116,6 @@ export const LaunchSettingsPage = () => {
   const mode = canWrite ? 'modify' : 'readonly'
   return (
     <div className="space-y-4">
-      {canRead && status ? <Tag>{t(ENVIRONMENT_LABEL[status.environment])}</Tag> : null}
-      {canRead && new URLSearchParams(location.search).get('from') !== 'setup-guide' ? (
-        <Link className="underline underline-offset-4" to="/welcome">
-          {t('View store setup checks')}
-        </Link>
-      ) : null}
       <BasicCrudFormRecipe<FormValues>
         spec={{
           parsedMode: { ok: true, mode, resourceKey: 'commercial-configuration' },

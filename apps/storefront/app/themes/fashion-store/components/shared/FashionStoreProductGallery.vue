@@ -54,6 +54,23 @@ function imageWidth(image: ProductGalleryImage | string): number {
   return typeof image === "string" ? 600 : image.width;
 }
 
+function useHistoricalAssetFallback(
+  image: ProductGalleryImage | string,
+  event: Event,
+): void {
+  if (typeof image === "string") return;
+  const element = event.currentTarget as HTMLImageElement;
+  if (element.dataset.historicalFallback === "true") return;
+  const filename = new URL(image.src, window.location.href).pathname
+    .split("/")
+    .at(-1)
+    ?.replace(/^\d+-/, "");
+  if (!filename || !/^demo-fashion-store-product-detail-\d+\.(?:jpe?g|webp)$/i.test(filename))
+    return;
+  element.dataset.historicalFallback = "true";
+  element.src = properties.resolveAsset(fashionStoreAssetId(`images/${filename}`));
+}
+
 function syncAutoplay(): void {
   const swiper = mainSwiper.value;
   if (!swiper?.autoplay || !loopEnabled.value) return;
@@ -238,6 +255,7 @@ defineExpose({ select });
               :width="imageWidth(image)"
               :height="imageHeight(image)"
               draggable="false"
+              @error="useHistoricalAssetFallback(image, $event)"
             />
           </button>
         </SwiperSlide>
@@ -268,6 +286,7 @@ defineExpose({ select });
             :width="imageWidth(image)"
             :height="imageHeight(image)"
             draggable="false"
+            @error="useHistoricalAssetFallback(image, $event)"
           />
           <button
             type="button"

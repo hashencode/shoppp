@@ -312,7 +312,10 @@ const semanticDispositionByBehavior = {
     affordance(".fashion-product-options", commerce("variant.select", "productId", "variantId")),
     affordance(".product-info .quantity", local("product-quantity")),
   ],
-  "product-tabs-reviews": [affordance("#tab .nav-link", local("product-tabs"))],
+  "product-tabs-reviews": [
+    affordance("#tab .nav-link", local("product-tabs")),
+    affordance(".product-info button.section-link", local("product-tabs")),
+  ],
   "promotional-marquee": local("promotional-marquee"),
   "scroll-progress-indicator": local("scroll-progress"),
   "shop-filters": [

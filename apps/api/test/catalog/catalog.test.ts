@@ -19,6 +19,13 @@ const validProduct = {
     },
   ],
   name: "Carry-on",
+  optionDefinitions: [
+    {
+      name: "color",
+      presentation: "color",
+      values: [{ label: "Black", swatch: "#111111" }],
+    },
+  ],
   seoDescription: "Shop the lightweight Carry-on for international travel.",
   seoTitle: "Carry-on suitcase",
   slug: "carry-on",
@@ -48,6 +55,9 @@ async function resetCatalog(): Promise<void> {
     env.DB.prepare("DELETE FROM product_media"),
     env.DB.prepare("DELETE FROM prices"),
     env.DB.prepare("DELETE FROM price_lists"),
+    env.DB.prepare("DELETE FROM stock_ledger_entries"),
+    env.DB.prepare("DELETE FROM inventory_items"),
+    env.DB.prepare("DELETE FROM warehouses"),
     env.DB.prepare("DELETE FROM product_variants"),
     env.DB.prepare("DELETE FROM products"),
     env.DB.prepare("DELETE FROM admin_identities"),
@@ -105,6 +115,14 @@ async function uploadValidMedia(app: ReturnType<typeof createApp>): Promise<void
   expect(response.status).toBe(201);
 }
 
+async function productVersion(productId: string): Promise<number> {
+  const row = await env.DB.prepare("SELECT version FROM products WHERE id = ?")
+    .bind(productId)
+    .first<{ version: number }>();
+  if (!row) throw new Error(`Missing product ${productId}.`);
+  return row.version;
+}
+
 describe("catalog management and publishing", () => {
   beforeEach(async () => {
     await resetCatalog();
@@ -116,8 +134,35 @@ describe("catalog management and publishing", () => {
     });
   });
 
+  test("accepts legacy draft writers and derives neutral text option presentation", async () => {
+    const { app } = appFor();
+    await uploadValidMedia(app);
+    const { optionDefinitions: _omitted, ...legacyPayload } = validProduct;
+
+    const response = await app.fetch(productRequest(legacyPayload), env);
+
+    expect(response.status).toBe(201);
+    const created = await response.json<{ data: { id: string } }>();
+    expect(
+      await env.DB.prepare("SELECT option_definitions_json FROM products WHERE id = ?")
+        .bind(created.data.id)
+        .first(),
+    ).toEqual({
+      option_definitions_json: JSON.stringify([
+        { name: "color", presentation: "text", values: [{ label: "Black" }] },
+      ]),
+    });
+  });
+
   test("creates a complete draft, previews it, and publishes one correlated build", async () => {
-    const buildTrigger = vi.fn(async () => ({ correlationId: "build-correlation-001" }));
+    const buildTrigger = vi.fn(async () => {
+      expect(
+        await env.DB.prepare("SELECT status FROM products WHERE slug = ?")
+          .bind("carry-on-pro")
+          .first(),
+      ).toEqual({ status: "published" });
+      return { correlationId: "build-correlation-001" };
+    });
     const { app } = appFor("catalog-user", buildTrigger);
     await uploadValidMedia(app);
 
@@ -145,6 +190,40 @@ describe("catalog management and publishing", () => {
         product: { name: "Carry-on Pro", slug: "carry-on-pro" },
       },
     });
+    const [releaseMedia, releaseVariant] = await Promise.all([
+      env.DB.prepare("SELECT id FROM product_media WHERE product_id = ?")
+        .bind(created.data.id)
+        .first<{ id: string }>(),
+      env.DB.prepare("SELECT id FROM product_variants WHERE product_id = ?")
+        .bind(created.data.id)
+        .first<{ id: string }>(),
+    ]);
+    const releasePresentation = {
+      brand: "Shoppp",
+      defaultVariantId: releaseVariant!.id,
+      detail: {
+        body: "Built for frequent travel.",
+        bullets: ["Durable shell"],
+        heading: "Designed for the journey",
+      },
+      detailMediaId: releaseMedia!.id,
+      specifications: [{ label: "Capacity", value: "38 L" }],
+    };
+    expect(
+      (
+        await app.fetch(
+          request(`/admin/catalog/products/${created.data.id}/presentation`, {
+            body: JSON.stringify({
+              expectedVersion: await productVersion(created.data.id),
+              presentation: releasePresentation,
+            }),
+            headers: { "Content-Type": "application/json" },
+            method: "PATCH",
+          }),
+          env,
+        )
+      ).status,
+    ).toBe(200);
 
     const previewResponse = await app.fetch(
       request(`/admin/catalog/products/${created.data.id}/preview`, { method: "POST" }),
@@ -197,6 +276,8 @@ describe("catalog management and publishing", () => {
       products: Array<{
         collectionIds: string[];
         id: string;
+        media: Array<{ id?: string }>;
+        presentation?: typeof releasePresentation;
         slug: string;
         variants: Array<{
           prices: Array<{ amount: number; compareAtAmount?: number; currency: string }>;
@@ -218,6 +299,8 @@ describe("catalog management and publishing", () => {
     expect(manifest.products[0]?.variants[0]?.prices).toEqual([
       { amount: 12_900, compareAtAmount: 15_000, currency: "USD" },
     ]);
+    expect(manifest.products[0]?.media[0]?.id).toBe(releaseMedia!.id);
+    expect(manifest.products[0]?.presentation).toEqual(releasePresentation);
     expect(manifest.routes).toContain("/products/carry-on-pro");
     const releaseResponse = await app.fetch(
       new Request(`https://api.example.test/build/catalog/releases/${release!.id}`, {
@@ -311,6 +394,423 @@ describe("catalog management and publishing", () => {
         )
       ).status,
     ).toBe(409);
+  });
+
+  test("freezes Product edits before manifest build and restores editability when the build hook fails", async () => {
+    const buildTrigger = vi.fn(async () => {
+      throw new Error("build unavailable");
+    });
+    const { app } = appFor("catalog-user", buildTrigger);
+    await uploadValidMedia(app);
+    const created = await (
+      await app.fetch(productRequest(validProduct), env)
+    ).json<{ data: { id: string } }>();
+
+    const response = await app.fetch(
+      request(`/admin/catalog/products/${created.data.id}/publish`, {
+        body: JSON.stringify({
+          expectedVersion: await productVersion(created.data.id),
+          reason: "Test failed build rollback",
+        }),
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": "publish-failed-build-0001",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(500);
+    expect(
+      await env.DB.prepare("SELECT status, published_at FROM products WHERE id = ?")
+        .bind(created.data.id)
+        .first(),
+    ).toEqual({ published_at: null, status: "draft" });
+    expect(
+      await env.DB.prepare(
+        "SELECT status, failure_code FROM catalog_releases WHERE product_id = ? ORDER BY created_at DESC LIMIT 1",
+      )
+        .bind(created.data.id)
+        .first(),
+    ).toEqual({ failure_code: "build_hook_failed", status: "failed" });
+  });
+
+  test("updates only option presentation metadata and preserves variant-dependent rows", async () => {
+    const { app } = appFor();
+    await uploadValidMedia(app);
+    const createdResponse = await app.fetch(productRequest(validProduct), env);
+    const created = await createdResponse.json<{ data: { id: string } }>();
+    const productId = created.data.id;
+    const snapshot = async () => ({
+      media: (
+        await env.DB.prepare(
+          "SELECT id, product_id, variant_id, r2_key, alt_text, width, height, position, created_at FROM product_media WHERE product_id = ? ORDER BY id",
+        )
+          .bind(productId)
+          .all()
+      ).results,
+      prices: (
+        await env.DB.prepare(
+          "SELECT p.* FROM prices p JOIN product_variants v ON v.id = p.variant_id WHERE v.product_id = ? ORDER BY p.id",
+        )
+          .bind(productId)
+          .all()
+      ).results,
+      variants: (
+        await env.DB.prepare("SELECT * FROM product_variants WHERE product_id = ? ORDER BY id")
+          .bind(productId)
+          .all()
+      ).results,
+    });
+    const before = await snapshot();
+    const optionDefinitions = [
+      {
+        name: "color",
+        presentation: "color",
+        values: [{ label: "Black", swatch: "#222222" }],
+      },
+    ];
+
+    const response = await app.fetch(
+      request(`/admin/catalog/products/${productId}/option-definitions`, {
+        body: JSON.stringify({
+          expectedVersion: await productVersion(productId),
+          optionDefinitions,
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "PATCH",
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ data: { optionDefinitions } });
+    expect(await snapshot()).toEqual(before);
+    expect(
+      await env.DB.prepare("SELECT option_definitions_json FROM products WHERE id = ?")
+        .bind(productId)
+        .first(),
+    ).toEqual({ option_definitions_json: JSON.stringify(optionDefinitions) });
+
+    const variant = await env.DB.prepare(
+      "SELECT id FROM product_variants WHERE product_id = ? AND sku = ?",
+    )
+      .bind(productId, validProduct.variants[0]!.sku)
+      .first<{ id: string }>();
+    await env.DB.batch([
+      env.DB.prepare(
+        "INSERT INTO warehouses (id, code, name, created_at) VALUES (?, ?, ?, ?)",
+      ).bind("warehouse-option-save", "OPTION-SAVE", "Option save", NOW),
+      env.DB.prepare(
+        `INSERT INTO inventory_items
+          (variant_id, warehouse_id, on_hand_quantity, reserved_quantity, oversell_limit, version, updated_at)
+         VALUES (?, ?, 1, 0, 0, 0, ?)`,
+      ).bind(variant!.id, "warehouse-option-save", NOW),
+    ]);
+    const { optionDefinitions: _omitted, ...ordinaryPayload } = validProduct;
+    const ordinarySave = await app.fetch(
+      request(`/admin/catalog/products/${productId}`, {
+        body: JSON.stringify({
+          ...ordinaryPayload,
+          expectedVersion: await productVersion(productId),
+          name: "Carry-on renamed",
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(ordinarySave.status).toBe(200);
+    expect(
+      await env.DB.prepare("SELECT id FROM product_variants WHERE product_id = ? AND sku = ?")
+        .bind(productId, validProduct.variants[0]!.sku)
+        .first(),
+    ).toEqual({ id: variant!.id });
+    expect(
+      await env.DB.prepare("SELECT option_definitions_json FROM products WHERE id = ?")
+        .bind(productId)
+        .first(),
+    ).toEqual({ option_definitions_json: JSON.stringify(optionDefinitions) });
+  });
+
+  test("rejects mismatched option definitions atomically with field-addressable errors", async () => {
+    const { app } = appFor();
+    await uploadValidMedia(app);
+    const createdResponse = await app.fetch(productRequest(validProduct), env);
+    const created = await createdResponse.json<{ data: { id: string } }>();
+    const productId = created.data.id;
+    const original = await env.DB.prepare(
+      "SELECT option_definitions_json FROM products WHERE id = ?",
+    )
+      .bind(productId)
+      .first();
+
+    for (const optionDefinitions of [
+      [{ name: "Color", presentation: "color", values: [{ label: "Black", swatch: "#111111" }] }],
+      [{ name: "color", presentation: "color", values: [{ label: "White", swatch: "#ffffff" }] }],
+      [{ name: "color", presentation: "color", values: [{ label: "Black", swatch: "red" }] }],
+      [{ name: "color", presentation: "color", values: [{ label: "Black" }] }],
+      [
+        { name: "color", presentation: "text", values: [{ label: "Black" }] },
+        { name: "color", presentation: "text", values: [{ label: "Black" }] },
+      ],
+    ]) {
+      const response = await app.fetch(
+        request(`/admin/catalog/products/${productId}/option-definitions`, {
+          body: JSON.stringify({
+            expectedVersion: await productVersion(productId),
+            optionDefinitions,
+          }),
+          headers: { "Content-Type": "application/json" },
+          method: "PATCH",
+        }),
+        env,
+      );
+      expect(response.status).toBe(422);
+      expect(await response.json()).toMatchObject({ error: { details: expect.anything() } });
+      expect(
+        await env.DB.prepare("SELECT option_definitions_json FROM products WHERE id = ?")
+          .bind(productId)
+          .first(),
+      ).toEqual(original);
+    }
+  });
+
+  test("keeps published and archived option presentation immutable", async () => {
+    const { app } = appFor();
+    await uploadValidMedia(app);
+    const createdResponse = await app.fetch(productRequest(validProduct), env);
+    const created = await createdResponse.json<{ data: { id: string } }>();
+    const productId = created.data.id;
+    for (const status of ["published", "archived"] as const) {
+      await env.DB.prepare("UPDATE products SET status = ? WHERE id = ?")
+        .bind(status, productId)
+        .run();
+      const response = await app.fetch(
+        request(`/admin/catalog/products/${productId}/option-definitions`, {
+          body: JSON.stringify({
+            expectedVersion: await productVersion(productId),
+            optionDefinitions: validProduct.optionDefinitions,
+          }),
+          headers: { "Content-Type": "application/json" },
+          method: "PATCH",
+        }),
+        env,
+      );
+      expect(response.status).toBe(409);
+      expect(await response.json()).toMatchObject({
+        error: { code: "published_product_immutable" },
+      });
+    }
+  });
+
+  test("rejects a stale option-presentation write without replacing newer product state", async () => {
+    const { app } = appFor();
+    await uploadValidMedia(app);
+    const createdResponse = await app.fetch(productRequest(validProduct), env);
+    const created = await createdResponse.json<{ data: { id: string } }>();
+    const productId = created.data.id;
+    const expectedVersion = await productVersion(productId);
+    await env.DB.prepare("UPDATE products SET version = version + 1 WHERE id = ?")
+      .bind(productId)
+      .run();
+
+    const response = await app.fetch(
+      request(`/admin/catalog/products/${productId}/option-definitions`, {
+        body: JSON.stringify({
+          expectedVersion,
+          optionDefinitions: [
+            {
+              name: "color",
+              presentation: "color",
+              values: [{ label: "Black", swatch: "#222222" }],
+            },
+          ],
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "PATCH",
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ error: { code: "stale_product_version" } });
+    expect(
+      await env.DB.prepare("SELECT option_definitions_json, version FROM products WHERE id = ?")
+        .bind(productId)
+        .first(),
+    ).toEqual({
+      option_definitions_json: JSON.stringify(validProduct.optionDefinitions),
+      version: expectedVersion + 1,
+    });
+  });
+
+  test("updates Product presentation atomically without replacing media or Variant rows", async () => {
+    const { app } = appFor();
+    await uploadValidMedia(app);
+    const createdResponse = await app.fetch(productRequest(validProduct), env);
+    const created = await createdResponse.json<{ data: { id: string } }>();
+    const productId = created.data.id;
+    const media = (
+      await env.DB.prepare("SELECT * FROM product_media WHERE product_id = ?")
+        .bind(productId)
+        .all<Record<string, unknown>>()
+    ).results;
+    const variants = (
+      await env.DB.prepare("SELECT * FROM product_variants WHERE product_id = ?")
+        .bind(productId)
+        .all<Record<string, unknown>>()
+    ).results;
+    const presentation = {
+      brand: "Shoppp",
+      defaultVariantId: String(variants[0]!.id),
+      detail: {
+        body: "Built for frequent travel.",
+        bullets: ["Durable shell", "Quiet wheels"],
+        eyebrow: "Travel better",
+        heading: "Designed for the journey",
+      },
+      detailMediaId: String(media[0]!.id),
+      specifications: [
+        { label: "Material", value: "Recycled polycarbonate" },
+        { label: "Capacity", value: "38 L" },
+      ],
+    };
+
+    const response = await app.fetch(
+      request(`/admin/catalog/products/${productId}/presentation`, {
+        body: JSON.stringify({ expectedVersion: await productVersion(productId), presentation }),
+        headers: { "Content-Type": "application/json" },
+        method: "PATCH",
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ data: { presentation, version: 2 } });
+    expect(
+      await env.DB.prepare("SELECT presentation_json, version FROM products WHERE id = ?")
+        .bind(productId)
+        .first(),
+    ).toEqual({ presentation_json: JSON.stringify(presentation), version: 2 });
+    expect(
+      (
+        await env.DB.prepare("SELECT * FROM product_media WHERE product_id = ?")
+          .bind(productId)
+          .all()
+      ).results,
+    ).toEqual(media);
+    expect(
+      (
+        await env.DB.prepare("SELECT * FROM product_variants WHERE product_id = ?")
+          .bind(productId)
+          .all()
+      ).results,
+    ).toEqual(variants);
+
+    expect(
+      (
+        await app.fetch(
+          request(`/admin/catalog/products/${productId}`, {
+            body: JSON.stringify({ ...validProduct, name: "Carry-on refreshed" }),
+            headers: { "Content-Type": "application/json" },
+            method: "PUT",
+          }),
+          env,
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      await env.DB.prepare(
+        "SELECT presentation_json FROM products WHERE id = ? AND presentation_json IS NOT NULL",
+      )
+        .bind(productId)
+        .first(),
+    ).toEqual({ presentation_json: JSON.stringify(presentation) });
+    expect(
+      (
+        await env.DB.prepare("SELECT id FROM product_media WHERE product_id = ?")
+          .bind(productId)
+          .all<{ id: string }>()
+      ).results.map(({ id }) => id),
+    ).toEqual(media.map(({ id }) => id));
+    expect(
+      (
+        await env.DB.prepare("SELECT id FROM product_variants WHERE product_id = ?")
+          .bind(productId)
+          .all<{ id: string }>()
+      ).results.map(({ id }) => id),
+    ).toEqual(variants.map(({ id }) => id));
+
+    const removingDefault = await app.fetch(
+      request(`/admin/catalog/products/${productId}`, {
+        body: JSON.stringify({
+          ...validProduct,
+          variants: [{ ...validProduct.variants[0], sku: "REPLACEMENT-SKU" }],
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(removingDefault.status).toBe(422);
+    expect(await removingDefault.json()).toMatchObject({
+      error: { code: "product_presentation_reference_removed", details: expect.anything() },
+    });
+  });
+
+  test("rejects invalid, stale, and immutable Product presentation writes", async () => {
+    const { app } = appFor();
+    await uploadValidMedia(app);
+    const createdResponse = await app.fetch(productRequest(validProduct), env);
+    const created = await createdResponse.json<{ data: { id: string } }>();
+    const productId = created.data.id;
+    const initialVersion = await productVersion(productId);
+    const requestPresentation = (presentation: unknown, expectedVersion = initialVersion) =>
+      app.fetch(
+        request(`/admin/catalog/products/${productId}/presentation`, {
+          body: JSON.stringify({ expectedVersion, presentation }),
+          headers: { "Content-Type": "application/json" },
+          method: "PATCH",
+        }),
+        env,
+      );
+
+    for (const presentation of [
+      {
+        defaultVariantId: "var_01J00000000000000000000099",
+        specifications: [],
+      },
+      { detailMediaId: "med_01J00000000000000000000099", specifications: [] },
+      {
+        specifications: [
+          { label: "Material", value: "One" },
+          { label: "material", value: "Two" },
+        ],
+      },
+    ]) {
+      const response = await requestPresentation(presentation);
+      expect(response.status).toBe(422);
+      expect(await response.json()).toMatchObject({ error: { details: expect.anything() } });
+      expect(await productVersion(productId)).toBe(initialVersion);
+    }
+
+    await env.DB.prepare("UPDATE products SET version = version + 1 WHERE id = ?")
+      .bind(productId)
+      .run();
+    expect((await requestPresentation({ specifications: [] })).status).toBe(409);
+    await env.DB.prepare("UPDATE products SET status = 'published' WHERE id = ?")
+      .bind(productId)
+      .run();
+    expect(
+      (await requestPresentation({ specifications: [] }, await productVersion(productId))).status,
+    ).toBe(409);
+    expect(
+      await env.DB.prepare("SELECT presentation_json FROM products WHERE id = ?")
+        .bind(productId)
+        .first(),
+    ).toEqual({ presentation_json: null });
   });
 
   test("records an authenticated failed build with a stable machine result", async () => {
@@ -497,6 +997,16 @@ describe("catalog management and publishing", () => {
     const response = await app.fetch(
       productRequest({
         ...validProduct,
+        optionDefinitions: [
+          {
+            name: "color",
+            presentation: "color",
+            values: [
+              { label: "Black", swatch: "#111111" },
+              { label: "Silver", swatch: "#c0c0c0" },
+            ],
+          },
+        ],
         slug: "carry-on-set",
         variants: [
           validProduct.variants[0],

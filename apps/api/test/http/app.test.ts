@@ -62,6 +62,16 @@ const ADMIN_ROUTE_PERMISSIONS: readonly AdminRoutePermission[] = [
   { method: "GET", path: "/admin/catalog/products", permission: "catalog.read" },
   { method: "GET", path: "/admin/catalog/products/:id", permission: "catalog.read" },
   { method: "POST", path: "/admin/catalog/products", permission: "catalog.write" },
+  {
+    method: "PATCH",
+    path: "/admin/catalog/products/:id/option-definitions",
+    permission: "catalog.write",
+  },
+  {
+    method: "PATCH",
+    path: "/admin/catalog/products/:id/presentation",
+    permission: "catalog.write",
+  },
   { method: "PUT", path: "/admin/catalog/products/:id", permission: "catalog.write" },
   { method: "PUT", path: "/admin/media/*", permission: "catalog.write" },
   {

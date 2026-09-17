@@ -1,10 +1,18 @@
-import { canonicalCatalogReleaseSchema, type CanonicalCatalogRelease } from "@shoppp/contracts";
+import {
+  canonicalCatalogReleaseSchema,
+  productOptionDefinitionsSchema,
+  productPresentationSchema,
+  type CanonicalCatalogRelease,
+  type ProductOptionDefinition,
+  type ProductPresentation,
+} from "@shoppp/contracts";
 
 import { ApiError } from "../http/errors";
 
 export interface StorefrontMedia {
   alt: string;
   height: number;
+  id: string;
   src: string;
   width: number;
 }
@@ -51,6 +59,8 @@ export interface BuildCatalogInput {
     id: string;
     media: StorefrontMedia[];
     name: string;
+    optionDefinitions: ProductOptionDefinition[];
+    presentation?: ProductPresentation;
     seoDescription: string;
     seoTitle: string;
     slug: string;
@@ -80,6 +90,8 @@ interface ProductRow {
   description: string;
   id: string;
   name: string;
+  option_definitions_json: string;
+  presentation_json: string | null;
   seo_description: string;
   seo_title: string;
   slug: string;
@@ -106,6 +118,7 @@ interface PriceRow {
 interface MediaRow {
   alt_text: string;
   height: number;
+  id: string;
   product_id: string;
   r2_key: string;
   width: number;
@@ -285,6 +298,32 @@ function parseSetting<T>(value: string | null | undefined, fallback: T): T {
   }
 }
 
+function releaseOptionDefinitions(
+  rawDefinitions: string,
+  variants: readonly StorefrontVariant[],
+): ProductOptionDefinition[] {
+  const stored = productOptionDefinitionsSchema.parse(parseSetting(rawDefinitions, []));
+  if (stored.length > 0) return stored;
+  const valuesByName = new Map<string, string[]>();
+  for (const variant of variants) {
+    for (const [name, value] of Object.entries(variant.optionValues)) {
+      const values = valuesByName.get(name) ?? [];
+      if (!values.includes(value)) values.push(value);
+      valuesByName.set(name, values);
+    }
+  }
+  return [...valuesByName].map(([name, values]) => ({
+    name,
+    presentation: "text",
+    values: values.map((label) => ({ label })),
+  }));
+}
+
+function releasePresentation(rawPresentation: string | null): ProductPresentation | undefined {
+  if (!rawPresentation) return undefined;
+  return productPresentationSchema.parse(parseSetting(rawPresentation, {}));
+}
+
 async function setting<T>(db: D1Database, key: string, fallback: T): Promise<T> {
   const row = await db
     .prepare("SELECT value_json FROM settings WHERE key = ?")
@@ -299,7 +338,7 @@ export async function buildCatalogReleaseManifest(
 ): Promise<StaticRouteManifest> {
   const products = await db
     .prepare(
-      `SELECT id, slug, name, description, status, seo_title, seo_description
+      `SELECT id, slug, name, description, option_definitions_json, presentation_json, status, seo_title, seo_description
          FROM products
         WHERE status = 'published' OR id = ?
         ORDER BY slug`,
@@ -334,7 +373,7 @@ export async function buildCatalogReleaseManifest(
       .all<PriceRow>(),
     db
       .prepare(
-        `SELECT product_id, r2_key, alt_text, width, height
+        `SELECT id, product_id, r2_key, alt_text, width, height
            FROM product_media
           WHERE product_id IN (${placeholders})
           ORDER BY product_id, position, id`,
@@ -377,6 +416,26 @@ export async function buildCatalogReleaseManifest(
         const slug = collectionSlugs.get(membership.collection_id);
         return slug ? [{ id: membership.collection_id, slug }] : [];
       });
+    const productVariants = variants.results
+      .filter((variant) => variant.product_id === product.id)
+      .map((variant) => ({
+        optionValues: parseSetting<Record<string, string>>(variant.option_values_json, {}),
+        id: variant.id,
+        prices: prices.results
+          .filter((price) => price.variant_id === variant.id)
+          .map((price) => ({
+            amount: price.amount,
+            ...(price.compare_at_amount === null
+              ? {}
+              : { compareAtAmount: price.compare_at_amount }),
+            currency: price.currency,
+          })),
+        sku: variant.sku,
+        status: variant.status,
+        title: variant.title,
+        weightGrams: variant.weight_grams,
+      }));
+    const presentation = releasePresentation(product.presentation_json);
     return {
       collectionIds: collectionReferences.map(({ id }) => id),
       collectionSlugs: collectionReferences.map(({ slug }) => slug),
@@ -387,33 +446,18 @@ export async function buildCatalogReleaseManifest(
         .map((item) => ({
           alt: item.alt_text,
           height: item.height,
+          id: item.id,
           src: `${trimSlash(options.mediaOrigin)}/${item.r2_key}`,
           width: item.width,
         })),
       name: product.name,
+      optionDefinitions: releaseOptionDefinitions(product.option_definitions_json, productVariants),
+      ...(presentation ? { presentation } : {}),
       seoDescription: product.seo_description,
       seoTitle: product.seo_title,
       slug: product.slug,
       status: product.id === options.candidateProductId ? "published" : product.status,
-      variants: variants.results
-        .filter((variant) => variant.product_id === product.id)
-        .map((variant) => ({
-          optionValues: parseSetting<Record<string, string>>(variant.option_values_json, {}),
-          id: variant.id,
-          prices: prices.results
-            .filter((price) => price.variant_id === variant.id)
-            .map((price) => ({
-              amount: price.amount,
-              ...(price.compare_at_amount === null
-                ? {}
-                : { compareAtAmount: price.compare_at_amount }),
-              currency: price.currency,
-            })),
-          sku: variant.sku,
-          status: variant.status,
-          title: variant.title,
-          weightGrams: variant.weight_grams,
-        })),
+      variants: productVariants,
     };
   });
   const configuredSite = await setting<Partial<BuildCatalogInput["site"]>>(

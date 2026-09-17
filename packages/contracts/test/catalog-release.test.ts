@@ -134,6 +134,122 @@ describe("catalog release contracts", () => {
     }
   });
 
+  test("round-trips ordered option definitions while keeping unchanged schema-v2 releases readable", () => {
+    const historical = canonicalCatalogReleaseSchema.parse(canonicalRelease);
+    expect(historical.products[0]).not.toHaveProperty("optionDefinitions");
+
+    const withDefinitions = structuredClone(canonicalRelease) as unknown as CanonicalCatalogRelease;
+    withDefinitions.products[0]!.optionDefinitions = [
+      {
+        name: "Color",
+        presentation: "color",
+        values: [
+          { label: "Blue", swatch: "#5881bf" },
+          { label: "Green", swatch: "#87a968" },
+        ],
+      },
+      { name: "Size", presentation: "text", values: [{ label: "M" }, { label: "XL" }] },
+    ];
+    withDefinitions.products[0]!.variants[0]!.optionValues = { Color: "Blue", Size: "M" };
+    withDefinitions.products[0]!.variants.push({
+      ...structuredClone(withDefinitions.products[0]!.variants[0]!),
+      id: "var_01JOPTIONDEFINITION000000002",
+      optionValues: { Color: "Green", Size: "XL" },
+      sku: "ATLAS-GREEN-XL",
+      title: "Green / XL",
+    });
+
+    expect(
+      canonicalCatalogReleaseSchema.parse(withDefinitions).products[0]!.optionDefinitions,
+    ).toEqual(withDefinitions.products[0]!.optionDefinitions);
+    for (const swatch of ["blue", "#fff", "#5881bfff", "linear-gradient(red, blue)"]) {
+      const invalid = structuredClone(withDefinitions);
+      invalid.products[0]!.optionDefinitions![0]!.values[0]!.swatch = swatch;
+      expect(canonicalCatalogReleaseSchema.safeParse(invalid).success).toBe(false);
+    }
+  });
+
+  test("round-trips Product presentation while historical schema-v2 releases remain claim-free", () => {
+    const historical = canonicalCatalogReleaseSchema.parse(canonicalRelease);
+    expect(historical.products[0]).not.toHaveProperty("presentation");
+
+    const withPresentation = structuredClone(
+      canonicalRelease,
+    ) as unknown as CanonicalCatalogRelease;
+    withPresentation.products[0]!.media = [
+      {
+        alt: "Carry-on detail",
+        height: 1200,
+        id: "med_01J00000000000000000000000",
+        src: "/media/carry-on.webp",
+        width: 900,
+      },
+    ];
+    withPresentation.products[0]!.presentation = {
+      brand: "Shoppp",
+      defaultVariantId: "var_01J00000000000000000000000",
+      detail: {
+        body: "Built for frequent travel.",
+        bullets: ["Durable shell", "Quiet wheels"],
+        eyebrow: "Travel better",
+        heading: "Designed for the journey",
+      },
+      detailMediaId: "med_01J00000000000000000000000",
+      reviewDisplay: {
+        averageRating: 4.8,
+        count: 165,
+        entries: [
+          {
+            author: "Published reviewer",
+            date: "06 April 2023",
+            text: "A published review snapshot entry.",
+          },
+        ],
+        provenance: "catalog release test",
+        updatedAt: "2026-09-16T00:00:00.000Z",
+      },
+      specifications: [
+        { label: "Material", value: "Recycled polycarbonate" },
+        { label: "Capacity", value: "38 L" },
+      ],
+    };
+
+    expect(canonicalCatalogReleaseSchema.parse(withPresentation).products[0]!.presentation).toEqual(
+      withPresentation.products[0]!.presentation,
+    );
+    for (const invalid of [
+      {
+        ...withPresentation.products[0]!.presentation,
+        defaultVariantId: "var_01J00000000000000000000099",
+      },
+      {
+        ...withPresentation.products[0]!.presentation,
+        detailMediaId: "med_01J00000000000000000000099",
+      },
+      {
+        ...withPresentation.products[0]!.presentation,
+        specifications: [
+          { label: "Material", value: "One" },
+          { label: "material", value: "Two" },
+        ],
+      },
+      {
+        ...withPresentation.products[0]!.presentation,
+        reviewDisplay: {
+          averageRating: 5,
+          count: 0,
+          entries: [],
+          provenance: "invalid zero-count rating",
+          updatedAt: "2026-09-16T00:00:00.000Z",
+        },
+      },
+    ]) {
+      const release = structuredClone(withPresentation);
+      release.products[0]!.presentation = invalid;
+      expect(canonicalCatalogReleaseSchema.safeParse(release).success).toBe(false);
+    }
+  });
+
   test("rejects duplicate identities, slug collisions, malformed money, and unknown fields", () => {
     const invalidCases = [
       {

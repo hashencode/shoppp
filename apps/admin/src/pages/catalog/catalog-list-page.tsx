@@ -138,7 +138,7 @@ export const CatalogListPage = () => {
   const handlePublish = useCallback(
     async (product: CatalogProductListItem, reason: string, reload: () => Promise<void>) => {
       try {
-        const release = await publishCatalogProduct(product.id, reason)
+        const release = await publishCatalogProduct(product.id, reason, product.version)
         void message.success(
           translateNow('Build started: {id}', { id: release.buildCorrelationId })
         )

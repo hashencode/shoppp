@@ -31,7 +31,14 @@
 }
 
 [data-fashion-store-product] .product-info {
+  align-self: flex-start;
   padding: 0 15px;
+}
+
+[data-fashion-store-product] .fashion-product-related [data-fashion-store-product-card] .shop-image img {
+  width: 100%;
+  aspect-ratio: 600 / 765;
+  object-fit: cover;
 }
 
 [data-fashion-store-product] .breadcrumb li + li {
@@ -48,6 +55,7 @@
 [data-fashion-store-product] .product-image-slider .gallery-box > button,
 [data-fashion-store-product] .product-image-thumb button,
 [data-fashion-store-product] .fashion-product-secondary-actions button,
+[data-fashion-store-product] .product-info .section-link,
 [data-fashion-store-product] .fashion-product-tabs .nav-link {
   padding: 0;
   border: 0;
@@ -107,37 +115,6 @@
 [data-fashion-store-product] .shop-size input:focus-visible + label {
   outline: 2px solid #232323;
   outline-offset: 3px;
-}
-
-[data-fashion-store-product] .fashion-product-color-text-options li {
-  margin-right: 6px;
-}
-
-[data-fashion-store-product] .fashion-product-color-text-options input + label span {
-  display: flex;
-  width: auto;
-  min-width: 32px;
-  height: 32px;
-  padding: 0 8px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--extra-medium-gray);
-  color: var(--dark-gray);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: normal;
-  white-space: nowrap;
-}
-
-[data-fashion-store-product]
-  .fashion-product-color-text-options
-  input[type="radio"]:checked
-  + label
-  span::after {
-  inset: -1px;
-  width: auto;
-  height: auto;
-  border-color: var(--dark-gray);
 }
 
 .fashion-store-home .swiper[data-motion-paused~="offscreen"] {

@@ -100,7 +100,7 @@ defineExpose({ closeSearch, openSearch });
   <div class="header-search-icon icon alt-font">
     <a
       ref="searchTrigger"
-      href="/shop"
+      href="/"
       class="search-form-icon header-search-form fashion-store-header-labeled-action"
       aria-label="Search"
       aria-controls="fashion-store-search"

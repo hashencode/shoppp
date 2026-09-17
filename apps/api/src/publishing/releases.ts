@@ -166,8 +166,12 @@ export async function publishProduct(
   productId: string,
   trigger: BuildTrigger,
   reason: string,
+  expectedVersion?: number,
 ) {
   const snapshot = await getProduct(context.env.DB, productId);
+  if (!["draft", "scheduled"].includes(snapshot.product.status)) {
+    throw new ApiError(409, "published_product_immutable", "Only editable Products can publish.");
+  }
   if (
     !snapshot.product.seo_title ||
     !snapshot.product.seo_description ||
@@ -184,21 +188,36 @@ export async function publishProduct(
   const principal = context.get("principal");
   const releaseId = crypto.randomUUID();
   const now = new Date().toISOString();
-  const manifest = await buildCatalogReleaseManifest(context.env.DB, {
-    candidateProductId: productId,
-    mediaOrigin: context.env.MEDIA_PUBLIC_ORIGIN,
-    releaseId,
-    storefrontOrigin: context.env.STOREFRONT_ORIGIN,
-  });
-  await context.env.DB.prepare(
-    `INSERT INTO catalog_releases
-      (id, status, manifest_json, approved_by, approved_at, product_id, created_at, updated_at)
-     VALUES (?, 'approved', ?, ?, ?, ?, ?, ?)`,
+  const sourceVersion = expectedVersion ?? snapshot.product.version;
+  if (sourceVersion !== snapshot.product.version) {
+    throw new ApiError(409, "stale_product_version", "The Product changed before publication.");
+  }
+  const freeze = await context.env.DB.prepare(
+    `UPDATE products
+        SET status = 'published', published_at = ?, version = version + 1, updated_at = ?
+      WHERE id = ? AND status IN ('draft', 'scheduled') AND version = ?`,
   )
-    .bind(releaseId, JSON.stringify(manifest), principal.id, now, productId, now, now)
+    .bind(now, now, productId, sourceVersion)
     .run();
+  if (freeze.meta.changes !== 1) {
+    throw new ApiError(409, "stale_product_version", "The Product changed before publication.");
+  }
+  const frozenVersion = sourceVersion + 1;
 
   try {
+    const manifest = await buildCatalogReleaseManifest(context.env.DB, {
+      candidateProductId: productId,
+      mediaOrigin: context.env.MEDIA_PUBLIC_ORIGIN,
+      releaseId,
+      storefrontOrigin: context.env.STOREFRONT_ORIGIN,
+    });
+    await context.env.DB.prepare(
+      `INSERT INTO catalog_releases
+        (id, status, manifest_json, approved_by, approved_at, product_id, created_at, updated_at)
+       VALUES (?, 'approved', ?, ?, ?, ?, ?, ?)`,
+    )
+      .bind(releaseId, JSON.stringify(manifest), principal.id, now, productId, now, now)
+      .run();
     const build = await trigger({
       environment: context.env.ENVIRONMENT,
       releaseId,
@@ -210,9 +229,6 @@ export async function publishProduct(
             SET status = 'building', build_correlation_id = ?, updated_at = ?
           WHERE id = ?`,
       ).bind(build.correlationId, new Date().toISOString(), releaseId),
-      context.env.DB.prepare(
-        "UPDATE products SET status = 'published', published_at = ?, updated_at = ? WHERE id = ?",
-      ).bind(now, now, productId),
       context.env.DB.prepare(
         `UPDATE collections
             SET status = 'published', updated_at = ?
@@ -241,6 +257,13 @@ export async function publishProduct(
         new Date().toISOString(),
         releaseId,
       )
+      .run();
+    await context.env.DB.prepare(
+      `UPDATE products
+          SET status = ?, published_at = NULL, version = version + 1, updated_at = ?
+        WHERE id = ? AND status = 'published' AND version = ?`,
+    )
+      .bind(snapshot.product.status, new Date().toISOString(), productId, frozenVersion)
       .run();
     throw error;
   }

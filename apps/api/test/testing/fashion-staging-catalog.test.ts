@@ -72,6 +72,16 @@ async function input() {
           width: 600,
         })),
         name: `Product ${productIndex + 1}`,
+        optionDefinitions: [
+          {
+            name: "color",
+            presentation: "text",
+            values: Array.from({ length: variantCount }, (_, variantIndex) => ({
+              label: `Color ${variantIndex + 1}`,
+            })),
+          },
+          { name: "size", presentation: "text", values: [{ label: "M" }] },
+        ],
         shopCardOrder: productIndex < 12 ? productIndex + 1 : null,
         slug: `fashion-product-${productIndex + 1}`,
         source: { fixtureId: `fixture-${productIndex + 1}`, kind: "shop-card" },
@@ -118,6 +128,7 @@ async function input() {
       width: media.width,
     })),
     name: product.name,
+    optionDefinitions: product.optionDefinitions,
     seoDescription: product.description,
     seoTitle: `${product.name} | Shoppp`,
     slug: product.slug,
@@ -187,6 +198,13 @@ async function input() {
         id: acceptanceProduct.id,
         media: [releaseProducts[0]!.media[0]!],
         name: "Unavailable",
+        optionDefinitions: [
+          {
+            name: "state",
+            presentation: "text",
+            values: [{ label: "unavailable" }],
+          },
+        ],
         seoDescription: "Unavailable",
         seoTitle: "Unavailable",
         slug: acceptanceProduct.slug,
@@ -330,6 +348,13 @@ describe.sequential("Fashion staging live catalog migration", () => {
         .bind(value.acceptanceProduct.id)
         .first(),
     ).toEqual({ status: "draft" });
+    expect(
+      await env.DB.prepare("SELECT option_definitions_json FROM products WHERE id = ?")
+        .bind(value.catalog.products[0]!.id)
+        .first(),
+    ).toEqual({
+      option_definitions_json: JSON.stringify(value.catalog.products[0]!.optionDefinitions),
+    });
     expect(await env.DB.prepare("PRAGMA foreign_key_check").all()).toMatchObject({ results: [] });
     const retry = await applyFashionStagingCatalog(env.DB, env.MEDIA, value, "retry");
     expect(retry.status).toBe("already_applied");

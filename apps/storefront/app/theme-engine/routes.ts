@@ -83,7 +83,19 @@ export function resolveThemeRoute(
       (route.family === undefined || route.family === "exact") &&
       route.path === normalized,
   );
-  if (exact) return exact;
+  if (exact) {
+    if (release && exact.pageType === "product" && normalized.startsWith("/products/")) {
+      const slug = normalized.slice("/products/".length);
+      const product = release.products.find(
+        (entry) =>
+          entry.slug === slug &&
+          entry.status === "published" &&
+          entry.variants.some(({ status }) => status === "active"),
+      );
+      if (product) return { ...exact, parameters: { productId: product.id, slug } };
+    }
+    return exact;
+  }
   if (!release) return undefined;
   for (const route of routes) {
     if (!availableInMode(route, mode)) continue;

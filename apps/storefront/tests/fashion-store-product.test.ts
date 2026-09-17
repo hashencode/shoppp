@@ -7,7 +7,10 @@ import {
   fashionStoreProductData,
 } from "../app/themes/fashion-store/fixtures/pages/product";
 import {
+  fashionStoreProductAuthorityExceptions,
+  fashionStoreProductParityProfile,
   fashionStoreProductRegionLedger,
+  fashionStoreProductSinglePathContract,
   fashionStoreProductSourcePage,
 } from "../app/themes/fashion-store/contracts/pages/product";
 import { fashionStoreEnabledPageContracts } from "../app/themes/fashion-store/page-contracts";
@@ -51,6 +54,15 @@ describe("Fashion Store product detail", () => {
       /\[data-fashion-store-header\] \+ main > \.top-space-margin\s*\{[\s\S]*margin-top:\s*var\(--fashion-store-shell-main-offset\)/,
     );
     expect(integration).not.toMatch(
+      /\[data-fashion-store-product\] \.product-info\s*\{[^}]*min-height/,
+    );
+    expect(integration).toMatch(
+      /\.fashion-product-related \[data-fashion-store-product-card\] \.shop-image img\s*\{[^}]*aspect-ratio:\s*600 \/ 765/,
+    );
+    expect(integration).not.toMatch(
+      /\[data-fashion-store-product\] \.fashion-product-tabs\s*\{[^}]*min-height/,
+    );
+    expect(integration).not.toMatch(
       /\[data-fashion-store-header\] \+ main > \.top-space-margin\s*\{[^}]*margin-top:\s*(?:79|118|119)px/,
     );
   });
@@ -62,7 +74,9 @@ describe("Fashion Store product detail", () => {
       id: "product",
       route: "/products/relaxed-corduroy-shirt",
       sourceEntry: "demo-fashion-store-single-product.html",
+      sourceRole: "secondary-design-reference",
       sourceSha256: "9f2a5cb42d81df1505c3a911c59544eefd8a0a60e6b27791d8469fd552179f43",
+      visualAuthority: "historical-vue-component",
     });
     expect(fashionStoreProductData.gallery).toHaveLength(6);
     expect(fashionStoreProductData.product).toMatchObject({
@@ -90,6 +104,70 @@ describe("Fashion Store product detail", () => {
     ]);
   });
 
+  test("pins the FS-F11 Product target and its truthful live-data exceptions", () => {
+    expect(fashionStoreProductParityProfile.capture).toEqual({
+      colorScheme: "light",
+      cookieState: "accepted",
+      deviceScaleFactor: 1,
+      screenshotChangedPixelRatioMax: 0.01,
+      screenshotMeanChannelDeltaMax: 5,
+    });
+    expect(fashionStoreProductParityProfile.dynamicMasks).toEqual([
+      "decoded pixels inside released gallery, detail, review, and related image boxes",
+    ]);
+    expect(
+      fashionStoreProductParityProfile.viewports.flatMap(({ pixelMasks }) => pixelMasks),
+    ).toEqual([]);
+    expect(fashionStoreProductParityProfile.authority).toEqual({
+      commit: "f3be48b38cd265ae16a65394431901e1f4b1cd5b",
+      component: "FashionStoreProductPage.vue",
+      kind: "historical-vue-component",
+    });
+    expect(fashionStoreProductParityProfile.viewports.map(({ viewport }) => viewport)).toEqual([
+      { height: 1000, width: 1440 },
+      { height: 844, width: 390 },
+    ]);
+    expect(
+      fashionStoreProductParityProfile.viewports.map(({ screenshotSha256 }) => screenshotSha256),
+    ).toEqual([
+      "aebbf5e0dd62f3466b21873330aeda31a9c82ee1958036e794c7db66ffd7c9c4",
+      "42a4a489f10386539523f57cd13fe6686b378b5200ac7af8d3410eaf8a6a55ce",
+    ]);
+    expect(fashionStoreProductAuthorityExceptions).toHaveLength(5);
+    expect(fashionStoreProductSinglePathContract).toMatchObject({
+      component: "FashionStoreProductPage",
+      model: "ProductPageModel",
+      releaseBacked: true,
+    });
+  });
+
+  test("rejects every current Product path until all entries use one release-backed model", async () => {
+    const [experience, fixtureProvider, productContract, productionRoute] = await Promise.all([
+      readFile(new URL("../app/StorefrontExperience.vue", import.meta.url), "utf8"),
+      readFile(
+        new URL("../app/theme-engine/providers/fixture-preview.ts", import.meta.url),
+        "utf8",
+      ),
+      readFile(
+        new URL("../app/themes/fashion-store/contracts/product-card.ts", import.meta.url),
+        "utf8",
+      ),
+      readFile(new URL("../app/pages/products/[slug].vue", import.meta.url), "utf8"),
+    ]);
+
+    expect(experience).not.toContain(
+      'activeExperienceProviderInput.mode === "live" ? "live" : "fixture-preview"',
+    );
+    expect(fixtureProvider).not.toContain('resolved.kind === "theme-section"');
+    expect(productContract).not.toContain("normalizeFashionStoreFixtureProductPresentation");
+    expect(productContract).not.toContain("normalizeFashionStoreLiveProductPresentation");
+    expect(productionRoute).toContain("FashionStoreProductPage");
+    expect(productionRoute).toContain("composeProductPageModel");
+    expect(productionRoute).toContain("definePageMeta({ layout: false })");
+    expect(productionRoute).not.toContain("fixtures/");
+    expect(productionRoute).not.toContain('<article class="product-page">');
+  });
+
   test("preserves every required Product baseline relationship named by the region ledger", async () => {
     const component = await productPageSource;
     const missingRelationships = fashionStoreProductRegionLedger.flatMap((region) =>
@@ -105,10 +183,8 @@ describe("Fashion Store product detail", () => {
     expect(
       fashionStoreProductRegionLedger.every(({ allowedTreatments }) => allowedTreatments.length),
     ).toBe(true);
-    expect(
-      fashionStoreProductRegionLedger.find(({ id }) => id === "assurance-and-taxonomy")
-        ?.allowedTreatments,
-    ).toEqual(["hidden", "populated"]);
+    expect(JSON.stringify(fashionStoreProductRegionLedger)).not.toContain("fixtureTreatments");
+    expect(JSON.stringify(fashionStoreProductRegionLedger)).not.toContain("liveTreatments");
     for (const id of ["information-panel", "shipping-panel", "reviews-panel"]) {
       expect(
         fashionStoreProductRegionLedger.find((region) => region.id === id)?.allowedTreatments,
@@ -116,16 +192,123 @@ describe("Fashion Store product detail", () => {
     }
   });
 
-  test("keeps unsupported Product facts out when their ledger owner is unavailable", async () => {
+  test("rejects the reduced Product component when frozen right-rail and rich-detail bindings are absent", async () => {
     const component = await productPageSource;
-    const forbiddenContent = fashionStoreProductRegionLedger.flatMap(
-      ({ forbiddenWhenUnavailable = [], id }) =>
-        forbiddenWhenUnavailable
-          .filter((content) => component.includes(content))
-          .map((content) => `${id}: leaked ${content}`),
-    );
+    const requiredBindings = [
+      "presentation.brand",
+      "presentation.reviewSummary.label",
+      "Estimated delivery:",
+      "Free shipping &amp; returns:",
+      "Guarantee safe and secure checkout",
+      "Category:",
+      "Tags:",
+      "presentation.descriptionDetail.eyebrow",
+      "presentation.descriptionDetail.heading",
+      "presentation.descriptionDetail.bullets",
+      "presentation.specifications",
+      "presentation.shipping.standard",
+      "presentation.reviews",
+    ];
 
-    expect(forbiddenContent).toEqual([]);
+    expect(requiredBindings.filter((content) => !component.includes(content))).toEqual([]);
+  });
+
+  test("keeps unsupported Product facts out when their ledger owner is unavailable", async () => {
+    const [component, header, searchOverlay, shell] = await Promise.all([
+      productPageSource,
+      readFile(
+        new URL(
+          "../app/themes/fashion-store/components/shared/FashionStoreHeader.vue",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+      readFile(
+        new URL(
+          "../app/themes/fashion-store/components/shared/FashionStoreSearchOverlay.vue",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+      readFile(
+        new URL(
+          "../app/themes/fashion-store/components/shared/FashionStoreShell.vue",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    ]);
+    expect(component).not.toContain('<template v-if="presentation.assurance">');
+    expect(component).toContain('data-product-region-state="assurance"');
+    expect(component).toContain(
+      "v-else-if=\"presentation.optionalRegions.shipping === 'source-shaped-empty'\"",
+    );
+    expect(component).toContain(
+      "v-else-if=\"presentation.optionalRegions.reviews === 'source-shaped-empty'\"",
+    );
+    expect(component).not.toContain("25,000+");
+    expect(component).not.toContain("<strong>Express:</strong>");
+    expect(component).toContain("Related products are not available for this item.");
+    expect(component).not.toContain(
+      '<section v-if="presentation.relatedProducts.length" class="pt-0 fashion-product-related">',
+    );
+    expect(component).not.toContain("2,488 Reviews");
+    expect(component).not.toContain('href="/shop"');
+    expect(component).toContain(
+      ":href=\"publishedRouteHref(fashionStoreRoutePaths['shop-left'])\"",
+    );
+    expect(shell).not.toContain('href="/shop"');
+    expect(searchOverlay).not.toContain('href="/shop"');
+    expect(header).toContain('<div v-if="!liveMode" class="widget-text icon alt-font">');
+    expect(header).not.toContain("123 456 7890");
+    expect(header).not.toContain("info@domain.com");
+  });
+
+  test("keeps option controls injective and never fabricates neutral color swatches", async () => {
+    const [component, integration] = await Promise.all([
+      productPageSource,
+      readFile(new URL("../app/themes/fashion-store/integration.css", import.meta.url), "utf8"),
+    ]);
+
+    expect(component).toContain("optionInputId(groupIndex, valueIndex)");
+    expect(component).not.toContain("optionIdPart");
+    expect(component).not.toContain(
+      "presentation.optionPresentationFallback === 'historical-neutral'",
+    );
+    expect(component).not.toContain("?? '#d9d9d9'");
+    expect(component).toContain("optionValueDefinition(group.name, value)?.swatch");
+    expect(component).not.toMatch(
+      /data-product-option-label[\s\S]*?<span class="visually-hidden">\{\{ value \}\}<\/span>[\s\S]*?<\/span>/,
+    );
+    expect(integration).not.toContain(".fashion-product-color-swatches li {");
+    expect(integration).not.toContain(".fashion-product-color-swatches input + label > span {");
+  });
+
+  test("keeps the Product related collection fashion-only and donor ordered", async () => {
+    const release = JSON.parse(
+      await readFile(new URL("../fixtures/release.json", import.meta.url), "utf8"),
+    ) as {
+      collections: Array<{ slug: string; productSlugs: string[] }>;
+    };
+    const collection = release.collections.find(({ slug }) => slug === "travel-essentials");
+
+    expect(collection?.productSlugs).toEqual([
+      "relaxed-corduroy-shirt",
+      "textured-sweater-01",
+      "traveller-shirt-02",
+      "crewneck-sweatshirt-03",
+      "skinny-trousers-04",
+    ]);
+    expect(collection?.productSlugs).not.toContain("atlas-carry-on");
+  });
+
+  test("uses one effective description media object for its source, alt, and error identity", async () => {
+    const component = await productPageSource;
+
+    expect(component).toContain("const descriptionMedia = computed");
+    expect(component).toContain(':src="descriptionMediaSource"');
+    expect(component).toContain(':alt="descriptionMediaAlt"');
+    expect(component).toContain('@error="failedDescriptionMediaSource = descriptionMediaSource"');
   });
 
   test("builds one bounded typed cart request from the selected fixture state", () => {

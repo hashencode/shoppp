@@ -73,6 +73,17 @@ describe("selected theme resources", () => {
       "checkout",
       "content",
     ]);
+    expect(
+      input.snapshot.resolvedTemplates.find(({ pageType }) => pageType === "product")?.sections[0]
+        ?.settings,
+    ).toMatchObject({
+      "payment-brand-visa": true,
+      "payment-brand-mastercard": true,
+      "payment-brand-american-express": true,
+      "payment-brand-discover": true,
+      "payment-brand-diners-club": true,
+      "payment-brand-union-pay": true,
+    });
     expect(input.snapshot.bindings).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

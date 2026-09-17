@@ -142,7 +142,7 @@ export default defineNuxtConfig({
         }
       : {},
     prerender: {
-      crawlLinks: !previewBuild,
+      crawlLinks: false,
       failOnError: true,
       routes: prerenderRoutes,
     },

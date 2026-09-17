@@ -7,6 +7,7 @@ import type { PresentationViewModel } from "../app/theme-engine/view-models";
 import { fashionStoreLiveCapabilities } from "../app/themes/fashion-store/capability-matrix";
 import { fashionStoreCompositionAdapter } from "../app/themes/fashion-store/composition";
 import { normalizeFashionStoreRuntimeProductState } from "../app/themes/fashion-store/composables/useFashionStoreProductActionPort";
+import type { FashionStoreProductPresentation } from "../app/themes/fashion-store/contracts/product-card";
 import { resolveFashionStoreContentPresentation } from "../app/themes/fashion-store/contracts/content-presentation";
 import { fashionStoreContentData } from "../app/themes/fashion-store/fixtures/pages/content";
 import { fashionStoreThemeRoutes } from "../app/themes/fashion-store/page-contracts";
@@ -21,11 +22,51 @@ async function source(path: string): Promise<string> {
 }
 
 describe("Fashion Store live commerce boundary", () => {
-  test("keeps revalidated Product inventory, price, and SKU Commerce-authoritative", () => {
+  test("overlays only released Variant price and availability while preserving presentation", () => {
+    const releasedPresentation = {
+      currency: "USD",
+      gallery: [
+        {
+          alt: "Released gallery",
+          height: 900,
+          kind: "url",
+          src: "https://media.example.test/released-gallery.jpg",
+          width: 700,
+        },
+      ],
+      optionGroups: [{ name: "Color", values: ["Blue", "Green", "Gold"] }],
+      productId: "product-release",
+      slug: "released-product",
+      variants: [
+        {
+          id: "var-blue",
+          label: "Released Blue",
+          optionValues: { Color: "Blue" },
+          selected: true,
+          sku: "RELEASE-BLUE",
+        },
+        {
+          id: "var-green",
+          label: "Released Green",
+          optionValues: { Color: "Green" },
+          selected: false,
+          sku: "RELEASE-GREEN",
+        },
+        {
+          id: "var-gold",
+          label: "Released Gold",
+          optionValues: { Color: "Gold" },
+          selected: false,
+          sku: "RELEASE-GOLD",
+        },
+      ],
+    } as FashionStoreProductPresentation;
     const runtime = normalizeFashionStoreRuntimeProductState({
       availability: "in-stock",
+      id: "product-release",
       media: [],
       optionGroups: [{ name: "Color", values: ["Blue", "Green"] }],
+      slug: "released-product",
       variants: [
         {
           availability: "out-of-stock",
@@ -43,26 +84,74 @@ describe("Fashion Store live commerce boundary", () => {
           options: { Color: "Green" },
           sku: "LIVE-GREEN",
         },
+        {
+          availability: "in-stock",
+          id: "var-unknown",
+          label: "Unknown",
+          money: { amount: 9900, currency: "USD" },
+          options: { Color: "Unknown" },
+          sku: "LIVE-UNKNOWN",
+        },
       ],
-    });
+    }, releasedPresentation);
 
     expect(runtime.availability).toBe("in-stock");
+    expect(runtime).not.toHaveProperty("gallery");
+    expect(runtime).not.toHaveProperty("optionGroups");
     expect(runtime.variants).toEqual([
       expect.objectContaining({
         availability: "out-of-stock",
         compareAtPriceLabel: "$85.00",
         id: "var-blue",
         priceLabel: "$65.00",
-        sku: "LIVE-BLUE",
+        label: "Released Blue",
+        selected: true,
+        sku: "RELEASE-BLUE",
       }),
       expect.objectContaining({
         availability: "in-stock",
         compareAtPriceLabel: undefined,
         id: "var-green",
         priceLabel: "$72.00",
-        sku: "LIVE-GREEN",
+        label: "Released Green",
+        sku: "RELEASE-GREEN",
+      }),
+      expect.objectContaining({
+        availability: "out-of-stock",
+        id: "var-gold",
+        label: "Released Gold",
+        sku: "RELEASE-GOLD",
       }),
     ]);
+    expect(runtime.variants).not.toContainEqual(expect.objectContaining({ id: "var-unknown" }));
+    expect(() =>
+      normalizeFashionStoreRuntimeProductState(
+        { ...({} as Parameters<typeof normalizeFashionStoreRuntimeProductState>[0]), id: "wrong" },
+        releasedPresentation,
+      ),
+    ).toThrow("identity");
+    expect(() =>
+      normalizeFashionStoreRuntimeProductState(
+        {
+          availability: "in-stock",
+          id: "product-release",
+          media: [],
+          optionGroups: [],
+          slug: "released-product",
+          variants: [
+            {
+              availability: "in-stock",
+              id: "var-blue",
+              label: "Blue",
+              money: { amount: 6500, currency: "EUR" },
+              options: { Color: "Blue" },
+              sku: "LIVE-BLUE",
+            },
+          ],
+        },
+        releasedPresentation,
+      ),
+    ).toThrow("currency");
   });
 
   test("normalizes complete content, unavailable routes, and wishlist recovery without provider layout state", () => {

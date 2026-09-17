@@ -11,7 +11,9 @@ import { resolveFashionStoreEditorMedia } from "../../resources";
 type HomeViewModel = Extract<PresentationViewModel, { kind: "home" }>;
 
 const properties = defineProps<{
+  brandName?: string;
   configuration?: HomeViewModel["shell"]["footer"];
+  publishedRoutes?: readonly string[];
   resolveAsset: ThemeAssetResolver;
   sourceAsset: (sourcePath: string) => string;
 }>();
@@ -37,8 +39,14 @@ function configuredLogo(): string | undefined {
 }
 
 const configuredBrandName = computed(
-  () => properties.configuration?.logo?.alt.trim() || "Lifestyle",
+  () => properties.configuration?.logo?.alt.trim() || properties.brandName || "Lifestyle",
 );
+
+function routeHref(path: string): string | undefined {
+  return properties.publishedRoutes && !properties.publishedRoutes.includes(path)
+    ? undefined
+    : path;
+}
 
 function fallbackLogo(): string {
   return densityAsset(
@@ -78,7 +86,7 @@ function fallbackLogoAt2x(): string {
             }}
             <li class="nav-item">
               <a
-                :href="fashionStoreRoutePaths['shop-left']"
+                :href="routeHref(fashionStoreRoutePaths['shop-left'])"
                 data-fashion-store-route
                 class="nav-link"
                 >Shop</a
@@ -88,7 +96,10 @@ function fallbackLogoAt2x(): string {
               sourceInlineGap
             }}
             <li class="nav-item">
-              <a :href="fashionStoreRoutePaths.collection" data-fashion-store-route class="nav-link"
+              <a
+                :href="routeHref(fashionStoreRoutePaths.collection)"
+                data-fashion-store-route
+                class="nav-link"
                 >Collection</a
               >
             </li>
@@ -96,7 +107,10 @@ function fallbackLogoAt2x(): string {
               sourceInlineGap
             }}
             <li class="nav-item">
-              <a :href="fashionStoreRoutePaths.magazine" data-fashion-store-route class="nav-link"
+              <a
+                :href="routeHref(fashionStoreRoutePaths.magazine)"
+                data-fashion-store-route
+                class="nav-link"
                 >Magazine</a
               >
             </li>
@@ -104,7 +118,10 @@ function fallbackLogoAt2x(): string {
               sourceInlineGap
             }}
             <li class="nav-item">
-              <a :href="fashionStoreRoutePaths.about" data-fashion-store-route class="nav-link"
+              <a
+                :href="routeHref(fashionStoreRoutePaths.about)"
+                data-fashion-store-route
+                class="nav-link"
                 >About</a
               >
             </li>
@@ -112,7 +129,10 @@ function fallbackLogoAt2x(): string {
               sourceInlineGap
             }}
             <li class="nav-item">
-              <a :href="fashionStoreRoutePaths.contact" data-fashion-store-route class="nav-link"
+              <a
+                :href="routeHref(fashionStoreRoutePaths.contact)"
+                data-fashion-store-route
+                class="nav-link"
                 >Contact</a
               >
             </li>
@@ -166,15 +186,29 @@ function fallbackLogoAt2x(): string {
         <div class="col-6 col-lg-2 col-sm-4 xs-mb-30px order-sm-3 order-lg-2">
           <span class="fw-500 d-block text-white mb-5px fs-17">Information</span>
           <ul>
-            <li><a :href="fashionStoreRoutePaths.about" data-fashion-store-route>About us</a></li>
             <li>
-              <a :href="fashionStoreRoutePaths.contact" data-fashion-store-route>Contact us</a>
+              <a :href="routeHref(fashionStoreRoutePaths.about)" data-fashion-store-route
+                >About us</a
+              >
             </li>
-            <li><a href="/policies/terms" data-fashion-store-route>Terms &amp; conditions</a></li>
             <li>
-              <a href="/policies/shipping" data-fashion-store-route>Shipping &amp; delivery</a>
+              <a :href="routeHref(fashionStoreRoutePaths.contact)" data-fashion-store-route
+                >Contact us</a
+              >
             </li>
-            <li><a href="/policies/privacy" data-fashion-store-route>Privacy policy</a></li>
+            <li>
+              <a :href="routeHref('/policies/terms')" data-fashion-store-route
+                >Terms &amp; conditions</a
+              >
+            </li>
+            <li>
+              <a :href="routeHref('/policies/shipping')" data-fashion-store-route
+                >Shipping &amp; delivery</a
+              >
+            </li>
+            <li>
+              <a :href="routeHref('/policies/privacy')" data-fashion-store-route>Privacy policy</a>
+            </li>
           </ul>
         </div>
 
@@ -182,7 +216,9 @@ function fallbackLogoAt2x(): string {
           <span class="fw-500 d-block text-white mb-5px fs-17">Quick links</span>
           <ul>
             <li v-if="accountVisible">
-              <a :href="fashionStoreRoutePaths.account" data-fashion-store-route>My account</a>
+              <a :href="routeHref(fashionStoreRoutePaths.account)" data-fashion-store-route
+                >My account</a
+              >
             </li>
             <li>
               <a :href="undefined" data-fashion-store-route aria-disabled="true">Orders tracking</a>
@@ -193,11 +229,14 @@ function fallbackLogoAt2x(): string {
             <li>
               <a :href="undefined" data-fashion-store-route aria-disabled="true">Size guide</a>
             </li>
-            <li><a :href="fashionStoreRoutePaths.faq" data-fashion-store-route>FAQs</a></li>
+            <li>
+              <a :href="routeHref(fashionStoreRoutePaths.faq)" data-fashion-store-route>FAQs</a>
+            </li>
           </ul>
         </div>
 
         <div
+          v-if="!liveMode"
           class="col-6 col-lg-3 col-md-4 col-sm-5 md-mb-50px xs-mb-30px order-sm-2 order-lg-2 offset-md-2 offset-lg-0"
         >
           <span class="fw-500 d-block text-white mb-10px fs-17">Quick contact</span>

@@ -29,6 +29,11 @@ interface FashionStoreReleaseFixture {
       collectionSlugs: string[];
       id: string;
       name: string;
+      optionDefinitions?: Array<{
+        name: string;
+        presentation: "color" | "text";
+        values: Array<{ label: string; swatch?: string }>;
+      }>;
       seoTitle: string;
       slug: string;
       status: string;
@@ -195,6 +200,27 @@ async function main(): Promise<void> {
   const emptyHome = process.argv.includes("--empty-home");
   const unifiedHome = process.argv.includes("--unified-home");
   const preparedReleaseFixture = structuredClone(releaseFixture);
+  preparedReleaseFixture.releaseId = "fashion-store-live-2026-09-16-v2-shopper-release";
+  const reviewedProduct = preparedReleaseFixture.products.find(
+    ({ slug }) => slug === "relaxed-corduroy-shirt",
+  );
+  if (!reviewedProduct) throw new Error("Fashion live preview requires the reviewed Product.");
+  reviewedProduct.optionDefinitions = [
+    {
+      name: "color",
+      presentation: "color",
+      values: [
+        { label: "Gold", swatch: "#d4af37" },
+        { label: "Blue", swatch: "#5881bf" },
+        { label: "Green", swatch: "#87a968" },
+      ],
+    },
+    {
+      name: "size",
+      presentation: "text",
+      values: ["S", "M", "L", "XL"].map((label) => ({ label })),
+    },
+  ];
   if (unifiedHome) {
     const homeCollection = preparedReleaseFixture.collections.find(
       ({ status }) => status === "published",

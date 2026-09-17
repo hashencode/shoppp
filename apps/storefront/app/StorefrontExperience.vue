@@ -49,7 +49,13 @@ const resolveThemeAsset = createThemeAssetResolver(activeThemeId, activeThemeAss
 const themeRegistry: ThemeRegistry = activeThemeRegistry;
 const router = useRouter();
 const currentRoute = computed(() => router.currentRoute.value);
-const routeMode = activeExperienceProviderInput.mode === "live" ? "live" : "fixture-preview";
+const routeMode =
+  activeExperienceProviderInput.mode === "live" ? "live" : ("fixture-preview" as const);
+const releaseInput =
+  activeExperienceProviderInput.mode === "live" ||
+  activeExperienceProviderInput.mode === "fixture-preview"
+    ? activeExperienceProviderInput.release
+    : undefined;
 const experienceSnapshot: ExperienceSnapshot | null = activeExperienceSnapshot;
 const fixturePresentationProvider = createFixturePresentationProvider({
   bindingAliases: themeRegistry.fixtureBindingAliases,
@@ -60,21 +66,21 @@ const pageContract = computed(() =>
   resolveThemeRoute(
     currentRoute.value.path,
     activeThemeRoutes,
-    activeExperienceProviderInput.mode === "live"
-      ? activeExperienceProviderInput.release
-      : undefined,
+    releaseInput,
     routeMode,
   ),
 );
 const presentationProvider = computed(() => {
+  const productUsesRelease = pageContract.value?.pageType === "product" && releaseInput;
   const liveInput =
-    activeExperienceProviderInput.mode === "live" && activeExperienceSnapshot && pageContract.value
+    releaseInput && activeExperienceSnapshot && pageContract.value &&
+    (activeExperienceProviderInput.mode === "live" || productUsesRelease)
       ? {
           adapter: themeRegistry.composition,
           experience: activeExperienceSnapshot,
           locale: "en-US",
           path: currentRoute.value.path,
-          release: activeExperienceProviderInput.release,
+          release: releaseInput,
           route: pageContract.value,
           sectionComposition: themeRegistry.sectionComposition,
         }
@@ -82,7 +88,7 @@ const presentationProvider = computed(() => {
   return selectPresentationProvider({
     fixtureProvider: fixturePresentationProvider,
     liveInput,
-    mode: activeExperienceProviderInput.mode,
+    mode: productUsesRelease ? "live" : activeExperienceProviderInput.mode,
   });
 });
 const {
@@ -177,8 +183,7 @@ const rendersPlatformRoute = computed(() => {
     path === "/checkout/complete" || path.startsWith("/orders/") || path.startsWith("/policies/")
   );
 });
-const liveRelease =
-  activeExperienceProviderInput.mode === "live" ? activeExperienceProviderInput.release : undefined;
+const liveRelease = releaseInput;
 const experienceShell = computed(() =>
   activeExperienceProviderInput.mode === "live" && activeExperienceSnapshot && liveRelease
     ? composeExperienceShell({

@@ -74,8 +74,16 @@ artifact change after freeze invalidates the RC and requires a new page/shadow p
 Prepare and serve the current page on a loopback-only address:
 
 ```sh
-bun run --cwd apps/storefront dev:fashion-store
+bun run dev:fashion-store
 ```
+
+This is the canonical local visual-review entry and uses the committed local Catalog Release.
+Use `bun run dev:fashion-store:staging` only when the remote Fashion staging Catalog and Commerce
+behavior are intentionally under review; cart and checkout actions in that mode write to the shared
+staging test environment. `bun run dev:fashion-store:isolated` is reserved for the isolated Home
+composition. The older Storefront-local `dev:fashion-store:live` and
+`dev:fashion-store:home-isolated` names remain compatibility aliases and are not documentation
+entrypoints.
 
 For a built artifact, use `apps/storefront/scripts/serve-static.ts`. Keep immutable source captures
 separate from implementation captures and record the exact commit, source identity, ports, and

@@ -17,23 +17,38 @@ import { useFashionStorePreviewCart } from "./useFashionStorePreviewCart";
 
 export function normalizeFashionStoreRuntimeProductState(
   product: RuntimeProductState,
+  presentation: FashionStoreProductPresentation,
 ): FashionStoreProductRuntimeState {
-  return {
-    availability: product.availability,
-    gallery: product.media.map((item) => ({ ...item, kind: "url" as const })),
-    optionGroups: product.optionGroups,
-    variants: product.variants.map((variant) => ({
-      availability: variant.availability,
-      compareAtPriceLabel: variant.money.compareAtAmount
-        ? formatCommerceMoney(variant.money.compareAtAmount, variant.money.currency)
+  if (product.id !== presentation.productId || product.slug !== presentation.slug) {
+    throw new Error("Commerce Product identity does not match the released Product.");
+  }
+  const commerceVariants = new Map(product.variants.map((variant) => [variant.id, variant]));
+  const variants = presentation.variants.map((releasedVariant) => {
+    const commerceVariant = commerceVariants.get(releasedVariant.id);
+    if (!commerceVariant) return { ...releasedVariant, availability: "out-of-stock" as const };
+    if (commerceVariant.money.currency !== presentation.currency) {
+      throw new Error("Commerce Variant currency does not match the released Product currency.");
+    }
+    return {
+      ...releasedVariant,
+      availability: commerceVariant.availability,
+      compareAtPriceLabel: commerceVariant.money.compareAtAmount
+        ? formatCommerceMoney(
+            commerceVariant.money.compareAtAmount,
+            commerceVariant.money.currency,
+          )
         : undefined,
-      id: variant.id,
-      label: variant.label,
-      optionValues: { ...variant.options },
-      priceLabel: formatCommerceMoney(variant.money.amount, variant.money.currency),
-      selected: false,
-      sku: variant.sku,
-    })),
+      priceLabel: formatCommerceMoney(commerceVariant.money.amount, commerceVariant.money.currency),
+    };
+  });
+  return {
+    availability:
+      product.availability === "unavailable"
+        ? "unavailable"
+        : variants.some(({ availability }) => availability === "in-stock")
+          ? "in-stock"
+          : "out-of-stock",
+    variants,
   };
 }
 
@@ -57,7 +72,7 @@ export function useFashionStoreProductActionPort(
           productId: presentation.value.productId,
           slug: presentation.value.slug,
         });
-        return normalizeFashionStoreRuntimeProductState(product);
+        return normalizeFashionStoreRuntimeProductState(product, presentation.value);
       },
       async addToCart(input) {
         const verified = await verifyProductCartAdd(

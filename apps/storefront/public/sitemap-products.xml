@@ -1,16 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://shoppp-storefront-fashion-preview.hashencode.workers.dev/products/textured-sweater-01</loc></url>
-  <url><loc>https://shoppp-storefront-fashion-preview.hashencode.workers.dev/products/traveller-shirt-02</loc></url>
-  <url><loc>https://shoppp-storefront-fashion-preview.hashencode.workers.dev/products/crewneck-sweatshirt-03</loc></url>
-  <url><loc>https://shoppp-storefront-fashion-preview.hashencode.workers.dev/products/skinny-trousers-04</loc></url>
-  <url><loc>https://shoppp-storefront-fashion-preview.hashencode.workers.dev/products/sleeve-sweater-05</loc></url>
-  <url><loc>https://shoppp-storefront-fashion-preview.hashencode.workers.dev/products/pocket-sweatshirt-06</loc></url>
-  <url><loc>https://shoppp-storefront-fashion-preview.hashencode.workers.dev/products/cotton-sweater-07</loc></url>
-  <url><loc>https://shoppp-storefront-fashion-preview.hashencode.workers.dev/products/texture-regular-08</loc></url>
-  <url><loc>https://shoppp-storefront-fashion-preview.hashencode.workers.dev/products/sequined-dress-09</loc></url>
-  <url><loc>https://shoppp-storefront-fashion-preview.hashencode.workers.dev/products/bermuda-shorts-10</loc></url>
-  <url><loc>https://shoppp-storefront-fashion-preview.hashencode.workers.dev/products/traveller-shirt-11</loc></url>
-  <url><loc>https://shoppp-storefront-fashion-preview.hashencode.workers.dev/products/textured-sweater-12</loc></url>
-  <url><loc>https://shoppp-storefront-fashion-preview.hashencode.workers.dev/products/relaxed-corduroy-shirt</loc></url>
+  <url><loc>https://shop.example.invalid/products/atlas-carry-on</loc></url>
+  <url><loc>https://shop.example.invalid/products/relaxed-corduroy-shirt</loc></url>
+  <url><loc>https://shop.example.invalid/products/textured-sweater-01</loc></url>
+  <url><loc>https://shop.example.invalid/products/traveller-shirt-02</loc></url>
+  <url><loc>https://shop.example.invalid/products/crewneck-sweatshirt-03</loc></url>
+  <url><loc>https://shop.example.invalid/products/skinny-trousers-04</loc></url>
 </urlset>

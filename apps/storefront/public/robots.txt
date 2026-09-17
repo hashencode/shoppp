@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /checkout
 Disallow: /orders/
-Sitemap: https://shoppp-storefront-fashion-preview.hashencode.workers.dev/sitemap.xml
+Sitemap: https://shop.example.invalid/sitemap.xml

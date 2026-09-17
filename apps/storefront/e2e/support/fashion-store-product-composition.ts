@@ -8,7 +8,8 @@ const forbiddenProductContent = fashionStoreProductRegionLedger.flatMap(
 );
 
 interface FashionStoreProductCompositionExpectation {
-  colorChipCount: number;
+  assurance: "populated" | "source-shaped-empty";
+  expectedSwatches: readonly string[];
   name: string;
   relatedProductCount: number;
   secondaryActionCount: number;
@@ -39,14 +40,27 @@ export async function expectFashionStoreProductComposition(
     product.locator(".fashion-product-options > fieldset:last-child > .d-flex.mb-35px"),
   ).toHaveCount(1);
 
-  const colorChips = product.locator(".fashion-product-color-text-options label > span");
-  await expect(colorChips).toHaveCount(expectation.colorChipCount);
+  const swatches = product.locator("[data-product-option-swatch]");
+  await expect(swatches).toHaveCount(expectation.expectedSwatches.length);
   expect(
-    await colorChips.evaluateAll((labels) =>
-      labels.every((label) => {
-        const style = getComputedStyle(label);
-        const bounds = label.getBoundingClientRect();
-        return style.whiteSpace === "nowrap" && bounds.height === 32 && bounds.width >= 32;
+    await swatches.evaluateAll((elements) =>
+      elements.map((element) => getComputedStyle(element).backgroundColor),
+    ),
+  ).toEqual(
+    expectation.expectedSwatches.map((swatch) => {
+      const channels = swatch
+        .slice(1)
+        .match(/.{2}/g)!
+        .map((channel) => Number.parseInt(channel, 16));
+      return `rgb(${channels.join(", ")})`;
+    }),
+  );
+  expect(
+    await swatches.evaluateAll((elements) =>
+      elements.every((element) => {
+        const style = getComputedStyle(element);
+        const bounds = element.getBoundingClientRect();
+        return style.borderStyle === "none" && bounds.height >= 20 && bounds.width >= 20;
       }),
     ),
   ).toBe(true);
@@ -59,8 +73,17 @@ export async function expectFashionStoreProductComposition(
   await expect(
     product.locator(".fashion-product-related > .container > ul > .grid-item"),
   ).toHaveCount(expectation.relatedProductCount);
-  for (const forbidden of forbiddenProductContent)
-    await expect(product).not.toContainText(forbidden);
+  await expect(product.locator("[data-product-assurance]")).toHaveCount(1);
+  await expect(product.locator("[data-product-assurance]")).toHaveAttribute(
+    "data-product-region-state",
+    "assurance",
+  );
+  if (expectation.assurance === "source-shaped-empty") {
+    await expect(product.locator("[data-product-assurance]")).toContainText("Not available");
+  } else {
+    for (const forbidden of forbiddenProductContent)
+      await expect(product.locator("[data-product-assurance]")).toContainText(forbidden);
+  }
 
   const [breadcrumb, gallery, info, overflow] = await Promise.all([
     product.locator("section:nth-of-type(1)").boundingBox(),

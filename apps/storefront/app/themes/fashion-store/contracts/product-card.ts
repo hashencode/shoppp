@@ -1,11 +1,12 @@
 import * as z from "zod";
 import type { InjectionKey } from "vue";
 
-import { fixtureStateSchema, presentationProductSchema } from "@shoppp/contracts";
-import type {
-  PresentationProductCard,
-  PresentationViewModel,
-} from "../../../theme-engine/view-models";
+import {
+  fixtureStateSchema,
+  presentationProductSchema,
+  productOptionDefinitionsSchema,
+} from "@shoppp/contracts";
+import type { PresentationProductCard, ProductPageModel } from "../../../theme-engine/view-models";
 import { presentationProductCardSchema } from "../../../theme-engine/view-models";
 
 /**
@@ -39,7 +40,7 @@ const productVariantSchema = z
     availability: z.enum(["in-stock", "out-of-stock"]).optional(),
     compareAtPriceLabel: z.string().trim().min(1).max(80).optional(),
     id: productIdentifierSchema,
-    label: z.string().trim().min(1).max(100),
+    label: z.string().trim().min(1).max(160),
     optionValues: z.record(z.string().trim().min(1).max(80), z.string().trim().min(1).max(160)),
     priceLabel: z.string().trim().min(1).max(80).optional(),
     selected: z.boolean(),
@@ -69,6 +70,20 @@ const productGalleryItemSchema = z.discriminatedUnion("kind", [
     })
     .strict(),
 ]);
+const productSpecificationSchema = z
+  .object({
+    label: z.string().trim().min(1).max(160),
+    value: z.string().trim().min(1).max(1_000),
+  })
+  .strict();
+const productReviewSchema = z
+  .object({
+    author: z.string().trim().min(1).max(160),
+    date: z.string().trim().min(1).max(160),
+    media: productGalleryItemSchema.optional(),
+    text: z.string().trim().min(1).max(2_000),
+  })
+  .strict();
 const productCardDestinationSchema = z.discriminatedUnion("kind", [
   z
     .object({
@@ -137,69 +152,89 @@ const unavailableProductRegions = {
   taxonomy: "hidden",
 } as const;
 
+const paymentBrandLabels = {
+  visa: "Visa",
+  mastercard: "Mastercard",
+  "american-express": "American Express",
+  discover: "Discover",
+  "diners-club": "Diners Club",
+  "union-pay": "UnionPay",
+} as const;
+
 export const fashionStoreProductPresentationSchema = z
   .object({
     controls: z.array(productControlSchema).max(8),
+    assurance: z
+      .object({
+        categories: z.array(z.string().trim().min(1).max(160)).max(20),
+        estimatedDelivery: z.string().trim().min(1).max(300).optional(),
+        freeShippingReturns: z.string().trim().min(1).max(300).optional(),
+        payments: z.array(productGalleryItemSchema).max(12),
+        tags: z.array(z.string().trim().min(1).max(160)).max(20),
+      })
+      .strict()
+      .optional(),
+    brand: z.string().trim().min(1).max(160).optional(),
     compareAtPriceLabel: z.string().trim().min(1).max(80).optional(),
     currency: z.string().trim().length(3).toUpperCase(),
-    description: z.string().trim().min(1).max(2_000),
-    gallery: z.array(productGalleryItemSchema).max(12),
-    name: z.string().trim().min(1).max(160),
+    description: z.string().trim().min(1).max(50_000),
+    descriptionDetail: z
+      .object({
+        bullets: z.array(z.string().trim().min(1).max(500)).max(20),
+        eyebrow: z.string().trim().min(1).max(160).optional(),
+        heading: z.string().trim().min(1).max(300),
+        media: productGalleryItemSchema.optional(),
+        text: z.string().trim().min(1).max(20_000),
+      })
+      .strict(),
+    gallery: z.array(productGalleryItemSchema).max(50),
+    name: z.string().trim().min(1).max(300),
+    optionDefinitions: productOptionDefinitionsSchema,
     optionGroups: z.array(productOptionGroupSchema).max(20),
     optionalRegions: z
       .object({
-        assurance: z.literal(unavailableProductRegions.assurance),
-        delivery: z.literal(unavailableProductRegions.delivery),
-        reviews: z.literal(unavailableProductRegions.reviews),
-        shipping: z.literal(unavailableProductRegions.shipping),
-        specifications: z.literal(unavailableProductRegions.specifications),
-        taxonomy: z.literal(unavailableProductRegions.taxonomy),
+        assurance: z.enum(["hidden", "populated", "source-shaped-empty"]),
+        delivery: z.enum(["hidden", "populated", "source-shaped-empty"]),
+        reviews: z.enum(["hidden", "populated", "source-shaped-empty"]),
+        shipping: z.enum(["hidden", "populated", "source-shaped-empty"]),
+        specifications: z.enum(["hidden", "populated", "source-shaped-empty"]),
+        taxonomy: z.enum(["hidden", "populated", "source-shaped-empty"]),
       })
       .strict(),
     priceLabel: z.string().trim().min(1).max(80),
     productId: productIdentifierSchema,
+    publishedRoutes: z.array(z.string().startsWith("/")).max(1_000),
     relatedProducts: z.array(fashionStoreProductCardPresentationSchema).max(8),
+    reviewSummary: z
+      .object({
+        averageRating: z.number().min(0).max(5).default(0),
+        count: z.number().int().nonnegative(),
+        label: z.string().trim().min(1).max(80),
+      })
+      .strict(),
+    reviews: z.array(productReviewSchema).max(20),
     slug: productSlugSchema,
+    siteName: z.string().trim().min(1).max(160),
     state: fixtureStateSchema.exclude(["success"]),
-    variants: z.array(productVariantSchema).min(1).max(30),
+    shipping: z
+      .object({
+        returnBody: z.string().trim().min(1).max(2_000),
+        standard: z.string().trim().min(1).max(2_000),
+      })
+      .strict()
+      .optional(),
+    specifications: z.array(productSpecificationSchema).max(30),
+    taxonomy: z
+      .object({
+        categories: z.array(z.string().trim().min(1).max(160)).max(20),
+        tags: z.array(z.string().trim().min(1).max(160)).max(20),
+      })
+      .strict(),
+    variants: z.array(productVariantSchema).min(1).max(500),
   })
   .strict();
 
 export type FashionStoreProductPresentation = z.infer<typeof fashionStoreProductPresentationSchema>;
-
-interface FashionStoreFixtureProductPresentationInput {
-  data: {
-    actions: Readonly<Record<string, { label: string }>>;
-    gallery: readonly string[];
-    options: {
-      colors: readonly { id: string; label: string }[];
-      sizes: readonly { id: string; label: string }[];
-    };
-    product: {
-      description: string;
-      name: string;
-      originalPrice: string;
-      price: string;
-      sku?: string;
-    };
-    related: readonly FashionStoreLegacyProductCard[];
-  };
-  productId: string;
-  slug: string;
-  state?: FashionStoreProductPresentation["state"];
-  variants: readonly {
-    availability?: "in-stock" | "out-of-stock";
-    compareAtPriceLabel?: string;
-    id: string;
-    label: string;
-    optionValues: Readonly<Record<string, string>>;
-    priceLabel?: string;
-    selected: boolean;
-    sku?: string;
-  }[];
-}
-
-type LiveProductViewModel = Extract<PresentationViewModel, { kind: "product" }>;
 
 export function normalizeFashionStoreLegacyProductCard(
   product: FashionStoreLegacyProductCard,
@@ -239,112 +274,106 @@ export function normalizeFashionStoreLiveProductCard(
   });
 }
 
-function fixtureControls(actions: FashionStoreFixtureProductPresentationInput["data"]["actions"]) {
-  const roleByAction = {
-    cart: "add-to-cart",
-    compare: "compare",
-    question: "question",
-    share: "share",
-    wishlist: "wishlist",
-  } as const;
-  return Object.entries(roleByAction).flatMap(([key, role]) => {
-    const action = actions[key];
-    return action ? [{ enabled: true, label: action.label, role }] : [];
-  });
-}
-
-function liveControls(actions: LiveProductViewModel["actions"]) {
-  return actions.map((action) => ({
-    enabled: true,
-    label: action.label,
-    role: action.intent === "variant.select" ? ("select-option" as const) : ("navigate" as const),
-  }));
-}
-
-export function normalizeFashionStoreFixtureProductPresentation(
-  input: FashionStoreFixtureProductPresentationInput,
-): FashionStoreProductPresentation {
-  const { data } = input;
-  return fashionStoreProductPresentationSchema.parse({
-    controls: fixtureControls(data.actions),
-    compareAtPriceLabel: data.product.originalPrice,
-    currency: "USD",
-    description: data.product.description,
-    gallery: data.gallery.map((path) => ({ kind: "theme-asset", path })),
-    name: data.product.name,
-    optionGroups: [
-      { name: "Color", values: data.options.colors.map(({ label }) => label) },
-      { name: "Size", values: data.options.sizes.map(({ label }) => label) },
-    ],
-    optionalRegions: unavailableProductRegions,
-    priceLabel: data.product.price,
-    productId: input.productId,
-    relatedProducts: data.related
-      .slice(0, 8)
-      .map((product) => normalizeFashionStoreLegacyProductCard(product, `/products/${product.id}`)),
-    slug: input.slug,
-    state: input.state ?? "populated",
-    variants: input.variants.map((variant) => ({
-      ...variant,
-      optionValues: { ...variant.optionValues },
-      sku: variant.sku ?? data.product.sku,
+function liveControls(actions: ProductPageModel["actions"]) {
+  return [
+    ...actions.map((action) => ({
+      enabled: true,
+      label: action.label,
+      role: action.intent === "variant.select" ? ("select-option" as const) : ("navigate" as const),
     })),
-  });
+    { enabled: false, label: "Compare", role: "compare" as const },
+    { enabled: false, label: "Ask a question", role: "question" as const },
+    { enabled: false, label: "Share", role: "share" as const },
+    { enabled: false, label: "Add to wishlist", role: "wishlist" as const },
+  ];
 }
 
-export function normalizeFashionStoreLiveProductPresentation(
-  input: LiveProductViewModel,
+const fashionStoreThemeAssetPrefix = "/media/fashion-store-theme/";
+
+function normalizeProductMedia(media: ProductPageModel["media"][number]) {
+  if (media.src.startsWith(fashionStoreThemeAssetPrefix)) {
+    const filename = media.src.slice(fashionStoreThemeAssetPrefix.length);
+    if (/^[a-z0-9][a-z0-9._-]*$/i.test(filename)) {
+      return { alt: media.alt, kind: "theme-asset" as const, path: `images/${filename}` };
+    }
+  }
+  return { ...media, kind: "url" as const };
+}
+
+export function normalizeFashionStoreProductPresentation(
+  input: ProductPageModel,
 ): FashionStoreProductPresentation {
   if (!input.resource) {
     throw new Error("Fashion Store live Product presentation requires a Catalog product resource.");
   }
+  const optionDefinitions =
+    input.optionDefinitions && input.optionDefinitions.length > 0
+      ? input.optionDefinitions
+      : input.optionGroups.map(({ name, values }) => ({
+          name,
+          presentation: "text" as const,
+          values: values.map((label) => ({ label })),
+        }));
+  const paymentBrands = input.paymentBrands ?? [];
   return fashionStoreProductPresentationSchema.parse({
+    assurance: paymentBrands.length
+      ? {
+          categories: input.taxonomy.categories,
+          payments: paymentBrands.map((brand) => ({
+            alt: paymentBrandLabels[brand],
+            kind: "theme-asset" as const,
+            path: `images/${brand}.svg`,
+          })),
+          tags: input.taxonomy.tags,
+        }
+      : undefined,
+    brand: input.brand,
     controls: liveControls(input.actions),
     compareAtPriceLabel: input.compareAtPriceLabel,
     currency: input.resource.money.currency,
     description: input.description,
-    gallery: input.media.map((media) => ({ ...media, kind: "url" })),
+    descriptionDetail: {
+      ...input.descriptionDetail,
+      media: input.descriptionDetail.media
+        ? normalizeProductMedia(input.descriptionDetail.media)
+        : undefined,
+    },
+    gallery: input.media.map(normalizeProductMedia),
     name: input.heading,
+    optionDefinitions,
     optionGroups: input.optionGroups,
-    optionalRegions: unavailableProductRegions,
+    optionalRegions: {
+      ...unavailableProductRegions,
+      ...(paymentBrands.length ? { assurance: "populated" as const } : {}),
+      ...(input.shipping ? { delivery: "populated" as const, shipping: "populated" as const } : {}),
+      ...(input.specifications.length
+        ? { specifications: "populated" as const }
+        : { specifications: "source-shaped-empty" as const }),
+      ...(input.reviewSummary.count > 0 || (input.reviews?.length ?? 0) > 0
+        ? { reviews: "populated" as const }
+        : { reviews: "source-shaped-empty" as const }),
+      ...(input.taxonomy.categories.length || input.taxonomy.tags.length
+        ? { taxonomy: "populated" as const }
+        : {}),
+    },
     priceLabel: input.priceLabel,
     productId: input.resource.id,
+    publishedRoutes: input.publishedRoutes,
     relatedProducts: input.relatedProducts.map(normalizeFashionStoreLiveProductCard),
+    reviewSummary: input.reviewSummary,
+    reviews: input.reviews ?? [],
     slug: input.resource.slug,
+    siteName: input.siteName,
     state: input.state === "success" ? "populated" : input.state,
+    shipping: input.shipping
+      ? {
+          returnBody: input.shipping.returnBody,
+          standard: input.shipping.standard,
+        }
+      : undefined,
+    specifications: input.specifications,
+    taxonomy: input.taxonomy,
     variants: input.variants,
-  });
-}
-
-function fixtureVariants(data: FashionStoreFixtureProductPresentationInput["data"]) {
-  const colors = data.options.colors;
-  const sizes = data.options.sizes;
-  return colors.flatMap((color) =>
-    sizes.map((size) => ({
-      id: `preview-${color.id}-${size.id}`,
-      label: `${color.label} / ${size.label}`,
-      optionValues: { Color: color.label, Size: size.label },
-      selected: color === colors.at(-1) && size === sizes.at(-1),
-      ...(data.product.sku ? { sku: data.product.sku } : {}),
-    })),
-  );
-}
-
-/** Normalize either serializable Product source before it reaches the shared page. */
-export function normalizeFashionStoreProductPresentation(
-  input: PresentationViewModel,
-): FashionStoreProductPresentation {
-  if (input.kind === "product") return normalizeFashionStoreLiveProductPresentation(input);
-  if (input.kind !== "theme-section") {
-    throw new Error("Fashion Store Product requires a Product presentation source.");
-  }
-  const data = input.data as unknown as FashionStoreFixtureProductPresentationInput["data"];
-  return normalizeFashionStoreFixtureProductPresentation({
-    data,
-    productId: "preview-relaxed-corduroy-shirt",
-    slug: "relaxed-corduroy-shirt",
-    state: input.state === "success" ? "populated" : input.state,
-    variants: fixtureVariants(data),
   });
 }
 
@@ -368,8 +397,6 @@ export interface FashionStoreProductActionOutcome {
 
 export interface FashionStoreProductRuntimeState {
   availability: "in-stock" | "out-of-stock" | "unavailable";
-  gallery: FashionStoreProductPresentation["gallery"];
-  optionGroups: FashionStoreProductPresentation["optionGroups"];
   variants: FashionStoreProductPresentation["variants"];
 }
 

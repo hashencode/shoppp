@@ -22,10 +22,100 @@ interface FashionStoreProductRegionLedgerEntry {
 export const fashionStoreProductSourcePage = {
   baselineComponentCommit: "f3be48b38cd265ae16a65394431901e1f4b1cd5b",
   baselineComponentSha256: "9788cad519037756258d65691152b97f1b5aacfc6a07f1245302dc7c97dd2060",
+  baselineComponentPath:
+    "apps/storefront/app/themes/fashion-store/components/pages/FashionStoreProductPage.vue",
   id: "product",
   route: "/products/relaxed-corduroy-shirt",
   sourceEntry: "demo-fashion-store-single-product.html",
+  sourceRole: "secondary-design-reference",
   sourceSha256: "9f2a5cb42d81df1505c3a911c59544eefd8a0a60e6b27791d8469fd552179f43",
+  visualAuthority: "historical-vue-component",
+} as const;
+
+export const fashionStoreProductParityProfile = {
+  authority: {
+    commit: "f3be48b38cd265ae16a65394431901e1f4b1cd5b",
+    component: "FashionStoreProductPage.vue",
+    kind: "historical-vue-component",
+  },
+  capture: {
+    colorScheme: "light",
+    cookieState: "accepted",
+    deviceScaleFactor: 1,
+    screenshotChangedPixelRatioMax: 0.01,
+    screenshotMeanChannelDeltaMax: 5,
+  },
+  dynamicMasks: ["decoded pixels inside released gallery, detail, review, and related image boxes"],
+  viewports: [
+    {
+      document: { height: 3012, width: 1440 },
+      pixelMasks: [],
+      geometry: {
+        breadcrumb: { height: 32, width: 1350, x: 45, y: 116 },
+        footer: { height: 461, width: 1440, x: 0, y: 2551 },
+        gallery: { height: 662, width: 677, x: 110, y: 228 },
+        productInfo: { height: 839, width: 508, x: 822, y: 228 },
+        relatedHeading: { height: 55, width: 1220, x: 110, y: 1881 },
+        tabs: { height: 51, width: 1190, x: 125, y: 1124 },
+      },
+      geometryTolerancePx: 8,
+      screenshotSha256: "aebbf5e0dd62f3466b21873330aeda31a9c82ee1958036e794c7db66ffd7c9c4",
+      viewport: { height: 1000, width: 1440 },
+    },
+    {
+      document: { height: 6507, width: 390 },
+      pixelMasks: [],
+      geometry: {
+        breadcrumb: { height: 32, width: 360, x: 15, y: 100 },
+        footer: { height: 970, width: 390, x: 0, y: 5537 },
+        gallery: { height: 588, width: 390, x: 0, y: 182 },
+        productInfo: { height: 1085, width: 390, x: 0, y: 810 },
+        relatedHeading: { height: 41, width: 390, x: 0, y: 3131 },
+        tabs: { height: 184, width: 360, x: 15, y: 1934 },
+      },
+      geometryTolerancePx: 4,
+      screenshotSha256: "42a4a489f10386539523f57cd13fe6686b378b5200ac7af8d3410eaf8a6a55ce",
+      viewport: { height: 844, width: 390 },
+    },
+  ],
+} as const;
+
+export const fashionStoreProductAuthorityExceptions = [
+  {
+    donorClaim: "Zalando, ratings, and review bodies",
+    liveRule:
+      "Use released brand when authored and a zero-review state until a review authority exists.",
+  },
+  {
+    donorClaim: "Demo name, description, SKU, prices, options, and product media",
+    liveRule: "Use the selected Catalog Release Product and stable released Variants.",
+  },
+  {
+    donorClaim: "Estimated delivery, free shipping and returns, and checkout guarantee",
+    liveRule:
+      "Use published policy/configuration only; otherwise keep the source slot truthful and empty.",
+  },
+  {
+    donorClaim: "Fashion/Woman taxonomy and demo tags",
+    liveRule: "Use published collection/category membership only.",
+  },
+  {
+    donorClaim: "Four named demo related products",
+    liveRule:
+      "Use the bounded ordered released collection projection, or its truthful empty state.",
+  },
+] as const;
+
+export const fashionStoreProductSinglePathContract = {
+  component: "FashionStoreProductPage",
+  entries: ["deterministic-preview", "live-preview", "production-route", "browser-tests"],
+  forbiddenPresentationPaths: [
+    "fixture theme-section Product normalization",
+    "live-only Product normalization",
+    "independent production Product article",
+  ],
+  model: "ProductPageModel",
+  releaseBacked: true,
 } as const;
 
 export const fashionStoreProductRegionLedger = [
@@ -73,7 +163,7 @@ export const fashionStoreProductRegionLedger = [
   },
   {
     adaptation:
-      "Color option names use source-shaped text chips because current Catalog/Commerce presentation data has no authoritative swatch colors; names are never converted into inferred CSS colors.",
+      "Color values render only an operator-reviewed fixture swatch or a released Catalog swatch; a swatchless definition uses the historical text-option control.",
     allowedTreatments: ["populated"],
     dataOwner: "Catalog identity, price, description, SKU, options, and variants",
     geometryAnchors: [
@@ -115,18 +205,22 @@ export const fashionStoreProductRegionLedger = [
     sourceSelector: ".product-info > .row.mb-20px",
   },
   {
-    allowedTreatments: ["hidden", "populated"],
-    dataOwner: "Experience/theme assurance content",
+    allowedTreatments: ["populated", "source-shaped-empty"],
+    dataOwner: "Experience/theme assurance content and published collection taxonomy",
     forbiddenWhenUnavailable: [
       "Estimated delivery:",
       "Free shipping & returns:",
       "Guarantee safe and secure checkout",
-      "Category:",
-      "Tags:",
     ],
     geometryAnchors: [{ classes: ["mb-20px", "mb-15px"], viewport: "all" }],
     id: "assurance-and-taxonomy",
-    implementationEvidence: [],
+    implementationEvidence: [
+      "Estimated delivery:",
+      "Free shipping &amp; returns:",
+      "Guarantee safe and secure checkout",
+      "Category:",
+      "Tags:",
+    ],
     implementationSelector: ".product-info [data-product-assurance]",
     sourceClasses: ["icon-with-text-style-08", "bg-very-light-gray", "border-radius-4px"],
     sourceEvidence: [
@@ -227,7 +321,7 @@ export const fashionStoreProductRegionLedger = [
     sourceSelector: "#tab_five4 > .row.align-items-center",
   },
   {
-    allowedTreatments: ["hidden", "populated"],
+    allowedTreatments: ["populated", "source-shaped-empty"],
     dataOwner: "Catalog related products",
     geometryAnchors: [
       { classes: ["grid-4col", "md-grid-3col"], viewport: "desktop" },
@@ -304,7 +398,7 @@ export const fashionStoreProductBehaviorContract = {
       initialState: "first product image active",
       modes: ["temporal", "interaction", "fallback"],
       outcome:
-        "The product gallery and thumbnail track animate for 300ms, autoplay every 2000ms, expose no source-absent arrows, and open the source-composed keyboard-operable image view.",
+        "The product gallery and thumbnail track animate for 300ms, autoplay every 5000ms, expose no source-absent arrows, and open the source-composed keyboard-operable image view.",
       owner: "framework-adapter",
       region: "gallery",
       role: "carousel",
