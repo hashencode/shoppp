@@ -12,6 +12,8 @@ import {
   fashionStoreSourceRegions,
 } from "../app/themes/fashion-store/source-contract";
 import { fashionStoreHomeData } from "../app/themes/fashion-store/fixtures/home";
+import { resolveFashionStoreHomeEditorial } from "../app/themes/fashion-store/components/sections/home-section-context";
+import type { PresentationViewModel } from "../app/theme-engine/view-models";
 import { fashionStoreAssetId, themeAssets } from "../app/themes/fashion-store/resources";
 
 const componentRoot = new URL("../app/themes/fashion-store/components/", import.meta.url);
@@ -46,6 +48,22 @@ const regionMarkers: Readonly<Record<string, string>> = {
 };
 
 describe("Fashion Store complete static source home", () => {
+  test("live collection cards retain the source title and replaceable subtitle", () => {
+    const home = {
+      kind: "home",
+      featuredCollection: { href: "/collections/travel-essentials", name: "Travel essentials" },
+    } as PresentationViewModel;
+    const items = resolveFashionStoreHomeEditorial(home).collection.items;
+
+    expect(items).toHaveLength(4);
+    expect(items.map(({ name, subtitle }) => ({ name, subtitle }))).toEqual([
+      { name: "Travel essentials", subtitle: "Look 1" },
+      { name: "Travel essentials", subtitle: "Look 2" },
+      { name: "Travel essentials", subtitle: "Look 3" },
+      { name: "Travel essentials", subtitle: "Look 4" },
+    ]);
+  });
+
   test("keeps source positions separate from stable implementation Home owners", () => {
     expect(fashionStoreImplementationHomeSectionOrder).toEqual([
       "hero",

@@ -167,8 +167,9 @@ export function resolveFashionStoreHomeEditorial(
         eyebrow: "Curated for you",
         href: data.featuredCollection.href,
         items: fashionStoreHomeCollectionImages.map((sourceImage, index) => ({
-          name: `${data.featuredCollection.name} look ${index + 1}`,
+          name: data.featuredCollection.name,
           sourceImage,
+          subtitle: `Look ${index + 1}`,
         })),
         title: { lead: data.featuredCollection.name },
       },

@@ -122,6 +122,36 @@ async function captureRegionDifference(
 const profileComposition = process.env.STOREFRONT_FASHION_HOME_PROFILE ?? "combined";
 const isolatedComposition = profileComposition === "isolated";
 
+test("live collection hover swaps the subtitle without covering the title", async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    isolatedComposition || testInfo.project.name !== "fashion-store-live-unified-home-1440",
+  );
+  await page.goto("/", { waitUntil: "networkidle" });
+  const card = page
+    .locator('[data-home-section="collection"] .interactive-banner-style-09')
+    .first();
+  const title = card.locator(".fs-22");
+  const subtitle = card.locator(".content-title");
+  const action = card.locator(".content-title-hover");
+
+  await expect(title).toContainText(/\S/);
+  await expect(subtitle).toContainText(/\S/);
+  await expect(subtitle).toBeVisible();
+  await card.hover();
+  await expect(subtitle).toBeHidden();
+  await expect(action).toBeVisible();
+
+  const [titleBounds, actionBounds] = await Promise.all([
+    title.boundingBox(),
+    action.boundingBox(),
+  ]);
+  expect(titleBounds).not.toBeNull();
+  expect(actionBounds).not.toBeNull();
+  expect(titleBounds!.y + titleBounds!.height).toBeLessThanOrEqual(actionBounds!.y + 1);
+});
+
 test("keeps merchandising links named, reachable, and large enough", async ({ page }) => {
   await page.goto("/", { waitUntil: "networkidle" });
   const merchandising = page.locator('[data-home-section="product-merchandising"]');
