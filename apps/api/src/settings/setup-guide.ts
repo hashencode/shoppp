@@ -10,6 +10,7 @@ import type { Context } from "hono";
 import { hasSellableSku } from "../catalog/public";
 import type { ApiEnvironment } from "../http/context";
 import { hasPermission } from "../iam/permissions";
+import { getContactSettings } from "./contact-profile";
 import {
   currencyReadiness,
   oversellReadiness,
@@ -68,7 +69,17 @@ export async function getSetupGuide(context: Context<ApiEnvironment>): Promise<S
     }
   }
   set("configuration_saved", updatedAt ? [] : [{ code: "configuration_not_saved" }]);
-  set("contact_details", []); // Both emails passed the same schema used when saving.
+  await domain(["contact_details"], ["settings.read"], async () => {
+    const contact = await getContactSettings(context);
+    const publicChannel = Boolean(
+      contact.publicContact.supportEmail ||
+      contact.publicContact.privacyEmail ||
+      contact.publicContact.publicPhone ||
+      contact.publicContact.locations.some((location) => location.phone || location.email),
+    );
+    set("contact_details", contact.profileVersion && publicChannel
+      ? [] : [{ code: "public_contact_not_confirmed" }]);
+  });
   const runtime = runtimeReadiness(
     configuration,
     context.env.ENVIRONMENT,

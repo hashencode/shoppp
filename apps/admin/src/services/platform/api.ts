@@ -1,6 +1,8 @@
 import type {
   AuditEvent,
   AuditQuery,
+  ContactSettings,
+  UpdateContactSettingsRequest,
   LaunchConfiguration,
   LaunchConfigurationStatus,
   OperationalHealth,
@@ -8,7 +10,7 @@ import type {
   PrivacyRequest,
   CreatePrivacyRequest,
 } from '@shoppp/contracts'
-import { setupGuideSummarySchema } from '@shoppp/contracts'
+import { contactSettingsSchema, setupGuideSummarySchema } from '@shoppp/contracts'
 import { apiClient } from '../../infrastructure/http/api-client'
 import { saveBlob, toBlobFileName } from '../../shared/utils/download'
 
@@ -17,6 +19,22 @@ export const fetchSetupGuide = async (signal: AbortSignal): Promise<SetupGuideSu
     signal,
   })
   return setupGuideSummarySchema.parse(response.data.data)
+}
+
+export const fetchContactSettings = async (): Promise<ContactSettings> => {
+  const response = await apiClient.get<{ data: ContactSettings }>('/admin/settings/contact')
+  return contactSettingsSchema.parse(response.data.data)
+}
+
+export const updateContactSettings = async (
+  input: UpdateContactSettingsRequest
+): Promise<ContactSettings> => {
+  const response = await apiClient.put<{ data: ContactSettings }>(
+    '/admin/settings/contact',
+    input,
+    { headers: { 'Idempotency-Key': `contact-settings-${crypto.randomUUID()}` } }
+  )
+  return contactSettingsSchema.parse(response.data.data)
 }
 
 export const fetchLaunchConfiguration = async (): Promise<LaunchConfigurationStatus> => {

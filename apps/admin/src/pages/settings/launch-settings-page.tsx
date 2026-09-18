@@ -17,7 +17,7 @@ import {
   App,
 } from 'antd'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { normalizeApiError, type ApiError } from '../../infrastructure/http/api-client'
@@ -41,7 +41,7 @@ const HEALTH_FAILURE_LABEL: Record<keyof OperationalHealth['failures'], string> 
   paymentEvents: 'Payment event failures',
   reportExports: 'Report export failures',
 }
-const SECTION_IDS = ['contacts', 'sales', 'payment', 'policies']
+const SECTION_IDS = ['sales', 'payment', 'policies']
 
 export const LaunchSettingsPage = () => {
   const { message } = App.useApp()
@@ -138,7 +138,7 @@ export const LaunchSettingsPage = () => {
             if (!canRead || !canWrite || submitting || !status) return
             setSubmitting(true)
             try {
-              const updated = await updateLaunchConfiguration(configuration, reason)
+              const updated = await updateLaunchConfiguration({ ...status.configuration, ...configuration }, reason)
               setStatus(updated)
               form.setFieldsValue({ ...updated.configuration, reason: '' })
               void message.success(translateNow('Launch configuration saved and audited.'))
@@ -149,28 +149,6 @@ export const LaunchSettingsPage = () => {
             }
           },
           sections: [
-            {
-              key: 'contacts',
-              title: <span id="contacts">{t('Contacts')}</span>,
-              renderFields: () => (
-                <>
-                  <Form.Item
-                    name="supportEmail"
-                    label={t('Support email')}
-                    rules={[{ required: true, type: 'email' }]}
-                  >
-                    <Input />
-                  </Form.Item>
-                  <Form.Item
-                    name="privacyContactEmail"
-                    label={t('Privacy contact email')}
-                    rules={[{ required: true, type: 'email' }]}
-                  >
-                    <Input />
-                  </Form.Item>
-                </>
-              ),
-            },
             {
               key: 'sales',
               title: <span id="sales">{t('Sales and inventory')}</span>,
@@ -306,6 +284,14 @@ export const LaunchSettingsPage = () => {
           ),
         }}
       />
+      {canRead ? (
+        <Alert
+          type="info"
+          showIcon
+          title={t('Public contact details have a dedicated settings page.')}
+          description={<Link to="/settings/contact">{t('Open contact settings')}</Link>}
+        />
+      ) : null}
       {canRead ? (
         <Card title={t('Checkout-impacting health')}>
           {healthLoading ? (

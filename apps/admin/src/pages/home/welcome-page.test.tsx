@@ -73,7 +73,7 @@ describe('WelcomePage setup guide', () => {
     expect(screen.queryByRole('link', { name: 'Commerce dashboard' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Collapse guide' })).toBeNull()
     const contactSettings = screen.getByRole('link', { name: 'Contact settings' })
-    expect(contactSettings.getAttribute('href')).toBe('/settings/launch?from=setup-guide#contacts')
+    expect(contactSettings.getAttribute('href')).toBe('/settings/contact?from=setup-guide')
     expect(contactSettings.classList.contains('ant-btn-default')).toBe(true)
     expect(contactSettings.classList.contains('ant-btn-sm')).toBe(false)
     expect(contactSettings.classList.contains('ant-btn-lg')).toBe(false)

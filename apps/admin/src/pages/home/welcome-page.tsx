@@ -51,7 +51,7 @@ const STEPS: { key: Step; title: string; description: string }[] = [
 ]
 const CHECK_LABEL: Record<SetupGuideCheck['id'], string> = {
   configuration_saved: 'Commercial configuration saved',
-  contact_details: 'Contact email formats',
+  contact_details: 'Public contact channel confirmed',
   sellable_sku: 'At least one sellable SKU',
   sellable_currencies: 'Price lists for enabled currencies',
   shipping_countries: 'Enabled shipping countries',
@@ -80,6 +80,7 @@ const REASON_MESSAGE: Record<string, string> = {
   configuration_not_saved:
     'Default configuration has not been confirmed. Review and save commercial settings.',
   contact_details_invalid: 'Enter valid support and privacy contact email addresses.',
+  public_contact_not_confirmed: 'Confirm at least one public email or phone number in contact settings.',
   no_sellable_sku:
     'No published SKU has a current price and available stock in the default currency.',
   legal_approval_missing: 'Legal approval for the published policies is required.',
@@ -186,7 +187,9 @@ export const WelcomePage = () => {
   const actions = (step: Step) => {
     switch (step) {
       case 'contacts':
-        return settingsLink('contacts', 'Contact settings')
+        return can('settings.read') ? (
+          <GuideAction to="/settings/contact?from=setup-guide">{t('Contact settings')}</GuideAction>
+        ) : null
       case 'products':
         return (
           <>

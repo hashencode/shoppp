@@ -238,6 +238,22 @@ const commerceRoutes: TemplateRoute[] = [
       ),
   },
   {
+    key: 'contact-settings',
+    path: '/settings/contact',
+    title: 'Contact settings',
+    icon: createElement(SettingOutlined),
+    permission: 'settings.read',
+    inMenu: true,
+    menuMode: 'standalone',
+    breadcrumb: ['Settings', 'Contact settings'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/settings/contact-settings-page').then((m) => ({
+          default: m.ContactSettingsPage,
+        }))
+      ),
+  },
+  {
     key: 'launch-settings',
     path: '/settings/launch',
     title: 'Commercial settings',

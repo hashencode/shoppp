@@ -91,6 +91,17 @@ async function mockCommerce(page: Page, restricted = false) {
       },
     })
   })
+  await page.route('**/api/admin/settings/contact', async (route) => {
+    await route.fulfill({ json: { data: {
+      supportEmail: configuration.supportEmail,
+      privacyContactEmail: configuration.privacyContactEmail,
+      launchVersion: 'browser-launch-version', profileVersion: null, updatedAt: null,
+      profile: { publishSupportEmail: false, publishPrivacyEmail: false,
+        publicPhone: null, serviceHours: null, timeZone: null, locations: [], socials: [] },
+      publicContact: { supportEmail: null, privacyEmail: null, publicPhone: null,
+        serviceHours: null, timeZone: null, locations: [], socials: [] },
+    } } })
+  })
   await page.route('**/api/admin/operations/health', async (route) => {
     await route.fulfill({
       status: 503,
@@ -216,10 +227,10 @@ test('settings reader has fixed restricted progress and a readonly commercial fo
   await page.getByText('1. Basics and contacts', { exact: true }).click()
   await page.getByRole('link', { name: 'Contact settings' }).click()
   await expect(page.getByLabel('Support email', { exact: true })).toBeDisabled()
-  await expect(page.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Save contact settings', exact: true })).toHaveCount(0)
   expect(fixture.saves()).toBe(0)
   await page.goto(path('/settings/launch?from=https://example.invalid'))
-  await expect(page.getByLabel('Support email', { exact: true })).toBeDisabled()
+  await expect(page.getByLabel('Default currency', { exact: true })).toBeDisabled()
   await expect(
     page.getByRole('link', { name: 'Back to store setup guide', exact: true })
   ).toHaveCount(0)

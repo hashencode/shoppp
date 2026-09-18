@@ -22,6 +22,7 @@ function request(): Request {
 describe("store setup guide", () => {
   beforeEach(async () => {
     await env.DB.prepare("DELETE FROM settings WHERE key = 'launch_configuration'").run();
+    await env.DB.prepare("DELETE FROM settings WHERE key = 'contact_profile'").run();
     await env.DB.prepare(
       "DELETE FROM admin_role_permissions WHERE role_id = 'role_analyst' AND permission_key = 'settings.read'",
     ).run();
@@ -117,7 +118,7 @@ describe("store setup guide", () => {
   test("isolates a catalog outage and never replaces unreadable configuration with defaults", async () => {
     const partial = await summary({ ...env, DB: faultyDatabase(/FROM product_variants/) });
     expect(partial.checks.find((check) => check.id === "sellable_sku")?.status).toBe("unavailable");
-    expect(partial.checks.find((check) => check.id === "contact_details")?.status).toBe("passed");
+    expect(partial.checks.find((check) => check.id === "contact_details")?.status).toBe("needs_action");
     expect(partial.checks.find((check) => check.id === "configuration_saved")?.status).toBe(
       "needs_action",
     );
@@ -128,6 +129,21 @@ describe("store setup guide", () => {
     expect(failed.configuration).toBeNull();
     expect(failed.checks).toHaveLength(13);
     expect(failed.checks.every((check) => check.status === "unavailable")).toBe(true);
+  });
+  test("requires an operator-confirmed public channel, without requiring locations or socials", async () => {
+    await save();
+    const pending = await summary();
+    expect(pending.checks.find((check) => check.id === "contact_details")).toMatchObject({
+      status: "needs_action", reasons: [{ code: "public_contact_not_confirmed" }],
+    });
+    await env.DB.prepare(
+      "INSERT INTO settings (key, value_json, updated_at) VALUES ('contact_profile', ?, ?)",
+    ).bind(JSON.stringify({ version: crypto.randomUUID(), profile: {
+      publishSupportEmail: true, publishPrivacyEmail: false, publicPhone: null,
+      serviceHours: null, timeZone: null, locations: [], socials: [],
+    } }), "2026-09-18T00:00:00.000Z").run();
+    const confirmed = await summary();
+    expect(confirmed.checks.find((check) => check.id === "contact_details")?.status).toBe("passed");
   });
   test("uses runtime payment facts and retains all production runtime issue categories", async () => {
     await save({
