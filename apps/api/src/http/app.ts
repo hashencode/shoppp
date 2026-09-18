@@ -50,6 +50,7 @@ import {
   updateAdminUserRequestSchema,
   updateStorefrontExperienceDraftRequestSchema,
   updateLaunchConfigurationRequestSchema,
+  updateContactSettingsRequestSchema,
   upsertShippingZoneRequestSchema,
   validateStorefrontExperienceDraftRequestSchema,
   storefrontExperienceBuildResultSchema,
@@ -107,6 +108,7 @@ import {
 } from "../iam/invitations";
 import { requirePermission } from "../iam/permissions";
 import { getSetupGuide } from "../settings/setup-guide";
+import { getContactSettings, updateContactSettings } from "../settings/contact-profile";
 import {
   activateAdminAccount,
   changePassword,
@@ -1878,6 +1880,28 @@ export function createApp(options: CreateAppOptions = {}) {
       meta: { requestId: context.get("requestId") },
     });
   });
+  app.get("/admin/settings/contact", async (context) => {
+    await requirePermission(context, "settings.read", { id: "contact_profile", type: "setting" });
+    return context.json({
+      data: await getContactSettings(context),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.put(
+    "/admin/settings/contact",
+    async (context, next) => {
+      await requirePermission(context, "settings.write", { id: "contact_profile", type: "setting" });
+      await next();
+    },
+    idempotency("settings.contact.update"),
+    async (context) => {
+      const input = await parseJson(context, updateContactSettingsRequestSchema);
+      return context.json({
+        data: await updateContactSettings(context, input),
+        meta: { requestId: context.get("requestId") },
+      });
+    },
+  );
   app.get("/admin/settings/shipping", async (context) => {
     await requirePermission(context, "settings.read", { type: "shipping_zone" });
     return context.json({

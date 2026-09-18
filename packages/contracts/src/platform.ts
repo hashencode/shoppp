@@ -75,6 +75,91 @@ export const updateLaunchConfigurationRequestSchema = z
   })
   .strict();
 
+const optionalContactText = (maximum: number) => z.string().trim().min(1).max(maximum).nullable();
+const contactPhoneSchema = z.string().regex(/^\+[1-9]\d{1,14}$/);
+const contactHttpsUrlSchema = z.url().refine((value) => {
+  const url = new URL(value);
+  return url.protocol === "https:" && !url.username && !url.password;
+}, "Use an HTTPS URL without embedded credentials.");
+const contactTimeZoneSchema = optionalContactText(100).refine((value) => {
+  if (value === null) return true;
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+}, "Use a valid IANA time zone.");
+
+export const contactLocationSchema = z.object({
+  id: z.uuid(),
+  name: z.string().trim().min(1).max(120),
+  city: z.string().trim().min(1).max(120),
+  address: z.string().trim().min(1).max(500),
+  phone: contactPhoneSchema.nullable(),
+  email: z.email().nullable(),
+  mapUrl: contactHttpsUrlSchema.nullable(),
+  visible: z.boolean(),
+}).strict();
+
+export const contactSocialSchema = z.object({
+  id: z.uuid(),
+  platform: z.string().trim().min(1).max(60),
+  label: z.string().trim().min(1).max(120),
+  url: contactHttpsUrlSchema,
+  visible: z.boolean(),
+}).strict();
+
+export const contactProfileSchema = z.object({
+  publishSupportEmail: z.boolean(),
+  publishPrivacyEmail: z.boolean(),
+  publicPhone: contactPhoneSchema.nullable(),
+  serviceHours: optionalContactText(240),
+  timeZone: contactTimeZoneSchema,
+  locations: z.array(contactLocationSchema).max(30),
+  socials: z.array(contactSocialSchema).max(30),
+}).strict().superRefine((value, context) => {
+  if ((value.serviceHours === null) !== (value.timeZone === null)) {
+    context.addIssue({ code: "custom", message: "Service hours and time zone must be provided together.", path: ["timeZone"] });
+  }
+  for (const field of ["locations", "socials"] as const) {
+    const ids = new Set<string>();
+    value[field].forEach((item, index) => {
+      if (ids.has(item.id)) context.addIssue({ code: "custom", message: "Identifiers must be unique.", path: [field, index, "id"] });
+      ids.add(item.id);
+    });
+  }
+});
+
+export const publicContactSchema = z.object({
+  supportEmail: z.email().nullable(),
+  privacyEmail: z.email().nullable(),
+  publicPhone: contactPhoneSchema.nullable(),
+  serviceHours: optionalContactText(240),
+  timeZone: contactTimeZoneSchema,
+  locations: z.array(contactLocationSchema),
+  socials: z.array(contactSocialSchema),
+}).strict();
+
+export const contactSettingsSchema = z.object({
+  profile: contactProfileSchema,
+  supportEmail: z.email(),
+  privacyContactEmail: z.email(),
+  launchVersion: z.string().nullable(),
+  profileVersion: z.uuid().nullable(),
+  updatedAt: isoDateTimeSchema.nullable(),
+  publicContact: publicContactSchema,
+}).strict();
+
+export const updateContactSettingsRequestSchema = z.object({
+  profile: contactProfileSchema,
+  supportEmail: z.email(),
+  privacyContactEmail: z.email(),
+  expectedLaunchVersion: z.string().nullable(),
+  expectedProfileVersion: z.uuid().nullable(),
+  reason: z.string().trim().min(3).max(500),
+}).strict();
+
 export const launchReadinessIssueSchema = z
   .object({
     code: z.enum([
@@ -196,6 +281,10 @@ export const operationalHealthSchema = z
   .strict();
 
 export type AuditEvent = z.infer<typeof auditEventSchema>;
+export type ContactProfile = z.infer<typeof contactProfileSchema>;
+export type ContactSettings = z.infer<typeof contactSettingsSchema>;
+export type PublicContact = z.infer<typeof publicContactSchema>;
+export type UpdateContactSettingsRequest = z.infer<typeof updateContactSettingsRequestSchema>;
 export type AuditQuery = z.infer<typeof auditQuerySchema>;
 export type CommerceFunnelEvent = z.infer<typeof commerceFunnelEventSchema>;
 export type CommerceFunnelPageRoute = z.infer<typeof commerceFunnelPageRouteSchema>;
