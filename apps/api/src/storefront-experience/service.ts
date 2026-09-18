@@ -3,6 +3,7 @@ import {
   experienceResourceBindingSchema,
   experienceDraftSchema,
   experienceSnapshotSchema,
+  publicContactSchema,
   storefrontLinkSchema,
   storefrontResourceReferenceSchema,
   themePackageSchema,
@@ -16,6 +17,7 @@ import {
   type ThemePackageMigrationBoundary,
   type ThemePackageRegistration,
   type UpdateStorefrontExperienceDraftRequest,
+  type PublicContact,
 } from "@shoppp/contracts";
 import {
   findUpgradeConflicts,
@@ -41,6 +43,7 @@ import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
 import { redactForLog } from "../security/redaction";
+import { getContactSettings } from "../settings/contact-profile";
 import {
   assertFashionStagingOperatorRunApprovable,
   moveFashionStagingOperatorRunToSuccessor,
@@ -1089,6 +1092,16 @@ async function snapshotId(deduplicationKey: string, kind: "approved" | "preview"
   return `snapshot-${kind}-${(await sha256Hex(deduplicationKey)).slice(0, 32)}`;
 }
 
+async function frozenContact(context: Context<ApiEnvironment>) {
+  const settings = await getContactSettings(context);
+  const publicContact: PublicContact = publicContactSchema.parse(settings.publicContact);
+  const version = await sha256Hex(canonicalJson({
+    profileVersion: settings.profileVersion,
+    publicContact,
+  }));
+  return { publicContact, version };
+}
+
 async function existingSnapshot(
   db: D1Database,
   deduplicationKey: string,
@@ -1103,6 +1116,7 @@ async function insertSnapshot(
   context: Context<ApiEnvironment>,
   input: {
     deduplicationKey: string;
+    contact: Awaited<ReturnType<typeof frozenContact>>;
     kind: "approved" | "preview";
     migrationId?: string;
     package: ThemePackage;
@@ -1140,6 +1154,7 @@ async function insertSnapshot(
     approvedAt: input.kind === "approved" ? now : null,
     approvedBy: input.kind === "approved" ? principal.id : null,
     bindings: parseBindings(input.row.bindings_json),
+    contact: input.contact,
     configurationSchemaVersion: input.package.manifest.configurationSchemaVersion,
     experienceId: input.row.experience_id,
     id,
@@ -1291,8 +1306,10 @@ export async function createStorefrontExperiencePreviewSnapshot(
   options?: StorefrontExperienceServiceOptions,
 ) {
   const resolution = await validResolution(context, id, expectedVersion, catalogReleaseId, options);
+  const contact = await frozenContact(context);
   return insertSnapshot(context, {
-    deduplicationKey: `${id}:${expectedVersion}:${catalogReleaseId ?? "fixture-preview"}:preview`,
+    contact,
+    deduplicationKey: `${id}:${expectedVersion}:${catalogReleaseId ?? "fixture-preview"}:preview:contact:${contact.version}`,
     kind: "preview",
     package: resolution.package,
     reason,
@@ -1324,8 +1341,20 @@ export async function approveStorefrontExperienceDraft(
     );
   }
   const resolution = await validResolution(context, id, expectedVersion, catalogReleaseId, options);
-  const deduplicationKey = `${id}:${expectedVersion}:${catalogReleaseId ?? "fixture-preview"}:approved:${resolution.package.manifest.themeVersion}:${resolution.package.manifest.configurationSchemaVersion}`;
-  const expectedSnapshotId = await snapshotId(deduplicationKey, "approved");
+  const contact = operatorRun?.status === "approved" ? null : await frozenContact(context);
+  const deduplicationKey = contact
+    ? `${id}:${expectedVersion}:${catalogReleaseId ?? "fixture-preview"}:approved:${resolution.package.manifest.themeVersion}:${resolution.package.manifest.configurationSchemaVersion}:contact:${contact.version}`
+    : null;
+  const expectedSnapshotId = operatorRun?.status === "approved"
+    ? operatorRun.successorSnapshotId
+    : await snapshotId(deduplicationKey!, "approved");
+  if (!expectedSnapshotId) {
+    throw new ApiError(
+      409,
+      "fashion_u8_operator_approval_conflict",
+      "The approved Fashion U8 operator run has no successor snapshot.",
+    );
+  }
   const expectedOperatorAuditId = operatorRun
     ? `audit-fashion-u8-${(await sha256Hex(operatorRun.runId)).slice(0, 32)}`
     : null;
@@ -1374,7 +1403,8 @@ export async function approveStorefrontExperienceDraft(
     return existing;
   }
   const snapshot = await insertSnapshot(context, {
-    deduplicationKey,
+    contact: contact!,
+    deduplicationKey: deduplicationKey!,
     kind: "approved",
     package: resolution.package,
     reason,

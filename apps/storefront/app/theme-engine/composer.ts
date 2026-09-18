@@ -611,6 +611,7 @@ function shellViewModel(
   adapter: ThemeCompositionAdapter | undefined,
   release: CanonicalCatalogRelease,
   settings: Readonly<Record<string, unknown>>,
+  contact?: ExperienceSnapshot["contact"],
 ): PresentationShellViewModel {
   const mediaOrigin = catalogMediaOrigin(release) ?? null;
   return presentationShellViewModelSchema.parse({
@@ -620,17 +621,25 @@ function shellViewModel(
         : optionalTextSetting(settings, "announcement-text"),
     announcementLink: editorLink(adapter, release, settings["announcement-link"]),
     footer: {
-      contactCopy: optionalTextSetting(settings, "footer-contact-copy"),
+      ...(contact
+        ? { contactVersion: contact.version, publicContact: contact.publicContact }
+        : { contactCopy: optionalTextSetting(settings, "footer-contact-copy") }),
       legalLink: editorLink(adapter, release, settings["footer-legal-link"]),
       logo: editorMedia(release, settings["footer-logo"], mediaOrigin),
-      socialLink: editorLink(adapter, release, settings["footer-social-link"]),
+      ...(!contact
+        ? { socialLink: editorLink(adapter, release, settings["footer-social-link"]) }
+        : {}),
     },
     header: {
-      contactCopy: optionalTextSetting(settings, "header-contact-copy"),
+      ...(contact
+        ? { contactVersion: contact.version, publicContact: contact.publicContact }
+        : { contactCopy: optionalTextSetting(settings, "header-contact-copy") }),
       highlightLink: referenceLink(adapter, release, settings["header-highlight-page"]),
       legalLink: editorLink(adapter, release, settings["header-legal-link"]),
       logo: editorMedia(release, settings["header-logo"], mediaOrigin),
-      socialLink: editorLink(adapter, release, settings["header-social-link"]),
+      ...(!contact
+        ? { socialLink: editorLink(adapter, release, settings["header-social-link"]) }
+        : {}),
     },
   });
 }
@@ -644,6 +653,7 @@ function homeViewModel(
   locale: string,
   settings: Readonly<Record<string, unknown>>,
   featuredProduct?: CatalogProduct,
+  contact?: ExperienceSnapshot["contact"],
 ): Extract<PresentationViewModel, { kind: "home" }> {
   const products: PresentationProductCard[] = [];
   for (const productId of collection.productIds) {
@@ -655,7 +665,7 @@ function homeViewModel(
   const secondaryLink = editorLink(adapter, release, settings["hero-secondary-link"]);
   const mediaOrigin = catalogMediaOrigin(release) ?? null;
   const media = editorMedia(release, settings["hero-image"], mediaOrigin);
-  const shell = shellViewModel(adapter, release, settings);
+  const shell = shellViewModel(adapter, release, settings, contact);
   const [featuredProductCard] = featuredProduct
     ? productCardViewModel(featuredProduct, defaultCurrency, locale, "home")
     : [];
@@ -767,7 +777,7 @@ export function composeExperienceShell(input: {
     ({ type, visible }) => visible && type === shellSourceType,
   );
   return shellSource
-    ? shellViewModel(input.adapter, release.data, shellSource.settings)
+    ? shellViewModel(input.adapter, release.data, shellSource.settings, experience.data.contact)
     : undefined;
 }
 
@@ -829,8 +839,30 @@ function contentViewModel(
   settings: Readonly<Record<string, unknown>>,
   release: CanonicalCatalogRelease,
   locale: string,
+  contact?: ExperienceSnapshot["contact"],
 ): PresentationViewModel {
   const key = contentSettingKey(path);
+  if (key === "contact" && contact) {
+    const publicContact = contact.publicContact;
+    const hasPublicDetails = Boolean(
+      publicContact.supportEmail || publicContact.privacyEmail || publicContact.publicPhone ||
+      publicContact.locations.length || publicContact.socials.length,
+    );
+    return presentationViewModelSchema.parse({
+      contactVersion: contact.version,
+      heading: hasPublicDetails
+        ? requiredTextSetting(settings, "contact.heading", "Contact")
+        : unavailableContent.contact.heading,
+      kind: "state",
+      media: editorMedia(release, settings["contact.image"]),
+      message: hasPublicDetails
+        ? requiredTextSetting(settings, "contact.message", "Get in touch with us.")
+        : unavailableContent.contact.message,
+      presentationStyle: settings["content-style"] === "editorial" ? "editorial" : "standard",
+      publicContact,
+      state: hasPublicDetails ? "populated" : "unavailable",
+    });
+  }
   if (key === "wishlist") {
     const products: PresentationProductCard[] = [];
     for (const product of release.products) {
@@ -913,6 +945,7 @@ function contentViewModel(
 
 function composeDeclaredSections(input: {
   adapter?: ThemeCompositionAdapter;
+  contact?: ExperienceSnapshot["contact"];
   bindingsByInstance: ReadonlyMap<string, CatalogResourceBinding[]>;
   collectionsById: ReadonlyMap<string, CatalogCollection>;
   descriptor: ThemeCompositionDescriptor;
@@ -1072,6 +1105,7 @@ function composeDeclaredSections(input: {
         input.locale,
         section.settings,
         featuredProduct,
+        input.contact,
       );
     } else if (contract.live.resolver === "home-sections" && firstCollection && input.adapter) {
       const featuredProduct = firstProduct
@@ -1086,6 +1120,7 @@ function composeDeclaredSections(input: {
         input.locale,
         bindingSource?.settings ?? section.settings,
         featuredProduct,
+        input.contact,
       );
       viewModel = {
         data: {
@@ -1118,6 +1153,7 @@ function composeDeclaredSections(input: {
         section.settings,
         input.release,
         input.locale,
+        input.contact,
       );
     }
 
@@ -1156,7 +1192,7 @@ function composeDeclaredSections(input: {
   return {
     diagnostics,
     ...(shellSection
-      ? { shell: shellViewModel(input.adapter, input.release, shellSection.settings) }
+      ? { shell: shellViewModel(input.adapter, input.release, shellSection.settings, input.contact) }
       : {}),
     viewModels,
   };
@@ -1230,6 +1266,7 @@ export function composeExperienceRoute(
     const descriptor = themeCompositionDescriptorSchema.parse(input.sectionComposition);
     const declared = composeDeclaredSections({
       adapter: input.adapter,
+      contact: experience.contact,
       bindingsByInstance: catalogBindingsByInstance,
       collectionsById,
       descriptor,
@@ -1270,6 +1307,7 @@ export function composeExperienceRoute(
         instance.settings,
         release,
         input.locale,
+        experience.contact,
       );
       continue;
     }
@@ -1408,6 +1446,7 @@ export function composeExperienceRoute(
             input.locale,
             instance.settings,
             featuredProduct,
+            experience.contact,
           )
         : collectionViewModel(
             collection,

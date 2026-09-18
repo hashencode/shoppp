@@ -2,6 +2,7 @@ import * as z from "zod";
 
 import { catalogPriceSchema, stableCatalogReferenceSchema } from "./catalog";
 import { publicIdSchema } from "./common";
+import { publicContactSchema } from "./platform";
 import {
   credentialFreeHttpsUrlSchema,
   linkTargetSchema,
@@ -790,6 +791,13 @@ export const experienceDraftSchema = z
 const experienceSnapshotBaseSchema = z
   .object({
     bindings: z.array(experienceResourceBindingSchema).max(100),
+    contact: z
+      .object({
+        publicContact: publicContactSchema,
+        version: z.string().regex(/^[a-f0-9]{64}$/),
+      })
+      .strict()
+      .optional(),
     configurationSchemaVersion: z.int().positive(),
     experienceId: storefrontIdentifierSchema,
     id: storefrontIdentifierSchema,

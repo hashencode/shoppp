@@ -6,6 +6,7 @@ import {
   presentationProductSchema,
   productOptionDefinitionsSchema,
   publicIdSchema,
+  publicContactSchema,
   storefrontLinkTargetBehaviorSchema,
   storefrontIdentifierSchema,
   themeAssetReferenceSchema,
@@ -54,9 +55,11 @@ const presentationLinkSchema = z
   .strict();
 const shellContactSchema = z
   .object({
+    contactVersion: z.string().regex(/^[a-f0-9]{64}$/).optional(),
     contactCopy: copySchema.optional(),
     legalLink: presentationLinkSchema.optional(),
     logo: editorMediaSchema.optional(),
+    publicContact: publicContactSchema.optional(),
     socialLink: presentationLinkSchema.optional(),
   })
   .strict();
@@ -465,11 +468,13 @@ const stateViewModelSchema = z
   .object({
     ...stateShape,
     action: previewActionSchema.optional(),
+    contactVersion: z.string().regex(/^[a-f0-9]{64}$/).optional(),
     heading: headingSchema,
     kind: z.literal("state"),
     media: editorMediaSchema.optional(),
     message: copySchema,
     presentationStyle: z.enum(["standard", "editorial"]).optional(),
+    publicContact: publicContactSchema.optional(),
     relatedAction: previewActionSchema.optional(),
   })
   .strict();

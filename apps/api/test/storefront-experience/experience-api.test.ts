@@ -317,6 +317,145 @@ describe("storefront experience API", () => {
     await seedOperator();
   });
 
+  test("freezes public contacts in previews and gives changed contacts a new snapshot identity", async () => {
+    const app = createApp({
+      experienceBuildTrigger: async () => ({ correlationId: crypto.randomUUID() }),
+      testIdentityVerifier: async () => ({
+        email: "theme-admin@example.test",
+        principalKind: "human",
+        subject: "theme-admin",
+      }),
+    });
+    const readContact = async () => {
+      const response = await app.fetch(request("/admin/settings/contact"), env);
+      expect(response.status).toBe(200);
+      return (await response.json()) as { data: {
+        launchVersion: string | null;
+        privacyContactEmail: string;
+        profile: Record<string, unknown>;
+        profileVersion: string | null;
+      } };
+    };
+    const saveContact = async (email: string, key: string) => {
+      const current = (await readContact()).data;
+      const response = await app.fetch(writeRequest("/admin/settings/contact", {
+        expectedLaunchVersion: current.launchVersion,
+        expectedProfileVersion: current.profileVersion,
+        privacyContactEmail: current.privacyContactEmail,
+        profile: {
+          ...current.profile,
+          publishSupportEmail: true,
+          socials: [{
+            id: "09b4b33b-4522-45ab-8541-3f25b7fffc1b",
+            label: "Instagram",
+            platform: "Instagram",
+            url: "https://instagram.com/shoppp",
+            visible: true,
+          }],
+        },
+        reason: "Confirm public contact for snapshot",
+        supportEmail: email,
+      }, key, "PUT"), env);
+      expect(response.status).toBe(200);
+    };
+    await saveContact("first@example.test", "contact-snapshot-first-save");
+    const created = await createDraft(app, "contact-snapshot-create");
+    const draftId = created.body.data.id;
+    expect((await validateDraft(app, draftId, 1, "contact-snapshot-validate")).status).toBe(200);
+    const preview = async (key: string) => {
+      const response = await app.fetch(writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}/preview`,
+        { expectedVersion: 1, reason: "Preview frozen public contact" }, key,
+      ), env);
+      expect(response.status).toBe(202);
+      return (await response.json()) as { data: { snapshot: {
+        contentDigest: string;
+        id: string;
+        snapshot: { contact: { publicContact: {
+          supportEmail: string | null;
+          socials: Array<{ label: string }>;
+        }; version: string } };
+      } } };
+    };
+    const first = (await preview("contact-snapshot-preview-first")).data.snapshot;
+    expect(first.snapshot.contact.publicContact).toMatchObject({
+      supportEmail: "first@example.test",
+      socials: [{ label: "Instagram" }],
+    });
+    const approve = async (key: string) => {
+      const response = await app.fetch(writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}/approve`,
+        { confirm: true, expectedVersion: 1, reason: "Approve frozen public contact" }, key,
+      ), env);
+      expect(response.status).toBe(200);
+      return (await response.json()) as { data: {
+        contentDigest: string;
+        id: string;
+        snapshot: { contact: { publicContact: { supportEmail: string | null } } };
+      } };
+    };
+    const firstApproved = (await approve("contact-snapshot-approve-first")).data;
+    await saveContact("second@example.test", "contact-snapshot-second-save");
+    const second = (await preview("contact-snapshot-preview-second")).data.snapshot;
+    expect(second.id).not.toBe(first.id);
+    expect(second.snapshot.contact.version).not.toBe(first.snapshot.contact.version);
+    expect(second.snapshot.contact.publicContact.supportEmail).toBe("second@example.test");
+    const secondApproved = (await approve("contact-snapshot-approve-second")).data;
+    expect(secondApproved.id).not.toBe(firstApproved.id);
+    expect(secondApproved.snapshot.contact.publicContact.supportEmail).toBe("second@example.test");
+    const old = await app.fetch(request(`/admin/storefront-experiences/snapshots/${first.id}`), env);
+    expect(old.status).toBe(200);
+    expect(await old.json()).toMatchObject({ data: {
+      contentDigest: first.contentDigest,
+      snapshot: { contact: { publicContact: { supportEmail: "first@example.test" } } },
+    } });
+    const oldApproved = await app.fetch(request(`/admin/storefront-experiences/snapshots/${firstApproved.id}`), env);
+    expect(await oldApproved.json()).toMatchObject({ data: {
+      contentDigest: firstApproved.contentDigest,
+      snapshot: { contact: { publicContact: { supportEmail: "first@example.test" } } },
+    } });
+  });
+
+  test("blocks a new preview when persisted public contact data is invalid", async () => {
+    const app = createApp({
+      experienceBuildTrigger: async () => ({ correlationId: crypto.randomUUID() }),
+      testIdentityVerifier: async () => ({
+        email: "theme-admin@example.test",
+        principalKind: "human",
+        subject: "theme-admin",
+      }),
+    });
+    const created = await createDraft(app, "invalid-contact-snapshot-create");
+    const draftId = created.body.data.id;
+    expect((await validateDraft(app, draftId, 1, "invalid-contact-snapshot-validate")).status).toBe(200);
+    await env.DB.prepare("DELETE FROM settings WHERE key = 'contact_profile'").run();
+    const empty = await app.fetch(writeRequest(
+      `/admin/storefront-experiences/drafts/${draftId}/preview`,
+      { expectedVersion: 1, reason: "Preview absent contact profile" },
+      "absent-contact-snapshot-preview",
+    ), env);
+    expect(empty.status).toBe(202);
+    expect(await empty.json()).toMatchObject({ data: { snapshot: { snapshot: { contact: {
+      publicContact: { supportEmail: null, privacyEmail: null, locations: [], socials: [] },
+    } } } } });
+    await env.DB.prepare(
+      "INSERT INTO settings (key, value_json, updated_at) VALUES ('contact_profile', ?, ?) ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json, updated_at = excluded.updated_at",
+    ).bind(JSON.stringify({ version: crypto.randomUUID(), profile: {} }), new Date().toISOString()).run();
+    try {
+      const response = await app.fetch(writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}/preview`,
+        { expectedVersion: 1, reason: "Reject invalid contact profile" },
+        "invalid-contact-snapshot-preview",
+      ), env);
+      expect(response.status).toBe(500);
+      expect(await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM storefront_experience_snapshots WHERE source_draft_id = ?",
+      ).bind(draftId).first<{ count: number }>()).toEqual({ count: 1 });
+    } finally {
+      await env.DB.prepare("DELETE FROM settings WHERE key = 'contact_profile'").run();
+    }
+  });
+
   test("lists only the writable Fashion package for authorized operators", async () => {
     const response = await appFor().fetch(request("/admin/storefront-experiences/themes"), env);
     expect(response.status).toBe(200);
