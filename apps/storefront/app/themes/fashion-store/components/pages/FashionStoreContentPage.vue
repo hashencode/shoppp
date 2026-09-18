@@ -6,12 +6,14 @@ import { normalizeThemeRoutePath } from "../../../../theme-engine/routes";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import {
   resolveFashionStoreContentPresentation,
+  resolveFashionStoreLiveContactPresentation,
   type FashionStoreContentRouteKey,
 } from "../../contracts/content-presentation";
 import FashionStoreAccountPage from "./FashionStoreAccountPage.vue";
 import FashionStoreAboutPage from "./FashionStoreAboutPage.vue";
 import FashionStoreArticlePage from "./FashionStoreArticlePage.vue";
 import FashionStoreContactPage from "./FashionStoreContactPage.vue";
+import FashionStoreLiveContactPage from "./FashionStoreLiveContactPage.vue";
 import FashionStoreFaqPage from "./FashionStoreFaqPage.vue";
 import FashionStoreMagazinePage from "./FashionStoreMagazinePage.vue";
 import FashionStoreWishlistPage from "./FashionStoreWishlistPage.vue";
@@ -47,15 +49,21 @@ const routePresentation = computed(() => {
       properties.viewModel,
       resolved.route as FashionStoreContentRouteKey,
     ),
+    liveContact: resolveFashionStoreLiveContactPresentation(properties.viewModel, resolved.route),
     route: resolved.route,
   };
 });
 </script>
 
 <template>
+  <FashionStoreLiveContactPage
+    v-if="routePresentation.liveContact"
+    :presentation="routePresentation.liveContact"
+    :resolve-asset="resolveAsset"
+  />
   <component
     :is="routePresentation.component"
-    v-if="routePresentation.content.detail"
+    v-else-if="routePresentation.content.detail"
     :data="routePresentation.content.detail"
     :resolve-asset="resolveAsset"
   />

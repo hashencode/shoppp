@@ -35,6 +35,9 @@ const searchOpen = ref(false);
 const searchOverlay = ref<SearchOverlayHandle>();
 const highDensity = ref(false);
 const liveMode = inject(liveCommerceModeKey, false);
+const publicContact = computed(() =>
+  liveMode ? properties.configuration?.publicContact : undefined,
+);
 const accountVisible = computed(() => !liveMode || fashionStoreLiveCapabilities.account);
 const searchVisible = computed(() => !liveMode || fashionStoreLiveCapabilities.catalogSearch);
 const wishlistVisible = computed(() => !liveMode || fashionStoreLiveCapabilities.wishlist);
@@ -159,7 +162,19 @@ defineExpose({ closeTransient });
       <div class="container-fluid">
         <div class="col-auto col-xxl-3 col-lg-2 menu-logo">
           <div class="header-icon d-none d-lg-flex">
-            <div v-if="configuration?.contactCopy" class="widget-text icon alt-font">
+            <div v-if="publicContact?.supportEmail" class="widget-text icon alt-font">
+              <a :href="`mailto:${publicContact.supportEmail}`">{{ publicContact.supportEmail }}</a>
+            </div>
+            <div v-else-if="publicContact?.publicPhone" class="widget-text icon alt-font">
+              <a :href="`tel:${publicContact.publicPhone}`">{{ publicContact.publicPhone }}</a>
+            </div>
+            <div v-else-if="publicContact?.privacyEmail" class="widget-text icon alt-font">
+              <a :href="`mailto:${publicContact.privacyEmail}`">{{ publicContact.privacyEmail }}</a>
+            </div>
+            <div
+              v-else-if="!publicContact && configuration?.contactCopy"
+              class="widget-text icon alt-font"
+            >
               <span>{{ configuration.contactCopy }}</span>
             </div>
             <div v-if="configuration?.highlightLink" class="widget-text icon alt-font">
@@ -172,7 +187,23 @@ defineExpose({ closeTransient });
                 configuration.legalLink.label
               }}</a>
             </div>
-            <div v-if="configuration?.socialLink" class="widget-text icon alt-font">
+            <div
+              v-for="social in publicContact?.socials ?? []"
+              :key="social.id"
+              class="widget-text icon alt-font"
+            >
+              <a
+                :href="social.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                :aria-label="`${social.label} (opens in a new tab)`"
+                >{{ social.label }}</a
+              >
+            </div>
+            <div
+              v-if="!publicContact && configuration?.socialLink"
+              class="widget-text icon alt-font"
+            >
               <a
                 :href="configuration.socialLink.href"
                 :target="

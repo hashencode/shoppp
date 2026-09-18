@@ -107,6 +107,15 @@ export interface FashionStoreContentPresentation<K extends FashionStoreContentRo
   state: FashionStoreContentStatePresentation;
 }
 
+export function resolveFashionStoreLiveContactPresentation(
+  viewModel: PresentationViewModel,
+  route: FashionStoreContentRouteKey,
+): Extract<PresentationViewModel, { kind: "state" }> | undefined {
+  return route === "contact" && viewModel.kind === "state" && viewModel.publicContact
+    ? viewModel
+    : undefined;
+}
+
 const routeHeading: Record<FashionStoreContentRouteKey, string> = {
   account: "My account",
   about: "About",

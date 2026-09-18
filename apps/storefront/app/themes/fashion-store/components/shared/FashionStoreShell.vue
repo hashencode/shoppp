@@ -3,6 +3,7 @@ import FashionStoreIcon from "./FashionStoreIcon.vue";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import { storefrontPresentationShellKey } from "../../../../theme-engine/presentation-context";
 import type { PresentationShellViewModel } from "../../../../theme-engine/view-models";
+import { liveCommerceModeKey } from "../../../../theme-engine/runtime-commerce";
 import { useFashionStoreVisualRuntime } from "../../composables/useFashionStoreVisualRuntime";
 import { fashionStoreAssetId } from "../../resources";
 import { fashionStoreDestinations } from "../../destinations";
@@ -37,6 +38,7 @@ const properties = withDefaults(
   },
 );
 const experienceShell = inject(storefrontPresentationShellKey, undefined);
+const liveMode = inject(liveCommerceModeKey, false);
 const announcement = computed(
   () => properties.announcement ?? experienceShell?.value?.announcement,
 );
@@ -45,6 +47,9 @@ const announcementLink = computed(
 );
 const footer = computed(() => properties.footer ?? experienceShell?.value?.footer);
 const header = computed(() => properties.header ?? experienceShell?.value?.header);
+const stickySocials = computed(
+  () => footer.value?.publicContact?.socials ?? header.value?.publicContact?.socials ?? [],
+);
 
 const router = useRouter();
 const cookieNoticeStorageKey = "shoppp.fashion-store.cookie-notice-dismissed";
@@ -222,14 +227,24 @@ onMounted(() => {
     </div>
   </div>
   <div
-    v-if="showStickySocials"
+    v-if="showStickySocials && (!liveMode || stickySocials.length > 0)"
     class="sticky-wrap z-index-1 d-none d-xl-inline-block"
     data-animation-delay="100"
     data-shadow-animation="true"
   >
     <div class="elements-social social-icon-style-10">
       <ul class="fs-16">
-        <li class="me-30px">
+        <li v-for="social in stickySocials" :key="social.id" class="me-30px">
+          <a
+            :href="social.url"
+            target="_blank"
+            rel="noopener noreferrer"
+            :aria-label="`${social.label} (opens in a new tab)`"
+          >
+            <span class="alt-font">{{ social.label }}</span>
+          </a>
+        </li>
+        <li v-if="!liveMode" class="me-30px">
           <a
             class="facebook"
             :href="fashionStoreDestinations.facebook"
@@ -243,7 +258,7 @@ onMounted(() => {
         {{
           sourceInlineGap
         }}
-        <li class="me-30px">
+        <li v-if="!liveMode" class="me-30px">
           <a
             class="dribbble"
             :href="fashionStoreDestinations.dribbble"
@@ -257,7 +272,7 @@ onMounted(() => {
         {{
           sourceInlineGap
         }}
-        <li class="me-30px">
+        <li v-if="!liveMode" class="me-30px">
           <a
             class="twitter"
             :href="fashionStoreDestinations.twitter"
@@ -271,7 +286,7 @@ onMounted(() => {
         {{
           sourceInlineGap
         }}
-        <li>
+        <li v-if="!liveMode">
           <a
             class="instagram"
             :href="fashionStoreDestinations.instagram"
