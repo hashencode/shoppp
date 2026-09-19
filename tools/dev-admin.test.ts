@@ -76,6 +76,20 @@ describe("password-authenticated admin development preflight", () => {
     ).resolves.toBeUndefined();
   });
 
+  test("ships an example environment that passes the canonical preflight", async () => {
+    const source = await readFile(resolve(import.meta.dir, "../.env.example"), "utf8");
+    const example = Object.fromEntries(
+      source.split(/\r?\n/)
+        .filter((line) => line && !line.startsWith("#"))
+        .map((line) => {
+          const separator = line.indexOf("=");
+          return [line.slice(0, separator), line.slice(separator + 1)];
+        }),
+    );
+    const config = resolveAdminDevelopmentConfig(example);
+    await expect(verifyAdminDevelopmentContract(config)).resolves.toBeUndefined();
+  });
+
   test("rejects the ordinary staging origin even when its D1 is supplied", async () => {
     const legacy = environment();
     legacy.TEST_API_ORIGIN = "https://shoppp-api-staging.hashencode.workers.dev";
