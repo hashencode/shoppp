@@ -299,7 +299,7 @@ describe('DashboardPage', () => {
     server.use(
       http.get('*/admin/reporting/revenue', ({ request }) => {
         const currency = new URL(request.url).searchParams.get('currency')!
-        requests.push(currency)
+        requests.push(request.url)
         return currency === 'EUR'
           ? new HttpResponse(null, { status: 500 })
           : HttpResponse.json({ data: report })
@@ -318,13 +318,20 @@ describe('DashboardPage', () => {
     expect(screen.queryByText('Gross sales ($)')).toBeNull()
     server.use(
       http.get('*/admin/reporting/revenue', ({ request }) => {
-        requests.push(new URL(request.url).searchParams.get('currency')!)
+        requests.push(request.url)
         return HttpResponse.json({ data: { ...report, currency: 'EUR' } })
       })
     )
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
     expect(await screen.findByText('Gross sales (€)')).toBeTruthy()
-    expect(requests).toEqual(['CNY', 'EUR', 'EUR'])
+    expect(requests.map((url) => new URL(url).searchParams.get('currency'))).toEqual([
+      'CNY',
+      'EUR',
+      'EUR',
+    ])
+    expect(Object.fromEntries(new URL(requests[2]!).searchParams)).toEqual(
+      Object.fromEntries(new URL(requests[1]!).searchParams)
+    )
   })
 
   it('lets the latest started identical request win and Reset requests defaults once', async () => {

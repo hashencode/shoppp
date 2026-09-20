@@ -192,6 +192,7 @@ export const DashboardPage = () => {
     const timer = window.setTimeout(() => void load(), 0)
     return () => {
       window.clearTimeout(timer)
+      latestRequest.current += 1
     }
   }, [message, localizeError, committedQuery, requestVersion])
 
@@ -308,16 +309,19 @@ export const DashboardPage = () => {
   )
   const searchGridProps = useMemo(() => buildSearchGridProps(filterFields), [filterFields])
   const submitFilters = (values: DashboardFilterValues) => {
+    latestRequest.current += 1
     setReportSnapshot(null)
     setLoading(true)
     commitFilters(values)
   }
   const resetAndQuery = () => {
+    latestRequest.current += 1
     setReportSnapshot(null)
     setLoading(true)
     resetFilters()
   }
   const retry = () => {
+    latestRequest.current += 1
     setReportSnapshot(null)
     setLoading(true)
     commitFilters(toFilterValues(committedQuery))
