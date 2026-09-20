@@ -236,10 +236,6 @@ export const AuditPage = () => {
 
   return (
     <CustomPageRecipe title={t('Audit trail')}>
-      <p className="text-slate-500">
-        {t('Redacted, permissioned records with stable cursor pagination.')}
-      </p>
-
       <Card variant="borderless" styles={{ body: { paddingRight: 8 } }}>
         <TemplateListFilterForm<AuditFilterValues>
           form={filterForm}
@@ -273,6 +269,9 @@ export const AuditPage = () => {
           />
         }
       >
+        <p className="mb-4 text-slate-500">
+          {t('Redacted, permissioned records with stable cursor pagination.')}
+        </p>
         <TemplateListContent
           showInitialLoading={controller.showInitialLoading}
           showError={controller.showError}

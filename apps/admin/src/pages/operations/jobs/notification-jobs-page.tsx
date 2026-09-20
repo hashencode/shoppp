@@ -150,13 +150,6 @@ export const NotificationJobsPage = () => {
       selectItems: (response) => response?.data ?? [],
       mapError: (error) => new Error(localizeError(error)),
       filterFields,
-      renderBeforeFilter: (
-        <p className="text-slate-500">
-          {t(
-            'Inspect bounded notification and provider attempts, then safely replay exhausted work.'
-          )}
-        </p>
-      ),
       buildColumns: ({ resolveActionColumnWidth }) => [
         { key: 'id', title: t('Job ID'), dataIndex: 'id', width: 230 },
         { key: 'kind', title: t('Kind'), dataIndex: 'kind', width: 160 },

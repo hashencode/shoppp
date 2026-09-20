@@ -159,6 +159,14 @@ describe('NotificationJobsPage', () => {
     expect(screen.getByText('s***@example.test')).toBeTruthy()
     expect(screen.getByText('email_provider_timeout')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Replay' })).toBeNull()
+    expect(
+      screen.queryByText(
+        'Inspect bounded notification and provider attempts, then safely replay exhausted work.'
+      )
+    ).toBeNull()
+    expect(screen.getAllByRole('heading', { level: 4, name: 'Automation recovery' })).toHaveLength(
+      1
+    )
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Page Size' }))
     expect(await screen.findByRole('option', { name: '20 per page' })).toBeTruthy()
     expect(screen.getByRole('option', { name: '50 per page' })).toBeTruthy()

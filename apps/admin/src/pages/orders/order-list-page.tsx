@@ -109,11 +109,6 @@ export const OrderListPage = () => {
       selectItems: (response) => response?.data ?? [],
       mapError: (error) => new Error(localizeError(error)),
       filterFields,
-      renderBeforeFilter: (
-        <p className="text-slate-500">
-          {t('Search immutable order facts and independent operational states.')}
-        </p>
-      ),
       buildColumns: () => [
         {
           key: 'reference',

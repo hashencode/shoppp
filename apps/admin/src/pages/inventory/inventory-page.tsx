@@ -149,11 +149,6 @@ export const InventoryPage = () => {
       selectItems: (response) => response?.data ?? [],
       mapError: (error) => new Error(localizeError(error)),
       filterFields,
-      renderBeforeFilter: (
-        <p className="text-slate-500">
-          {t('On-hand, reserved, available, and append-only adjustments.')}
-        </p>
-      ),
       buildColumns: ({ resolveActionColumnLayout }) => {
         const actionLayout = resolveActionColumnLayout(ACTION_LAYOUT_COMBINATIONS)
         return [

@@ -276,33 +276,37 @@ export const OrderReportPage = () => {
       selectItems: selectReportRows,
       mapError: (error) => new Error(localizeError(error)),
       filterFields,
-      renderBeforeFilter: (
-        <p className="text-slate-500">
-          {t(
-            'Drill down from gross and refund events without mixing currencies, environments, or test checkouts.'
-          )}
-        </p>
+      renderBetweenFilterAndContent: (
+        <>
+          <Alert
+            type="info"
+            showIcon
+            title={t(
+              'Drill down from gross and refund events without mixing currencies, environments, or test checkouts.'
+            )}
+          />
+          {reportExport ? (
+            <Alert
+              type={reportExport.status === 'ready' ? 'success' : 'info'}
+              message={t('Export {id}: {status}', {
+                id: reportExport.id,
+                status: t(reportExport.status),
+              })}
+              description={
+                reportExport.status === 'ready' ? (
+                  <a href={reportExportDownloadUrl(reportExport.id)}>
+                    {t('Download export ({count} rows)', { count: reportExport.rowCount ?? 0 })}
+                  </a>
+                ) : (
+                  t('The export expires at {time}.', {
+                    time: dayjs(reportExport.expiresAt).format('YYYY-MM-DD HH:mm'),
+                  })
+                )
+              }
+            />
+          ) : null}
+        </>
       ),
-      renderBetweenFilterAndContent: reportExport ? (
-        <Alert
-          type={reportExport.status === 'ready' ? 'success' : 'info'}
-          message={t('Export {id}: {status}', {
-            id: reportExport.id,
-            status: t(reportExport.status),
-          })}
-          description={
-            reportExport.status === 'ready' ? (
-              <a href={reportExportDownloadUrl(reportExport.id)}>
-                {t('Download export ({count} rows)', { count: reportExport.rowCount ?? 0 })}
-              </a>
-            ) : (
-              t('The export expires at {time}.', {
-                time: dayjs(reportExport.expiresAt).format('YYYY-MM-DD HH:mm'),
-              })
-            )
-          }
-        />
-      ) : null,
       toolbarExtra: ({ appliedFilters }) =>
         canExport ? (
           <ReportExportAction appliedFilters={appliedFilters} onCreated={setReportExport} />

@@ -612,9 +612,6 @@ export const UsersPage = () => {
 
   return (
     <CustomPageRecipe title={t('Users and invitations')} extra={pageExtra}>
-      <p className="text-slate-500">
-        {t('Manage human accounts, activation, status, and role assignment.')}
-      </p>
       {canWrite && !canReadRoles ? (
         <Alert
           type="info"

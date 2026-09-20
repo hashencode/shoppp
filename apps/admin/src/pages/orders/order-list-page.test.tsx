@@ -116,6 +116,10 @@ describe('OrderListPage', () => {
     )
 
     await screen.findByText('ORD-LIST01')
+    expect(
+      screen.queryByText('Search immutable order facts and independent operational states.')
+    ).toBeNull()
+    expect(screen.getAllByRole('heading', { level: 4, name: 'Orders' })).toHaveLength(1)
     fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
     await act(async () => {
       await new Promise((resolve) => window.setTimeout(resolve, 0))

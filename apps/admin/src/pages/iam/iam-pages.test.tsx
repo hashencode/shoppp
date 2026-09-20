@@ -689,6 +689,24 @@ describe('IAM management pages', () => {
     await waitFor(() => expect(screen.getByText('Administrator')).toBeTruthy())
     expect(screen.queryByRole('button', { name: /New role/i })).toBeNull()
     expect(screen.getByText('Protected')).toBeTruthy()
+    const authorityGuidance = screen.getByText(
+      'Role permissions are authoritative on each protected API request.'
+    )
+    expect(
+      screen.getByLabelText('Search roles').compareDocumentPosition(authorityGuidance) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+  })
+
+  it('keeps one users heading without repeating the page purpose below it', async () => {
+    renderPage(<UsersPage />)
+    await screen.findByText('Alice Admin')
+    expect(
+      screen.queryByText('Manage human accounts, activation, status, and role assignment.')
+    ).toBeNull()
+    expect(
+      screen.getAllByRole('heading', { level: 4, name: 'Users and invitations' })
+    ).toHaveLength(1)
   })
 
   it('commits role search explicitly, resets it, and paginates with the accepted page size', async () => {

@@ -147,6 +147,10 @@ describe('InventoryPage', () => {
     expect(screen.getByText('7')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Adjust' })).toBeNull()
     expect(
+      screen.queryByText('On-hand, reserved, available, and append-only adjustments.')
+    ).toBeNull()
+    expect(screen.getAllByRole('heading', { level: 4, name: 'Inventory' })).toHaveLength(1)
+    expect(
       screen.getByRole('button', { name: 'History' }).closest('[data-list-row-actions-row]')
     ).toBeTruthy()
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Page Size' }))

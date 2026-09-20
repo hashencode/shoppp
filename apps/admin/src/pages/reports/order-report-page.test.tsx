@@ -140,6 +140,14 @@ describe('OrderReportPage', () => {
     expect(screen.getByRole('combobox', { name: 'Report currency' })).toBeTruthy()
     expect(screen.getByRole('combobox', { name: 'Report time zone' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Export CSV' })).toBeNull()
+    const scopeGuidance = screen.getByText(
+      'Drill down from gross and refund events without mixing currencies, environments, or test checkouts.'
+    )
+    expect(
+      screen
+        .getByRole('combobox', { name: 'Report currency' })
+        .compareDocumentPosition(scopeGuidance) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
   })
 
   it('requires a reason and explicit confirmation before creating an audited export', async () => {
