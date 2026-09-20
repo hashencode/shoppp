@@ -111,6 +111,10 @@ describe('StandardListPageRecipe', () => {
     renderWithTheme(<StandardListPageRecipe spec={spec} />)
 
     await screen.findByText('demo')
+    const heading = screen.getByRole('heading', { level: 4, name: '只读列表' })
+    expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(1)
+    expect(heading.classList.contains('!mb-1')).toBe(true)
+    expect(heading.closest('.space-y-4')?.classList.contains('pb-20')).toBe(true)
     expect(() => capturedOpenFormPage?.()).not.toThrow()
     expect(openCalls).toHaveLength(0)
     window.open = originalOpen
@@ -246,6 +250,7 @@ describe('StandardListPageRecipe', () => {
     fireEvent.click(screen.getByRole('button', { name: /查\s*询/ }))
 
     await screen.findByText('replacement failed')
+    expect(screen.getAllByRole('heading', { level: 4, name: '替换查询错误' })).toHaveLength(1)
     expect(screen.queryByText('old-row')).toBeNull()
     expect(requestCalls.at(-1)).toMatchObject({ name: 'broken' })
   })

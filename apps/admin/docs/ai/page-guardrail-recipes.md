@@ -218,7 +218,34 @@
 页面主标题只保留一个来源：
 - 标准一级列表页：由 `StandardListPageRecipe.pageTitle` 承载，并与 route `title` 保持同义。
 - 一级业务 override / 自定义页：由 `CustomPageRecipe` 承载内容区主标题，默认读取 `AppShell` 注入的当前 route title。
-- 二级、表单、详情、子列表页：通过 `PageHeaderWithBack` 承载标题与返回动作。
+- 一级表单页：仍由 `CustomPageRecipe` 承载 route 主标题；表单 recipe、状态 gate 与内容 Card 只负责标题后的业务内容，不得引入详情式返回页头。
+- 二级表单、详情和子列表页：通过 `PageHeaderWithBack` 承载标题与返回动作。
+
+`inMenu: true` 是一级标题审计边界。一级页面的正常、加载、错误、空态和权限态都必须留在所属 recipe 的标题之后：保持一个 level-4 主标题、recipe 的外层间距和右侧动作对齐，不得通过早返回丢失 route 上下文。一级页面不得传 `onBack` 或以 `titleHidden` 绕开该合同；显式业务标题可以保留，但只允许与 route label 语义等价，不要求为了字面一致而改导航文案。
+
+当前一级菜单 inventory（新增、删除或改变 `inMenu` 路由时必须同步更新并通过 route contract 测试）：
+
+| Route key | Route title | Menu shape | Heading owner | Title-adjacent copy disposition |
+| --- | --- | --- | --- | --- |
+| `setup-guide` | Store setup guide | standalone | custom / business override | 无本轮清理项 |
+| `commerce-dashboard` | Commerce dashboard | standalone | custom / business override | 无标题副文案；筛选说明留在筛选/结果边界 |
+| `order-report` | Revenue report | standalone | standard list | 将报表范围说明移到筛选或结果旁 |
+| `catalog-products` | Catalog | standalone | standard list | 无本轮清理项 |
+| `catalog-reviews` | Reviews | standalone | custom / business override | 将审核后发布时间移到 moderation 决策旁 |
+| `storefront-themes` | Storefront themes | standalone | custom / business override | 将 production theme caveat 移到 draft/package 控件旁 |
+| `inventory` | Inventory | standalone | standard list | 删除仅复述用途的摘要 |
+| `orders` | Orders | standalone | standard list | 删除仅复述用途的摘要 |
+| `fulfillment` | Fulfillment | standalone | custom / business override | 删除仅复述用途的摘要 |
+| `notification-recovery` | Automation recovery | standalone | standard list | 删除仅复述用途的摘要 |
+| `contact-settings` | Contact settings | standalone | top-level form via custom recipe | 将 publication guidance 移入 Global Contact Channels；不改 404、环境、请求或保存行为 |
+| `launch-settings` | Commercial settings | standalone | top-level form via custom recipe | 无本轮清理项 |
+| `shipping-settings` | Shipping settings | standalone | top-level form via custom recipe | 删除仅复述用途的摘要 |
+| `audit` | Audit trail | standalone | custom / business override | 将 redaction / permission guidance 移到结果旁 |
+| `privacy` | Privacy requests | standalone | custom / business override | 将 verification / retention guidance 移到操作控件旁 |
+| `iam-users` | Users & invitations | grouped: Access management | custom / business override | 删除仅复述用途的摘要 |
+| `iam-roles` | Roles | grouped: Access management | standard list | 将 authority guidance 移到权限内容旁 |
+
+`remove` 只适用于紧邻标题且仅复述页面用途的通用摘要；`relocate` 适用于会影响操作决策的规则。字段 help、指标定义、错误/空态 description、表格事实和无障碍 description 不属于标题副文案，必须保留在其原有任务边界。IAM 分组项继续保留 `AppShell` 的分组 breadcrumb；详情、编辑器和子表单继续使用 `PageHeaderWithBack`，不进入上述 inventory。
 
 面包屑只允许由 `AppShell` 统一渲染。禁止在页面内容区再散装手写与 route/title 同义的 `Typography.Title`，也不要给首个主 `Card` 设置同义标题造成双主标题。`Card title` 只用于表达内容分区，例如“基本信息”“列表明细”。
 

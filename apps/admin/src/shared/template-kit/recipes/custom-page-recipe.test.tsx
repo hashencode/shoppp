@@ -8,17 +8,29 @@ import { CustomPageRecipe } from './custom-page-recipe'
 void React
 
 describe('CustomPageRecipe', () => {
-  it('renders the current route title from AppShell meta by default', () => {
+  it.each([
+    ['normal', <div key="normal">业务内容</div>],
+    ['loading', <div key="loading">加载中</div>],
+    [
+      'error-like',
+      <div key="error" role="alert">
+        加载失败
+      </div>,
+    ],
+  ])('keeps one level-4 route title in the %s composition', (_state, content) => {
     render(
       <RoutePageMetaProvider value={{ title: '课程分类', breadcrumbItems: [] }}>
-        <CustomPageRecipe>
-          <div>业务内容</div>
-        </CustomPageRecipe>
+        <CustomPageRecipe>{content}</CustomPageRecipe>
       </RoutePageMetaProvider>
     )
 
-    expect(screen.getByRole('heading', { name: '课程分类' })).toBeTruthy()
-    expect(screen.getByText('业务内容')).toBeTruthy()
+    const heading = screen.getByRole('heading', { level: 4, name: '课程分类' })
+
+    expect(heading).toBeTruthy()
+    expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(1)
+    expect(heading.classList.contains('!mb-1')).toBe(true)
+    expect(heading.closest('.space-y-4')?.classList.contains('pb-20')).toBe(true)
+    expect(content.props.children ? screen.getByText(content.props.children) : null).toBeTruthy()
   })
 
   it('lets explicit title override route meta title', () => {
@@ -30,7 +42,8 @@ describe('CustomPageRecipe', () => {
       </RoutePageMetaProvider>
     )
 
-    expect(screen.getByRole('heading', { name: '页面标题' })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 4, name: '页面标题' })).toBeTruthy()
+    expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(1)
     expect(screen.queryByRole('heading', { name: '路由标题' })).toBeNull()
   })
 
@@ -50,9 +63,11 @@ describe('CustomPageRecipe', () => {
 
     rerender(
       <RoutePageMetaProvider value={{ title: '编辑课程', breadcrumbItems: [] }}>
-        <CustomPageRecipe onBack={() => {
-          backCount += 1
-        }}>
+        <CustomPageRecipe
+          onBack={() => {
+            backCount += 1
+          }}
+        >
           <div>表单内容</div>
         </CustomPageRecipe>
       </RoutePageMetaProvider>

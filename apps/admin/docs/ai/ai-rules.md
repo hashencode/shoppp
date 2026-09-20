@@ -53,7 +53,9 @@
 - 二级及更深层级页面（非一级列表落地页）必须使用统一页头组件 `PageHeaderWithBack`（定义于 `src/shared/components/form-page-header.tsx`），包含标题与返回 icon，禁止页面内重复手写返回头部。
 - 当页面已使用 `PageHeaderWithBack` 承载主标题时，页面主容器 `Card` 不得重复设置同义 `title`；基础表单页与分步表单页必须去掉主 `Card title`。
 - 标准一级列表页主标题由 `StandardListPageRecipe.pageTitle` 承载，并应与 route `title` 保持同义。
-- 一级业务 override / 自定义页必须使用 `CustomPageRecipe` 承载内容区主标题；默认标题来自 `AppShell` 暴露的当前 route title，可通过 `title` 显式覆盖，禁止页面内散装手写同义 `Typography.Title`。
+- 一级业务 override、自定义页和一级表单页必须使用 `CustomPageRecipe` 承载内容区主标题；默认标题来自 `AppShell` 暴露的当前 route title，可通过 `title` 保留语义等价的业务标题，禁止页面内散装手写同义 `Typography.Title`。
+- 所有 `inMenu: true` 路由（包括分组 IAM 入口）的 normal/loading/error/empty/permission 状态都必须保留一个 recipe-owned level-4 主标题及统一外层间距；不得用早返回、`titleHidden` 或详情式 `onBack` 丢失一级 route 上下文。完整 heading-owner inventory 见 `page-guardrail-recipes.md` §5.5。
+- 标题下方仅复述页面用途的通用摘要必须删除；影响决策的 guidance 必须只保留一次并移到对应筛选、结果、权限、状态或操作控件旁。字段 help、指标定义、错误/空态 description、表格事实和无障碍 description 不属于标题副文案，不得一并删除。
 - 面包屑只由 `AppShell` 渲染，独立一级入口和不足两级的路径不显示；完整 contract 见 `page-guardrail-recipes.md` §5.5。页面内容区不得重复渲染面包屑；`Card title` 只用于表达内容分区。
 - 自定义表单内容容器必须复用 `FORM_CONTENT_ALIGN_CLASS_NAME` 或 `FORM_CARD_BODY_WIDTH_CLASS_NAME`，避免覆盖用户在 `AppShell` 中选择的表单左/中/右对齐偏好。
 - 旧页迁移或业务接入中，启用/禁用、状态切换、审核、绑定、过滤等非表单写动作必须冻结请求合同：`endpoint / method / payload 来源 / 完整对象更新还是局部 patch / 状态值映射 / null 与 undefined 处理 / 成功判定`。
