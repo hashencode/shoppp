@@ -4,12 +4,10 @@ import {
   Button,
   Card,
   Col,
-  DatePicker,
   Empty,
+  Form,
   Row,
-  Select,
   Skeleton,
-  Space,
   Statistic,
   Table,
   App,
@@ -17,12 +15,20 @@ import {
   theme,
 } from 'antd'
 import dayjs from 'dayjs'
-import React, { useEffect, useId, useMemo, useState } from 'react'
+import type { Dayjs } from 'dayjs'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLocalizedApiError } from '../../shared/i18n/api-error'
 import { fetchRevenueReport } from '../../services/reporting/api'
 import { useI18n } from '../../shared/contexts/i18n-context'
+import { useTheme } from '../../shared/contexts/theme-context'
 import { formatMinorCurrency } from '../../shared/i18n/format-currency'
+import {
+  buildSearchGridProps,
+  TemplateListFilterForm,
+  type TemplateListFilterField,
+  useTemplateListFilters,
+} from '../../shared/template-kit/list'
 import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
 
 void React
@@ -48,6 +54,30 @@ const initialQuery = (): ReportingQuery => ({
   endDate: dayjs().format('YYYY-MM-DD'),
   startDate: dayjs().subtract(29, 'day').format('YYYY-MM-DD'),
   timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+})
+
+type DashboardFilterValues = {
+  currency: string
+  timeZone: string
+  dateRange: [Dayjs, Dayjs]
+}
+
+type ReportSnapshot = {
+  data: RevenueReport
+  query: ReportingQuery
+}
+
+const toFilterValues = (query: ReportingQuery): DashboardFilterValues => ({
+  currency: query.currency,
+  timeZone: query.timeZone,
+  dateRange: [dayjs(query.startDate), dayjs(query.endDate)],
+})
+
+const toReportingQuery = (values: DashboardFilterValues): ReportingQuery => ({
+  currency: values.currency,
+  timeZone: values.timeZone,
+  startDate: values.dateRange[0].format('YYYY-MM-DD'),
+  endDate: values.dateRange[1].format('YYYY-MM-DD'),
 })
 
 type MetricCardProps = {
@@ -118,41 +148,55 @@ const MetricCard = ({
 }
 
 export const DashboardPage = () => {
-  const dateRangeId = useId()
   const { message } = App.useApp()
   const navigate = useNavigate()
   const { locale, t } = useI18n()
+  const { searchCompactLayout } = useTheme()
   const localizeError = useLocalizedApiError()
   const numberFormatter = useMemo(() => new Intl.NumberFormat(locale), [locale])
-  const [query, setQuery] = useState<ReportingQuery>(initialQuery)
+  const [filterForm] = Form.useForm<DashboardFilterValues>()
+  const [defaultQuery] = useState<ReportingQuery>(initialQuery)
+  const [initialFilterValues] = useState<DashboardFilterValues>(() => toFilterValues(defaultQuery))
+  const {
+    filters: committedQuery,
+    requestVersion,
+    onSubmit: commitFilters,
+    onReset: resetFilters,
+  } = useTemplateListFilters<DashboardFilterValues, ReportingQuery>({
+    form: filterForm,
+    initialFilters: defaultQuery,
+    toFilters: toReportingQuery,
+    autoApplyOnValuesChange: false,
+  })
   const [retryAttempt, setRetryAttempt] = useState(0)
-  const [report, setReport] = useState<RevenueReport | null>(null)
+  const [reportSnapshot, setReportSnapshot] = useState<ReportSnapshot | null>(null)
   const [loading, setLoading] = useState(true)
+  const latestRequest = useRef(0)
 
   useEffect(() => {
-    let active = true
+    const requestId = latestRequest.current + 1
+    latestRequest.current = requestId
+    const querySnapshot = { ...committedQuery }
     const load = async () => {
-      setReport(null)
-      if (!query.startDate || !query.endDate) {
-        setLoading(false)
-        return
-      }
       setLoading(true)
       try {
-        const result = await fetchRevenueReport(query)
-        if (active) setReport(result)
+        const result = await fetchRevenueReport(querySnapshot)
+        if (latestRequest.current === requestId) {
+          setReportSnapshot({ data: result, query: querySnapshot })
+        }
       } catch (error) {
-        if (active) void message.error(localizeError(error))
+        if (latestRequest.current === requestId) void message.error(localizeError(error))
       } finally {
-        if (active) setLoading(false)
+        if (latestRequest.current === requestId) setLoading(false)
       }
     }
     const timer = window.setTimeout(() => void load(), 0)
     return () => {
-      active = false
       window.clearTimeout(timer)
     }
-  }, [message, localizeError, query, retryAttempt])
+  }, [message, localizeError, committedQuery, requestVersion, retryAttempt])
+
+  const report = reportSnapshot?.data ?? null
 
   const comparisonWindow = report
     ? `${report.comparison.startDate}–${report.comparison.endDate}`
@@ -208,69 +252,95 @@ export const DashboardPage = () => {
     ],
     [t]
   )
-  const hasDateRange = Boolean(query.startDate && query.endDate)
-  const updateQuery = (patch: Partial<ReportingQuery>) => {
-    setReport(null)
+  const filterFields = useMemo<TemplateListFilterField<DashboardFilterValues>[]>(
+    () => [
+      {
+        type: 'select',
+        name: 'currency',
+        label: t('Currency'),
+        options: CURRENCY_OPTIONS,
+        formItemProps: { rules: [{ required: true }] },
+        selectProps: {
+          'aria-label': t('Currency'),
+          allowClear: false,
+          showSearch: true,
+          optionFilterProp: 'label',
+        },
+      },
+      {
+        type: 'select',
+        name: 'timeZone',
+        label: t('Time zone'),
+        options: [...new Set([defaultQuery.timeZone, ...TIME_ZONES])].map((value) => ({
+          label: value,
+          value,
+        })),
+        formItemProps: { rules: [{ required: true }] },
+        selectProps: {
+          'aria-label': t('Time zone'),
+          allowClear: false,
+          showSearch: true,
+          optionFilterProp: 'label',
+        },
+      },
+      {
+        type: 'date-range',
+        name: 'dateRange',
+        label: t('Date range'),
+        formItemProps: {
+          rules: [
+            {
+              validator: async (_, value: DashboardFilterValues['dateRange'] | null) => {
+                if (!value?.[0] || !value[1]) {
+                  throw new Error(t('Select a start and end date.'))
+                }
+              },
+            },
+          ],
+        },
+        datePickerProps: {
+          'aria-label': t('Date range'),
+          format: 'YYYY-MM-DD',
+          placeholder: [t('Start date'), t('End date')],
+        },
+      },
+    ],
+    [defaultQuery.timeZone, t]
+  )
+  const searchGridProps = useMemo(() => buildSearchGridProps(filterFields), [filterFields])
+  const submitFilters = (values: DashboardFilterValues) => {
+    setReportSnapshot(null)
     setLoading(true)
-    setQuery((current) => ({ ...current, ...patch }))
+    commitFilters(values)
+  }
+  const resetAndQuery = () => {
+    setReportSnapshot(null)
+    setLoading(true)
+    resetFilters()
+  }
+  const retry = () => {
+    setReportSnapshot(null)
+    setLoading(true)
+    setRetryAttempt((attempt) => attempt + 1)
   }
 
   return (
     <CustomPageRecipe title={t('Commerce dashboard')}>
-      <Card>
-        <Space wrap align="end" className="w-full [&>.ant-space-item]:max-w-full">
-          <label>
-            <span className="mb-1 block text-xs text-slate-500">{t('Currency')}</span>
-            <Select
-              aria-label={t('Currency')}
-              className="w-28"
-              showSearch
-              optionFilterProp="label"
-              value={query.currency}
-              options={CURRENCY_OPTIONS}
-              onChange={(currency) => updateQuery({ currency })}
-            />
-          </label>
-          <label>
-            <span className="mb-1 block text-xs text-slate-500">{t('Time zone')}</span>
-            <Select
-              aria-label={t('Time zone')}
-              className="w-52"
-              showSearch
-              value={query.timeZone}
-              options={[...new Set([query.timeZone, ...TIME_ZONES])].map((value) => ({
-                label: value,
-                value,
-              }))}
-              onChange={(timeZone) => updateQuery({ timeZone })}
-            />
-          </label>
-          <div>
-            <span className="mb-1 block text-xs text-slate-500">{t('Date range')}</span>
-            <label className="sr-only" htmlFor={`${dateRangeId}-start`}>
-              {t('Start date')}
-            </label>
-            <label className="sr-only" htmlFor={`${dateRangeId}-end`}>
-              {t('End date')}
-            </label>
-            <DatePicker.RangePicker
-              id={{ start: `${dateRangeId}-start`, end: `${dateRangeId}-end` }}
-              className="w-72 max-w-full"
-              format="YYYY-MM-DD"
-              placeholder={[t('Start date'), t('End date')]}
-              value={[
-                query.startDate ? dayjs(query.startDate) : null,
-                query.endDate ? dayjs(query.endDate) : null,
-              ]}
-              onChange={(dates) =>
-                updateQuery({
-                  startDate: dates?.[0]?.format('YYYY-MM-DD') ?? '',
-                  endDate: dates?.[1]?.format('YYYY-MM-DD') ?? '',
-                })
-              }
-            />
-          </div>
-        </Space>
+      <Card variant="borderless" styles={{ body: { paddingRight: 8 } }}>
+        <TemplateListFilterForm<DashboardFilterValues>
+          form={filterForm}
+          formProps={{ initialValues: initialFilterValues }}
+          fields={filterFields}
+          fieldColProps={searchGridProps.formItem}
+          labelCol={searchGridProps.labelItem}
+          wrapperCol={searchGridProps.inputItem}
+          actionsColProps={searchGridProps.actions}
+          compactLayout={searchCompactLayout}
+          submitText={t('Query')}
+          submitLoading={loading && !report}
+          onSubmit={submitFilters}
+          onReset={resetAndQuery}
+        />
       </Card>
 
       {loading && !report ? (
@@ -299,7 +369,7 @@ export const DashboardPage = () => {
             extra={
               <Button
                 onClick={() => {
-                  const params = new URLSearchParams(query)
+                  const params = new URLSearchParams(reportSnapshot!.query)
                   navigate(`/reports/orders?${params.toString()}`)
                 }}
               >
@@ -347,14 +417,8 @@ export const DashboardPage = () => {
           </Card>
         </>
       ) : (
-        <Empty
-          description={t(
-            hasDateRange ? 'Reporting data is unavailable.' : 'Select a start and end date.'
-          )}
-        >
-          {hasDateRange && (
-            <Button onClick={() => setRetryAttempt((attempt) => attempt + 1)}>{t('Retry')}</Button>
-          )}
+        <Empty description={t('Reporting data is unavailable.')}>
+          <Button onClick={retry}>{t('Retry')}</Button>
         </Empty>
       )}
     </CustomPageRecipe>

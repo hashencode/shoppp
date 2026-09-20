@@ -4,7 +4,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it, rstest } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { ThemeProvider } from '../../shared/contexts/theme-context'
 import { renderInLocale } from '../../test/render-in-locale'
 import { DashboardPage } from './dashboard-page'
@@ -75,6 +75,13 @@ const report: RevenueReport = {
 const server = setupServer(
   http.get('*/admin/reporting/revenue', () => HttpResponse.json({ data: report }))
 )
+
+const LocationProbe = () => {
+  const location = useLocation()
+  return <output aria-label="location">{`${location.pathname}${location.search}`}</output>
+}
+
+const getQueryButton = () => screen.getByText('Query').closest('button') as HTMLButtonElement
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 afterEach(() => {
@@ -208,7 +215,7 @@ describe('DashboardPage', () => {
     expect(screen.queryByText(/NaN|Infinity|%/)).toBeNull()
   })
 
-  it('should query immediately when filters change and skip an empty range', async () => {
+  it('keeps filter edits as drafts until Query commits the complete scope', async () => {
     const requests: string[] = []
     server.use(
       http.get('*/admin/reporting/revenue', ({ request }) => {
@@ -222,57 +229,105 @@ describe('DashboardPage', () => {
       </MemoryRouter>
     )
     await screen.findByText('Gross sales ($)')
-    expect(screen.queryByRole('button', { name: 'Apply' })).toBeNull()
+    expect(getQueryButton()).toBeTruthy()
     expect(new URL(requests[0]!).searchParams.get('currency')).toBe('CNY')
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Currency' }))
     fireEvent.click(await screen.findByText('EUR', { selector: '.ant-select-item-option-content' }))
-    await waitFor(() => expect(requests).toHaveLength(2))
-    expect(new URL(requests[1]!).searchParams.get('currency')).toBe('EUR')
+    expect(requests).toHaveLength(1)
+    expect(screen.getByText('Gross sales ($)')).toBeTruthy()
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Time zone' }))
     fireEvent.click(
       await screen.findByText('Europe/London', { selector: '.ant-select-item-option-content' })
     )
-    await waitFor(() => expect(requests).toHaveLength(3))
-    expect(new URL(requests[2]!).searchParams.get('timeZone')).toBe('Europe/London')
+    expect(requests).toHaveLength(1)
     expect(screen.getByText('Date range')).toBeTruthy()
-    expect(screen.getByLabelText('Start date').closest('.ant-picker-range')).toBe(
-      screen.getByLabelText('End date').closest('.ant-picker-range')
+    expect(screen.getByPlaceholderText('Start date').closest('.ant-picker-range')).toBe(
+      screen.getByPlaceholderText('End date').closest('.ant-picker-range')
     )
-    fireEvent.focus(screen.getByLabelText('Start date'))
-    fireEvent.change(screen.getByLabelText('Start date'), { target: { value: '2026-07-01' } })
-    fireEvent.keyDown(screen.getByLabelText('Start date'), { key: 'Enter', code: 'Enter' })
-    fireEvent.focus(screen.getByLabelText('End date'))
-    fireEvent.change(screen.getByLabelText('End date'), { target: { value: '2026-07-30' } })
-    fireEvent.keyDown(screen.getByLabelText('End date'), { key: 'Enter', code: 'Enter' })
-    fireEvent.blur(screen.getByLabelText('End date'))
-    await waitFor(() => expect(requests).toHaveLength(4))
-    expect(new URL(requests[3]!).searchParams.get('startDate')).toBe('2026-07-01')
-    expect(new URL(requests[3]!).searchParams.get('endDate')).toBe('2026-07-30')
-    expect(screen.queryByText('Filters changed. Apply to update results.')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
-    expect(await screen.findByText('Select a start and end date.')).toBeTruthy()
-    expect(requests).toHaveLength(4)
-    expect(screen.queryByText('Gross sales ($)')).toBeNull()
+    fireEvent.focus(screen.getByPlaceholderText('Start date'))
+    fireEvent.change(screen.getByPlaceholderText('Start date'), {
+      target: { value: '2026-07-01' },
+    })
+    fireEvent.keyDown(screen.getByPlaceholderText('Start date'), { key: 'Enter', code: 'Enter' })
+    fireEvent.focus(screen.getByPlaceholderText('End date'))
+    fireEvent.change(screen.getByPlaceholderText('End date'), {
+      target: { value: '2026-07-30' },
+    })
+    fireEvent.keyDown(screen.getByPlaceholderText('End date'), { key: 'Enter', code: 'Enter' })
+    fireEvent.blur(screen.getByPlaceholderText('End date'))
+    expect(requests).toHaveLength(1)
+    fireEvent.submit(getQueryButton().closest('form')!)
+    await waitFor(() => expect(requests).toHaveLength(2))
+    expect(new URL(requests[1]!).searchParams.get('currency')).toBe('EUR')
+    expect(new URL(requests[1]!).searchParams.get('timeZone')).toBe('Europe/London')
+    expect(new URL(requests[1]!).searchParams.get('startDate')).toBe('2026-07-01')
+    expect(new URL(requests[1]!).searchParams.get('endDate')).toBe('2026-07-30')
+    expect(getQueryButton()).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    expect(screen.queryByRole('button', { name: 'View underlying orders' })).toBeNull()
+    await waitFor(() => expect(requests).toHaveLength(3))
+    expect(new URL(requests[2]!).searchParams.get('currency')).toBe('CNY')
+    expect(
+      screen.getByRole('combobox', { name: 'Currency' }).closest('.ant-select')?.textContent
+    ).toContain('CNY')
   })
 
-  it('should discard the old report on query failure and allow retry', async () => {
+  it('rejects an empty date range without requesting or replacing the committed report', async () => {
+    let requests = 0
+    server.use(
+      http.get('*/admin/reporting/revenue', () => {
+        requests += 1
+        return HttpResponse.json({ data: report })
+      })
+    )
+    renderInLocale(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>
+    )
+    expect(getQueryButton()).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+    fireEvent.submit(getQueryButton().closest('form')!)
+    expect(await screen.findByText('Select a start and end date.')).toBeTruthy()
+    expect(requests).toBe(1)
+    expect(screen.getByText('Gross sales ($)')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'View underlying orders' })).toBeTruthy()
+  })
+
+  it('clears the old report for a failed Query and retries the committed scope', async () => {
+    const requests: string[] = []
+    server.use(
+      http.get('*/admin/reporting/revenue', ({ request }) => {
+        const currency = new URL(request.url).searchParams.get('currency')!
+        requests.push(currency)
+        return currency === 'EUR'
+          ? new HttpResponse(null, { status: 500 })
+          : HttpResponse.json({ data: report })
+      })
+    )
     renderInLocale(
       <MemoryRouter>
         <DashboardPage />
       </MemoryRouter>
     )
     await screen.findByText('Gross sales ($)')
-    server.use(http.get('*/admin/reporting/revenue', () => new HttpResponse(null, { status: 500 })))
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Currency' }))
     fireEvent.click(await screen.findByText('EUR', { selector: '.ant-select-item-option-content' }))
+    fireEvent.submit(getQueryButton().closest('form')!)
     await screen.findByText('Reporting data is unavailable.')
     expect(screen.queryByText('Gross sales ($)')).toBeNull()
-    server.resetHandlers()
+    server.use(
+      http.get('*/admin/reporting/revenue', ({ request }) => {
+        requests.push(new URL(request.url).searchParams.get('currency')!)
+        return HttpResponse.json({ data: { ...report, currency: 'EUR' } })
+      })
+    )
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
-    expect(await screen.findByText('Gross sales ($)')).toBeTruthy()
+    expect(await screen.findByText('Gross sales (€)')).toBeTruthy()
+    expect(requests).toEqual(['CNY', 'EUR', 'EUR'])
   })
 
-  it('ignores a slow response for a previous filter selection', async () => {
+  it('lets the latest started identical request win and Reset requests defaults once', async () => {
     let finishOld!: (value: RevenueReport) => void
     const oldRequest = new Promise<RevenueReport>((resolve) => {
       finishOld = resolve
@@ -287,8 +342,9 @@ describe('DashboardPage', () => {
       </MemoryRouter>
     )
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1))
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Currency' }))
-    fireEvent.click(await screen.findByText('EUR', { selector: '.ant-select-item-option-content' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
+    expect(fetch.mock.calls[0]?.[0]).toEqual(fetch.mock.calls[1]?.[0])
     await screen.findByText('Gross sales (€)')
     await act(async () => {
       finishOld(report)
@@ -298,7 +354,7 @@ describe('DashboardPage', () => {
     expect(screen.queryByText('Gross sales ($)')).toBeNull()
   })
 
-  it('searches additional currency codes and queries the selected currency immediately', async () => {
+  it('searches additional currency codes without requesting until native form submission', async () => {
     const requests: string[] = []
     server.use(
       http.get('*/admin/reporting/revenue', ({ request }) => {
@@ -315,13 +371,56 @@ describe('DashboardPage', () => {
     await screen.findByText('Gross sales (CN¥)')
     const currencyInput = screen.getByRole('combobox', { name: 'Currency' })
     expect(currencyInput.getAttribute('readonly')).toBeNull()
+    expect(currencyInput.closest('.ant-select')?.querySelector('.ant-select-clear')).toBeNull()
+    expect(
+      screen
+        .getByRole('combobox', { name: 'Time zone' })
+        .closest('.ant-select')
+        ?.querySelector('.ant-select-clear')
+    ).toBeNull()
     fireEvent.change(currencyInput, { target: { value: 'twd' } })
     fireEvent.click(await screen.findByText('TWD', { selector: '.ant-select-item-option-content' }))
+    expect(requests).toEqual(['CNY'])
+    const queryButton = getQueryButton()
+    fireEvent.submit(queryButton.closest('form')!)
     await screen.findByText('Gross sales (NT$)')
     expect(requests).toEqual(['CNY', 'TWD'])
-    fireEvent.change(currencyInput, { target: { value: 'chf' } })
-    fireEvent.click(await screen.findByText('CHF', { selector: '.ant-select-item-option-content' }))
-    await screen.findByText('Gross sales (CHF)')
-    expect(requests).toEqual(['CNY', 'TWD', 'CHF'])
+  })
+
+  it('keeps drill-down on the accepted report snapshot until a new report is accepted', async () => {
+    let finishNext!: (value: RevenueReport) => void
+    const nextRequest = new Promise<RevenueReport>((resolve) => {
+      finishNext = resolve
+    })
+    const fetch = rstest
+      .spyOn(reportingApi, 'fetchRevenueReport')
+      .mockResolvedValueOnce(report)
+      .mockReturnValueOnce(nextRequest)
+    renderInLocale(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <DashboardPage />
+        <LocationProbe />
+      </MemoryRouter>
+    )
+    await screen.findByText('Gross sales ($)')
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Currency' }))
+    fireEvent.click(await screen.findByText('EUR', { selector: '.ant-select-item-option-content' }))
+    expect(fetch).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: 'View underlying orders' }))
+    expect(
+      new URL(
+        `https://example.test${screen.getByLabelText('location').textContent}`
+      ).searchParams.get('currency')
+    ).toBe('CNY')
+    fireEvent.submit(getQueryButton().closest('form')!)
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
+    expect(screen.queryByRole('button', { name: 'View underlying orders' })).toBeNull()
+    await act(async () => {
+      finishNext({ ...report, currency: 'EUR' })
+      await nextRequest
+    })
+    fireEvent.click(await screen.findByRole('button', { name: 'View underlying orders' }))
+    const location = screen.getByLabelText('location').textContent!
+    expect(new URL(`https://example.test${location}`).searchParams.get('currency')).toBe('EUR')
   })
 })

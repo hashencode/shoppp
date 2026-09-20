@@ -375,7 +375,8 @@ export const zhCNMessages: Record<string, string> = {
   'Public phone': '公开电话',
   'Service hours': '服务时间',
   'For example: Monday–Friday, 09:00–18:00': '例如：周一至周五 09:00–18:00',
-  'Service hours and an IANA time zone must be provided together.': '服务时间和 IANA 时区需要一起填写。',
+  'Service hours and an IANA time zone must be provided together.':
+    '服务时间和 IANA 时区需要一起填写。',
   'Physical locations': '实体地点',
   'Leave this list empty for an online-only shop. Publish only complete, verified addresses.':
     '纯线上商店可以留空。请只公开完整且经过核实的地址。',
@@ -390,7 +391,8 @@ export const zhCNMessages: Record<string, string> = {
   'Remove location': '删除地点',
   'Add location': '添加地点',
   'Social links': '社交媒体链接',
-  'Only published HTTPS links appear to shoppers, in this order.': '仅公开的 HTTPS 链接会按此顺序展示给顾客。',
+  'Only published HTTPS links appear to shoppers, in this order.':
+    '仅公开的 HTTPS 链接会按此顺序展示给顾客。',
   'Social link {number}': '社交链接 {number}',
   Platform: '平台',
   'Destination URL': '目标网址',
@@ -399,7 +401,8 @@ export const zhCNMessages: Record<string, string> = {
   'Add social link': '添加社交链接',
   'Contact settings saved and audited.': '联系方式已保存并记录审计日志。',
   'Contact settings changed since you opened this page.': '联系方式在本页面打开后发生了变化。',
-  'Your edits are still here. Compare the latest values before replacing this form.': '你的编辑仍保留在页面中。请先与最新值对比，再决定是否替换表单。',
+  'Your edits are still here. Compare the latest values before replacing this form.':
+    '你的编辑仍保留在页面中。请先与最新值对比，再决定是否替换表单。',
   'Compare current values': '对比当前值',
   'Current saved contact values': '当前已保存的联系方式',
   'Replace my edits with current values': '用当前值替换我的编辑',
@@ -410,7 +413,8 @@ export const zhCNMessages: Record<string, string> = {
   'Save contact settings': '保存联系方式',
   'Reset changes': '重置修改',
   'You can view these settings but cannot change them.': '你可以查看这些设置，但不能修改。',
-  'Use an international phone number, such as +12025550123.': '请使用国际电话号码，例如 +12025550123。',
+  'Use an international phone number, such as +12025550123.':
+    '请使用国际电话号码，例如 +12025550123。',
   'Enter an HTTPS URL.': '请输入 HTTPS 网址。',
   'Manage products': '管理商品',
   'View inventory': '查看库存',
@@ -860,6 +864,7 @@ export const zhCNMessages: Record<string, string> = {
   Retry: '重试',
   Refresh: '刷新',
   Search: '查询',
+  Query: '查询',
   Reset: '重置',
   Actions: '操作',
   View: '查看',
