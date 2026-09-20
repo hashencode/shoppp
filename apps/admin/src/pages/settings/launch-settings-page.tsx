@@ -29,8 +29,10 @@ import {
 } from '../../services/platform/api'
 import { useCurrentTranslate, useI18n } from '../../shared/contexts/i18n-context'
 import { useLocalizedApiError } from '../../shared/i18n/api-error'
-import { BasicCrudFormRecipe } from '../../shared/template-kit/form'
+import { FormSubmitToolbar } from '../../shared/components/form-submit-toolbar'
+import { FORM_ERROR_SCROLL_OPTIONS, TemplateFormStateGate } from '../../shared/template-kit/form'
 import { FORM_CARD_BODY_WIDTH_CLASS_NAME } from '../../shared/template-kit/form/form-content-width'
+import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
 
 void React
 
@@ -114,31 +116,33 @@ export const LaunchSettingsPage = () => {
   }, [loading, status, location.hash])
 
   const mode = canWrite ? 'modify' : 'readonly'
+  const modeView = getFormModeViewModel(mode)
   return (
-    <div className="space-y-4">
-      <BasicCrudFormRecipe<FormValues>
-        spec={{
-          parsedMode: { ok: true, mode, resourceKey: 'commercial-configuration' },
-          modeView: getFormModeViewModel(mode),
-          permissionDenied: !canRead,
-          detailLoading: loading,
-          detailError: configurationError,
-          saveLoading: submitting,
-          isReadonly: !canWrite,
-          form,
-          initialValues: {},
-          title: t('Commercial settings'),
-          stateCopy: { submitSuccessMessage: t('Launch configuration saved and audited.') },
-          onBackToList: () => navigate('/'),
-          onRetryDetail: () => void loadConfiguration(),
-          onResetAll: () => {
-            if (canWrite && status) form.setFieldsValue({ ...status.configuration, reason: '' })
-          },
-          onSubmit: async ({ reason, ...configuration }) => {
+    <CustomPageRecipe title={t('Commercial settings')}>
+      <TemplateFormStateGate
+        parsedMode={{ ok: true, mode, resourceKey: 'commercial-configuration' }}
+        modeView={modeView}
+        permissionDenied={!canRead}
+        detailLoading={loading}
+        detailError={configurationError}
+        onBackToList={() => navigate('/')}
+        onRetryDetail={() => void loadConfiguration()}
+      >
+        <Form<FormValues>
+          form={form}
+          layout="vertical"
+          initialValues={{}}
+          className="space-y-4"
+          disabled={!canWrite || submitting}
+          scrollToFirstError={FORM_ERROR_SCROLL_OPTIONS}
+          onFinish={async ({ reason, ...configuration }) => {
             if (!canRead || !canWrite || submitting || !status) return
             setSubmitting(true)
             try {
-              const updated = await updateLaunchConfiguration({ ...status.configuration, ...configuration }, reason)
+              const updated = await updateLaunchConfiguration(
+                { ...status.configuration, ...configuration },
+                reason
+              )
               setStatus(updated)
               form.setFieldsValue({ ...updated.configuration, reason: '' })
               void message.success(translateNow('Launch configuration saved and audited.'))
@@ -147,143 +151,131 @@ export const LaunchSettingsPage = () => {
             } finally {
               setSubmitting(false)
             }
-          },
-          sections: [
-            {
-              key: 'sales',
-              title: <span id="sales">{t('Sales and inventory')}</span>,
-              renderFields: () => (
-                <>
-                  <Form.Item
-                    name="defaultCurrency"
-                    label={t('Default currency')}
-                    rules={[{ required: true }]}
-                  >
-                    <Input maxLength={3} />
-                  </Form.Item>
-                  <Form.Item
-                    name="orderNumberPrefix"
-                    label={t('Order prefix')}
-                    rules={[{ required: true }]}
-                  >
-                    <Input maxLength={12} />
-                  </Form.Item>
-                  <Form.Item
-                    name="sellableCurrencies"
-                    label={t('Sellable currencies')}
-                    rules={[{ required: true }]}
-                  >
-                    <Select mode="tags" tokenSeparators={[',']} />
-                  </Form.Item>
-                  <Form.Item
-                    name="shippingCountries"
-                    label={t('Shipping countries')}
-                    rules={[{ required: true }]}
-                  >
-                    <Select mode="tags" tokenSeparators={[',']} />
-                  </Form.Item>
-                  <Form.Item
-                    name="shippingMethodIds"
-                    label={t('Enabled shipping method IDs')}
-                    rules={[{ required: true }]}
-                  >
-                    <Select mode="tags" tokenSeparators={[',']} />
-                  </Form.Item>
-                  <Form.Item name="oversellPolicy" label={t('Oversell policy')}>
-                    <Select
-                      options={['deny', 'limited'].map((value) => ({ label: t(value), value }))}
-                    />
-                  </Form.Item>
-                  <Form.Item
-                    name="reservationTtlMinutes"
-                    label={t('Reservation TTL (minutes)')}
-                    rules={[{ required: true }]}
-                  >
-                    <InputNumber min={5} max={120} className="w-full" />
-                  </Form.Item>
-                  <Form.Item name="taxMode" label={t('Tax mode')}>
-                    <Select disabled options={[{ label: t('zero'), value: 'zero' }]} />
-                  </Form.Item>
-                </>
-              ),
-            },
-            {
-              key: 'payment',
-              title: <span id="payment">{t('Payments')}</span>,
-              renderFields: () => (
-                <>
-                  <Form.Item name="paymentProvider" hidden>
-                    <Input />
-                  </Form.Item>
-                  <Form.Item name="providerConfigured" hidden valuePropName="checked">
-                    <Switch />
-                  </Form.Item>
-                  <Form.Item name="webhookConfigured" hidden valuePropName="checked">
-                    <Switch />
-                  </Form.Item>
-                  <Form.Item name="paymentMode" label={t('Payment mode')}>
-                    <Select
-                      options={['test', 'live'].map((value) => ({ label: t(value), value }))}
-                    />
-                  </Form.Item>
-                  <Space wrap>
-                    <span>
-                      {t('Provider credential')}:{' '}
-                      <Tag>
-                        {t(status?.configuration.providerConfigured ? 'configured' : 'missing')}
-                      </Tag>
-                    </span>
-                    <span>
-                      {t('Webhook credential')}:{' '}
-                      <Tag>
-                        {t(status?.configuration.webhookConfigured ? 'configured' : 'missing')}
-                      </Tag>
-                    </span>
-                  </Space>
-                </>
-              ),
-            },
-            {
-              key: 'policies',
-              title: <span id="policies">{t('Policies')}</span>,
-              renderFields: () => (
-                <>
-                  {(['privacy', 'terms', 'shipping', 'returns', 'contact', 'cookies'] as const).map(
-                    (policy) => (
-                      <Form.Item
-                        key={policy}
-                        name={['policies', policy]}
-                        label={t('{policy} policy URL', { policy: t(policy) })}
-                        rules={[{ required: true, type: 'url' }]}
-                      >
-                        <Input />
-                      </Form.Item>
-                    )
-                  )}
-                  <Form.Item
-                    name="legalApproved"
-                    label={t('Legal approval')}
-                    valuePropName="checked"
-                  >
-                    <Switch />
-                  </Form.Item>
-                </>
-              ),
-            },
-          ],
-          renderAfterForm: (
-            <Card classNames={{ body: FORM_CARD_BODY_WIDTH_CLASS_NAME.compact }}>
-              <Form.Item
-                name="reason"
-                label={t('Change reason')}
-                rules={[{ required: true, min: 3, max: 500 }]}
-              >
-                <Input.TextArea rows={3} maxLength={500} />
-              </Form.Item>
-            </Card>
-          ),
-        }}
-      />
+          }}
+        >
+          <Card
+            title={<span id="sales">{t('Sales and inventory')}</span>}
+            classNames={{ body: FORM_CARD_BODY_WIDTH_CLASS_NAME.compact }}
+          >
+            <Form.Item
+              name="defaultCurrency"
+              label={t('Default currency')}
+              rules={[{ required: true }]}
+            >
+              <Input maxLength={3} />
+            </Form.Item>
+            <Form.Item
+              name="orderNumberPrefix"
+              label={t('Order prefix')}
+              rules={[{ required: true }]}
+            >
+              <Input maxLength={12} />
+            </Form.Item>
+            <Form.Item
+              name="sellableCurrencies"
+              label={t('Sellable currencies')}
+              rules={[{ required: true }]}
+            >
+              <Select mode="tags" tokenSeparators={[',']} />
+            </Form.Item>
+            <Form.Item
+              name="shippingCountries"
+              label={t('Shipping countries')}
+              rules={[{ required: true }]}
+            >
+              <Select mode="tags" tokenSeparators={[',']} />
+            </Form.Item>
+            <Form.Item
+              name="shippingMethodIds"
+              label={t('Enabled shipping method IDs')}
+              rules={[{ required: true }]}
+            >
+              <Select mode="tags" tokenSeparators={[',']} />
+            </Form.Item>
+            <Form.Item name="oversellPolicy" label={t('Oversell policy')}>
+              <Select options={['deny', 'limited'].map((value) => ({ label: t(value), value }))} />
+            </Form.Item>
+            <Form.Item
+              name="reservationTtlMinutes"
+              label={t('Reservation TTL (minutes)')}
+              rules={[{ required: true }]}
+            >
+              <InputNumber min={5} max={120} className="w-full" />
+            </Form.Item>
+            <Form.Item name="taxMode" label={t('Tax mode')}>
+              <Select disabled options={[{ label: t('zero'), value: 'zero' }]} />
+            </Form.Item>
+          </Card>
+          <Card
+            title={<span id="payment">{t('Payments')}</span>}
+            classNames={{ body: FORM_CARD_BODY_WIDTH_CLASS_NAME.compact }}
+          >
+            <Form.Item name="paymentProvider" hidden>
+              <Input />
+            </Form.Item>
+            <Form.Item name="providerConfigured" hidden valuePropName="checked">
+              <Switch />
+            </Form.Item>
+            <Form.Item name="webhookConfigured" hidden valuePropName="checked">
+              <Switch />
+            </Form.Item>
+            <Form.Item name="paymentMode" label={t('Payment mode')}>
+              <Select options={['test', 'live'].map((value) => ({ label: t(value), value }))} />
+            </Form.Item>
+            <Space wrap>
+              <span>
+                {t('Provider credential')}:{' '}
+                <Tag>{t(status?.configuration.providerConfigured ? 'configured' : 'missing')}</Tag>
+              </span>
+              <span>
+                {t('Webhook credential')}:{' '}
+                <Tag>{t(status?.configuration.webhookConfigured ? 'configured' : 'missing')}</Tag>
+              </span>
+            </Space>
+          </Card>
+          <Card
+            title={<span id="policies">{t('Policies')}</span>}
+            classNames={{ body: FORM_CARD_BODY_WIDTH_CLASS_NAME.compact }}
+          >
+            {(['privacy', 'terms', 'shipping', 'returns', 'contact', 'cookies'] as const).map(
+              (policy) => (
+                <Form.Item
+                  key={policy}
+                  name={['policies', policy]}
+                  label={t('{policy} policy URL', { policy: t(policy) })}
+                  rules={[{ required: true, type: 'url' }]}
+                >
+                  <Input />
+                </Form.Item>
+              )
+            )}
+            <Form.Item name="legalApproved" label={t('Legal approval')} valuePropName="checked">
+              <Switch />
+            </Form.Item>
+          </Card>
+          <Card classNames={{ body: FORM_CARD_BODY_WIDTH_CLASS_NAME.compact }}>
+            <Form.Item
+              name="reason"
+              label={t('Change reason')}
+              rules={[{ required: true, min: 3, max: 500 }]}
+            >
+              <Input.TextArea rows={3} maxLength={500} />
+            </Form.Item>
+          </Card>
+          {modeView.showActions ? (
+            <FormSubmitToolbar
+              submitHtmlType="submit"
+              submitLoading={submitting}
+              submitDisabled={submitting || !canWrite}
+              onReset={() => {
+                if (canWrite && status) {
+                  form.setFieldsValue({ ...status.configuration, reason: '' })
+                }
+              }}
+            />
+          ) : null}
+        </Form>
+      </TemplateFormStateGate>
       {canRead ? (
         <Alert
           type="info"
@@ -319,6 +311,6 @@ export const LaunchSettingsPage = () => {
           ) : null}
         </Card>
       ) : null}
-    </div>
+    </CustomPageRecipe>
   )
 }

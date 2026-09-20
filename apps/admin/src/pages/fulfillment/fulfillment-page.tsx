@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useLocalizedApiError } from '../../shared/i18n/api-error'
 import { fetchOrders } from '../../services/orders/api'
 import { useI18n } from '../../shared/contexts/i18n-context'
+import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
 
 void React
 
@@ -37,13 +38,7 @@ export const FulfillmentPage = () => {
   }, [message, localizeError])
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold">{t('Fulfillment')}</h1>
-        <p className="text-slate-500">
-          {t('Paid orders waiting for the next warehouse transition.')}
-        </p>
-      </div>
+    <CustomPageRecipe title={t('Fulfillment')}>
       <Table<AdminOrder>
         rowKey="publicReference"
         loading={loading}
@@ -73,6 +68,6 @@ export const FulfillmentPage = () => {
           },
         ]}
       />
-    </div>
+    </CustomPageRecipe>
   )
 }

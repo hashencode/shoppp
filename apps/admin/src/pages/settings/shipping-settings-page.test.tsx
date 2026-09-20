@@ -79,6 +79,12 @@ describe('ShippingSettingsPage', () => {
       </AuthTestProvider>
     )
 
+    expect(screen.getByRole('heading', { level: 4, name: 'Shipping settings' })).toBeTruthy()
+    expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(1)
+    expect(
+      screen.queryByText('Country zones, flat or weight-based rates, thresholds, and eligibility.')
+    ).toBeNull()
+    expect(screen.getByRole('button', { name: 'New zone' })).toBeTruthy()
     await waitFor(() => expect(screen.getByText('North America')).toBeTruthy())
     expect(screen.getByText('US')).toBeTruthy()
     expect(screen.getByText('CA')).toBeTruthy()

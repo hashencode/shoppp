@@ -7,6 +7,7 @@ import { useAuth } from '../../infrastructure/auth/use-auth'
 import { useLocalizedApiError } from '../../shared/i18n/api-error'
 import { fetchShippingZones, saveShippingZone } from '../../services/shipping/api'
 import { useCurrentTranslate, useI18n } from '../../shared/contexts/i18n-context'
+import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
 
 void React
 
@@ -140,20 +141,16 @@ export const ShippingSettingsPage = () => {
   )
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">{t('Shipping settings')}</h1>
-          <p className="text-slate-500">
-            {t('Country zones, flat or weight-based rates, thresholds, and eligibility.')}
-          </p>
-        </div>
-        {canWrite ? (
+    <CustomPageRecipe
+      title={t('Shipping settings')}
+      extra={
+        canWrite ? (
           <Button type="primary" onClick={() => openEditor()}>
             {t('New zone')}
           </Button>
-        ) : null}
-      </div>
+        ) : null
+      }
+    >
       <Table<ShippingZoneConfiguration>
         rowKey="id"
         columns={columns}
@@ -313,6 +310,6 @@ export const ShippingSettingsPage = () => {
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+    </CustomPageRecipe>
   )
 }

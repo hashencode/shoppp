@@ -9,6 +9,7 @@ import {
   fetchPrivacyRequests,
 } from '../../services/platform/api'
 import { useCurrentTranslate, useI18n } from '../../shared/contexts/i18n-context'
+import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
 
 void React
 
@@ -105,27 +106,26 @@ export const PrivacyPage = () => {
   )
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold">{t('Privacy requests')}</h1>
-        <p className="text-slate-500">
+    <CustomPageRecipe title={t('Privacy requests')}>
+      <div className="flex flex-wrap items-center gap-3">
+        <Space>
+          <Button
+            type="primary"
+            onClick={() => {
+              form.resetFields()
+              setOpen(true)
+            }}
+          >
+            {t('Record verified request')}
+          </Button>
+          <Button onClick={() => void load()}>{t('Refresh')}</Button>
+        </Space>
+        <span className="text-sm text-slate-500">
           {t(
             'Verified access, correction, and deletion operations with immutable retention decisions.'
           )}
-        </p>
+        </span>
       </div>
-      <Space>
-        <Button
-          type="primary"
-          onClick={() => {
-            form.resetFields()
-            setOpen(true)
-          }}
-        >
-          {t('Record verified request')}
-        </Button>
-        <Button onClick={() => void load()}>{t('Refresh')}</Button>
-      </Space>
       <Table<PrivacyRequest>
         rowKey="id"
         columns={columns}
@@ -219,6 +219,6 @@ export const PrivacyPage = () => {
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+    </CustomPageRecipe>
   )
 }

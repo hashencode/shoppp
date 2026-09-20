@@ -616,6 +616,8 @@ export const zhCNMessages: Record<string, string> = {
   'Storefront themes could not be loaded': '店面主题加载失败',
   'Configure fixture-backed Fashion and Decor experiences. Production keeps its current theme.':
     '配置由固定数据支持的 Fashion 和 Decor 体验，生产环境保持当前主题。',
+  'Production keeps its current theme until a draft is approved and deployed.':
+    '在草稿获批并部署前，生产环境会保持当前主题。',
   'New experience draft': '新建体验草稿',
   'No compatible approved theme packages': '没有兼容的已批准主题包',
   'A source-controlled package must pass compatibility and release validation before it appears here.':

@@ -78,12 +78,20 @@ describe('ReviewModerationPage', () => {
       </MemoryRouter>
     )
 
+    expect(screen.getByRole('heading', { level: 4, name: '评价审核' })).toBeTruthy()
+    expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(1)
+    expect(
+      screen.queryByText('Only approved reviews can be included in a later Catalog release.')
+    ).toBeNull()
     expect(await screen.findByText('Sample shopper · 4/5')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Review' }))
     expect(await screen.findByText('审核评价')).toBeTruthy()
     fireEvent.change(screen.getByRole('textbox', { name: '审核原因' }), {
       target: { value: 'Content reviewed' },
     })
+    expect(
+      screen.getByText('批准结果会立即保存，公开页面会在新的商品目录版本部署后更新。')
+    ).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /批\s*准/ }))
     await waitFor(() =>
       expect(decisions).toEqual([{ decision: 'approved', reason: 'Content reviewed' }])

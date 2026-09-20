@@ -92,6 +92,8 @@ const renderPage = (writable = true, initialEntry = '/settings/launch?from=setup
 describe('LaunchSettingsPage', () => {
   it('does not show environment or setup-guide promotion', async () => {
     renderPage(true, '/settings/launch')
+    expect(screen.getByRole('heading', { level: 4, name: 'Commercial settings' })).toBeTruthy()
+    expect(screen.queryByLabelText('Back')).toBeNull()
     await screen.findByRole('link', { name: 'Open contact settings' })
     expect(screen.queryByLabelText('Support email')).toBeNull()
     expect(screen.queryByText('Staging')).toBeNull()
@@ -122,6 +124,7 @@ describe('LaunchSettingsPage', () => {
           configuration: { ...configuration, defaultCurrency: 'EUR' },
           reason: 'Change default currency',
           confirm: true,
+          preserveContactEmails: true,
         },
       ])
     )
@@ -153,11 +156,36 @@ describe('LaunchSettingsPage', () => {
     )
     renderPage()
     expect(await screen.findByText('Form details could not be loaded')).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 4, name: 'Commercial settings' })).toBeTruthy()
     expect(await screen.findByText('Healthy')).toBeTruthy()
     expect(screen.queryByLabelText('Default currency')).toBeNull()
     server.use(http.get('*/admin/settings/launch', () => HttpResponse.json({ data: status })))
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
     expect(await screen.findByLabelText('Default currency')).toBeTruthy()
+  })
+  it('keeps the route heading above permission and loading states', async () => {
+    const permissionView = renderInLocale(
+      <AuthTestProvider permissions={[]}>
+        <ThemeProvider>
+          <MemoryRouter initialEntries={['/settings/launch']}>
+            <LaunchSettingsPage />
+          </MemoryRouter>
+        </ThemeProvider>
+      </AuthTestProvider>
+    )
+    expect(screen.getByRole('heading', { level: 4, name: 'Commercial settings' })).toBeTruthy()
+    expect(screen.getByText('Access denied')).toBeTruthy()
+    permissionView.unmount()
+
+    server.use(
+      http.get('*/admin/settings/launch', async () => {
+        await new Promise((resolve) => window.setTimeout(resolve, 100))
+        return HttpResponse.json({ data: status })
+      })
+    )
+    renderPage()
+    expect(screen.getByRole('heading', { level: 4, name: 'Commercial settings' })).toBeTruthy()
+    expect(screen.getByText('Loading form details…')).toBeTruthy()
   })
   it('keeps unsaved inputs and offers recovery when saving fails', async () => {
     server.use(

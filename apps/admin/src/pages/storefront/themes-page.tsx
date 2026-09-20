@@ -29,6 +29,7 @@ import {
 } from '../../services/storefront/api'
 import { QueryStateBlock } from '../../shared/components/query-state-block'
 import { useI18n } from '../../shared/contexts/i18n-context'
+import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
 
 void React
 
@@ -93,42 +94,28 @@ export const ThemesPage = () => {
     setCreateOpen(true)
   }
 
-  if (loading) {
-    return <QueryStateBlock state="loading" title={t('Loading storefront themes…')} />
-  }
-  if (error) {
-    return (
-      <QueryStateBlock
-        state="error"
-        title={t('Storefront themes could not be loaded')}
-        description={error}
-        primaryActionLabel={t('Reload')}
-        onPrimaryAction={() => void load()}
-      />
-    )
-  }
-
   return (
-    <main className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <Typography.Title level={2} className="!mb-1">
-            {t('Storefront themes')}
-          </Typography.Title>
-          <Typography.Paragraph type="secondary" className="!mb-0">
-            {t(
-              'Configure fixture-backed Fashion and Decor experiences. Production keeps its current theme.'
-            )}
-          </Typography.Paragraph>
-        </div>
-        {canWrite && themes.length > 0 ? (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => openCreate()}>
+    <CustomPageRecipe
+      title={t('Storefront themes')}
+      extra={
+        !loading && !error && canWrite && themes.length > 0 ? (
+          <Button type="primary" icon={<PlusOutlined aria-hidden />} onClick={() => openCreate()}>
             {t('New experience draft')}
           </Button>
-        ) : null}
-      </header>
-
-      {themes.length === 0 ? (
+        ) : null
+      }
+    >
+      {loading ? (
+        <QueryStateBlock state="loading" title={t('Loading storefront themes…')} />
+      ) : error ? (
+        <QueryStateBlock
+          state="error"
+          title={t('Storefront themes could not be loaded')}
+          description={error}
+          primaryActionLabel={t('Reload')}
+          onPrimaryAction={() => void load()}
+        />
+      ) : themes.length === 0 ? (
         <QueryStateBlock
           state="empty"
           title={t('No compatible approved theme packages')}
@@ -140,9 +127,12 @@ export const ThemesPage = () => {
         />
       ) : (
         <section aria-labelledby="theme-packages-heading">
-          <Typography.Title id="theme-packages-heading" level={4}>
+          <Typography.Title id="theme-packages-heading" level={5}>
             {t('Approved packages')}
           </Typography.Title>
+          <Typography.Paragraph type="secondary">
+            {t('Production keeps its current theme until a draft is approved and deployed.')}
+          </Typography.Paragraph>
           <Row gutter={[16, 16]}>
             {themes.map((theme) => (
               <Col xs={24} lg={12} key={themeKey(theme)}>
@@ -179,48 +169,50 @@ export const ThemesPage = () => {
         </section>
       )}
 
-      <section aria-labelledby="theme-drafts-heading">
-        <Typography.Title id="theme-drafts-heading" level={4}>
-          {t('Experience drafts')}
-        </Typography.Title>
-        {drafts.length === 0 ? (
-          <Empty description={t('No experience drafts yet.')} />
-        ) : (
-          <ul className="divide-y rounded-lg border border-solid border-slate-200">
-            {drafts.map((draft) => (
-              <li
-                key={draft.id}
-                className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
-              >
-                <div>
-                  <Space wrap>
-                    <span>{draft.experienceId}</span>
-                    <Tag>
-                      {draft.themeId} {draft.themeVersion}
-                    </Tag>
-                    <Tag>v{draft.version}</Tag>
-                    <Tag color={draft.validation?.status === 'valid' ? 'success' : 'default'}>
-                      {t(draft.validation?.status ?? 'not validated')}
-                    </Tag>
-                  </Space>
-                  <div className="mt-1 text-sm text-slate-500">
-                    {t('Preset')} {draft.presetId} · {t('updated')} {draft.updatedAt}
-                  </div>
-                </div>
-                <Button
-                  type="link"
-                  icon={<EditOutlined aria-hidden />}
-                  onClick={() => navigate(`/storefront/themes/${draft.id}${guideSearch}`)}
+      {!loading && !error ? (
+        <section aria-labelledby="theme-drafts-heading">
+          <Typography.Title id="theme-drafts-heading" level={5}>
+            {t('Experience drafts')}
+          </Typography.Title>
+          {drafts.length === 0 ? (
+            <Empty description={t('No experience drafts yet.')} />
+          ) : (
+            <ul className="divide-y rounded-lg border border-solid border-slate-200">
+              {drafts.map((draft) => (
+                <li
+                  key={draft.id}
+                  className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
                 >
-                  {t(canWrite ? 'Edit' : 'View')}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+                  <div>
+                    <Space wrap>
+                      <span>{draft.experienceId}</span>
+                      <Tag>
+                        {draft.themeId} {draft.themeVersion}
+                      </Tag>
+                      <Tag>v{draft.version}</Tag>
+                      <Tag color={draft.validation?.status === 'valid' ? 'success' : 'default'}>
+                        {t(draft.validation?.status ?? 'not validated')}
+                      </Tag>
+                    </Space>
+                    <div className="mt-1 text-sm text-slate-500">
+                      {t('Preset')} {draft.presetId} · {t('updated')} {draft.updatedAt}
+                    </div>
+                  </div>
+                  <Button
+                    type="link"
+                    icon={<EditOutlined aria-hidden />}
+                    onClick={() => navigate(`/storefront/themes/${draft.id}${guideSearch}`)}
+                  >
+                    {t(canWrite ? 'Edit' : 'View')}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
 
-      {!canWrite ? (
+      {!loading && !error && !canWrite ? (
         <Alert
           type="info"
           showIcon
@@ -231,67 +223,69 @@ export const ThemesPage = () => {
         />
       ) : null}
 
-      <Modal
-        title={t('Create experience draft')}
-        open={createOpen}
-        okText={t('Create draft')}
-        confirmLoading={creating}
-        onCancel={() => setCreateOpen(false)}
-        onOk={() => form.submit()}
-        destroyOnHidden
-      >
-        <Form<CreateValues>
-          form={form}
-          layout="vertical"
-          onFinish={async (values) => {
-            const theme = themes.find((candidate) => themeKey(candidate) === values.themeKey)
-            if (!theme) return
-            setCreating(true)
-            try {
-              const draft = await createStorefrontExperienceDraft(
-                theme,
-                values.presetId,
-                values.reason
-              )
-              void message.success(t('Experience draft created.'))
-              setCreateOpen(false)
-              navigate(`/storefront/themes/${draft.id}${guideSearch}`)
-            } catch (cause) {
-              void message.error(normalizeApiError(cause).message)
-            } finally {
-              setCreating(false)
-            }
-          }}
+      {!loading && !error ? (
+        <Modal
+          title={t('Create experience draft')}
+          open={createOpen}
+          okText={t('Create draft')}
+          confirmLoading={creating}
+          onCancel={() => setCreateOpen(false)}
+          onOk={() => form.submit()}
+          destroyOnHidden
         >
-          <Form.Item name="themeKey" label={t('Theme package')} rules={[{ required: true }]}>
-            <Select
-              options={themes.map((theme) => ({
-                label: `${theme.id} ${theme.themeVersion}`,
-                value: themeKey(theme),
-              }))}
-              onChange={(value) => {
-                const theme = themes.find((candidate) => themeKey(candidate) === value)
-                form.setFieldValue('presetId', theme?.presetDefinitions[0]?.id)
-              }}
-            />
-          </Form.Item>
-          <Form.Item name="presetId" label={t('Preset')} rules={[{ required: true }]}>
-            <Select
-              options={(selectedTheme?.presetDefinitions ?? []).map((preset) => ({
-                label: preset.label,
-                value: preset.id,
-              }))}
-            />
-          </Form.Item>
-          <Form.Item
-            name="reason"
-            label={t('Creation reason')}
-            rules={[{ required: true, min: 3, max: 500 }]}
+          <Form<CreateValues>
+            form={form}
+            layout="vertical"
+            onFinish={async (values) => {
+              const theme = themes.find((candidate) => themeKey(candidate) === values.themeKey)
+              if (!theme) return
+              setCreating(true)
+              try {
+                const draft = await createStorefrontExperienceDraft(
+                  theme,
+                  values.presetId,
+                  values.reason
+                )
+                void message.success(t('Experience draft created.'))
+                setCreateOpen(false)
+                navigate(`/storefront/themes/${draft.id}${guideSearch}`)
+              } catch (cause) {
+                void message.error(normalizeApiError(cause).message)
+              } finally {
+                setCreating(false)
+              }
+            }}
           >
-            <Input.TextArea rows={3} maxLength={500} />
-          </Form.Item>
-        </Form>
-      </Modal>
-    </main>
+            <Form.Item name="themeKey" label={t('Theme package')} rules={[{ required: true }]}>
+              <Select
+                options={themes.map((theme) => ({
+                  label: `${theme.id} ${theme.themeVersion}`,
+                  value: themeKey(theme),
+                }))}
+                onChange={(value) => {
+                  const theme = themes.find((candidate) => themeKey(candidate) === value)
+                  form.setFieldValue('presetId', theme?.presetDefinitions[0]?.id)
+                }}
+              />
+            </Form.Item>
+            <Form.Item name="presetId" label={t('Preset')} rules={[{ required: true }]}>
+              <Select
+                options={(selectedTheme?.presetDefinitions ?? []).map((preset) => ({
+                  label: preset.label,
+                  value: preset.id,
+                }))}
+              />
+            </Form.Item>
+            <Form.Item
+              name="reason"
+              label={t('Creation reason')}
+              rules={[{ required: true, min: 3, max: 500 }]}
+            >
+              <Input.TextArea rows={3} maxLength={500} />
+            </Form.Item>
+          </Form>
+        </Modal>
+      ) : null}
+    </CustomPageRecipe>
   )
 }

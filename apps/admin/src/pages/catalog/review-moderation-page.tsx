@@ -9,6 +9,7 @@ import {
   type ProductReview,
 } from '../../services/catalog/api'
 import { useI18n } from '../../shared/contexts/i18n-context'
+import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
 
 void React
 
@@ -95,9 +96,7 @@ export function ReviewModerationPage() {
   }
 
   return (
-    <main className="space-y-4 p-4 sm:p-6">
-      <h1 className="text-2xl font-semibold">{t('Review moderation')}</h1>
-      <p>{t('Only approved reviews can be included in a later Catalog release.')}</p>
+    <CustomPageRecipe title={t('Review moderation')} className="p-4 sm:p-6">
       {error ? <Alert showIcon type="error" title={error} /> : null}
       {notice ? <Alert showIcon type="info" title={notice} /> : null}
       {loading ? <Spin aria-label={t('Loading reviews')} /> : null}
@@ -176,6 +175,6 @@ export function ReviewModerationPage() {
           </div>
         ) : null}
       </Modal>
-    </main>
+    </CustomPageRecipe>
   )
 }
