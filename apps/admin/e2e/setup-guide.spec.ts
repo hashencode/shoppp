@@ -1,7 +1,9 @@
 import { test, expect, type Page } from '@playwright/test'
 import {
   SETUP_GUIDE_CHECKS,
+  updateContactSettingsRequestSchema,
   updateLaunchConfigurationRequestSchema,
+  type ContactSettings,
   type LaunchConfiguration,
   type SetupGuideSummary,
 } from '@shoppp/contracts'
@@ -235,6 +237,77 @@ test('settings reader has fixed restricted progress and a readonly commercial fo
     page.getByRole('link', { name: 'Back to store setup guide', exact: true })
   ).toHaveCount(0)
 })
+
+for (const variant of [
+  { name: 'desktop', width: 1440, locale: 'English' },
+  { name: 'mobile Chinese', width: 390, locale: 'Chinese' },
+]) {
+  test(`contact editor saves reordered details on ${variant.name}`, async ({ page }) => {
+    await page.setViewportSize({ width: variant.width, height: 844 })
+    await mockAdminSession(page)
+    await mockCommerce(page)
+    let contact: ContactSettings = {
+      supportEmail: 'support@example.test', privacyContactEmail: 'privacy@example.test',
+      launchVersion: 'browser-launch-version', profileVersion: null, updatedAt: null,
+      profile: { publishSupportEmail: false, publishPrivacyEmail: false,
+        publicPhone: null, serviceHours: null, timeZone: null, locations: [], socials: [] },
+      publicContact: { supportEmail: null, privacyEmail: null, publicPhone: null,
+        serviceHours: null, timeZone: null, locations: [], socials: [] },
+    }
+    let saves = 0
+    await page.route('**/api/admin/settings/contact', async (route) => {
+      if (route.request().method() === 'PUT') {
+        const body = updateContactSettingsRequestSchema.parse(route.request().postDataJSON())
+        saves += 1
+        contact = {
+          ...contact,
+          supportEmail: body.supportEmail,
+          privacyContactEmail: body.privacyContactEmail,
+          profile: body.profile,
+          profileVersion: '23e73533-f18c-4591-bf6b-8e5ca078a60e',
+          publicContact: {
+            supportEmail: body.profile.publishSupportEmail ? body.supportEmail : null,
+            privacyEmail: body.profile.publishPrivacyEmail ? body.privacyContactEmail : null,
+            publicPhone: body.profile.publicPhone,
+            serviceHours: body.profile.serviceHours,
+            timeZone: body.profile.timeZone,
+            locations: body.profile.locations.filter((location) => location.visible),
+            socials: body.profile.socials.filter((social) => social.visible),
+          },
+        }
+      }
+      await route.fulfill({ json: { data: contact } })
+    })
+    const chinese = variant.locale === 'Chinese'
+    const label = (english: string, translated: string) => chinese ? translated : english
+    await page.goto(path('/settings/contact'))
+    await expect(page.getByRole('heading', { name: label('Contact settings', '联系方式设置') })).toBeVisible()
+    await page.getByRole('button', { name: label('Add location', '添加地点') }).click()
+    await page.getByRole('button', { name: label('Add location', '添加地点') }).click()
+    const names = page.getByLabel(label('Location name', '地点名称'))
+    await names.nth(0).fill('North')
+    await names.nth(1).fill('South')
+    await page.getByRole('button', { name: chinese ? /上\s*移/ : 'Move up' }).nth(1).click()
+    await expect(names.nth(0)).toHaveValue('South')
+    await page.getByRole('button', { name: label('Add social link', '添加社交链接') }).click()
+    await page.getByLabel(label('Platform', '平台')).fill('Instagram')
+    await page.getByLabel(label('Link label', '链接文字')).fill('Our Instagram')
+    await page.getByLabel(label('Destination URL', '目标网址')).fill('https://instagram.com/shoppp')
+    await page.getByLabel(label('Change reason', '变更原因')).fill('Verified contact details')
+    await page.getByRole('button', { name: label('Save contact settings', '保存联系方式') }).click()
+    await expect(page.getByLabel(label('City', '城市')).nth(0)).toBeFocused()
+    await page.getByLabel(label('City', '城市')).nth(0).fill('Shanghai')
+    await page.getByLabel(label('City', '城市')).nth(1).fill('Beijing')
+    await page.getByLabel(label('Postal address', '邮寄地址')).nth(0).fill('123 South Road')
+    await page.getByLabel(label('Postal address', '邮寄地址')).nth(1).fill('456 North Road')
+    await page.getByRole('button', { name: label('Save contact settings', '保存联系方式') }).click()
+    await expect.poll(() => saves).toBe(1)
+    expect(contact.profile.locations.map((location) => location.name)).toEqual(['South', 'North'])
+    await page.reload()
+    await expect(page.getByLabel(label('Location name', '地点名称')).nth(0)).toHaveValue('South')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  })
+}
 
 test('a staff account without settings access retains its authorized home', async ({ page }) => {
   await mockAdminSession(page, ['catalog.read'])

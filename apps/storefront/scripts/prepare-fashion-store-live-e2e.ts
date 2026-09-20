@@ -141,6 +141,19 @@ export function fashionStoreLiveBuildInput(
             ? {
                 "announcement-text": "Live Experience announcement",
                 "footer-contact-copy": "Live Experience footer support",
+                "footer-legal-link": {
+                  label: "Footer privacy",
+                  target: {
+                    kind: "internal",
+                    reference: { id: "policy.privacy", kind: "policy" },
+                  },
+                  targetBehavior: "same-window",
+                },
+                "footer-social-link": {
+                  label: "Demo community",
+                  target: { kind: "external", url: "https://example.com" },
+                  targetBehavior: "new-window",
+                },
                 "header-contact-copy": "Live Experience header support",
               }
             : {}),

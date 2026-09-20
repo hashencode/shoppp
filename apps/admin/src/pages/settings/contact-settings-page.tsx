@@ -7,6 +7,7 @@ import { normalizeApiError, type ApiError } from '../../infrastructure/http/api-
 import { fetchContactSettings, updateContactSettings } from '../../services/platform/api'
 import { useCurrentTranslate, useI18n } from '../../shared/contexts/i18n-context'
 import { useLocalizedApiError } from '../../shared/i18n/api-error'
+import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
 
 void React
 
@@ -163,12 +164,16 @@ export const ContactSettingsPage = () => {
   )
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4">
-      <Typography.Title level={2}>{t('Contact settings')}</Typography.Title>
+    <CustomPageRecipe title={t('Contact settings')} className="mx-auto max-w-5xl">
       <Typography.Paragraph type="secondary">
         {t('Only channels you explicitly publish will appear on the storefront after a new preview or release.')}
       </Typography.Paragraph>
-      <Form<FormValues> form={form} layout="vertical" onFinish={(values) => void save(values)} disabled={!canWrite}>
+      <Form<FormValues> form={form} layout="vertical" onFinish={(values) => void save(values)}
+        onFinishFailed={({ errorFields }) => {
+          const firstInvalid = errorFields[0]?.name
+          if (firstInvalid) form.scrollToField(firstInvalid, { focus: true })
+        }}
+        disabled={!canWrite}>
         <Card title={t('Global contact channels')} className="mb-4">
           <div className="grid gap-x-5 md:grid-cols-2">
             <Form.Item name="supportEmail" label={t('Support email')} rules={[{ required: true, type: 'email' }]}>
@@ -298,6 +303,6 @@ export const ContactSettingsPage = () => {
           {!canWrite ? <Typography.Paragraph type="secondary">{t('You can view these settings but cannot change them.')}</Typography.Paragraph> : null}
         </Card>
       </Form>
-    </div>
+    </CustomPageRecipe>
   )
 }

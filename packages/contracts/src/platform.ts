@@ -71,6 +71,7 @@ export const updateLaunchConfigurationRequestSchema = z
   .object({
     configuration: launchConfigurationSchema,
     confirm: z.literal(true),
+    preserveContactEmails: z.boolean().optional(),
     reason: z.string().trim().min(3).max(500),
   })
   .strict();

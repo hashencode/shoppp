@@ -22,8 +22,10 @@ const sourceInlineGap = " ";
 const sourceAsset = (sourcePath: string) => properties.sourceAsset(sourcePath);
 const highDensity = ref(false);
 const liveMode = inject(liveCommerceModeKey, false);
+const publicContact = computed(() =>
+  liveMode ? properties.configuration?.publicContact : undefined,
+);
 const accountVisible = computed(() => !liveMode || fashionStoreLiveCapabilities.account);
-const newsletterVisible = computed(() => !liveMode || fashionStoreLiveCapabilities.newsletter);
 
 onMounted(() => {
   highDensity.value = window.devicePixelRatio > 1;
@@ -139,10 +141,13 @@ function fallbackLogoAt2x(): string {
           </ul>
         </div>
         <div
-          v-if="configuration?.contactCopy || configuration?.legalLink || configuration?.socialLink"
+          v-if="
+            configuration?.legalLink ||
+            (!liveMode && (configuration?.contactCopy || configuration?.socialLink))
+          "
           class="col-12 text-center text-md-end mt-15px"
         >
-          <span v-if="configuration?.contactCopy" class="text-white me-15px">{{
+          <span v-if="!liveMode && configuration?.contactCopy" class="text-white me-15px">{{
             configuration.contactCopy
           }}</span>
           <a
@@ -153,7 +158,7 @@ function fallbackLogoAt2x(): string {
             >{{ configuration.legalLink.label }}</a
           >
           <a
-            v-if="configuration.socialLink"
+            v-if="!liveMode && configuration.socialLink"
             :href="configuration.socialLink.href"
             :target="
               configuration.socialLink.targetBehavior === 'new-window' ? '_blank' : undefined
@@ -220,8 +225,11 @@ function fallbackLogoAt2x(): string {
         <div class="col-6 col-lg-2 col-sm-4 xs-mb-30px order-sm-3 order-lg-2">
           <span class="fw-500 d-block text-white mb-5px fs-17">Quick links</span>
           <ul>
-            <li v-if="accountVisible">
-              <a :href="routeHref(fashionStoreRoutePaths.account)" data-fashion-store-route
+            <li>
+              <a
+                :href="accountVisible ? routeHref(fashionStoreRoutePaths.account) : undefined"
+                :aria-disabled="!accountVisible || undefined"
+                data-fashion-store-route
                 >My account</a
               >
             </li>
@@ -241,25 +249,99 @@ function fallbackLogoAt2x(): string {
         </div>
 
         <div
-          v-if="!liveMode"
-          class="col-6 col-lg-3 col-md-4 col-sm-5 md-mb-50px xs-mb-30px order-sm-2 order-lg-2 offset-md-2 offset-lg-0"
+          class="col-lg-3 col-md-4 col-sm-5 md-mb-50px xs-mb-30px order-sm-2 order-lg-2 offset-md-2 offset-lg-0"
+          :class="liveMode ? 'col-12' : 'col-6'"
         >
           <span class="fw-500 d-block text-white mb-10px fs-17">Quick contact</span>
-          <div>
+          <div v-if="liveMode && publicContact?.publicPhone">
+            <FashionStoreIcon name="phone-call" class="fs-16 text-white me-10px xs-me-5px" /><a
+              :href="`tel:${publicContact.publicPhone}`"
+              >{{ publicContact.publicPhone }}</a
+            >
+          </div>
+          <div v-if="liveMode && publicContact?.supportEmail" class="mb-15px">
+            <FashionStoreIcon name="mail" class="fs-16 text-white me-10px xs-me-5px" /><a
+              :href="`mailto:${publicContact.supportEmail}`"
+              class="text-decoration-line-bottom"
+              >{{ publicContact.supportEmail }}</a
+            >
+          </div>
+          <div v-if="liveMode && publicContact?.privacyEmail" class="mb-15px">
+            Privacy:
+            <a :href="`mailto:${publicContact.privacyEmail}`">{{ publicContact.privacyEmail }}</a>
+          </div>
+          <div v-if="liveMode && !publicContact" class="mb-15px">
+            {{ configuration?.contactCopy || "Contact details are being prepared." }}
+          </div>
+          <div
+            v-if="
+              liveMode &&
+              publicContact &&
+              !publicContact.publicPhone &&
+              !publicContact.supportEmail &&
+              !publicContact.privacyEmail
+            "
+            class="mb-15px"
+          >
+            {{
+              publicContact.locations.length
+                ? "See Contact for location details."
+                : publicContact.socials.length
+                  ? "Connect through our published social links."
+                  : "Contact details are being prepared."
+            }}
+          </div>
+          <div v-if="!liveMode">
             <FashionStoreIcon name="phone-call" class="fs-16 text-white me-10px xs-me-5px" /><a
               :href="fashionStoreDestinations.phone"
               >123 456 7890</a
             >
           </div>
-          <div class="mb-15px">
+          <div v-if="!liveMode" class="mb-15px">
             <FashionStoreIcon name="mail" class="fs-16 text-white me-10px xs-me-5px" /><a
               :href="fashionStoreDestinations.supportEmail"
               class="text-decoration-line-bottom"
               >info@domain.com</a
             >
           </div>
-          <span class="fw-500 d-block text-white mb-5px fs-17">Connect with us</span>
-          <div class="elements-social social-icon-style-02">
+          <span
+            v-if="
+              !liveMode ||
+              publicContact?.socials.length ||
+              (!publicContact && configuration?.socialLink)
+            "
+            class="fw-500 d-block text-white mb-5px fs-17"
+            >Connect with us</span
+          >
+          <a
+            v-if="liveMode && !publicContact && configuration?.socialLink"
+            :href="configuration.socialLink.href"
+            :target="
+              configuration.socialLink.targetBehavior === 'new-window' ? '_blank' : undefined
+            "
+            :rel="
+              configuration.socialLink.targetBehavior === 'new-window'
+                ? 'noopener noreferrer'
+                : undefined
+            "
+            >{{ configuration.socialLink.label }}</a
+          >
+          <ul
+            v-if="publicContact?.socials.length"
+            class="list-unstyled mb-15px"
+            data-contact-social-links
+          >
+            <li v-for="social in publicContact.socials" :key="social.id">
+              <a
+                :href="social.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                :aria-label="`${social.label} (opens in a new tab)`"
+                >{{ social.label }}</a
+              >
+            </li>
+          </ul>
+          <div v-if="!liveMode" class="elements-social social-icon-style-02">
             <ul class="light">
               <li>
                 <a
@@ -315,12 +397,15 @@ function fallbackLogoAt2x(): string {
         </div>
 
         <div
-          v-if="newsletterVisible"
           class="col-lg-3 col-md-6 col-sm-7 ps-20px sm-ps-15px md-mb-50px xs-mb-0 order-sm-1 order-lg-5"
         >
           <span class="fw-500 d-block text-white mb-5px fs-17">Become a member</span>
-          <div class="mb-15px">Join now and get 20% extra discount!</div>
-          <div class="d-inline-block w-100 newsletter-style-04 position-relative mb-15px">
+          <div v-if="liveMode" class="mb-15px">Newsletter sign-up is currently unavailable.</div>
+          <div v-else class="mb-15px">Join now and get 20% extra discount!</div>
+          <div
+            v-if="!liveMode"
+            class="d-inline-block w-100 newsletter-style-04 position-relative mb-15px"
+          >
             <form action="#" method="post" class="position-relative w-100" v-on:submit.prevent="">
               <input
                 class="input-small bg-nero-grey border-radius-4px fs-14 border-color-transparent w-100 form-control pe-50px ps-20px lg-ps-15px required"
@@ -337,7 +422,7 @@ function fallbackLogoAt2x(): string {
               ></div>
             </form>
           </div>
-          <div class="footer-card">
+          <div v-if="!liveMode" class="footer-card">
             <a
               :href="undefined"
               data-fashion-store-route

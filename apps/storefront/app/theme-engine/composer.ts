@@ -848,6 +848,7 @@ function contentViewModel(
       publicContact.supportEmail || publicContact.privacyEmail || publicContact.publicPhone ||
       publicContact.locations.length || publicContact.socials.length,
     );
+    const contactMessage = requiredTextSetting(settings, "contact.message", "Get in touch with us.");
     return presentationViewModelSchema.parse({
       contactVersion: contact.version,
       heading: hasPublicDetails
@@ -856,7 +857,9 @@ function contentViewModel(
       kind: "state",
       media: editorMedia(release, settings["contact.image"]),
       message: hasPublicDetails
-        ? requiredTextSetting(settings, "contact.message", "Get in touch with us.")
+        ? contactMessage === "Merchant contact details will appear here."
+          ? "Choose a published channel below to reach us."
+          : contactMessage
         : unavailableContent.contact.message,
       presentationStyle: settings["content-style"] === "editorial" ? "editorial" : "standard",
       publicContact,
@@ -944,8 +947,8 @@ function contentViewModel(
 }
 
 function composeDeclaredSections(input: {
-  adapter?: ThemeCompositionAdapter;
-  contact?: ExperienceSnapshot["contact"];
+  adapter: ThemeCompositionAdapter | undefined;
+  contact: ExperienceSnapshot["contact"];
   bindingsByInstance: ReadonlyMap<string, CatalogResourceBinding[]>;
   collectionsById: ReadonlyMap<string, CatalogCollection>;
   descriptor: ThemeCompositionDescriptor;

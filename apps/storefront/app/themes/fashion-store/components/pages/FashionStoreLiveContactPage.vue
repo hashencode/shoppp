@@ -139,7 +139,7 @@ const hasGeneralDetails = computed(() =>
           <h2 id="contact-social-heading" class="alt-font text-dark-gray fw-600 fs-28 mb-25px">
             Connect with us
           </h2>
-          <ul class="d-flex flex-wrap gap-20px list-unstyled mb-0">
+          <ul class="d-flex flex-wrap gap-3 list-unstyled mb-0">
             <li v-for="social in contact.socials" :key="social.id">
               <a
                 :href="social.url"

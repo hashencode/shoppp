@@ -3,6 +3,7 @@ import {
   contactSettingsSchema,
   type ContactProfile,
   type ContactSettings,
+  type LaunchConfiguration,
   type PublicContact,
   type UpdateContactSettingsRequest,
 } from "@shoppp/contracts";
@@ -12,13 +13,15 @@ import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { prepareAuditEvent } from "../iam/audit";
 import { actorTypeForPrincipal } from "../iam/permissions";
-import { readLaunchConfiguration } from "./launch-configuration";
+import { sha256Hex } from "../orders/tokens";
+import { defaultLaunchConfiguration } from "./launch-configuration";
 
 const PROFILE_KEY = "contact_profile";
 const LAUNCH_KEY = "launch_configuration";
 const GUARD_KEY = "contact_write_guard";
 
 interface SettingRow { value_json: string; updated_at: string }
+interface KeyedSettingRow extends SettingRow { key: string }
 interface StoredProfile { version: string; profile: ContactProfile }
 
 const emptyProfile: ContactProfile = {
@@ -31,15 +34,17 @@ const emptyProfile: ContactProfile = {
   socials: [],
 };
 
-async function row(db: D1Database, key: string): Promise<SettingRow | null> {
-  return db.prepare("SELECT value_json, updated_at FROM settings WHERE key = ?")
-    .bind(key).first<SettingRow>();
+async function contactRows(db: D1Database): Promise<[SettingRow | null, SettingRow | null]> {
+  // A single statement observes one D1 snapshot for the email and publication choices.
+  const result = await db.prepare(
+    "SELECT key, value_json, updated_at FROM settings WHERE key IN (?, ?)",
+  ).bind(LAUNCH_KEY, PROFILE_KEY).all<KeyedSettingRow>();
+  const byKey = new Map(result.results.map(({ key, ...setting }) => [key, setting]));
+  return [byKey.get(LAUNCH_KEY) ?? null, byKey.get(PROFILE_KEY) ?? null];
 }
 
 async function launchVersion(value: string | null): Promise<string | null> {
-  if (value === null) return null;
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return value === null ? null : sha256Hex(value);
 }
 
 function storedProfile(value: string | null): StoredProfile | null {
@@ -50,7 +55,7 @@ function storedProfile(value: string | null): StoredProfile | null {
   return { version: decoded.version, profile };
 }
 
-export function publicContactFromSettings(
+function publicContactFromSettings(
   profile: ContactProfile,
   supportEmail: string,
   privacyContactEmail: string,
@@ -67,16 +72,12 @@ export function publicContactFromSettings(
 }
 
 export async function getContactSettings(context: Context<ApiEnvironment>): Promise<ContactSettings> {
-  const [launch, profileRow] = await Promise.all([
-    row(context.env.DB, LAUNCH_KEY),
-    row(context.env.DB, PROFILE_KEY),
-  ]);
-  const launchRead = await readLaunchConfiguration(context);
+  const [launch, profileRow] = await contactRows(context.env.DB);
   const stored = storedProfile(profileRow?.value_json ?? null);
   const profile = stored?.profile ?? emptyProfile;
   const configuration = launch
-    ? JSON.parse(launch.value_json) as typeof launchRead.configuration
-    : launchRead.configuration;
+    ? JSON.parse(launch.value_json) as LaunchConfiguration
+    : defaultLaunchConfiguration(context);
   return contactSettingsSchema.parse({
     profile,
     supportEmail: configuration.supportEmail,
@@ -94,10 +95,7 @@ export async function updateContactSettings(
   context: Context<ApiEnvironment>,
   input: UpdateContactSettingsRequest,
 ): Promise<ContactSettings> {
-  const [launchRow, profileRow] = await Promise.all([
-    row(context.env.DB, LAUNCH_KEY),
-    row(context.env.DB, PROFILE_KEY),
-  ]);
+  const [launchRow, profileRow] = await contactRows(context.env.DB);
   const currentLaunchVersion = await launchVersion(launchRow?.value_json ?? null);
   const currentProfileVersion = storedProfile(profileRow?.value_json ?? null)?.version ?? null;
   if (
@@ -107,10 +105,9 @@ export async function updateContactSettings(
     throw new ApiError(409, "contact_settings_conflict", "Contact settings changed. Reload before saving.");
   }
 
-  const launchRead = await readLaunchConfiguration(context);
   const configuration = launchRow
-    ? JSON.parse(launchRow.value_json) as typeof launchRead.configuration
-    : launchRead.configuration;
+    ? JSON.parse(launchRow.value_json) as LaunchConfiguration
+    : defaultLaunchConfiguration(context);
   const now = new Date().toISOString();
   const version = crypto.randomUUID();
   const principal = context.get("principal");
@@ -159,10 +156,7 @@ export async function updateContactSettings(
   try {
     await context.env.DB.batch(statements);
   } catch (error) {
-    const fresh = await Promise.all([
-      row(context.env.DB, LAUNCH_KEY),
-      row(context.env.DB, PROFILE_KEY),
-    ]);
+    const fresh = await contactRows(context.env.DB);
     if (fresh[0]?.value_json !== launchRow?.value_json ||
         fresh[1]?.value_json !== profileRow?.value_json) {
       throw new ApiError(409, "contact_settings_conflict", "Contact settings changed. Reload before saving.");

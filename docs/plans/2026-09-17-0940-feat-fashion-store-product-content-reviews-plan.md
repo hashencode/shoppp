@@ -25,14 +25,14 @@ plan_alias: FS-F12
 
 ### Execution Checkpoint
 
-- **Classification:** Active successor after the 2026-09-17 FS-F11-U7.3 human-approved handback.
+- **Classification:** Incomplete successor parked at U2 while the user-prioritized FS-F13 Contact Management plan executes in the same primary checkout; Product authority and evidence remain here.
 - **Entry condition:** Met: the user accepted the final compare-at and portrait-free Reviews appearance; the uninterrupted FS-F11 aggregate and hash-verified frozen-Vue evidence were recorded before activation.
 - **Completed units:** U1 inventoried the 13 Product identities, 24 SKUs, 18 media records, local release coverage, review states, source-rights gap, and publication invariants. U8 added versioned published-Product staging, preview, media ownership, review-only release initiation, Admin controls, and old-release immutability tests. U4 added pending review submission, Admin-only moderation, audit, origin/rate/idempotency controls, and permission tests. U5 derives approved-only immutable review displays with exact rating bands and individual ratings, preserves historical snapshots, and supplies clearly labeled, opt-in local demonstration data for all 13 sample Product slugs. U6 added the working Add a review flow and source-shaped, portrait-free populated/zero/legacy Reviews presentation, including the seven-width responsive sweep and direct donor-region visual check. Evidence is in `docs/progress/fashion-store-product-content-reviews.md`.
 - **Current unit:** U2 stages and verifies the reconciled 13-Product content. The lead Product's local successor has user-authorized four-color demonstration options with matching Product-owned images and S/M/L/XL sizes; Charcoal/M is the default.
 - **Next unit:** U3 adds reviewed, Product-specific supplemental media after source permission is verified; U7 then verifies all 13 Products and seeks human content/media acceptance.
 - **Next concrete action:** Verify a local D1 migration path that retains the 12 historical Gold/Blue/Green Variant identities, adds four demonstration Charcoal Variants, and stages the three color-specific media plus color gallery mapping without rewriting historical releases; then verify the 13-Product/28-active-Variant/30-media successor and U3 inventory. Remote Catalog/R2 changes remain separately gated.
 - **Blocker:** No source-choice blocker remains: the user confirmed derivative rights and requested four demonstration colors with corresponding images on 2026-09-17. Remote Catalog/R2 mutation requires separate authority.
-- **Completion handback:** FS-F12's owning checkpoint and the master pointer move together to `REL-Pre-DC` only after U1-U8 and the Definition of Done pass. No candidate or production gate advances automatically.
+- **Completion handback:** After FS-F13 returns the pointer, FS-F12 resumes at U2. FS-F12's owning checkpoint and the master pointer move together to `REL-Pre-DC` only after U1-U8 and the Definition of Done pass. No candidate or production gate advances automatically.
 
 ---
 

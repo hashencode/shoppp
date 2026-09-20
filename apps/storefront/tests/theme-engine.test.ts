@@ -1441,7 +1441,22 @@ describe("theme-neutral storefront composer", () => {
       contactVersion: "a".repeat(64),
       heading: "Contact us",
       kind: "state",
+      message: "Choose a way to reach us.",
       publicContact,
+      state: "populated",
+    });
+    const placeholderExperience = structuredClone(experience);
+    const contentSection = placeholderExperience.resolvedTemplates.find(
+      ({ pageType }) => pageType === "content",
+    )?.sections[0];
+    if (!contentSection) throw new Error("Missing Contact test section");
+    contentSection.settings["contact.message"] = "Merchant contact details will appear here.";
+    const placeholderRoute = composeExperienceRoute({
+      experience: placeholderExperience, locale: "en-US", path: "/contact", release: canonicalRelease,
+      route: testRoute("content", "/contact"),
+    });
+    expect(placeholderRoute.viewModels["contact-content"]).toMatchObject({
+      message: "Choose a published channel below to reach us.",
       state: "populated",
     });
     const emptyRoute = composeExperienceRoute({

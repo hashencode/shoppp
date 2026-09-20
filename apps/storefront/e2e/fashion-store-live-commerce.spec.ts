@@ -113,6 +113,27 @@ async function expectLiveCanonicalShell(page: Page, home = false): Promise<void>
   await expect(header.locator(".header-cart > button")).toHaveCSS("padding-left", "14px");
   await expect(footer).toHaveCount(1);
   await expect(footer).not.toHaveClass(/fashion-store-footer-home/);
+  await expect(footer.getByText("Quick contact", { exact: true })).toBeVisible();
+  await expect(footer.getByText("Live Experience footer support").first()).toBeVisible();
+  await expect(footer.getByRole("link", { name: "Footer privacy", exact: true })).toHaveAttribute(
+    "href",
+    "/policies/privacy",
+  );
+  await expect(footer.getByRole("link", { name: "Demo community" })).toHaveAttribute(
+    "href",
+    "https://example.com",
+  );
+  await expect(footer.getByRole("link", { name: "Demo community" })).toHaveAttribute(
+    "rel",
+    "noopener noreferrer",
+  );
+  await expect(footer.getByText("Become a member", { exact: true })).toBeVisible();
+  await expect(footer.getByText("Newsletter sign-up is currently unavailable.")).toBeVisible();
+  await expect(footer.locator("form")).toHaveCount(0);
+  await expect(footer.getByText("My account", { exact: true })).toHaveAttribute(
+    "aria-disabled",
+    "true",
+  );
   await expect(page.locator("body")).toHaveClass(home ? /fashion-store-home/ : /^$/);
 }
 

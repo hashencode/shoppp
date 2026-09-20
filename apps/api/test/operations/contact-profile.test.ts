@@ -145,6 +145,38 @@ describe("contact settings", () => {
     expect(after.profile.publishSupportEmail).toBe(true);
   });
 
+  test("commercial settings save preserves contact emails changed after its form loaded", async () => {
+    const initial = await read();
+    const first = await save(initial, { supportEmail: "first@example.com" });
+    expect(first.status).toBe(200);
+    const launchResponse = await app.fetch(request("/admin/settings/launch"), env);
+    const staleLaunch = ((await launchResponse.json()) as {
+      data: { configuration: LaunchConfiguration }
+    }).data.configuration;
+
+    const contact = await read();
+    expect((await save(contact, {
+      supportEmail: "latest@example.com", privacyContactEmail: "privacy-latest@example.com",
+    })).status).toBe(200);
+    const commercial = await app.fetch(request("/admin/settings/launch", {
+      method: "PUT", headers: { "Idempotency-Key": crypto.randomUUID() },
+      body: JSON.stringify({
+        configuration: { ...staleLaunch, orderNumberPrefix: "NEW" },
+        confirm: true, preserveContactEmails: true,
+        reason: "Updated commercial configuration",
+      }),
+    }), env);
+    expect(commercial.status).toBe(200);
+    expect(((await commercial.json()) as { data: { configuration: LaunchConfiguration } }).data.configuration)
+      .toMatchObject({
+        orderNumberPrefix: "NEW", supportEmail: "latest@example.com",
+        privacyContactEmail: "privacy-latest@example.com",
+      });
+    expect(await read()).toMatchObject({
+      supportEmail: "latest@example.com", privacyContactEmail: "privacy-latest@example.com",
+    });
+  });
+
   test("denies writes without settings.write", async () => {
     const initial = await read();
     await env.DB.prepare("INSERT INTO admin_role_permissions (role_id, permission_key, created_at) VALUES (?, 'settings.read', ?)")

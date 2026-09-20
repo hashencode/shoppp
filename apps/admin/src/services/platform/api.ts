@@ -50,7 +50,7 @@ export const updateLaunchConfiguration = async (
 ): Promise<LaunchConfigurationStatus> => {
   const response = await apiClient.put<{ data: LaunchConfigurationStatus }>(
     '/admin/settings/launch',
-    { configuration, confirm: true, reason },
+    { configuration, confirm: true, preserveContactEmails: true, reason },
     { headers: { 'Idempotency-Key': `launch-settings-${crypto.randomUUID()}` } }
   )
   return response.data.data

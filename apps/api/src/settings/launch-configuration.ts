@@ -19,7 +19,7 @@ function stripeWebhookConfigured(value: string | undefined): boolean {
   return value?.startsWith("whsec_") === true;
 }
 
-function defaultConfiguration(context: Context<ApiEnvironment>): LaunchConfiguration {
+export function defaultLaunchConfiguration(context: Context<ApiEnvironment>): LaunchConfiguration {
   const storefrontOrigin = context.env.STOREFRONT_ORIGIN.replace(/\/$/, "");
   const production = context.env.ENVIRONMENT === "production";
   return {
@@ -220,7 +220,7 @@ export async function readLaunchConfiguration(
     .first<{ updated_at: string; value_json: string }>();
   const storedConfiguration = row
     ? (JSON.parse(row.value_json) as LaunchConfiguration)
-    : defaultConfiguration(context);
+    : defaultLaunchConfiguration(context);
   const configuration = {
     ...storedConfiguration,
     providerConfigured: stripeProviderConfigured(context.env.STRIPE_SECRET_KEY),
@@ -276,9 +276,16 @@ export async function updateLaunchConfiguration(
   await context.env.DB.prepare(
     `INSERT INTO settings (key, value_json, updated_at)
      VALUES (?, ?, ?)
-     ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json, updated_at = excluded.updated_at`,
+     ON CONFLICT(key) DO UPDATE SET
+       value_json = CASE WHEN ? THEN json_set(
+         excluded.value_json,
+         '$.supportEmail', json_extract(settings.value_json, '$.supportEmail'),
+         '$.privacyContactEmail', json_extract(settings.value_json, '$.privacyContactEmail')
+       ) ELSE excluded.value_json END,
+       updated_at = excluded.updated_at`,
   )
-    .bind(SETTING_KEY, JSON.stringify(input.configuration), now)
+    .bind(SETTING_KEY, JSON.stringify(input.configuration), now,
+      input.preserveContactEmails ? 1 : 0)
     .run();
   await recordAuditEvent(context.env.DB, {
     action: "settings.launch.update",
