@@ -119,7 +119,7 @@ import {
 } from "../iam/password-auth";
 import { adjustInventory, getInventoryHistory, listInventory } from "../inventory/adjustments";
 import { createCartReservation } from "../inventory/reservations";
-import { uploadCatalogMedia } from "../media/uploads";
+import { serveLocalCatalogMedia, uploadCatalogMedia } from "../media/uploads";
 import { listCatalogMedia } from "../media/library";
 import {
   getCanonicalDeployedCatalogRelease,
@@ -570,6 +570,7 @@ export function createApp(options: CreateAppOptions = {}) {
   app.get("/health", (context) =>
     context.json({ data: { status: "ok" }, meta: { requestId: context.get("requestId") } }),
   );
+  app.get("/media/*", serveLocalCatalogMedia);
   app.get("/internal/testing/fashion-staging/catalog-migration/preflight", async (context) => {
     requireFashionAcceptanceCredential(context);
     const result = await getFashionStagingCatalogPreflight(context.env.DB);

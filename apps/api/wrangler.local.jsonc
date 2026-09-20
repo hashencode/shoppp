@@ -1,0 +1,121 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "shoppp-api-development-local",
+  "main": "./src/index.ts",
+  "compatibility_date": "2026-07-22",
+  "vars": {
+    "ENVIRONMENT": "development",
+    "RESOURCE_NAMESPACE": "shoppp-development",
+    "PUBLIC_ORIGIN": "http://127.0.0.1:8787",
+    "SERVICE_CREDENTIAL_REF": "local://shoppp/admin-service",
+    "ADMIN_ORIGIN": "http://127.0.0.1:3418",
+    "ADMIN_DEVELOPMENT_ORIGIN": "http://127.0.0.1:3418",
+    "PREVIEW_ORIGIN": "http://127.0.0.1:3435",
+    "MEDIA_PUBLIC_ORIGIN": "http://127.0.0.1:8787/media",
+    "STOREFRONT_ORIGIN": "http://127.0.0.1:3435",
+    "TAX_MODE": "zero",
+    "RESERVATION_TTL_MINUTES": "30",
+    "GUEST_ORDER_TOKEN_TTL_HOURS": "720",
+    "PAYMENT_CANCEL_URL": "http://127.0.0.1:3435/checkout/complete?return=canceled",
+    "PAYMENT_SUCCESS_URL": "http://127.0.0.1:3435/checkout/complete?session_id={CHECKOUT_SESSION_ID}",
+    "EMAIL_FROM": "admin@local.test",
+    "TURNSTILE_REQUIRED": "false",
+    "TURNSTILE_TEST_MODE": "true",
+    "TURNSTILE_HOSTNAMES": "127.0.0.1,localhost",
+    "CLOUDFLARE_ACCOUNT_ID": "00000000000000000000000000000000",
+    "D1_DATABASE_ID": "00000000-0000-0000-0000-00000000d1a1",
+    "D1_DATABASE_NAME": "shoppp-development-local",
+    "MEDIA_BUCKET_NAME": "shoppp-development-local-media",
+    "WORKER_NAME": "shoppp-api-development-local",
+    "AUTH_TOKEN_SECRET": "shoppp-local-development-auth-secret",
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "shoppp-development-local",
+      "database_id": "00000000-0000-0000-0000-00000000d1a1",
+      "migrations_dir": "../../packages/db/migrations",
+    },
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "shoppp-development-local-media",
+      "preview_bucket_name": "shoppp-development-local-media",
+    },
+    {
+      "binding": "REPORT_EXPORTS",
+      "bucket_name": "shoppp-development-local-report-exports",
+      "preview_bucket_name": "shoppp-development-local-report-exports",
+    },
+    {
+      "binding": "PRIVACY_EXPORTS",
+      "bucket_name": "shoppp-development-local-privacy-exports",
+      "preview_bucket_name": "shoppp-development-local-privacy-exports",
+    },
+    {
+      "binding": "BACKUP_BUCKET",
+      "bucket_name": "shoppp-development-local-backups",
+      "preview_bucket_name": "shoppp-development-local-backups",
+    },
+    {
+      "binding": "PREVIEW_ARTIFACTS",
+      "bucket_name": "shoppp-development-local-preview-artifacts",
+      "preview_bucket_name": "shoppp-development-local-preview-artifacts",
+    },
+  ],
+  "ratelimits": [
+    {
+      "name": "ANALYTICS_RATE_LIMITER",
+      "namespace_id": "15002",
+      "simple": { "limit": 120, "period": 60 },
+    },
+    {
+      "name": "CHECKOUT_RATE_LIMITER",
+      "namespace_id": "15001",
+      "simple": { "limit": 10, "period": 60 },
+    },
+  ],
+  "analytics_engine_datasets": [
+    {
+      "binding": "OBSERVABILITY",
+      "dataset": "shoppp_development_local_observability",
+    },
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "NOTIFICATION_QUEUE",
+        "queue": "shoppp-development-local-notifications",
+      },
+    ],
+    "consumers": [
+      {
+        "queue": "shoppp-development-local-notifications",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5,
+        "max_retries": 3,
+        "retry_delay": 60,
+        "dead_letter_queue": "shoppp-development-local-notifications-dlq",
+      },
+      {
+        "queue": "shoppp-development-local-notifications-dlq",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5,
+        "max_retries": 3,
+      },
+    ],
+  },
+  "workflows": [
+    {
+      "name": "shoppp-development-local-notification-delivery",
+      "binding": "NOTIFICATION_WORKFLOW",
+      "class_name": "NotificationDeliveryWorkflow",
+    },
+    {
+      "name": "shoppp-development-local-d1-backup",
+      "binding": "BACKUP_WORKFLOW",
+      "class_name": "D1BackupWorkflow",
+    },
+  ],
+}

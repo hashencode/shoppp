@@ -7,17 +7,19 @@ required for the administrator login path.
 
 ## Environment boundaries
 
-There are exactly two shared remote databases. Fashion staging is a third, isolated acceptance
-database and is never a development fallback:
+There are exactly two shared remote databases. Ordinary Admin development uses a local-only,
+recreatable Wrangler data plane instead of either shared database; its state persists under the
+ignored `.wrangler/` directory by default. Fashion staging is a third, isolated acceptance database
+and is selected only by the explicit staging command:
 
-| Environment | D1 database         | Allowed use                                                    |
-| ----------- | ------------------- | -------------------------------------------------------------- |
-| Test        | `shoppp-staging`    | Local development, automated remote tests, and test deployment |
-| Production  | `shoppp-production` | Production only                                                |
+| Environment | D1 database         | Allowed use                                |
+| ----------- | ------------------- | ------------------------------------------ |
+| Test        | `shoppp-staging`    | Automated remote tests and test deployment |
+| Production  | `shoppp-production` | Production only                            |
 
-| Isolated profile | D1 database              | Allowed use                              |
-| ---------------- | ------------------------ | ---------------------------------------- |
-| Fashion staging  | `shoppp-fashion-staging` | Governed Fashion staging acceptance only |
+| Isolated profile | D1 database              | Allowed use                                      |
+| ---------------- | ------------------------ | ------------------------------------------------ |
+| Fashion staging  | `shoppp-fashion-staging` | Explicit Fashion integration and acceptance only |
 
 The environments also use distinct admin/API hostnames, Worker names, `AUTH_TOKEN_SECRET` values,
 service credentials, backups, and email configuration. No shared remote development database is
@@ -108,14 +110,31 @@ migration suite verifies both facts.
 
 ## Local development
 
-Copy `.env.example`, then run:
+Copy `.env.example` to the ignored `.env`, set a local-only password, then run:
+
+```sh
+LOCAL_ADMIN_EMAIL=admin@local.test
+LOCAL_ADMIN_PASSWORD=<at-least-12-characters>
+```
 
 ```sh
 bun --filter @shoppp/admin dev
 ```
 
-The preflight accepts only the staging/test API and verifies that it is bound to `shoppp-staging`.
-The local proxy preserves application cookies and forwards API requests to the test Worker.
+This command applies migrations to the persistent local Wrangler D1, initializes the local
+administrator (or refreshes it only when the configured email or password changes), starts the API
+on `127.0.0.1:8787`, and starts Admin on `127.0.0.1:3418`. Wrangler runs with `--local`, so remote
+bindings are disabled. Changing `LOCAL_ADMIN_PASSWORD` updates only the local credential and
+revokes its local sessions.
+
+Use Fashion staging only for intentional remote integration or acceptance work:
+
+```sh
+bun --filter @shoppp/admin dev:staging
+```
+
+The staging preflight requires the exact Fashion staging API and `shoppp-fashion-staging` D1
+identity from `.env`, and continues to reject production.
 
 ## Verification
 

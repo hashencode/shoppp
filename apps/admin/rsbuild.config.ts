@@ -19,16 +19,25 @@ export default defineConfig(({ command, envMode }) => {
   const appBasePath = normalizeAppBasePath(readPublicEnvValue(publicVars, 'PUBLIC_APP_BASE'))
   const apiProxyTarget = process.env.API_PROXY_TARGET?.trim()
 
-  if (command === 'dev' && envMode !== 'test') {
-    throw new Error('Admin development supports only --env-mode test through the test-only preflight.')
+  if (command === 'dev' && envMode !== 'development' && envMode !== 'test') {
+    throw new Error('Admin development supports only the local development or staging test modes.')
   }
   if (command === 'dev' && !apiProxyTarget) {
     throw new Error('Admin development requires API_PROXY_TARGET.')
   }
   if (command === 'dev') {
     const target = new URL(apiProxyTarget!)
-    if (target.protocol !== 'https:' || /production/i.test(target.hostname)) {
-      throw new Error('Admin development can proxy only to the HTTPS staging/test API.')
+    const localTarget =
+      envMode === 'development' &&
+      target.protocol === 'http:' &&
+      (target.hostname === '127.0.0.1' || target.hostname === 'localhost')
+    const stagingTarget =
+      envMode === 'test' &&
+      target.protocol === 'https:' &&
+      !/production/i.test(target.hostname) &&
+      /(?:staging|test)/i.test(target.hostname)
+    if (!localTarget && !stagingTarget) {
+      throw new Error('Admin development proxy does not match the selected local or staging mode.')
     }
   }
 

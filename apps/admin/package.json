@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "bun run build:production",
-    "dev": "bun --env-file=../../.env ../../tools/dev-admin.ts",
-    "dev:test": "bun --env-file=../../.env ../../tools/dev-admin.ts",
+    "dev": "bun --env-file=../../.env ../../tools/dev-admin-local.ts",
+    "dev:staging": "bun --env-file=../../.env ../../tools/dev-admin.ts",
+    "dev:test": "bun run dev:staging",
     "lint": "eslint .",
     "typecheck": "tsc -b",
     "build:test": "tsc -b && rsbuild build --env-mode test && rm -f dist/mockServiceWorker.js",

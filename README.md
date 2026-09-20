@@ -48,6 +48,7 @@ scripts before that gate becomes required.
 
 ## Environments
 
-Development, staging, and production use distinct Worker names, D1 databases, R2 buckets, queues,
-domains, provider credentials, and webhook endpoints. Checked-in configuration contains only
-non-secret identifiers or placeholders.
+Local development uses local-only, recreatable Wrangler resources whose state persists under the
+ignored `.wrangler/` directory by default. Shared staging, isolated Fashion staging, and production
+use distinct Worker names, D1 databases, R2 buckets, queues, domains, provider credentials, and
+webhook endpoints. Checked-in configuration contains only non-secret identifiers or placeholders.

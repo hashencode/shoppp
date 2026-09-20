@@ -1,4 +1,5 @@
 import type { Context } from "hono";
+import { catalogAssetKeySchema } from "@shoppp/contracts";
 
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
@@ -7,6 +8,32 @@ import { actorTypeForPrincipal, requirePermission } from "../iam/permissions";
 
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 const MAX_MEDIA_BYTES = 10 * 1024 * 1024;
+
+function localMediaNotFound(): ApiError {
+  return new ApiError(404, "local_media_not_found", "The local media object was not found.");
+}
+
+export async function serveLocalCatalogMedia(context: Context<ApiEnvironment>): Promise<Response> {
+  if (context.env.ENVIRONMENT !== "development") throw localMediaNotFound();
+
+  let key: string;
+  try {
+    key = decodeURIComponent(context.req.path.slice("/media/".length));
+  } catch {
+    throw localMediaNotFound();
+  }
+  if (!catalogAssetKeySchema.safeParse(key).success) throw localMediaNotFound();
+
+  const object = await context.env.MEDIA.get(key);
+  if (!object) throw localMediaNotFound();
+
+  const headers = new Headers({
+    "Cache-Control": "public, max-age=0, must-revalidate",
+    ETag: object.httpEtag,
+  });
+  object.writeHttpMetadata(headers);
+  return new Response(object.body, { headers });
+}
 
 export async function uploadCatalogMedia(context: Context<ApiEnvironment>) {
   const key = decodeURIComponent(context.req.path.slice("/admin/media/".length));

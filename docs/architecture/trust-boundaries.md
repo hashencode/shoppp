@@ -18,12 +18,15 @@
 
 ## Environment isolation
 
-There are exactly two shared remote identity/data planes. Local authenticated development,
-remote-dependent automated tests, and the test deployment use `shoppp-staging`, the test D1. Only
-production uses `shoppp-production`, the production D1. Their IDs, credentials, backups, Worker
-names, admin hostnames, password-signing secrets, and service credentials are
-distinct. A disposable local Miniflare database is not a shared remote environment. No shared
-remote development D1 exists, and no development command can select production.
+There are exactly two shared remote identity/data planes. Ordinary authenticated Admin development
+uses a local-only, recreatable Wrangler API and D1 whose state persists under the ignored
+`.wrangler/` directory by default. Remote-dependent automated tests and the test
+deployment use `shoppp-staging`, the test D1. Only production uses `shoppp-production`, the
+production D1. Their IDs, credentials, backups, Worker names, admin hostnames,
+password-signing secrets, and service credentials are distinct. The explicit Fashion staging
+development command targets its isolated acceptance data plane. A local Miniflare/Wrangler
+database is not a shared remote environment. No shared remote development D1 exists, and no
+development command can select production.
 
 Other stateful resources remain environment-owned: test and production have distinct R2 buckets,
 rate-limit namespaces, Analytics Engine datasets, queues, Workflows, origins, webhook secrets,

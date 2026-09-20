@@ -79,7 +79,8 @@ describe("password-authenticated admin development preflight", () => {
   test("ships an example environment that passes the canonical preflight", async () => {
     const source = await readFile(resolve(import.meta.dir, "../.env.example"), "utf8");
     const example = Object.fromEntries(
-      source.split(/\r?\n/)
+      source
+        .split(/\r?\n/)
         .filter((line) => line && !line.startsWith("#"))
         .map((line) => {
           const separator = line.indexOf("=");
@@ -99,11 +100,13 @@ describe("password-authenticated admin development preflight", () => {
     ).rejects.toThrow(/fashion-staging/);
   });
 
-  test("exposes one normal test-only development script with no external tunnel", async () => {
+  test("exposes the Fashion staging development script with no external tunnel", async () => {
     const packageJson = JSON.parse(
       await readFile(resolve(import.meta.dir, "../apps/admin/package.json"), "utf8"),
     ) as { scripts: Record<string, string> };
-    expect(packageJson.scripts.dev).toBe("bun --env-file=../../.env ../../tools/dev-admin.ts");
+    expect(packageJson.scripts["dev:staging"]).toBe(
+      "bun --env-file=../../.env ../../tools/dev-admin.ts",
+    );
     expect(JSON.stringify(packageJson.scripts)).not.toMatch(/cloudflared|tunnel/i);
   });
 });
