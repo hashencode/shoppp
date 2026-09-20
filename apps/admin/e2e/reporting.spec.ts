@@ -12,6 +12,46 @@ const readReportingQuery = (url: string): ReportingQuery => {
   }
 }
 
+const buildRevenueReport = (): RevenueReport => ({
+  comparison: {
+    endDate: '2026-06-30',
+    metrics: {
+      averageOrderValue: 1_000,
+      grossSales: 2_000,
+      netSales: 1_900,
+      orderCount: 2,
+      refundTotal: 100,
+    },
+    startDate: '2026-06-01',
+  },
+  currency: 'USD',
+  current: {
+    endDate: '2026-07-30',
+    metrics: {
+      averageOrderValue: 1_750,
+      grossSales: 3_500,
+      netSales: 2_000,
+      orderCount: 2,
+      refundTotal: 1_500,
+    },
+    series: [
+      {
+        date: '2026-07-30',
+        grossSales: 3_500,
+        netSales: 2_000,
+        orderCount: 2,
+        refundTotal: 1_500,
+      },
+    ],
+    startDate: '2026-07-01',
+  },
+  definitions: {
+    grossSales: 'Paid orders recognized once.',
+    refundTotal: 'Successful refunds at completion.',
+  },
+  timeZone: 'America/New_York',
+})
+
 test('operator reconciles the labeled dashboard, drills down, and confirms a scoped export', async ({
   page,
 }) => {
@@ -21,45 +61,7 @@ test('operator reconciles the labeled dashboard, drills down, and confirms a sco
     }
   })
   await mockAdminSession(page)
-  const reportFixture: RevenueReport = {
-    comparison: {
-      endDate: '2026-06-30',
-      metrics: {
-        averageOrderValue: 1_000,
-        grossSales: 2_000,
-        netSales: 1_900,
-        orderCount: 2,
-        refundTotal: 100,
-      },
-      startDate: '2026-06-01',
-    },
-    currency: 'USD',
-    current: {
-      endDate: '2026-07-30',
-      metrics: {
-        averageOrderValue: 1_750,
-        grossSales: 3_500,
-        netSales: 2_000,
-        orderCount: 2,
-        refundTotal: 1_500,
-      },
-      series: [
-        {
-          date: '2026-07-30',
-          grossSales: 3_500,
-          netSales: 2_000,
-          orderCount: 2,
-          refundTotal: 1_500,
-        },
-      ],
-      startDate: '2026-07-01',
-    },
-    definitions: {
-      grossSales: 'Paid orders recognized once.',
-      refundTotal: 'Successful refunds at completion.',
-    },
-    timeZone: 'America/New_York',
-  }
+  const reportFixture = buildRevenueReport()
   const row: ReportOrderRow = {
     createdAt: '2026-07-30T00:00:00.000Z',
     currency: 'USD',
@@ -206,14 +208,38 @@ test('operator reconciles the labeled dashboard, drills down, and confirms a sco
   await expect.poll(() => revenueRequests.length).toBe(5)
   expect(revenueRequests[4]).toEqual(defaultScope)
   await expect(page.getByText('Gross sales (CN¥)')).toBeVisible()
+  const staleResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes('/admin/reporting/revenue') &&
+      new URL(response.url()).searchParams.get('currency') === 'USD'
+  )
   releaseStaleReport()
-  await page.waitForTimeout(100)
+  await staleResponse
   await expect(page.getByText('Gross sales (CN¥)')).toBeVisible()
   await expect(page.getByText('Gross sales ($)')).toHaveCount(0)
   expect(revenueRequests).toHaveLength(5)
+})
 
+test('dashboard keeps Chinese filters readable at a narrow viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.evaluate(() => window.localStorage.setItem('shoppp.admin.locale', 'zh-CN'))
+  await page.addInitScript(() => window.localStorage.setItem('shoppp.admin.locale', 'zh-CN'))
+  await mockAdminSession(page)
+  await page.route('**/admin/reporting/revenue**', async (route) => {
+    const query = readReportingQuery(route.request().url())
+    const report = buildRevenueReport()
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        data: {
+          ...report,
+          currency: query.currency,
+          timeZone: query.timeZone,
+          current: { ...report.current, startDate: query.startDate, endDate: query.endDate },
+        },
+      },
+    })
+  })
+
   await page.goto('/dashboard')
   await expect(page.getByRole('heading', { name: '商业仪表盘' })).toBeVisible()
   const chineseFilterForm = page.locator('form').first()

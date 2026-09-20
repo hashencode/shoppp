@@ -156,7 +156,7 @@ export const DashboardPage = () => {
   const numberFormatter = useMemo(() => new Intl.NumberFormat(locale), [locale])
   const [filterForm] = Form.useForm<DashboardFilterValues>()
   const [defaultQuery] = useState<ReportingQuery>(initialQuery)
-  const [initialFilterValues] = useState<DashboardFilterValues>(() => toFilterValues(defaultQuery))
+  const initialFilterValues = useMemo(() => toFilterValues(defaultQuery), [defaultQuery])
   const {
     filters: committedQuery,
     requestVersion,
@@ -168,7 +168,6 @@ export const DashboardPage = () => {
     toFilters: toReportingQuery,
     autoApplyOnValuesChange: false,
   })
-  const [retryAttempt, setRetryAttempt] = useState(0)
   const [reportSnapshot, setReportSnapshot] = useState<ReportSnapshot | null>(null)
   const [loading, setLoading] = useState(true)
   const latestRequest = useRef(0)
@@ -194,7 +193,7 @@ export const DashboardPage = () => {
     return () => {
       window.clearTimeout(timer)
     }
-  }, [message, localizeError, committedQuery, requestVersion, retryAttempt])
+  }, [message, localizeError, committedQuery, requestVersion])
 
   const report = reportSnapshot?.data ?? null
 
@@ -321,7 +320,7 @@ export const DashboardPage = () => {
   const retry = () => {
     setReportSnapshot(null)
     setLoading(true)
-    setRetryAttempt((attempt) => attempt + 1)
+    commitFilters(toFilterValues(committedQuery))
   }
 
   return (
