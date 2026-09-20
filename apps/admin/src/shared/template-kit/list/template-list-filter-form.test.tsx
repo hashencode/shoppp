@@ -51,6 +51,30 @@ const baseLayoutProps = {
 }
 
 describe('TemplateListFilterForm', () => {
+  it('keeps the default mobile span when a field only overrides wider breakpoints', () => {
+    const Demo = () => {
+      const [form] = Form.useForm<DemoValues>()
+      return (
+        <TemplateListFilterForm<DemoValues>
+          form={form}
+          fields={[{ type: 'input', name: 'name', label: '名称', colProps: { sm: 24, xl: 12 } }]}
+          fieldColProps={{ xs: 24, sm: 12, md: 8, xl: 6 }}
+          actionsColProps={{ span: 8 }}
+          onSubmit={() => undefined}
+          onReset={() => undefined}
+        />
+      )
+    }
+
+    render(<Demo />)
+    const column = screen
+      .getByRole('textbox', { name: '名称' })
+      .closest('.ant-form-item')?.parentElement
+    expect(column?.classList.contains('ant-col-xs-24')).toBe(true)
+    expect(column?.classList.contains('ant-col-sm-24')).toBe(true)
+    expect(column?.classList.contains('ant-col-xl-12')).toBe(true)
+  })
+
   it('uses the shared responsive row gutter defaults', () => {
     expect(DEFAULT_TEMPLATE_LIST_FILTER_ROW_GUTTER).toEqual([
       { xs: 8, sm: 12, md: 16, lg: 16, xl: 16, xxl: 16 },

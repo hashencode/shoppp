@@ -191,7 +191,7 @@ export const StandardListPageRecipe = <
     filterForm
   ) as Partial<TFilterValues> | undefined
 
-  const visibleFieldCount = useMemo(() => {
+  const visibleFilterFields = useMemo(() => {
     const currentFilterValues = watchedFilterValues ?? {}
 
     return spec.filterFields.filter((field) => {
@@ -200,7 +200,7 @@ export const StandardListPageRecipe = <
       }
 
       return field.visibleWhen(currentFilterValues)
-    }).length
+    })
   }, [spec.filterFields, watchedFilterValues])
 
   const reload = useCallback(async () => {
@@ -293,7 +293,10 @@ export const StandardListPageRecipe = <
     [orderedColumns, selectedColumnKeys]
   )
 
-  const searchColProps = useMemo(() => buildSearchGridProps(visibleFieldCount), [visibleFieldCount])
+  const searchColProps = useMemo(
+    () => buildSearchGridProps(visibleFilterFields),
+    [visibleFilterFields]
+  )
   const tablePagination = useMemo(
     () => buildStandardListPagination(pagination, locale),
     [locale, pagination]

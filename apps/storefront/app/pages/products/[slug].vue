@@ -108,10 +108,3 @@ useHead({
 <template>
   <FashionStoreProductPage :resolve-asset="resolveThemeAsset" :view-model="viewModel" />
 </template>
-
-<style src="../../themes/fashion-store/critical.css"></style>
-<style src="../../themes/fashion-store/styles/vendor.css"></style>
-<style src="../../themes/fashion-store/upstream/css/style.css"></style>
-<style src="../../themes/fashion-store/upstream/css/responsive.css"></style>
-<style src="../../themes/fashion-store/upstream/demos/fashion-store/fashion-store.css"></style>
-<style src="../../themes/fashion-store/integration.css"></style>

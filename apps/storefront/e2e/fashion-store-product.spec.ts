@@ -878,6 +878,34 @@ test("Product gallery keeps the selected thumbnail visible through responsive re
   await expectSemanticThumbnailSelection(page, gallery);
 });
 
+test("Product gallery keeps its desktop thumbnail rail beside the image at fractional widths", async ({
+  page,
+}, testInfo) => {
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Desktop layout evidence runs once.");
+  await prepareProduct(page);
+  await page.setViewportSize({ width: 1163, height: 900 });
+  await page.evaluate(() => {
+    document.body.style.zoom = "1.1";
+  });
+
+  const layout = await page
+    .locator(".fashion-product-gallery .row.overflow-hidden")
+    .evaluate((row) => {
+      const main = row.querySelector(".product-image")!.getBoundingClientRect();
+      const thumbnail = row.querySelector(".single-product-thumb")!.getBoundingClientRect();
+      return {
+        mainLeft: main.left,
+        mainTop: main.top,
+        thumbnailHeight: thumbnail.height,
+        thumbnailLeft: thumbnail.left,
+        thumbnailTop: thumbnail.top,
+      };
+    });
+  expect(layout.thumbnailHeight).toBeGreaterThan(0);
+  expect(layout.thumbnailLeft).toBeLessThan(layout.mainLeft);
+  expect(Math.abs(layout.thumbnailTop - layout.mainTop)).toBeLessThanOrEqual(geometryTolerancePx);
+});
+
 test("Product gallery replaces an interrupted thumbnail reveal", async ({ page }, testInfo) => {
   test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Transition overlap evidence runs once.");
   await page.emulateMedia({ reducedMotion: "no-preference" });

@@ -1,3 +1,4 @@
+import "./critical.css";
 import "./styles/vendor.css";
 import "./upstream/css/style.css";
 import "./upstream/css/responsive.css";

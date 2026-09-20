@@ -559,6 +559,33 @@ describe('IAM management pages', () => {
     expect(screen.queryByRole('button', { name: 'Revoke' })).toBeNull()
   })
 
+  it('keeps pending invitation actions in the bounded row layout with revoke confirmation', async () => {
+    let revokeCalls = 0
+    server.use(
+      http.get('*/admin/iam/invitations', () =>
+        HttpResponse.json({
+          data: page([{ ...expiredInvitation, status: 'pending' as const }]),
+        })
+      ),
+      http.post('*/admin/iam/invitations/:id/revoke', () => {
+        revokeCalls += 1
+        return HttpResponse.json({ data: { ...expiredInvitation, status: 'revoked' } })
+      })
+    )
+    renderPage(<UsersPage />)
+    fireEvent.click(await screen.findByRole('tab', { name: /Invitations/i }))
+    const invitee = await screen.findByText('expired@example.test')
+    const row = invitee.closest('tr')
+    expect(row?.querySelectorAll('[data-list-row-actions-row]')).toHaveLength(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Revoke' }))
+    expect(revokeCalls).toBe(0)
+    expect(
+      await screen.findByText('The invitee will no longer be able to activate it.')
+    ).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm revoke' }))
+    await waitFor(() => expect(revokeCalls).toBe(1))
+  }, 25_000)
+
   it('keeps invite failures actionable and supports an idempotent retry', async () => {
     renderPage(<UsersPage />)
     await waitFor(() => expect(screen.getByText('Alice Admin')).toBeTruthy())

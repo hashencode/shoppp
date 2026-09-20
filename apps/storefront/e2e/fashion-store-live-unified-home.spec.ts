@@ -122,7 +122,7 @@ async function captureRegionDifference(
 const profileComposition = process.env.STOREFRONT_FASHION_HOME_PROFILE ?? "combined";
 const isolatedComposition = profileComposition === "isolated";
 
-test("live collection hover swaps the subtitle without covering the title", async ({
+test("collection cards keep text static while the image zooms on hover", async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -133,23 +133,27 @@ test("live collection hover swaps the subtitle without covering the title", asyn
     .locator('[data-home-section="collection"] .interactive-banner-style-09')
     .first();
   const title = card.locator(".fs-22");
-  const subtitle = card.locator(".content-title");
-  const action = card.locator(".content-title-hover");
+  const subtitle = card.locator("span.fs-14");
+  const image = card.locator("img");
 
   await expect(title).toContainText(/\S/);
   await expect(subtitle).toContainText(/\S/);
   await expect(subtitle).toBeVisible();
+  await expect(card.locator(".content-title-hover, .content-arrow, .box-overlay")).toHaveCount(0);
+  await expect(card.getByRole("link", { name: /Explore/ })).toHaveCount(1);
+  const before = await image.evaluate(
+    (element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a,
+  );
   await card.hover();
-  await expect(subtitle).toBeHidden();
-  await expect(action).toBeVisible();
-
-  const [titleBounds, actionBounds] = await Promise.all([
-    title.boundingBox(),
-    action.boundingBox(),
-  ]);
-  expect(titleBounds).not.toBeNull();
-  expect(actionBounds).not.toBeNull();
-  expect(titleBounds!.y + titleBounds!.height).toBeLessThanOrEqual(actionBounds!.y + 1);
+  await page.waitForTimeout(300);
+  await expect(title).toBeVisible();
+  await expect(subtitle).toBeVisible();
+  expect(
+    await image.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a),
+  ).toBeGreaterThan(before + 0.01);
+  expect(await image.evaluate((element) => getComputedStyle(element).transitionDuration)).not.toBe(
+    "0s",
+  );
 });
 
 test("keeps merchandising links named, reachable, and large enough", async ({ page }) => {

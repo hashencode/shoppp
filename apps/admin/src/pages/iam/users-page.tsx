@@ -7,21 +7,7 @@ import {
   type AdminUser,
   type AdminUserStatus,
 } from '@shoppp/contracts'
-import {
-  Alert,
-  App,
-  Button,
-  Card,
-  Form,
-  Input,
-  Modal,
-  Popconfirm,
-  Select,
-  Space,
-  Table,
-  Tabs,
-  Tag,
-} from 'antd'
+import { Alert, App, Button, Card, Form, Input, Modal, Select, Table, Tabs, Tag } from 'antd'
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -42,6 +28,7 @@ import {
   buildListToolbarColumnSettingOptions,
   ListToolbarActions,
 } from '../../shared/components/list-toolbar-actions'
+import { ListRowActions } from '../../shared/components/list-row-actions'
 import { useI18n } from '../../shared/contexts/i18n-context'
 import { useTheme } from '../../shared/contexts/theme-context'
 import { useListViewPreferences } from '../../shared/hooks/use-list-view-preferences'
@@ -50,6 +37,7 @@ import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-
 import {
   buildSearchGridProps,
   buildStandardListPagination,
+  resolveActionColumnLayout,
   STANDARD_LIST_TABLE_CLASS_NAME,
   TemplateListContent,
   TemplateListFilterForm,
@@ -83,6 +71,11 @@ type InvitationFilters = {
 const PAGE_SIZE = 25
 const PAGE_SIZE_OPTIONS = [25, 50, 100]
 const ROLE_FILTERS = { page: 1, pageSize: 100 } as const
+const INVITATION_ACTION_CONTENT_WIDTHS = { resend: 56, revoke: 56 } as const
+const INVITATION_ACTION_LAYOUT = resolveActionColumnLayout(
+  [[INVITATION_ACTION_CONTENT_WIDTHS.resend, INVITATION_ACTION_CONTENT_WIDTHS.revoke]],
+  'large'
+)
 
 const newIdempotencyKey = (prefix: string) =>
   `${prefix}-${typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-request`}`
@@ -439,10 +432,7 @@ export const UsersPage = () => {
     ],
     [activeTab, t]
   )
-  const searchGridProps = useMemo(
-    () => buildSearchGridProps(filterFields.length),
-    [filterFields.length]
-  )
+  const searchGridProps = useMemo(() => buildSearchGridProps(filterFields), [filterFields])
 
   const applyVisibleFilters = useCallback(
     (values: FilterValues) => {
@@ -551,15 +541,18 @@ export const UsersPage = () => {
       {
         key: 'actions',
         title: t('Actions'),
-        width: 190,
+        width: INVITATION_ACTION_LAYOUT.columnWidth,
         render: (_: unknown, invitation) =>
           canWrite && invitation.status === 'pending' ? (
-            <Space>
-              <Button
-                type="link"
-                className="!px-0"
-                onClick={() => {
-                  void (async () => {
+            <ListRowActions
+              layoutMode={INVITATION_ACTION_LAYOUT.mode}
+              maxRowContentWidth={INVITATION_ACTION_LAYOUT.maxRowContentWidth}
+              actions={[
+                {
+                  key: 'resend',
+                  label: t('Resend'),
+                  contentWidth: INVITATION_ACTION_CONTENT_WIDTHS.resend,
+                  onClick: async () => {
                     try {
                       await resendAdminInvitation(invitation.id, {
                         expectedVersion: invitation.version,
@@ -570,17 +563,19 @@ export const UsersPage = () => {
                     } catch (error) {
                       void message.error(normalizeApiError(error).message)
                     }
-                  })()
-                }}
-              >
-                {t('Resend')}
-              </Button>
-              <Popconfirm
-                title={t('Revoke this invitation?')}
-                description={t('The invitee will no longer be able to activate it.')}
-                okText={t('Confirm revoke')}
-                onConfirm={() => {
-                  void (async () => {
+                  },
+                },
+                {
+                  key: 'revoke',
+                  label: t('Revoke'),
+                  contentWidth: INVITATION_ACTION_CONTENT_WIDTHS.revoke,
+                  danger: true,
+                  confirm: {
+                    title: t('Revoke this invitation?'),
+                    description: t('The invitee will no longer be able to activate it.'),
+                    okText: t('Confirm revoke'),
+                  },
+                  onClick: async () => {
                     try {
                       await revokeAdminInvitation(invitation.id, {
                         expectedVersion: invitation.version,
@@ -590,14 +585,10 @@ export const UsersPage = () => {
                     } catch (error) {
                       void message.error(normalizeApiError(error).message)
                     }
-                  })()
-                }}
-              >
-                <Button danger type="link" className="!px-0">
-                  {t('Revoke')}
-                </Button>
-              </Popconfirm>
-            </Space>
+                  },
+                },
+              ]}
+            />
           ) : null,
       },
     ],
@@ -691,7 +682,7 @@ export const UsersPage = () => {
                 rowKey="id"
                 queryState={invitationsController}
                 pagination={buildStandardListPagination(invitationPagination, locale)}
-                scrollX={860}
+                scrollX={670 + INVITATION_ACTION_LAYOUT.columnWidth}
                 emptyTitle={t('No invitations match these filters.')}
                 onReload={() => void loadInvitations()}
                 onResetEmpty={resetVisibleFilters}

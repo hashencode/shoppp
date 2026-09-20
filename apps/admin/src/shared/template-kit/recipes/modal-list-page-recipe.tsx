@@ -107,7 +107,7 @@ export const ModalListPageRecipe = <
     filterForm
   ) as Partial<TFilterValues> | undefined
 
-  const visibleFieldCount = useMemo(() => {
+  const visibleFilterFields = useMemo(() => {
     const currentFilterValues = watchedFilterValues ?? {}
 
     return spec.filterFields.filter((field) => {
@@ -116,7 +116,7 @@ export const ModalListPageRecipe = <
       }
 
       return field.visibleWhen(currentFilterValues)
-    }).length
+    })
   }, [spec.filterFields, watchedFilterValues])
 
   const reload = useCallback(async () => {
@@ -147,7 +147,10 @@ export const ModalListPageRecipe = <
     })
   }, [filters, reload, spec])
 
-  const searchColProps = useMemo(() => buildSearchGridProps(visibleFieldCount), [visibleFieldCount])
+  const searchColProps = useMemo(
+    () => buildSearchGridProps(visibleFilterFields),
+    [visibleFilterFields]
+  )
   const modalListTableProps = useMemo(
     () => buildModalListTableProps(pagination, locale),
     [locale, pagination]

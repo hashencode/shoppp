@@ -161,6 +161,103 @@ describe('table width audit', () => {
     expect(result.columnGroups[0]?.columns.map((column) => column.width)).toEqual([100, 142, 140])
   })
 
+  it('should resolve a local action layout width and audit the resulting scroll total', () => {
+    const result = auditSourceText(
+      'src/pages/example.tsx',
+      `
+        const ACTION_CONTENT_WIDTHS = { view: 30, edit: 30, delete: 30 } as const
+        const ACTION_LAYOUT_COMBINATIONS = [[
+          ACTION_CONTENT_WIDTHS.view,
+          ACTION_CONTENT_WIDTHS.edit,
+          ACTION_CONTENT_WIDTHS.delete,
+        ]] as const
+        const TABLE_SCROLL_X = 255
+        const buildColumns = ({ resolveActionColumnLayout }) => {
+          const actionLayout = resolveActionColumnLayout(ACTION_LAYOUT_COMBINATIONS)
+          return [
+            { key: 'name', title: '名称', width: 100 },
+            { key: 'action', title: '操作', width: actionLayout.columnWidth, render: () => null },
+          ]
+        }
+        const columns = buildColumns({ resolveActionColumnLayout })
+        export const Page = () => <Table columns={columns} scroll={{ x: TABLE_SCROLL_X }} />
+      `
+    )
+
+    expect(result.columnGroups[0]?.columns.map((column) => column.width)).toEqual([100, 156])
+    expect(result.issues.map((issue) => issue.type)).toEqual(['scroll-too-small'])
+  })
+
+  it('should keep non-static action layout combinations unresolved', () => {
+    const result = auditSourceText(
+      'src/pages/example.tsx',
+      `
+        const ACTION_LAYOUT_COMBINATIONS = getCombinations()
+        const actionLayout = resolveActionColumnLayout(ACTION_LAYOUT_COMBINATIONS)
+        const columns = [
+          { key: 'action', title: '操作', width: actionLayout.columnWidth, render: () => null },
+        ]
+        export const Page = () => <Table columns={columns} scroll={{ x: 300 }} />
+      `
+    )
+
+    expect(result.issues).toContainEqual(
+      expect.objectContaining({ type: 'unknown-width', severity: 'warn' })
+    )
+  })
+
+  it('should not resolve same-named action layouts across different scopes', () => {
+    const result = auditSourceText(
+      'src/pages/example.tsx',
+      `
+        const ACTION_CONTENT_WIDTHS = { view: 30 } as const
+        const ACTION_LAYOUT_COMBINATIONS = [[ACTION_CONTENT_WIDTHS.view]] as const
+        const first = () => {
+          const actionLayout = resolveActionColumnLayout(getCombinations())
+          const columnsFirst = [
+            { key: 'action', title: '操作', width: actionLayout.columnWidth, render: () => null },
+          ]
+          return columnsFirst
+        }
+        const second = () => {
+          const actionLayout = resolveActionColumnLayout(ACTION_LAYOUT_COMBINATIONS)
+          const columnsSecond = [
+            { key: 'action', title: '操作', width: actionLayout.columnWidth, render: () => null },
+          ]
+          return columnsSecond
+        }
+        export const Page = () => <Table columns={first() ?? second()} scroll={{ x: 300 }} />
+      `
+    )
+
+    expect(result.issues).toContainEqual(
+      expect.objectContaining({ type: 'unknown-width', severity: 'warn' })
+    )
+  })
+
+  it('should reject a statically computed action layout above the supported width', () => {
+    const result = auditSourceText(
+      'src/pages/example.tsx',
+      `
+        const ACTION_CONTENT_WIDTHS = { view: 200, edit: 200, delete: 200 } as const
+        const ACTION_LAYOUT_COMBINATIONS = [[
+          ACTION_CONTENT_WIDTHS.view,
+          ACTION_CONTENT_WIDTHS.edit,
+          ACTION_CONTENT_WIDTHS.delete,
+        ]] as const
+        const actionLayout = resolveActionColumnLayout(ACTION_LAYOUT_COMBINATIONS)
+        const columns = [
+          { key: 'action', title: '操作', width: actionLayout.columnWidth, render: () => null },
+        ]
+        export const Page = () => <Table columns={columns} scroll={{ x: 1000 }} />
+      `
+    )
+
+    expect(result.issues).toContainEqual(
+      expect.objectContaining({ type: 'unsupported-action-layout', severity: 'error' })
+    )
+  })
+
   it('rejects missing widths after a reachable action collection adopts the contract', () => {
     const result = auditSourceText(
       'src/pages/example.tsx',

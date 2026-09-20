@@ -218,10 +218,7 @@ export const AuditPage = () => {
     ],
     [t]
   )
-  const searchGridProps = useMemo(
-    () => buildSearchGridProps(filterFields.length),
-    [filterFields.length]
-  )
+  const searchGridProps = useMemo(() => buildSearchGridProps(filterFields), [filterFields])
   const invalidCursor = controller.error?.code === 'invalid_audit_cursor'
   const retry = invalidCursor ? goToFirstPage : () => void load()
   const tableNode = (

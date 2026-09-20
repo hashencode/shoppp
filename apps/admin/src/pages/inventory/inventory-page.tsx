@@ -1,4 +1,4 @@
-import { App, Button, Form, Input, InputNumber, Modal, Space, Table, Tag } from 'antd'
+import { App, Form, Input, InputNumber, Modal, Table, Tag } from 'antd'
 import dayjs from 'dayjs'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -13,6 +13,7 @@ import {
 } from '../../services/inventory/api'
 import { useCurrentTranslate, useI18n } from '../../shared/contexts/i18n-context'
 import { useLocalizedApiError } from '../../shared/i18n/api-error'
+import { ListRowActions } from '../../shared/components/list-row-actions'
 import {
   StandardListPageRecipe,
   type StandardListPageSpec,
@@ -32,6 +33,12 @@ type InventorySearchValues = {
 
 type InventoryFilters = Parameters<typeof fetchInventory>[0]
 type InventoryListResponse = Awaited<ReturnType<typeof fetchInventory>>
+
+const ACTION_CONTENT_WIDTHS = { history: 56, adjust: 56 } as const
+const ACTION_LAYOUT_COMBINATIONS = [
+  [ACTION_CONTENT_WIDTHS.history],
+  [ACTION_CONTENT_WIDTHS.history, ACTION_CONTENT_WIDTHS.adjust],
+] as const
 
 const toFilters = (values: InventorySearchValues): InventoryFilters => ({
   query: values.query?.trim() || undefined,
@@ -147,55 +154,67 @@ export const InventoryPage = () => {
           {t('On-hand, reserved, available, and append-only adjustments.')}
         </p>
       ),
-      buildColumns: ({ resolveActionColumnWidth }) => [
-        {
-          key: 'product',
-          title: t('Product / variant'),
-          width: 260,
-          render: (_: unknown, item) => (
-            <>
-              <div>{item.productName}</div>
-              <span className="text-sm text-slate-500">
-                {item.variantName} · {item.sku}
-              </span>
-            </>
-          ),
-        },
-        { key: 'warehouse', title: t('Warehouse'), dataIndex: 'warehouseName', width: 160 },
-        { key: 'onHand', title: t('On hand'), dataIndex: 'onHand', width: 110 },
-        { key: 'reserved', title: t('Reserved'), dataIndex: 'reserved', width: 110 },
-        {
-          key: 'available',
-          title: t('Available'),
-          dataIndex: 'available',
-          width: 110,
-          render: (value: number) => <Tag color={value > 0 ? 'success' : 'error'}>{value}</Tag>,
-        },
-        {
-          key: 'adjusted',
-          title: t('Adjusted'),
-          dataIndex: 'adjusted',
-          width: 110,
-          render: (value: number) => (value > 0 ? `+${value}` : value),
-        },
-        {
-          key: 'actions',
-          title: t('Actions'),
-          width: resolveActionColumnWidth(180),
-          render: (_: unknown, item) => (
-            <Space>
-              <Button type="link" className="!px-0" onClick={() => void openHistory(item)}>
-                {t('History')}
-              </Button>
-              {canAdjust ? (
-                <Button type="link" className="!px-0" onClick={() => openAdjustment(item)}>
-                  {t('Adjust')}
-                </Button>
-              ) : null}
-            </Space>
-          ),
-        },
-      ],
+      buildColumns: ({ resolveActionColumnLayout }) => {
+        const actionLayout = resolveActionColumnLayout(ACTION_LAYOUT_COMBINATIONS)
+        return [
+          {
+            key: 'product',
+            title: t('Product / variant'),
+            width: 260,
+            render: (_: unknown, item) => (
+              <>
+                <div>{item.productName}</div>
+                <span className="text-sm text-slate-500">
+                  {item.variantName} · {item.sku}
+                </span>
+              </>
+            ),
+          },
+          { key: 'warehouse', title: t('Warehouse'), dataIndex: 'warehouseName', width: 160 },
+          { key: 'onHand', title: t('On hand'), dataIndex: 'onHand', width: 110 },
+          { key: 'reserved', title: t('Reserved'), dataIndex: 'reserved', width: 110 },
+          {
+            key: 'available',
+            title: t('Available'),
+            dataIndex: 'available',
+            width: 110,
+            render: (value: number) => <Tag color={value > 0 ? 'success' : 'error'}>{value}</Tag>,
+          },
+          {
+            key: 'adjusted',
+            title: t('Adjusted'),
+            dataIndex: 'adjusted',
+            width: 110,
+            render: (value: number) => (value > 0 ? `+${value}` : value),
+          },
+          {
+            key: 'actions',
+            title: t('Actions'),
+            width: actionLayout.columnWidth,
+            render: (_: unknown, item) => (
+              <ListRowActions
+                layoutMode={actionLayout.mode}
+                maxRowContentWidth={actionLayout.maxRowContentWidth}
+                actions={[
+                  {
+                    key: 'history',
+                    label: t('History'),
+                    contentWidth: ACTION_CONTENT_WIDTHS.history,
+                    onClick: () => openHistory(item),
+                  },
+                  {
+                    key: 'adjust',
+                    label: t('Adjust'),
+                    contentWidth: ACTION_CONTENT_WIDTHS.adjust,
+                    visible: canAdjust,
+                    onClick: () => openAdjustment(item),
+                  },
+                ]}
+              />
+            ),
+          },
+        ]
+      },
       buildTableNode: ({
         columns,
         dataSource,

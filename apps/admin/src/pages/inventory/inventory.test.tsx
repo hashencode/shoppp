@@ -146,6 +146,9 @@ describe('InventoryPage', () => {
     expect(screen.getByText('3')).toBeTruthy()
     expect(screen.getByText('7')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Adjust' })).toBeNull()
+    expect(
+      screen.getByRole('button', { name: 'History' }).closest('[data-list-row-actions-row]')
+    ).toBeTruthy()
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Page Size' }))
     expect(await screen.findByRole('option', { name: '20 per page' })).toBeTruthy()
     expect(screen.getByRole('option', { name: '50 per page' })).toBeTruthy()
@@ -193,6 +196,9 @@ describe('InventoryPage', () => {
     })
     renderPage(['inventory.read', 'inventory.adjust'])
     await waitFor(() => expect(screen.getByText('Carry-on')).toBeTruthy())
+    expect(
+      screen.getByRole('button', { name: 'Adjust' }).closest('[data-list-row-actions-row]')
+    ).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Adjust' }))
     fireEvent.change(screen.getByRole('spinbutton', { name: 'Quantity delta' }), {
       target: { value: '0' },

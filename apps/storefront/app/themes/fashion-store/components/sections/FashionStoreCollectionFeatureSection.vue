@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import FashionStoreCarousel from "../shared/FashionStoreCarousel.vue";
-import FashionStoreIcon from "../shared/FashionStoreIcon.vue";
 import type { FashionStoreHomeSectionProperties } from "./home-section-context";
 import {
   resolveFashionStoreHomeEditorial,
@@ -98,26 +97,13 @@ function sourceAsset(sourcePath: string): string {
                       <span class="text-white fw-500 fs-22">{{ collectionSlide(index).name }}</span>
                       <span
                         v-if="collectionSlide(index).subtitle"
-                        class="content-title text-white fs-14 fw-500 opacity-7 text-uppercase ls-05px"
+                        class="text-white fs-14 fw-500 opacity-7 text-uppercase ls-05px"
                         >{{ collectionSlide(index).subtitle }}</span
                       >
-                      <a
-                        :href="editorial.collection.href"
-                        data-fashion-store-route
-                        class="content-title-hover fs-14 lh-24 fw-500 ls-05px text-uppercase text-white opacity-6 text-decoration-line-bottom"
-                        >Explore collection</a
-                      >
-                      <span
-                        class="content-arrow lh-50 rounded-circle bg-base-color w-50px h-50px ms-20px text-center"
-                        ><FashionStoreIcon
-                          name="arrow-right"
-                          class="text-dark-gray icon-very-medium"
-                      /></span>
                     </div>
                     <div
                       class="position-absolute left-0px top-0px w-100 h-100 bg-gradient-regal-blue-transparent opacity-9"
                     ></div>
-                    <div class="box-overlay bg-gradient-gray-light-dark-transparent"></div>
                     <a
                       :href="editorial.collection.href"
                       data-fashion-store-route

@@ -44,9 +44,26 @@ function positionTooltip(): void {
   const bounds = tooltip.value.getBoundingClientRect();
   const centerX = target.left + target.width / 2;
   const centerY = target.top + target.height / 2;
+  const action = trigger.value.closest("li");
+  const sibling =
+    action && [...(action.parentElement?.children ?? [])].find((item) => item !== action);
+  const siblingBounds = sibling?.getBoundingClientRect();
+  const horizontalActions = siblingBounds
+    ? Math.abs(centerX - (siblingBounds.left + siblingBounds.width / 2)) >
+      Math.abs(centerY - (siblingBounds.top + siblingBounds.height / 2))
+    : false;
+  const leftCandidate = {
+    side: "left",
+    x: target.left - bounds.width - gap,
+    y: centerY - bounds.height / 2,
+  } as const;
+  const topCandidate = {
+    side: "top",
+    x: centerX - bounds.width / 2,
+    y: target.top - bounds.height - gap,
+  } as const;
   const candidates = [
-    { side: "left", x: target.left - bounds.width - gap, y: centerY - bounds.height / 2 },
-    { side: "top", x: centerX - bounds.width / 2, y: target.top - bounds.height - gap },
+    ...(horizontalActions ? [topCandidate, leftCandidate] : [leftCandidate, topCandidate]),
     { side: "right", x: target.right + gap, y: centerY - bounds.height / 2 },
     { side: "bottom", x: centerX - bounds.width / 2, y: target.bottom + gap },
   ] as const;

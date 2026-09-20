@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 import * as ts from 'typescript'
 import {
+  resolveActionColumnLayout,
   resolveActionColumnWidth,
   type ActionColumnTableSize,
 } from '../shared/template-kit/list/resolve-action-column-width'
@@ -11,6 +12,7 @@ export type TableWidthIssueType =
   | 'unknown-width'
   | 'missing-scroll'
   | 'scroll-too-small'
+  | 'unsupported-action-layout'
   | 'action-layout-manual-review'
 
 export type TableWidthIssueSeverity = 'error' | 'warn'
@@ -214,7 +216,9 @@ const getResolvableExpressionName = (expression: ts.Expression): string | undefi
   return undefined
 }
 
-const getResolvedActionColumnTableSize = (expression: ts.Expression | undefined): ActionColumnTableSize => {
+const getResolvedActionColumnTableSize = (
+  expression: ts.Expression | undefined
+): ActionColumnTableSize => {
   const unwrappedExpression = expression ? unwrapExpression(expression) : undefined
 
   if (
@@ -260,8 +264,10 @@ const resolveWidth = (
     const tableSize = getResolvedActionColumnTableSize(unwrappedSizeOrMaxExpression)
     const inlineMaxWidth =
       unwrappedSizeOrMaxExpression &&
-      !(ts.isStringLiteral(unwrappedSizeOrMaxExpression) ||
-        ts.isNoSubstitutionTemplateLiteral(unwrappedSizeOrMaxExpression))
+      !(
+        ts.isStringLiteral(unwrappedSizeOrMaxExpression) ||
+        ts.isNoSubstitutionTemplateLiteral(unwrappedSizeOrMaxExpression)
+      )
         ? resolveWidth(unwrappedSizeOrMaxExpression, numericConstants).value
         : undefined
     const explicitMaxWidth = maxExpression
@@ -344,10 +350,7 @@ const isWithinBuildColumnsProperty = (node: ts.Node): boolean => {
   let current: ts.Node | undefined = node.parent
 
   while (current) {
-    if (
-      ts.isPropertyAssignment(current) &&
-      getPropertyNameText(current.name) === 'buildColumns'
-    ) {
+    if (ts.isPropertyAssignment(current) && getPropertyNameText(current.name) === 'buildColumns') {
       return true
     }
 
@@ -409,6 +412,124 @@ const collectVariableInitializers = (sourceFile: ts.SourceFile) => {
   }
   visit(sourceFile)
   return initializers
+}
+
+const resolveActionLayoutCombinations = (
+  expression: ts.Expression,
+  numericConstants: Map<string, number>,
+  variableInitializers: Map<string, ts.Expression>,
+  declarationCounts: Map<string, number>,
+  visited = new Set<string>()
+): number[][] | undefined => {
+  const unwrappedExpression = unwrapExpression(expression)
+
+  if (ts.isIdentifier(unwrappedExpression)) {
+    if (
+      visited.has(unwrappedExpression.text) ||
+      declarationCounts.get(unwrappedExpression.text) !== 1
+    ) {
+      return undefined
+    }
+    const initializer = variableInitializers.get(unwrappedExpression.text)
+    if (!initializer) return undefined
+    return resolveActionLayoutCombinations(
+      initializer,
+      numericConstants,
+      variableInitializers,
+      declarationCounts,
+      new Set([...visited, unwrappedExpression.text])
+    )
+  }
+
+  if (!ts.isArrayLiteralExpression(unwrappedExpression)) return undefined
+
+  const combinations: number[][] = []
+  for (const element of unwrappedExpression.elements) {
+    const combination = unwrapExpression(element as ts.Expression)
+    if (!ts.isArrayLiteralExpression(combination)) return undefined
+
+    const widths: number[] = []
+    for (const widthExpression of combination.elements) {
+      const widthName = getResolvableExpressionName(widthExpression as ts.Expression)
+      if (widthName && declarationCounts.get(widthName.split('.')[0] ?? '') !== 1) {
+        return undefined
+      }
+      const width = resolveWidth(widthExpression as ts.Expression, numericConstants).value
+      if (typeof width !== 'number') return undefined
+      widths.push(width)
+    }
+    combinations.push(widths)
+  }
+
+  return combinations
+}
+
+const collectActionLayoutWidths = (
+  sourceFile: ts.SourceFile,
+  numericConstants: Map<string, number>,
+  variableInitializers: Map<string, ts.Expression>
+) => {
+  const issues: TableWidthIssue[] = []
+  const declarationCounts = new Map<string, number>()
+  const countDeclarations = (node: ts.Node) => {
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) {
+      declarationCounts.set(node.name.text, (declarationCounts.get(node.name.text) ?? 0) + 1)
+    }
+    ts.forEachChild(node, countDeclarations)
+  }
+  countDeclarations(sourceFile)
+
+  const visit = (node: ts.Node) => {
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
+      const initializer = unwrapExpression(node.initializer)
+      if (
+        ts.isCallExpression(initializer) &&
+        ts.isIdentifier(initializer.expression) &&
+        initializer.expression.text === 'resolveActionColumnLayout' &&
+        initializer.arguments[0]
+      ) {
+        const combinations = resolveActionLayoutCombinations(
+          initializer.arguments[0],
+          numericConstants,
+          variableInitializers,
+          declarationCounts
+        )
+        const sizeExpression = initializer.arguments[1]
+          ? unwrapExpression(initializer.arguments[1])
+          : undefined
+        let tableSize: ActionColumnTableSize | undefined = 'large'
+        if (sizeExpression) {
+          tableSize =
+            (ts.isStringLiteral(sizeExpression) ||
+              ts.isNoSubstitutionTemplateLiteral(sizeExpression)) &&
+            ['large', 'middle', 'small'].includes(sizeExpression.text)
+              ? (sizeExpression.text as ActionColumnTableSize)
+              : undefined
+        }
+
+        if (combinations && tableSize) {
+          const layout = resolveActionColumnLayout(combinations, tableSize)
+          if (declarationCounts.get(node.name.text) === 1) {
+            numericConstants.set(`${node.name.text}.columnWidth`, layout.columnWidth)
+          }
+          if (!layout.isSupported) {
+            issues.push({
+              type: 'unsupported-action-layout',
+              severity: 'error',
+              filePath: sourceFile.fileName,
+              line: getLine(sourceFile, node),
+              message: layout.error ?? 'Action layout exceeds the supported width.',
+            })
+          }
+        }
+      }
+    }
+
+    ts.forEachChild(node, visit)
+  }
+
+  visit(sourceFile)
+  return issues
 }
 
 const collectActionManualReviews = (
@@ -724,6 +845,11 @@ export const auditSourceText = (filePath: string, sourceText: string): SourceAud
   )
   const numericConstants = collectNumericConstants(sourceFile)
   const variableInitializers = collectVariableInitializers(sourceFile)
+  const actionLayoutIssues = collectActionLayoutWidths(
+    sourceFile,
+    numericConstants,
+    variableInitializers
+  )
   const result = {
     filePath,
     tableUsages: collectTableUsages(sourceFile),
@@ -738,7 +864,7 @@ export const auditSourceText = (filePath: string, sourceText: string): SourceAud
 
   return {
     ...result,
-    issues: buildIssues(result),
+    issues: [...buildIssues(result), ...actionLayoutIssues],
   }
 }
 
@@ -774,7 +900,12 @@ export const auditProject = (rootDir = process.cwd()): SourceAuditResult[] => {
     .map((filePath) =>
       auditSourceText(path.relative(rootDir, filePath), readFileSync(filePath, 'utf8'))
     )
-    .filter((result) => result.tableUsages.length > 0 || result.actionManualReviews.length > 0)
+    .filter(
+      (result) =>
+        result.tableUsages.length > 0 ||
+        result.actionManualReviews.length > 0 ||
+        result.issues.length > 0
+    )
 }
 
 const formatIssue = (issue: TableWidthIssue) =>

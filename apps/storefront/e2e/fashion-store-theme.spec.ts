@@ -485,10 +485,7 @@ test("collection carousel and edge rails remain interactive", async ({ page }, t
 
   const carousel = page.locator("[data-fashion-store-collection-carousel]");
   await carousel.scrollIntoViewIfNeeded();
-  const collectionArrow = carousel.locator(".content-arrow").first();
-  await expect(collectionArrow.locator('[data-fashion-store-icon="arrow-right"] svg')).toHaveCount(
-    1,
-  );
+  await expect(carousel.locator(".content-arrow, .content-title-hover")).toHaveCount(0);
   const collectionBefore = await carousel.getAttribute("data-collection-index");
   await expect
     .poll(() => carousel.getAttribute("data-collection-index"), { timeout: 5_500 })
@@ -1255,6 +1252,44 @@ test("local tooltip supports focus, Escape and route cleanup with reduced motion
   await page.locator("section:nth-of-type(4) .shop-footer a").first().click();
   await expect(page).toHaveURL(/\/products\//);
   await expect(page.getByRole("tooltip")).toHaveCount(0);
+});
+
+test("horizontal home product actions place their tooltip above the buttons", async ({
+  page,
+}, testInfo) => {
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"));
+  await ready(page, "/");
+  const card = page
+    .locator(
+      '[data-home-section="product-merchandising"] [data-product-surface="home-merchandising"]',
+    )
+    .first();
+  await card.scrollIntoViewIfNeeded();
+  await card.locator(".shop-image").hover({ force: true });
+  const trigger = card.locator('[data-card-action="wishlist"]');
+  await trigger.hover();
+  const tooltip = page.getByRole("tooltip");
+  await expect(tooltip).toHaveAttribute("data-placement", "top");
+  const triggerBox = await trigger.boundingBox();
+  const tooltipBox = await tooltip.boundingBox();
+  expect(tooltipBox!.y + tooltipBox!.height).toBeLessThan(triggerBox!.y);
+});
+
+test("vertical product actions place their tooltip beside the buttons", async ({
+  page,
+}, testInfo) => {
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"));
+  await page.goto("/shop", { waitUntil: "networkidle" });
+  const card = page.locator("[data-fashion-store-shop] .shop-modern > .grid-item").first();
+  await card.scrollIntoViewIfNeeded();
+  await card.hover();
+  const trigger = card.getByRole("button", { name: "Add to wishlist" });
+  await trigger.hover();
+  const tooltip = page.getByRole("tooltip", { name: "Add to wishlist" });
+  await expect(tooltip).toHaveAttribute("data-placement", "left");
+  const triggerBox = await trigger.boundingBox();
+  const tooltipBox = await tooltip.boundingBox();
+  expect(tooltipBox!.x + tooltipBox!.width).toBeLessThan(triggerBox!.x);
 });
 
 test("captures the four-viewport Fashion Store initial-home evidence", async ({

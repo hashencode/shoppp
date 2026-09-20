@@ -30,6 +30,7 @@ import {
   type RemoteSearchSelectValue,
 } from '../../components/remote-search-select'
 import { useI18n } from '../../contexts/i18n-context'
+import { resolveSearchGridFieldColProps } from './build-search-grid-props'
 
 type FilterFieldName<TValues> = Extract<keyof TValues, string>
 
@@ -234,7 +235,7 @@ const TemplateListFilterFieldNode = <TValues extends Record<string, unknown>>({
 }) => {
   const visible = field.visibleWhen ? field.visibleWhen(values) : true
 
-  const colProps = field.colProps ?? defaultColProps
+  const colProps = resolveSearchGridFieldColProps(field.colProps, defaultColProps)
   if (!visible) {
     return null
   }
