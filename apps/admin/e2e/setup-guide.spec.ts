@@ -132,6 +132,51 @@ test.beforeEach(async ({ page }, testInfo) => {
   )
 })
 
+test('store settings navigation supports expanded and collapsed sidebar paths', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await mockAdminSession(page)
+  await mockCommerce(page)
+
+  await page.goto(path('/settings/contact'))
+
+  const storeSettings = page.getByRole('menuitem', { name: /Store settings/ })
+  await expect(storeSettings).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.getByRole('menuitem', { name: 'Contact settings' })).toHaveClass(
+    /ant-menu-item-selected/
+  )
+  await expect(page.locator('.ant-breadcrumb')).toContainText(
+    'Store settings/Contact settings'
+  )
+
+  const storeSettingsGroup = storeSettings.locator('xpath=ancestor::li[1]')
+  await expect(storeSettingsGroup.locator(':scope > ul > li[role="menuitem"]')).toHaveText([
+    'Commercial settings',
+    'Contact settings',
+    'Shipping settings',
+  ])
+
+  await storeSettings.click()
+  await expect(page).toHaveURL(new RegExp(`${appBase}/settings/contact$`))
+  await expect(storeSettings).toHaveAttribute('aria-expanded', 'false')
+  await storeSettings.click()
+
+  await page.getByRole('menuitem', { name: 'Commercial settings' }).click()
+  await expect(page).toHaveURL(new RegExp(`${appBase}/settings/launch$`))
+  await expect(page.getByRole('heading', { name: 'Commercial settings' })).toBeVisible()
+
+  await page.getByRole('img', { name: 'menu-fold' }).locator('..').click()
+  await expect(page.locator('.ant-layout-sider')).toHaveClass(/ant-layout-sider-collapsed/)
+  await page.getByRole('menuitem', { name: /Store settings/ }).click()
+
+  const collapsedPopup = page.locator('.ant-menu-submenu-popup')
+  await expect(collapsedPopup).toBeVisible()
+  await collapsedPopup.getByRole('menuitem', { name: 'Contact settings' }).click()
+  await expect(page).toHaveURL(new RegExp(`${appBase}/settings/contact$`))
+  await expect(page.getByRole('heading', { name: 'Contact settings' })).toBeVisible()
+})
+
 for (const viewport of [
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'mobile', width: 390, height: 844 },
