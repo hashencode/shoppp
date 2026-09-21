@@ -39,8 +39,8 @@ describe('first-level menu route contract', () => {
     orders: { title: 'Orders', headingOwner: 'standard-list' },
     fulfillment: { title: 'Fulfillment', headingOwner: 'custom' },
     'notification-recovery': { title: 'Automation recovery', headingOwner: 'standard-list' },
-    'contact-settings': { title: 'Contact settings', headingOwner: 'top-level-form' },
     'launch-settings': { title: 'Commercial settings', headingOwner: 'top-level-form' },
+    'contact-settings': { title: 'Contact settings', headingOwner: 'top-level-form' },
     'shipping-settings': { title: 'Shipping settings', headingOwner: 'top-level-form' },
     audit: { title: 'Audit trail', headingOwner: 'custom' },
     privacy: { title: 'Privacy requests', headingOwner: 'custom' },
@@ -63,9 +63,49 @@ describe('first-level menu route contract', () => {
     expect(headingOwners).toContain('top-level-form')
   })
 
-  it('includes grouped IAM entries without changing their breadcrumb contract', () => {
+  it('groups store settings in their accepted order without changing route access', () => {
+    const storeSettingsRoutes = templateRoutes
+      .filter((route) => route.inMenu && route.menuGroup === 'Store settings')
+      .map(({ key, path, permission, menuMode, menuGroup, breadcrumb }) => ({
+        key,
+        path,
+        permission,
+        menuMode,
+        menuGroup,
+        breadcrumb,
+      }))
+
+    expect(storeSettingsRoutes).toEqual([
+      {
+        key: 'launch-settings',
+        path: '/settings/launch',
+        permission: 'settings.read',
+        menuMode: undefined,
+        menuGroup: 'Store settings',
+        breadcrumb: ['Store settings', 'Commercial settings'],
+      },
+      {
+        key: 'contact-settings',
+        path: '/settings/contact',
+        permission: 'settings.read',
+        menuMode: undefined,
+        menuGroup: 'Store settings',
+        breadcrumb: ['Store settings', 'Contact settings'],
+      },
+      {
+        key: 'shipping-settings',
+        path: '/settings/shipping',
+        permission: 'settings.read',
+        menuMode: undefined,
+        menuGroup: 'Store settings',
+        breadcrumb: ['Store settings', 'Shipping settings'],
+      },
+    ])
+  })
+
+  it('keeps grouped IAM entries on their existing breadcrumb contract', () => {
     const groupedRoutes = templateRoutes
-      .filter((route) => route.inMenu && route.menuGroup)
+      .filter((route) => route.inMenu && route.menuGroup === 'Access management')
       .map(({ key, menuGroup, breadcrumb }) => ({ key, menuGroup, breadcrumb }))
 
     expect(groupedRoutes).toEqual([

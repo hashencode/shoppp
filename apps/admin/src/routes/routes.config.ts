@@ -238,34 +238,34 @@ const commerceRoutes: TemplateRoute[] = [
       ),
   },
   {
-    key: 'contact-settings',
-    path: '/settings/contact',
-    title: 'Contact settings',
-    icon: createElement(SettingOutlined),
-    permission: 'settings.read',
-    inMenu: true,
-    menuMode: 'standalone',
-    breadcrumb: ['Settings', 'Contact settings'],
-    component: () =>
-      lazyPage(() =>
-        import('../pages/settings/contact-settings-page').then((m) => ({
-          default: m.ContactSettingsPage,
-        }))
-      ),
-  },
-  {
     key: 'launch-settings',
     path: '/settings/launch',
     title: 'Commercial settings',
     icon: createElement(SettingOutlined),
     permission: 'settings.read',
     inMenu: true,
-    menuMode: 'standalone',
-    breadcrumb: ['Settings', 'Commercial settings'],
+    menuGroup: 'Store settings',
+    breadcrumb: ['Store settings', 'Commercial settings'],
     component: () =>
       lazyPage(() =>
         import('../pages/settings/launch-settings-page').then((m) => ({
           default: m.LaunchSettingsPage,
+        }))
+      ),
+  },
+  {
+    key: 'contact-settings',
+    path: '/settings/contact',
+    title: 'Contact settings',
+    icon: createElement(SettingOutlined),
+    permission: 'settings.read',
+    inMenu: true,
+    menuGroup: 'Store settings',
+    breadcrumb: ['Store settings', 'Contact settings'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/settings/contact-settings-page').then((m) => ({
+          default: m.ContactSettingsPage,
         }))
       ),
   },
@@ -276,8 +276,8 @@ const commerceRoutes: TemplateRoute[] = [
     icon: createElement(GlobalOutlined),
     permission: 'settings.read',
     inMenu: true,
-    menuMode: 'standalone',
-    breadcrumb: ['Settings', 'Shipping'],
+    menuGroup: 'Store settings',
+    breadcrumb: ['Store settings', 'Shipping settings'],
     component: () =>
       lazyPage(() =>
         import('../pages/settings/shipping-settings-page').then((m) => ({

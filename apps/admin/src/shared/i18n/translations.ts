@@ -462,6 +462,7 @@ export const zhCNMessages: Record<string, string> = {
   Operations: '运营',
   'Launch settings': '上线设置',
   Settings: '设置',
+  'Store settings': '店铺配置',
   Launch: '上线',
   'Shipping settings': '配送设置',
   Shipping: '配送',
