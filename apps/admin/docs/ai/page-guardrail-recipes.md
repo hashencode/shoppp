@@ -237,15 +237,15 @@
 | `orders` | Orders | standalone | standard list | 删除仅复述用途的摘要 |
 | `fulfillment` | Fulfillment | standalone | custom / business override | 删除仅复述用途的摘要 |
 | `notification-recovery` | Automation recovery | standalone | standard list | 删除仅复述用途的摘要 |
-| `contact-settings` | Contact settings | standalone | top-level form via custom recipe | 将 publication guidance 移入 Global Contact Channels；不改 404、环境、请求或保存行为 |
-| `launch-settings` | Commercial settings | standalone | top-level form via custom recipe | 无本轮清理项 |
-| `shipping-settings` | Shipping settings | standalone | top-level form via custom recipe | 删除仅复述用途的摘要 |
+| `launch-settings` | Commercial settings | grouped: Store settings | top-level form via custom recipe | 无本轮清理项 |
+| `contact-settings` | Contact settings | grouped: Store settings | top-level form via custom recipe | 将 publication guidance 移入 Global Contact Channels；不改 404、环境、请求或保存行为 |
+| `shipping-settings` | Shipping settings | grouped: Store settings | top-level form via custom recipe | 删除仅复述用途的摘要 |
 | `audit` | Audit trail | standalone | custom / business override | 将 redaction / permission guidance 移到结果旁 |
 | `privacy` | Privacy requests | standalone | custom / business override | 将 verification / retention guidance 移到操作控件旁 |
 | `iam-users` | Users & invitations | grouped: Access management | custom / business override | 删除仅复述用途的摘要 |
 | `iam-roles` | Roles | grouped: Access management | standard list | 将 authority guidance 移到权限内容旁 |
 
-`remove` 只适用于紧邻标题且仅复述页面用途的通用摘要；`relocate` 适用于会影响操作决策的规则。字段 help、指标定义、错误/空态 description、表格事实和无障碍 description 不属于标题副文案，必须保留在其原有任务边界。IAM 分组项继续保留 `AppShell` 的分组 breadcrumb；详情、编辑器和子表单继续使用 `PageHeaderWithBack`，不进入上述 inventory。
+`remove` 只适用于紧邻标题且仅复述页面用途的通用摘要；`relocate` 适用于会影响操作决策的规则。字段 help、指标定义、错误/空态 description、表格事实和无障碍 description 不属于标题副文案，必须保留在其原有任务边界。Store settings 与 IAM 分组项继续保留 `AppShell` 的分组 breadcrumb；详情、编辑器和子表单继续使用 `PageHeaderWithBack`，不进入上述 inventory。
 
 面包屑只允许由 `AppShell` 统一渲染。禁止在页面内容区再散装手写与 route/title 同义的 `Typography.Title`，也不要给首个主 `Card` 设置同义标题造成双主标题。`Card title` 只用于表达内容分区，例如“基本信息”“列表明细”。
 

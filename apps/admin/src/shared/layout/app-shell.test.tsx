@@ -1,7 +1,7 @@
 import React from 'react'
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it, beforeEach } from '@rstest/core'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthContext } from '../../infrastructure/auth/auth-context'
 import { ThemeProvider } from '../contexts/theme-context'
 import { AppShell } from './app-shell'
@@ -40,8 +40,16 @@ if (!window.ResizeObserver) {
   window.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver
 }
 
+const LocationProbe = () => {
+  const location = useLocation()
+
+  return <div data-testid="location-probe">{`${location.pathname}${location.search}${location.hash}`}</div>
+}
+
 const renderShell = (options?: {
   auth?: Partial<AuthContextValue>
+  basename?: string
+  initialEntry?: string
   locale?: AppLocale
   onLogout?: () => void
   routes?: React.ComponentProps<typeof AppShell>['routes']
@@ -58,10 +66,14 @@ const renderShell = (options?: {
       })}
     >
       <ThemeProvider>
-        <MemoryRouter initialEntries={['/']}>
+        <MemoryRouter
+          basename={options?.basename}
+          initialEntries={[options?.initialEntry ?? `${options?.basename ?? ''}/`]}
+        >
           <Routes>
             <Route path="/" element={<AppShell routes={options?.routes ?? []} />}>
-              <Route index element={<div>首页内容</div>} />
+              <Route index element={<LocationProbe />} />
+              <Route path="*" element={<LocationProbe />} />
             </Route>
             <Route path="/login" element={<div>登录页</div>} />
           </Routes>
@@ -130,7 +142,7 @@ describe('AppShell', () => {
     renderShell({ routes: templateRoutes })
     expect(screen.getAllByRole('menuitem', { name: /开店指南/ })).toHaveLength(1)
     expect(screen.queryByRole('menuitem', { name: '欢迎' })).toBeNull()
-    expect(screen.getByRole('menuitem', { name: /商业设置/ })).toBeTruthy()
+    expect(screen.getByRole('menuitem', { name: /店铺配置/ })).toBeTruthy()
   })
 
   it('omits setup navigation for staff without settings access', () => {
@@ -301,6 +313,90 @@ describe('AppShell', () => {
     )
     expect(screen.getAllByText('一级导航').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Alpha 页面').length).toBeGreaterThan(0)
+  })
+
+  it('expands Store settings in the accepted order without making the parent a destination', async () => {
+    renderShell({ routes: templateRoutes })
+
+    const storeSettings = screen.getByRole('menuitem', { name: /店铺配置/ })
+    expect(screen.getByTestId('location-probe').textContent).toBe('/')
+    fireEvent.click(storeSettings)
+
+    const groupItems = within(storeSettings.closest('li')!).getAllByRole('menuitem')
+    expect(groupItems.map((item) => item.textContent?.trim()).filter(Boolean)).toEqual([
+      '店铺配置',
+      '商业设置',
+      '联系方式设置',
+      '配送设置',
+    ])
+    expect(screen.getByTestId('location-probe').textContent).toBe('/')
+
+    fireEvent.click(screen.getByRole('menuitem', { name: '商业设置' }))
+    await waitFor(() =>
+      expect(screen.getByTestId('location-probe').textContent).toBe('/settings/launch')
+    )
+    fireEvent.click(screen.getByRole('menuitem', { name: '联系方式设置' }))
+    await waitFor(() =>
+      expect(screen.getByTestId('location-probe').textContent).toBe('/settings/contact')
+    )
+    fireEvent.click(screen.getByRole('menuitem', { name: '配送设置' }))
+    await waitFor(() =>
+      expect(screen.getByTestId('location-probe').textContent).toBe('/settings/shipping')
+    )
+  })
+
+  it('shows Store settings only with settings.read permission', () => {
+    const { unmount } = renderShell({
+      auth: { permissions: ['settings.read'] },
+      routes: templateRoutes,
+    })
+    expect(screen.getByRole('menuitem', { name: /店铺配置/ })).toBeTruthy()
+    unmount()
+
+    renderShell({ auth: { permissions: ['catalog.read'] }, routes: templateRoutes })
+    expect(screen.queryByRole('menuitem', { name: /店铺配置/ })).toBeNull()
+  })
+
+  it('opens and selects a direct Store settings route with English breadcrumbs', () => {
+    const { container } = renderShell({
+      initialEntry: '/settings/contact',
+      locale: 'en-US',
+      routes: templateRoutes,
+    })
+
+    const storeSettings = screen.getByRole('menuitem', { name: /Store settings/ })
+    expect(storeSettings.getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getByRole('menuitem', { name: 'Contact settings' }).className).toContain(
+      'ant-menu-item-selected'
+    )
+    expect(container.querySelector('.ant-breadcrumb')?.textContent).toContain(
+      'Store settings/Contact settings'
+    )
+  })
+
+  it('restores the active Store settings group after collapsing under the /admin basename', () => {
+    const { container } = renderShell({
+      basename: '/admin',
+      initialEntry: '/admin/settings/shipping',
+      routes: templateRoutes,
+    })
+
+    expect(screen.getByRole('menuitem', { name: '配送设置' }).className).toContain(
+      'ant-menu-item-selected'
+    )
+    expect(container.querySelector('.ant-breadcrumb')?.textContent).toContain(
+      '店铺配置/配送设置'
+    )
+
+    fireEvent.click(screen.getByRole('img', { name: 'menu-fold' }).parentElement!)
+    fireEvent.click(screen.getByRole('img', { name: 'menu-unfold' }).parentElement!)
+
+    const storeSettings = screen.getByRole('menuitem', { name: /店铺配置/ })
+    expect(storeSettings.getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getByRole('menuitem', { name: '配送设置' }).className).toContain(
+      'ant-menu-item-selected'
+    )
+    expect(screen.getByTestId('location-probe').textContent).toBe('/settings/shipping')
   })
 
   it('shows the Access management group only when authoritative IAM permissions allow it', async () => {
