@@ -190,3 +190,36 @@ candidate, or change runtime behavior.
   `git diff --check` passed.
 - No remote candidate, deployment, DC, or PG state was created or advanced. U2's completed private
   lifecycle is local capability evidence only; product execution advances to U3.
+
+## U3 Store Identity and Policy management evidence
+
+- Added direct Store Settings routes and strict contracts for Store Identity and Policy. Store
+  Identity uses optimistic versions, audited reasons, approved shared Logo variants, and
+  candidate/live inclusion state while leaving currency, origin, and Contact with their existing
+  authorities.
+- Logo removal blocks on exact mutable Theme-draft references. The blocking decision uses all
+  backlinks, while returned draft IDs and repair links are filtered by Theme read permission;
+  historical frozen tuples remain unchanged.
+- Added Policy create, edit, exact review, approve, publish, and archive transitions with separate
+  permissions, confirmations, reasons, audit events, human approval, environment-bound approval
+  evidence, and stale/reused/digest-drift rejection. Successor publication atomically archives the
+  prior same-Policy version and any displaced Policy of the same kind.
+- New schema-v3 candidates require exactly the published Policy authority set and never inject
+  code-authored legal defaults. Historical Release schemas and their embedded bytes remain readable.
+- Added a bounded v1 structured-content editor for heading, paragraph, list, and image sections.
+  Plain-text list paste is limited to 20 items and 500 characters per item before save.
+- The Policy list is cursor-bounded and computes Release inclusion in one grouped query. Duplicate
+  active draft slugs are serialized inside the same D1 batch as create, and stale Admin review
+  conflicts recover to the latest version before another confirmed transition is possible.
+- Proof-first failures were observed for missing Identity/Policy routes and Admin modules. A full
+  structured code review then confirmed seven defects covering successor publication, denied audit,
+  permission-filtered diagnostics, concurrent slug creation, editor bounds, stale recovery, and
+  list query growth; all seven were repaired and regression-tested. The retained review artifact is
+  `/tmp/compound-engineering-501/ce-code-review/20260923-043740-0b07f22c/report.md`.
+- Authoritative verification on 2026-09-23: Contracts `54/54`, DB workers `22/22`, DB seed `1/1`,
+  API workers `302/302`, API focused `43/43`, and Admin focused `10/10` passed. Admin full completed
+  `560/561`; the sole unchanged Theme Editor test exceeded its 20-second parallel timeout, then the
+  exact test passed alone in 12.7 seconds. Contracts, DB, API, and Admin scoped TypeScript checks,
+  changed Admin ESLint, Prettier, and `git diff --check` passed.
+- No remote candidate, deployment, DC, or PG state was created or advanced. U3 completes local
+  control-path capability only; product execution advances to U4.

@@ -51,6 +51,10 @@ import {
   updateStorefrontExperienceDraftRequestSchema,
   updateLaunchConfigurationRequestSchema,
   updateContactSettingsRequestSchema,
+  updateStoreIdentityRequestSchema,
+  createPolicyRequestSchema,
+  updatePolicyRequestSchema,
+  policyTransitionRequestSchema,
   upsertShippingZoneRequestSchema,
   validateStorefrontExperienceDraftRequestSchema,
   storefrontExperienceBuildResultSchema,
@@ -109,6 +113,16 @@ import {
 import { requirePermission } from "../iam/permissions";
 import { getSetupGuide } from "../settings/setup-guide";
 import { getContactSettings, updateContactSettings } from "../settings/contact-profile";
+import { getStoreIdentity, updateStoreIdentity } from "../settings/store-identity";
+import {
+  approvePolicy,
+  archivePolicy,
+  createPolicy,
+  listPolicies,
+  publishPolicy,
+  reviewPolicy,
+  updatePolicy,
+} from "../content/policies";
 import {
   activateAdminAccount,
   changePassword,
@@ -2102,6 +2116,152 @@ export function createApp(options: CreateAppOptions = {}) {
         meta: { requestId: context.get("requestId") },
       });
     },
+  );
+
+  app.get("/admin/settings/store-identity", async (context) => {
+    await requirePermission(context, "identity.read", {
+      id: "identity.primary",
+      type: "store_identity",
+    });
+    return context.json({ data: await getStoreIdentity(context.env.DB) });
+  });
+
+  app.put(
+    "/admin/settings/store-identity",
+    async (context, next) => {
+      await requirePermission(context, "identity.write", {
+        id: "identity.primary",
+        type: "store_identity",
+      });
+      await next();
+    },
+    idempotency("identity.update"),
+    async (context) => {
+      const input = await parseJson(context, updateStoreIdentityRequestSchema);
+      return context.json({ data: await updateStoreIdentity(context, input) });
+    },
+  );
+
+  app.get("/admin/settings/policies", async (context) => {
+    await requirePermission(context, "policies.read", { type: "policy" });
+    const query = z
+      .object({
+        cursor: z
+          .string()
+          .regex(/^(privacy|returns|shipping|terms):[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/)
+          .optional(),
+        limit: z.coerce.number().int().min(1).max(100).default(50),
+      })
+      .strict()
+      .safeParse(context.req.query());
+    if (!query.success)
+      throw new ApiError(422, "policy_list_query_invalid", "Select a valid Policy page.");
+    const page = await listPolicies(context.env.DB, query.data);
+    return context.json({ data: page.data, meta: { nextCursor: page.nextCursor } });
+  });
+
+  app.post(
+    "/admin/settings/policies",
+    async (context, next) => {
+      await requirePermission(context, "policies.write", { type: "policy" });
+      await next();
+    },
+    idempotency("policies.create"),
+    async (context) => {
+      const input = await parseJson(context, createPolicyRequestSchema);
+      return context.json({ data: await createPolicy(context, input) }, 201);
+    },
+  );
+
+  app.put(
+    "/admin/settings/policies/:id",
+    async (context, next) => {
+      await requirePermission(context, "policies.write", {
+        id: context.req.param("id"),
+        type: "policy",
+      });
+      await next();
+    },
+    idempotency("policies.update"),
+    async (context) => {
+      const input = await parseJson(context, updatePolicyRequestSchema);
+      return context.json({ data: await updatePolicy(context, context.req.param("id"), input) });
+    },
+  );
+
+  app.get("/admin/settings/policies/:id/review", async (context) => {
+    await requirePermission(context, "policies.read", {
+      id: context.req.param("id"),
+      type: "policy",
+    });
+    const rawVersion = context.req.query("version");
+    const version =
+      rawVersion === undefined
+        ? undefined
+        : z.coerce.number().int().positive().safeParse(rawVersion);
+    if (version && !version.success)
+      throw new ApiError(422, "policy_version_invalid", "Select a valid Policy version.");
+    return context.json({
+      data: await reviewPolicy(
+        context.env.DB,
+        context.req.param("id"),
+        version?.success ? version.data : undefined,
+      ),
+    });
+  });
+
+  const policyTransition =
+    (
+      action: "approve" | "publish" | "archive",
+      permission: "policies.approve" | "policies.publish",
+    ) =>
+    async (context: Context<ApiEnvironment>) => {
+      const id = context.req.param("id")!;
+      await requirePermission(context, permission, {
+        id,
+        type: "policy",
+      });
+      const input = await parseJson(context, policyTransitionRequestSchema);
+      const operation =
+        action === "approve" ? approvePolicy : action === "publish" ? publishPolicy : archivePolicy;
+      return context.json({ data: await operation(context, id, input) });
+    };
+
+  app.post(
+    "/admin/settings/policies/:id/approve",
+    async (context, next) => {
+      await requirePermission(context, "policies.approve", {
+        id: context.req.param("id"),
+        type: "policy",
+      });
+      await next();
+    },
+    idempotency("policies.approve"),
+    policyTransition("approve", "policies.approve"),
+  );
+  app.post(
+    "/admin/settings/policies/:id/publish",
+    async (context, next) => {
+      await requirePermission(context, "policies.publish", {
+        id: context.req.param("id"),
+        type: "policy",
+      });
+      await next();
+    },
+    idempotency("policies.publish"),
+    policyTransition("publish", "policies.publish"),
+  );
+  app.post(
+    "/admin/settings/policies/:id/archive",
+    async (context, next) => {
+      await requirePermission(context, "policies.publish", {
+        id: context.req.param("id"),
+        type: "policy",
+      });
+      await next();
+    },
+    idempotency("policies.archive"),
+    policyTransition("archive", "policies.publish"),
   );
   app.get("/admin/settings/shipping", async (context) => {
     await requirePermission(context, "settings.read", { type: "shipping_zone" });

@@ -38,6 +38,31 @@ const ADMIN_ROUTE_PERMISSIONS: readonly AdminRoutePermission[] = [
   { method: "GET", path: "/admin/iam/roles/:id", permission: "iam.roles.read" },
   { method: "GET", path: "/admin/settings/setup-guide", permission: "settings.read" },
   { method: "GET", path: "/admin/settings/launch", permission: "settings.read" },
+  { method: "GET", path: "/admin/settings/store-identity", permission: "identity.read" },
+  { method: "PUT", path: "/admin/settings/store-identity", permission: "identity.write" },
+  { method: "GET", path: "/admin/settings/policies", permission: "policies.read" },
+  { method: "POST", path: "/admin/settings/policies", permission: "policies.write" },
+  { method: "PUT", path: "/admin/settings/policies/:id", permission: "policies.write" },
+  {
+    method: "GET",
+    path: "/admin/settings/policies/:id/review",
+    permission: "policies.read",
+  },
+  {
+    method: "POST",
+    path: "/admin/settings/policies/:id/approve",
+    permission: "policies.approve",
+  },
+  {
+    method: "POST",
+    path: "/admin/settings/policies/:id/publish",
+    permission: "policies.publish",
+  },
+  {
+    method: "POST",
+    path: "/admin/settings/policies/:id/archive",
+    permission: "policies.publish",
+  },
   { method: "GET", path: "/admin/settings/shipping", permission: "settings.read" },
   {
     method: "PUT",
@@ -510,12 +535,6 @@ describe("API shell", () => {
     }
 
     const reservedAuthorityPermissions = new Set([
-      "identity.read",
-      "identity.write",
-      "policies.read",
-      "policies.write",
-      "policies.approve",
-      "policies.publish",
       "content.read",
       "content.write",
       "content.publish",

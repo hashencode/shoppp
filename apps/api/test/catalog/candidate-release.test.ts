@@ -176,8 +176,35 @@ function adminRequest(path: string, init: RequestInit = {}) {
   });
 }
 
+async function seedPublishedPolicies() {
+  for (const kind of ["privacy", "returns", "shipping", "terms"] as const) {
+    await env.DB.prepare(
+      `INSERT INTO policy_versions
+        (policy_id, version, kind, slug, title, effective_date, sections_json, status,
+         approval_digest, approved_by, approved_at, approval_environment, published_at,
+         created_at, updated_at)
+       VALUES (?, 1, ?, ?, ?, '2026-09-23', ?, 'published', ?, 'admin-candidate', ?, ?, ?, ?, ?)`,
+    )
+      .bind(
+        `policy.${kind}`,
+        kind,
+        kind,
+        `${kind[0]!.toUpperCase()}${kind.slice(1)} policy`,
+        JSON.stringify([{ id: `section.${kind}`, kind: "paragraph", text: `${kind} policy text` }]),
+        "a".repeat(64),
+        "2026-09-23T00:00:00.000Z",
+        env.ENVIRONMENT,
+        "2026-09-23T00:00:00.000Z",
+        "2026-09-23T00:00:00.000Z",
+        "2026-09-23T00:00:00.000Z",
+      )
+      .run();
+  }
+}
+
 async function seedCandidateSources(app: ReturnType<typeof createApp>) {
   await env.MEDIA.put("catalog/candidate.webp", new Uint8Array([1, 2, 3, 4]));
+  await seedPublishedPolicies();
   const created = await app.fetch(
     adminRequest("/admin/catalog/products", { body: JSON.stringify(product), method: "POST" }),
     env,
@@ -194,7 +221,7 @@ async function seedCandidateSources(app: ReturnType<typeof createApp>) {
     }),
     env,
   );
-  expect(published.status).toBe(202);
+  expect(published.status, await published.clone().text()).toBe(202);
   await env.DB.prepare(
     `UPDATE collection_versions SET status = 'published', published_at = ?, updated_at = ?
       WHERE collection_id IN (SELECT collection_id FROM collection_memberships WHERE product_id = ?)`,
@@ -262,6 +289,7 @@ describe("private candidate builder integration", () => {
         "UPDATE store_identity_versions SET status = 'published' WHERE identity_id = 'identity.primary'",
       ),
     ]);
+    await seedPublishedPolicies();
     await env.MEDIA.put("catalog/candidate.webp", new Uint8Array([1, 2, 3, 4]));
     const frozen = await env.MEDIA.list({ prefix: "catalog-release-media/sha256/" });
     await Promise.all(frozen.objects.map(({ key }) => env.MEDIA.delete(key)));
@@ -576,7 +604,7 @@ describe("private candidate builder integration", () => {
         `INSERT INTO policy_versions
           (policy_id, version, kind, slug, title, effective_date, sections_json, status,
            created_at, updated_at)
-         VALUES ('policy.shipping', 1, 'shipping', 'shipping', 'Shipping', '2026-09-23',
+         VALUES ('policy.shipping-draft', 1, 'shipping', 'shipping-draft', 'Shipping draft', '2026-09-23',
                  '[]', 'draft', ?, ?)`,
       ).bind("2026-09-23T00:00:00.000Z", "2026-09-23T00:00:00.000Z"),
       env.DB.prepare(
@@ -588,12 +616,12 @@ describe("private candidate builder integration", () => {
         `INSERT INTO navigation_items
           (menu_id, menu_version, item_id, parent_item_id, position, label, target_json)
          VALUES ('menu.header', 1, 'item.shipping', NULL, 0, 'Shipping',
-                 '{"kind":"internal","reference":{"kind":"policy","id":"policy.shipping"}}')`,
+                 '{"kind":"internal","reference":{"kind":"policy","id":"policy.shipping-draft"}}')`,
       ),
       env.DB.prepare(
         `INSERT INTO navigation_policy_references
           (menu_id, menu_version, item_id, policy_id, policy_version, environment, created_at)
-         VALUES ('menu.header', 1, 'item.shipping', 'policy.shipping', 1, ?, ?)`,
+         VALUES ('menu.header', 1, 'item.shipping', 'policy.shipping-draft', 1, ?, ?)`,
       ).bind(
         env.ENVIRONMENT === "production" ? "staging" : "production",
         "2026-09-23T00:00:00.000Z",
@@ -618,7 +646,7 @@ describe("private candidate builder integration", () => {
       env.DB.prepare(
         `INSERT INTO navigation_policy_references
           (menu_id, menu_version, item_id, policy_id, policy_version, environment, created_at)
-         VALUES ('menu.header', 1, 'item.shipping', 'policy.shipping', 1, ?, ?)`,
+         VALUES ('menu.header', 1, 'item.shipping', 'policy.shipping-draft', 1, ?, ?)`,
       ).bind(env.ENVIRONMENT, "2026-09-23T00:00:00.000Z"),
     ]);
     const response = await app.fetch(
@@ -697,6 +725,26 @@ describe("private candidate builder integration", () => {
         .bind(candidate.data.id)
         .first(),
     ).toEqual({ candidate_status: "succeeded", status: "approved" });
+  });
+
+  test("fails closed when a required approved Policy is missing instead of inserting defaults", async () => {
+    await env.DB.prepare("DELETE FROM policy_versions WHERE kind = 'terms'").run();
+    const response = await appFor().fetch(
+      adminRequest("/admin/catalog/releases/preview-candidates", {
+        body: JSON.stringify({ reason: "Required Policy proof" }),
+        method: "POST",
+      }),
+      env,
+    );
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      error: { code: "catalog_required_policies_unpublished" },
+    });
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM policy_versions WHERE kind = 'terms'",
+      ).first(),
+    ).toEqual({ count: 0 });
   });
 
   test("uses the exact published Collection version when a newer draft exists", async () => {

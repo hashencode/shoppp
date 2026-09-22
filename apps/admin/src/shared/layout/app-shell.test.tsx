@@ -325,6 +325,8 @@ describe('AppShell', () => {
     const groupItems = within(storeSettings.closest('li')!).getAllByRole('menuitem')
     expect(groupItems.map((item) => item.textContent?.trim()).filter(Boolean)).toEqual([
       '店铺配置',
+      '店铺身份',
+      '政策',
       '商业设置',
       '联系方式设置',
       '配送设置',

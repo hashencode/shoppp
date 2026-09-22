@@ -15,6 +15,8 @@ import {
   TeamOutlined,
   KeyOutlined,
   SmileOutlined,
+  IdcardOutlined,
+  FileProtectOutlined,
 } from '@ant-design/icons'
 import { createElement, type ReactNode } from 'react'
 import { type PermissionKey } from '../infrastructure/auth/permissions'
@@ -234,6 +236,38 @@ const commerceRoutes: TemplateRoute[] = [
       lazyPage(() =>
         import('../pages/operations/jobs/notification-jobs-page').then((m) => ({
           default: m.NotificationJobsPage,
+        }))
+      ),
+  },
+  {
+    key: 'store-identity',
+    path: '/settings/identity',
+    title: 'Store identity',
+    icon: createElement(IdcardOutlined),
+    permission: 'identity.read',
+    inMenu: true,
+    menuGroup: 'Store settings',
+    breadcrumb: ['Store settings', 'Store identity'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/settings/store-identity-page').then((m) => ({
+          default: m.StoreIdentityPage,
+        }))
+      ),
+  },
+  {
+    key: 'policies',
+    path: '/settings/policies',
+    title: 'Policies',
+    icon: createElement(FileProtectOutlined),
+    permission: 'policies.read',
+    inMenu: true,
+    menuGroup: 'Store settings',
+    breadcrumb: ['Store settings', 'Policies'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/settings/policies-page').then((m) => ({
+          default: m.PoliciesPage,
         }))
       ),
   },

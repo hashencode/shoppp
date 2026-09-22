@@ -1,4 +1,5 @@
 export const zhCNMessages: Record<string, string> = {
+  'Store identity': '店铺身份',
   Reviews: '评价',
   'Review moderation': '评价审核',
   'Moderate reviews': '审核评价',

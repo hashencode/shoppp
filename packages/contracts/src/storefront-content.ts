@@ -135,7 +135,7 @@ export const policyAuthoritySchema = z
       .regex(/^[a-f0-9]{64}$/)
       .optional(),
     approvedAt: isoDateTimeSchema.optional(),
-    approvedBy: publicIdSchema.optional(),
+    approvedBy: z.union([publicIdSchema, stableAuthorityIdSchema]).optional(),
     effectiveDate: z.iso.date(),
     kind: z.enum(["privacy", "returns", "shipping", "terms"]),
     publishedAt: isoDateTimeSchema.optional(),
@@ -273,7 +273,60 @@ export const authorityWriteRequestSchema = z
   .object({ expectedVersion: z.int().positive(), reason: z.string().trim().min(3).max(500) })
   .strict();
 
+const identityEditableFields = {
+  faviconAssetId: stableAuthorityIdSchema.nullable(),
+  logoAssets: storeIdentitySchema.shape.logoAssets,
+  seo: seoSchema,
+  socialShareAssetId: stableAuthorityIdSchema.nullable(),
+  storefrontName: z.string().trim().min(1).max(120),
+  tagline: safeTextSchema.trim().max(240),
+};
+
+export const updateStoreIdentityRequestSchema = z
+  .object({
+    ...identityEditableFields,
+    expectedVersion: z.int().positive().nullable(),
+    reason: z.string().trim().min(3).max(500),
+  })
+  .strict();
+
+const policyEditableFields = {
+  effectiveDate: z.iso.date(),
+  kind: policyAuthoritySchema.shape.kind,
+  sections: storefrontContentDocumentSchema.min(1),
+  slug: slugSchema,
+  title: z.string().trim().min(1).max(160),
+};
+
+export const createPolicyRequestSchema = z
+  .object({
+    ...policyEditableFields,
+    reason: z.string().trim().min(3).max(500),
+  })
+  .strict();
+
+export const updatePolicyRequestSchema = z
+  .object({
+    ...policyEditableFields,
+    expectedVersion: z.int().positive(),
+    reason: z.string().trim().min(3).max(500),
+  })
+  .strict();
+
+export const policyTransitionRequestSchema = z
+  .object({
+    confirm: z.literal(true),
+    expectedVersion: z.int().positive(),
+    reason: z.string().trim().min(3).max(500),
+  })
+  .strict();
+
 export type CollectionAuthority = z.infer<typeof collectionAuthoritySchema>;
 export type NavigationMenu = z.infer<typeof navigationMenuSchema>;
 export type PolicyAuthority = z.infer<typeof policyAuthoritySchema>;
 export type StoreIdentity = z.infer<typeof storeIdentitySchema>;
+export type StorefrontContentSection = z.infer<typeof storefrontContentSectionSchema>;
+export type CreatePolicyRequest = z.infer<typeof createPolicyRequestSchema>;
+export type PolicyTransitionRequest = z.infer<typeof policyTransitionRequestSchema>;
+export type UpdatePolicyRequest = z.infer<typeof updatePolicyRequestSchema>;
+export type UpdateStoreIdentityRequest = z.infer<typeof updateStoreIdentityRequestSchema>;

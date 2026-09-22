@@ -6,6 +6,9 @@ import {
   policyAuthoritySchema,
   storeIdentitySchema,
   storefrontContentDocumentSchema,
+  createPolicyRequestSchema,
+  policyTransitionRequestSchema,
+  updateStoreIdentityRequestSchema,
 } from "../src/storefront-content";
 
 const at = "2026-09-22T00:00:00.000Z";
@@ -85,6 +88,42 @@ describe("storefront content authority contracts", () => {
         { id: "section.bad", kind: "paragraph", text: "<script>alert(1)</script>" },
       ]).success,
     ).toBe(false);
+  });
+
+  test("keeps Identity and Policy mutation contracts strict and server-owned", () => {
+    const identity = {
+      expectedVersion: null,
+      faviconAssetId: null,
+      logoAssets: [{ assetId: "asset.logo.primary", variant: "primary" }],
+      reason: "Create store identity",
+      seo: { description: "Objects", title: "Shoppp" },
+      socialShareAssetId: null,
+      storefrontName: "Shoppp",
+      tagline: "Objects",
+    };
+    expect(updateStoreIdentityRequestSchema.safeParse(identity).success).toBe(true);
+    expect(
+      updateStoreIdentityRequestSchema.safeParse({ ...identity, status: "published" }).success,
+    ).toBe(false);
+    const policy = {
+      effectiveDate: "2026-10-01",
+      kind: "privacy",
+      reason: "Create privacy policy",
+      sections: [{ id: "section.intro", kind: "paragraph", text: "Privacy terms." }],
+      slug: "privacy",
+      title: "Privacy policy",
+    };
+    expect(createPolicyRequestSchema.safeParse(policy).success).toBe(true);
+    expect(
+      createPolicyRequestSchema.safeParse({ ...policy, approvalDigest: "a".repeat(64) }).success,
+    ).toBe(false);
+    expect(
+      policyTransitionRequestSchema.safeParse({
+        confirm: true,
+        expectedVersion: 1,
+        reason: "Approve exact policy",
+      }).success,
+    ).toBe(true);
   });
 
   test("rejects duplicate sibling order and unsafe Navigation links", () => {

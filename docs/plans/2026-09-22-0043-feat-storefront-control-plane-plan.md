@@ -27,12 +27,12 @@ deepened: 2026-09-22
 ### Execution Checkpoint
 
 - **Classification:** Active product successor after FS-F12 completed U7 human acceptance on 2026-09-22.
-- **Current product pointer:** `FS-F14-U3` — build Store Identity and Policy management.
+- **Current product pointer:** `FS-F14-U4` — build Collection authority and ordered membership management.
 - **Activation condition:** Met. FS-F13 and FS-F12 are complete and FS-F12 handed execution to FS-F14.
-- **Completed units:** U1 (U1.1-U1.3) and U2 completed on 2026-09-23; retained evidence is in `docs/progress/storefront-control-plane-verification.md`.
-- **Current unit:** U3, Store Identity and Policy management.
-- **Next concrete action:** Add proof-first API and Admin tests for optimistic Store Identity save, Logo backlink blocking, and the Policy edit-review-approve-publish lifecycle; then implement the direct Store Settings routes and remove code-authored Policy defaults from new Release builds.
-- **Blocker:** None for local U3 implementation. Remote mutation, deployment, and candidate/DC/PG advancement remain outside this stage.
+- **Completed units:** U1 (U1.1-U1.3), U2, and U3 completed on 2026-09-23; retained evidence is in `docs/progress/storefront-control-plane-verification.md`.
+- **Current unit:** U4, Collection authority and ordered membership management.
+- **Next concrete action:** Characterize current Product-save membership effects, then add proof-first Catalog API/Admin tests for single-writer Collection editing, optimistic reorder conflicts, backlink-safe archive/slug changes, and the guarded Product-to-Collection handoff before removing implicit Product membership writes.
+- **Blocker:** None for local U4 implementation. Remote mutation, deployment, and candidate/DC/PG advancement remain outside this stage.
 - **Handback:** After U1-U9 and the Definition of Done pass, return to `REL-Pre-DC`. No candidate is frozen automatically.
 
 ---

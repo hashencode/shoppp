@@ -22,7 +22,7 @@ describe("storefront build manifest", () => {
           status: "published",
         },
       ],
-      policies: ["contact", "cookies", "privacy", "returns", "shipping", "terms"].map((slug) => ({
+      policies: ["privacy", "returns", "shipping", "terms"].map((slug) => ({
         description: `${slug} disclosure`,
         effectiveDate: "2026-07-30",
         sections: [{ body: `${slug} policy body`, heading: `${slug} details` }],
@@ -126,8 +126,6 @@ describe("storefront build manifest", () => {
     expect(manifest.routes).toEqual([
       "/",
       "/collections/travel",
-      "/policies/contact",
-      "/policies/cookies",
       "/policies/privacy",
       "/policies/returns",
       "/policies/shipping",

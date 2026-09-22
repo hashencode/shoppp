@@ -64,6 +64,7 @@ const API_ERROR_MESSAGE: Record<ApiErrorCode, string> = {
   last_admin_change_denied: 'The last protected administrator cannot be changed.',
   password_change_conflict: 'The password changed concurrently. Please try again.',
   password_reset_token_invalid: 'This password reset link is invalid or expired.',
+  policy_conflict: 'This Policy changed. Reload the latest version and review it again.',
   protected_admin_password_reset_denied: 'Online reset is disabled for protected administrators.',
   QUERY_TIMEOUT: 'The request timed out. Please try again.',
   QUERY_SERVER_ERROR: 'Request failed. Please try again later.',

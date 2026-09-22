@@ -299,6 +299,9 @@ export const policyVersions = sqliteTable(
     approvalDigest: text("approval_digest"),
     approvedBy: text("approved_by").references(() => adminIdentities.id, { onDelete: "restrict" }),
     approvedAt: text("approved_at"),
+    approvalEnvironment: text("approval_environment", {
+      enum: ["development", "staging", "production"],
+    }),
     publishedAt: text("published_at"),
     ...timestamps,
   },

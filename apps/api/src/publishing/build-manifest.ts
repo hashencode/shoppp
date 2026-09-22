@@ -86,6 +86,7 @@ interface BuildManifestOptions {
   candidateProductId: string;
   candidateRevisionId?: string;
   mediaOrigin: string;
+  policies?: BuildCatalogInput["policies"];
   releaseId: string;
   storefrontOrigin: string;
 }
@@ -146,140 +147,11 @@ interface CollectionRow {
   status: string;
 }
 
-const defaultPolicies: BuildCatalogInput["policies"] = [
-  {
-    description:
-      "Delivery timing and available services are confirmed from your destination during checkout.",
-    effectiveDate: "2026-07-30",
-    sections: [
-      {
-        body: "We show eligible destinations, available services, charges, and estimated delivery timing before payment. An address outside the enabled country list cannot proceed to checkout.",
-        heading: "Destinations and delivery estimates",
-      },
-      {
-        body: "Cross-border duties, taxes, or carrier charges are shown when the configured service can calculate them. Any amount not collected by us is identified before you place the order.",
-        heading: "Cross-border charges",
-      },
-      {
-        body: "Shipment notifications include the carrier and tracking reference. Contact support through the secure channel in your order receipt for delivery exceptions.",
-        heading: "Tracking and exceptions",
-      },
-    ],
-    slug: "shipping",
-    title: "Shipping policy",
-  },
-  {
-    description:
-      "Eligible unused items may be returned within 30 days of delivery. Contact support before sending an item back.",
-    effectiveDate: "2026-07-30",
-    sections: [
-      {
-        body: "Contact support within 30 days of delivery before returning an unused item. We will confirm eligibility, the return destination, and any required authorization.",
-        heading: "Return eligibility",
-      },
-      {
-        body: "Items that are used, damaged after delivery, personalized, or restricted by law may be ineligible. Product-specific exclusions are disclosed before purchase.",
-        heading: "Exclusions",
-      },
-      {
-        body: "Approved refunds are sent to the original payment method. Bank and payment-network processing time can vary after the refund is issued.",
-        heading: "Refund timing",
-      },
-    ],
-    slug: "returns",
-    title: "Returns policy",
-  },
-  {
-    description:
-      "We collect only the information needed to operate, secure, and improve your purchase experience.",
-    effectiveDate: "2026-07-30",
-    sections: [
-      {
-        body: "We process contact, delivery, order, payment-status, device-security, and support information needed to provide and protect the service. Hosted payment details are handled by the payment provider and are not stored by this storefront.",
-        heading: "Information and purposes",
-      },
-      {
-        body: "Commerce records are retained for operational, fraud-prevention, accounting, and legal obligations. Access, correction, and deletion requests are handled through an audited process; legally required financial records remain immutable.",
-        heading: "Retention and your requests",
-      },
-      {
-        body: "Service providers receive only the data needed for payment, delivery, communications, hosting, or security. We count anonymous page classes and purchase stages without cookies, URLs, device identifiers, or personal data. Optional analytics remain disabled until the applicable consent requirement is met.",
-        heading: "Providers and international processing",
-      },
-    ],
-    slug: "privacy",
-    title: "Privacy policy",
-  },
-  {
-    description: "These terms govern use of the storefront and purchases made through it.",
-    effectiveDate: "2026-07-30",
-    sections: [
-      {
-        body: "An order is accepted only after payment confirmation and inventory convergence. A redirect or confirmation page alone is not proof that payment succeeded.",
-        heading: "Orders and payment",
-      },
-      {
-        body: "Prices, currency, shipping, tax treatment, and the final total are shown before hosted checkout. We may reject abusive, unlawful, or technically invalid transactions.",
-        heading: "Pricing and acceptable use",
-      },
-      {
-        body: "Product warranties, liability limits, and mandatory consumer rights depend on the enabled market. Nothing in these terms removes rights that cannot lawfully be excluded.",
-        heading: "Consumer rights",
-      },
-    ],
-    slug: "terms",
-    title: "Terms of service",
-  },
-  {
-    description: "Contact support through the secure channel shown in your order receipt.",
-    effectiveDate: "2026-07-30",
-    sections: [
-      {
-        body: "For an existing order, use the secure support channel in the order receipt and include the public order reference. Never send card numbers, passwords, or guest access links.",
-        heading: "Order support",
-      },
-      {
-        body: "For privacy requests, use the privacy contact approved in the launch configuration. We verify the request before exporting data or recording a correction or deletion decision.",
-        heading: "Privacy requests",
-      },
-      {
-        body: "The merchant's approved legal name, address, and market-specific contact details must be published before production commerce is enabled.",
-        heading: "Merchant details",
-      },
-    ],
-    slug: "contact",
-    title: "Contact",
-  },
-  {
-    description:
-      "Essential storage supports cart and security features. Optional tracking remains disabled until consent.",
-    effectiveDate: "2026-07-30",
-    sections: [
-      {
-        body: "Essential browser storage keeps the guest cart, checkout return state, security challenge, and accessibility preferences working. It is not used to build an advertising profile.",
-        heading: "Essential storage",
-      },
-      {
-        body: "The launch service counts aggregate page classes and purchase stages without cookies or persistent identifiers. Optional analytics and marketing tracking remain off until the required consent is recorded for an enabled market.",
-        heading: "Optional tracking",
-      },
-      {
-        body: "Clearing essential storage may empty the local cart reference or interrupt checkout. Server-side order and financial records are governed by the privacy and retention process.",
-        heading: "Your controls",
-      },
-    ],
-    slug: "cookies",
-    title: "Cookie disclosure",
-  },
-];
-
-const REQUIRED_POLICY_SLUGS = ["contact", "cookies", "privacy", "returns", "shipping", "terms"];
-
 function assertPolicyCompleteness(policies: BuildCatalogInput["policies"]): void {
-  const slugs = policies.map(({ slug }) => slug).sort();
+  const slugs = policies.map(({ slug }) => slug);
   if (
-    slugs.length !== REQUIRED_POLICY_SLUGS.length ||
-    slugs.some((slug, index) => slug !== REQUIRED_POLICY_SLUGS[index]) ||
+    policies.length !== 4 ||
+    new Set(slugs).size !== slugs.length ||
     policies.some(
       (policy) =>
         !/^\d{4}-\d{2}-\d{2}$/.test(policy.effectiveDate) ||
@@ -344,6 +216,39 @@ async function setting<T>(db: D1Database, key: string, fallback: T): Promise<T> 
     .bind(key)
     .first<{ value_json: string }>();
   return parseSetting(row?.value_json, fallback);
+}
+
+async function publishedPolicies(db: D1Database): Promise<BuildCatalogInput["policies"]> {
+  const rows = await db
+    .prepare(
+      `SELECT slug, title, effective_date, sections_json FROM policy_versions
+        WHERE status = 'published' ORDER BY kind, policy_id`,
+    )
+    .all<{ effective_date: string; sections_json: string; slug: string; title: string }>();
+  return rows.results.map((row) => {
+    const sections = JSON.parse(row.sections_json) as Array<{
+      alt?: string;
+      caption?: string;
+      items?: string[];
+      kind: string;
+      text?: string;
+    }>;
+    return {
+      description:
+        sections
+          .flatMap((section) => section.text ?? section.items ?? section.caption ?? [])
+          .join(" ")
+          .slice(0, 2_000) || row.title,
+      effectiveDate: row.effective_date,
+      sections: sections.map((section) => ({
+        body:
+          section.text ?? section.items?.join("\n") ?? section.caption ?? section.alt ?? row.title,
+        heading: section.kind === "heading" && section.text ? section.text : row.title,
+      })),
+      slug: row.slug,
+      title: row.title,
+    };
+  });
 }
 
 export async function buildCatalogReleaseManifest(
@@ -590,7 +495,7 @@ export async function buildCatalogReleaseManifest(
     "storefront.site",
     {},
   );
-  const policies = await setting(db, "storefront.policies", defaultPolicies);
+  const policies = options.policies ?? (await publishedPolicies(db));
   const redirects = await setting<BuildCatalogInput["redirects"]>(db, "storefront.redirects", []);
   return buildStaticRouteManifest({
     collections: collections.results.map((collection) => {

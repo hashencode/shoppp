@@ -9,6 +9,12 @@ import type {
   SetupGuideSummary,
   PrivacyRequest,
   CreatePrivacyRequest,
+  CreatePolicyRequest,
+  PolicyAuthority,
+  PolicyTransitionRequest,
+  StoreIdentity,
+  UpdatePolicyRequest,
+  UpdateStoreIdentityRequest,
 } from '@shoppp/contracts'
 import { contactSettingsSchema, setupGuideSummarySchema } from '@shoppp/contracts'
 import { apiClient } from '../../infrastructure/http/api-client'
@@ -35,6 +41,91 @@ export const updateContactSettings = async (
     { headers: { 'Idempotency-Key': `contact-settings-${crypto.randomUUID()}` } }
   )
   return contactSettingsSchema.parse(response.data.data)
+}
+
+export type ReleaseInclusion = { candidate: boolean; live: boolean }
+export type StoreIdentityView = StoreIdentity & { inclusion?: ReleaseInclusion }
+export type PolicyAuthorityView = PolicyAuthority & { inclusion?: ReleaseInclusion }
+
+export const fetchStoreIdentity = async (): Promise<StoreIdentityView | null> => {
+  const response = await apiClient.get<{ data: StoreIdentityView | null }>(
+    '/admin/settings/store-identity'
+  )
+  return response.data.data
+}
+
+export const updateStoreIdentity = async (
+  input: UpdateStoreIdentityRequest
+): Promise<StoreIdentityView> => {
+  const response = await apiClient.put<{ data: StoreIdentityView }>(
+    '/admin/settings/store-identity',
+    input,
+    { headers: { 'Idempotency-Key': `store-identity-${crypto.randomUUID()}` } }
+  )
+  return response.data.data
+}
+
+export type PolicyReview = {
+  current: PolicyAuthorityView
+  digest: string
+  previous: PolicyAuthorityView | null
+  previousRenderedText: string | null
+  renderedText: string
+}
+
+export type PolicyListPage = { items: PolicyAuthorityView[]; nextCursor: string | null }
+
+export const fetchPolicies = async (cursor?: string): Promise<PolicyListPage> => {
+  const response = await apiClient.get<{
+    data: PolicyAuthorityView[]
+    meta?: { nextCursor?: string | null }
+  }>('/admin/settings/policies', { params: { cursor, limit: 50 } })
+  return {
+    items: response.data.data,
+    nextCursor: response.data.meta?.nextCursor ?? null,
+  }
+}
+
+export const createPolicy = async (input: CreatePolicyRequest): Promise<PolicyAuthority> => {
+  const response = await apiClient.post<{ data: PolicyAuthority }>(
+    '/admin/settings/policies',
+    input,
+    { headers: { 'Idempotency-Key': `policy-create-${crypto.randomUUID()}` } }
+  )
+  return response.data.data
+}
+
+export const updatePolicy = async (
+  id: string,
+  input: UpdatePolicyRequest
+): Promise<PolicyAuthority> => {
+  const response = await apiClient.put<{ data: PolicyAuthority }>(
+    `/admin/settings/policies/${encodeURIComponent(id)}`,
+    input,
+    { headers: { 'Idempotency-Key': `policy-update-${crypto.randomUUID()}` } }
+  )
+  return response.data.data
+}
+
+export const reviewPolicy = async (id: string, version?: number): Promise<PolicyReview> => {
+  const response = await apiClient.get<{ data: PolicyReview }>(
+    `/admin/settings/policies/${encodeURIComponent(id)}/review`,
+    { params: { version } }
+  )
+  return response.data.data
+}
+
+export const transitionPolicy = async (
+  id: string,
+  action: 'approve' | 'publish' | 'archive',
+  input: PolicyTransitionRequest
+): Promise<PolicyAuthority> => {
+  const response = await apiClient.post<{ data: PolicyAuthority }>(
+    `/admin/settings/policies/${encodeURIComponent(id)}/${action}`,
+    input,
+    { headers: { 'Idempotency-Key': `policy-${action}-${crypto.randomUUID()}` } }
+  )
+  return response.data.data
 }
 
 export const fetchLaunchConfiguration = async (): Promise<LaunchConfigurationStatus> => {

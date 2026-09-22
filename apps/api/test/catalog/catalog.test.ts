@@ -53,6 +53,7 @@ async function resetCatalog(): Promise<void> {
     env.DB.prepare("DELETE FROM idempotency_claims"),
     env.DB.prepare("DELETE FROM audit_events"),
     env.DB.prepare("DELETE FROM catalog_releases"),
+    env.DB.prepare("DELETE FROM policy_versions"),
     env.DB.prepare("DELETE FROM collection_memberships"),
     env.DB.prepare("DELETE FROM collection_versions"),
     env.DB.prepare("DELETE FROM collections"),
@@ -130,6 +131,32 @@ async function productVersion(productId: string): Promise<number> {
   return row.version;
 }
 
+async function seedPublishedPolicies(): Promise<void> {
+  for (const kind of ["privacy", "returns", "shipping", "terms"] as const) {
+    await env.DB.prepare(
+      `INSERT OR REPLACE INTO policy_versions
+        (policy_id, version, kind, slug, title, effective_date, sections_json, status,
+         approval_digest, approved_by, approved_at, approval_environment, published_at,
+         created_at, updated_at)
+       VALUES (?, 1, ?, ?, ?, '2026-07-30', ?, 'published', ?, 'admin-catalog-user', ?, ?, ?, ?, ?)`,
+    )
+      .bind(
+        `policy.${kind}`,
+        kind,
+        kind,
+        `${kind} policy`,
+        JSON.stringify([{ id: `section.${kind}`, kind: "paragraph", text: `${kind} policy` }]),
+        "a".repeat(64),
+        NOW,
+        env.ENVIRONMENT,
+        NOW,
+        NOW,
+        NOW,
+      )
+      .run();
+  }
+}
+
 describe("catalog management and publishing", () => {
   beforeEach(async () => {
     await resetCatalog();
@@ -139,6 +166,7 @@ describe("catalog management and publishing", () => {
       roleId: ADMIN_ROLE_IDS.catalogManager,
       subject: "catalog-user",
     });
+    await seedPublishedPolicies();
   });
 
   test("accepts legacy draft writers and derives neutral text option presentation", async () => {

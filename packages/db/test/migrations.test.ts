@@ -71,6 +71,10 @@ describe("D1 migrations", () => {
         "attested_at",
       ]),
     );
+    const policyColumns = await env.DB.prepare("PRAGMA table_info(policy_versions)").all<{
+      name: string;
+    }>();
+    expect(policyColumns.results.map(({ name }) => name)).toContain("approval_environment");
     await expect(
       env.DB.prepare(
         `INSERT INTO catalog_releases

@@ -39,6 +39,8 @@ describe('first-level menu route contract', () => {
     orders: { title: 'Orders', headingOwner: 'standard-list' },
     fulfillment: { title: 'Fulfillment', headingOwner: 'custom' },
     'notification-recovery': { title: 'Automation recovery', headingOwner: 'standard-list' },
+    'store-identity': { title: 'Store identity', headingOwner: 'top-level-form' },
+    policies: { title: 'Policies', headingOwner: 'custom' },
     'launch-settings': { title: 'Commercial settings', headingOwner: 'top-level-form' },
     'contact-settings': { title: 'Contact settings', headingOwner: 'top-level-form' },
     'shipping-settings': { title: 'Shipping settings', headingOwner: 'top-level-form' },
@@ -76,6 +78,22 @@ describe('first-level menu route contract', () => {
       }))
 
     expect(storeSettingsRoutes).toEqual([
+      {
+        key: 'store-identity',
+        path: '/settings/identity',
+        permission: 'identity.read',
+        menuMode: undefined,
+        menuGroup: 'Store settings',
+        breadcrumb: ['Store settings', 'Store identity'],
+      },
+      {
+        key: 'policies',
+        path: '/settings/policies',
+        permission: 'policies.read',
+        menuMode: undefined,
+        menuGroup: 'Store settings',
+        breadcrumb: ['Store settings', 'Policies'],
+      },
       {
         key: 'launch-settings',
         path: '/settings/launch',

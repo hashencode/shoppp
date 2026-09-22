@@ -159,7 +159,7 @@ async function authorityRows(db: D1Database): Promise<AuthorityRow[]> {
       db
         .prepare(
           `SELECT policy_id AS id, version, status, kind, slug, title, effective_date, sections_json,
-              approval_digest
+              approval_digest, approval_environment
          FROM policy_versions WHERE status = 'published' ORDER BY policy_id, version`,
         )
         .all<Record<string, unknown>>(),
@@ -222,6 +222,7 @@ async function sourceVector(
 ): Promise<{ authorities: AuthorityRow[]; sources: CatalogReleaseSource[] }> {
   const authorities = await authorityRows(db);
   const identity = authorities.filter(({ kind }) => kind === "store-identity");
+  const policies = authorities.filter(({ kind }) => kind === "policy");
   const products = authorities.filter(({ kind }) => kind === "product");
   if (identity.length !== 1) {
     lifecycleError(
@@ -231,6 +232,19 @@ async function sourceVector(
   }
   if (products.length === 0) {
     lifecycleError("catalog_products_unpublished", "At least one published Product is required.");
+  }
+  const requiredPolicyKinds = ["privacy", "returns", "shipping", "terms"];
+  const publishedPolicyKinds = new Set(
+    policies
+      .filter(({ row }) => row.approval_environment === environment && row.approval_digest)
+      .map(({ row }) => String(row.kind)),
+  );
+  const missingPolicyKinds = requiredPolicyKinds.filter((kind) => !publishedPolicyKinds.has(kind));
+  if (missingPolicyKinds.length) {
+    lifecycleError(
+      "catalog_required_policies_unpublished",
+      `Approved published Policies are required: ${missingPolicyKinds.join(", ")}.`,
+    );
   }
   const sources = await Promise.all(
     authorities.map(async ({ id, kind, row, version }) => ({
@@ -495,10 +509,36 @@ async function assembleCandidateManifest(
   await validatePublishedNavigationReferences(db, environment);
   const sources = await sourceVector(db, environment);
   const product = sources.sources.find(({ kind }) => kind === "product")!;
+  const policyAuthorities = sources.authorities.filter(({ kind }) => kind === "policy");
+  const policies = policyAuthorities.map(({ row }) => {
+    const sections = JSON.parse(String(row.sections_json)) as Array<{
+      alt?: string;
+      caption?: string;
+      items?: string[];
+      kind: string;
+      text?: string;
+    }>;
+    const title = String(row.title);
+    return {
+      description:
+        sections
+          .flatMap((section) => section.text ?? section.items ?? section.caption ?? [])
+          .join(" ")
+          .slice(0, 2_000) || title,
+      effectiveDate: String(row.effective_date),
+      sections: sections.map((section) => ({
+        body: section.text ?? section.items?.join("\n") ?? section.caption ?? section.alt ?? title,
+        heading: section.kind === "heading" && section.text ? section.text : title,
+      })),
+      slug: String(row.slug),
+      title,
+    };
+  });
   const v2 = await buildCatalogReleaseManifest(db, {
     aggregatePublishedCatalog: true,
     candidateProductId: product.id,
     mediaOrigin,
+    policies,
     releaseId,
     storefrontOrigin,
   });
@@ -572,8 +612,8 @@ async function assembleCandidateManifest(
     tagline: String(identityAuthority.row.tagline),
     version: identityAuthority.version,
   };
-  const routes = [...v2.routes, ...records.map(({ route }) => route)].sort((left, right) =>
-    left === "/" ? -1 : right === "/" ? 1 : left.localeCompare(right),
+  const routes = [...new Set([...v2.routes, ...records.map(({ route }) => route)])].sort(
+    (left, right) => (left === "/" ? -1 : right === "/" ? 1 : left.localeCompare(right)),
   );
   return {
     manifest: catalogReleaseV3Schema.parse({
