@@ -372,6 +372,17 @@ describe('IAM management pages', () => {
     expect(screen.queryByRole('button', { name: /Invite user/i })).toBeNull()
   })
 
+  it('keeps the resource tabs in the native card tab header', async () => {
+    renderPage(<UsersPage />)
+
+    await screen.findByText('Alice Admin')
+    expect(screen.getByRole('tablist').closest('.ant-card-head-tabs')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('tab', { name: /Invitations/i }))
+    await screen.findByText('expired@example.test')
+    expect(screen.getByRole('tablist').closest('.ant-card-head-tabs')).toBeTruthy()
+  })
+
   it('keeps filters draft-only and commits shared search to both independent resources', async () => {
     renderPage(<UsersPage />)
     await waitFor(() => expect(userLoads).toBe(1))
@@ -689,13 +700,9 @@ describe('IAM management pages', () => {
     await waitFor(() => expect(screen.getByText('Administrator')).toBeTruthy())
     expect(screen.queryByRole('button', { name: /New role/i })).toBeNull()
     expect(screen.getByText('Protected')).toBeTruthy()
-    const authorityGuidance = screen.getByText(
-      'Role permissions are authoritative on each protected API request.'
-    )
     expect(
-      screen.getByLabelText('Search roles').compareDocumentPosition(authorityGuidance) &
-        Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy()
+      screen.queryByText('Role permissions are authoritative on each protected API request.')
+    ).toBeNull()
   })
 
   it('keeps one users heading without repeating the page purpose below it', async () => {

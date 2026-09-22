@@ -1,4 +1,5 @@
 import { render } from '../../../test/render-with-app'
+import dayjs from 'dayjs'
 import React from 'react'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, beforeAll, afterAll, afterEach, beforeEach } from '@rstest/core'
@@ -110,6 +111,9 @@ describe('BasicFormPage', () => {
     expect(formClassName).toContain('max-w-[800px]')
     expect(formClassName).not.toContain('md:w-fit')
     expect((container.querySelector('#title') as HTMLInputElement).className).not.toContain('md:!w')
+    expect(screen.getByLabelText('开始日期')).toBeTruthy()
+    expect(screen.getByLabelText('结束日期')).toBeTruthy()
+    expect(container.querySelector('.ant-picker-range')).toBeNull()
 
     fireEvent.click(screen.getByRole('radio', { name: '部分公开' }))
 
@@ -119,6 +123,16 @@ describe('BasicFormPage', () => {
   })
 
   it('publishes list refresh event after successful add submit', async () => {
+    const expectedStartDate = dayjs().startOf('month').toISOString()
+    const expectedEndDate = dayjs().endOf('month').toISOString()
+    let submittedPayload: Record<string, unknown> | undefined
+    server.use(
+      http.post('*/api/template/forms', async ({ request }) => {
+        submittedPayload = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({ data: { resourceKey: 'new', ...submittedPayload } })
+      })
+    )
+
     const { container } = renderPage('/template/list/table/form?mode=add')
 
     await waitFor(() => {
@@ -145,6 +159,8 @@ describe('BasicFormPage', () => {
         )
       ).toBe(true)
     })
+    expect(submittedPayload?.dateRangeStart).toBe(expectedStartDate)
+    expect(submittedPayload?.dateRangeEnd).toBe(expectedEndDate)
   })
 
   it('does not publish list refresh when add submit fails', async () => {

@@ -132,6 +132,13 @@ describe('IAM controls in a real browser', () => {
     )
     await expect.element(page.getByText('operator@example.test')).toBeVisible()
     assertNativeBrowserAndCss()
+    expect(
+      document.querySelector('[role="tablist"]')?.closest('.ant-card-head-tabs')
+    ).not.toBeNull()
+    expect(
+      getComputedStyle(document.querySelector('.ant-card-head-tabs > .ant-tabs-nav')!, '::before')
+        .borderBottomWidth
+    ).toBe('0px')
     expect(document.documentElement.lang).not.toBe(navigator.language)
     await page
       .getByRole('tab', {
@@ -139,6 +146,9 @@ describe('IAM controls in a real browser', () => {
       })
       .click()
     await expect.element(page.getByText('invite@example.test')).toBeVisible()
+    expect(
+      document.querySelector('[role="tablist"]')?.closest('.ant-card-head-tabs')
+    ).not.toBeNull()
     const requests = transport.requests.length
     for (let index = 0; index < 2; index += 1) {
       await expect

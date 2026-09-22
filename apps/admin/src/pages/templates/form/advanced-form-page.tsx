@@ -16,10 +16,13 @@ import {
   theme,
 } from 'antd'
 import type { Dayjs } from 'dayjs'
-import { useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PageHeaderWithBack } from '../../../shared/components/form-page-header'
 import { SortActionGroup } from '../../../shared/components/sort-action-group'
+import { buildDateOrderRule } from '../../../shared/template-kit/form'
+
+void React
 
 type MemberItem = {
   key: string
@@ -33,7 +36,8 @@ type AdvancedValues = {
   url: string
   owner: string
   approver: string
-  dateRange: [Dayjs, Dayjs]
+  startDate: Dayjs
+  endDate: Dayjs
   type: 'private' | 'public'
   taskName: string
   taskDesc: string
@@ -49,7 +53,8 @@ const fieldLabels: Record<string, string> = {
   url: '仓库域名',
   owner: '仓库管理员',
   approver: '审批人',
-  dateRange: '生效日期',
+  startDate: '开始日期',
+  endDate: '结束日期',
   type: '仓库类型',
   taskName: '任务名',
   taskDesc: '任务描述',
@@ -161,16 +166,33 @@ export const AdvancedFormPage = () => {
                 />
               </Form.Item>
             </Col>
-            <Col lg={8} md={12} xs={24}>
+            <Col lg={6} md={12} xs={24}>
               <Form.Item
-                label="生效日期"
-                name="dateRange"
-                rules={[{ required: true, message: '请选择生效日期' }]}
+                label="开始日期"
+                name="startDate"
+                dependencies={['endDate']}
+                rules={[
+                  { required: true, message: '请选择开始日期' },
+                  buildDateOrderRule('startDate', 'endDate'),
+                ]}
               >
-                <DatePicker.RangePicker className="w-full" />
+                <DatePicker className="w-full" />
               </Form.Item>
             </Col>
-            <Col lg={10} md={24} xs={24}>
+            <Col lg={6} md={12} xs={24}>
+              <Form.Item
+                label="结束日期"
+                name="endDate"
+                dependencies={['startDate']}
+                rules={[
+                  { required: true, message: '请选择结束日期' },
+                  buildDateOrderRule('startDate', 'endDate'),
+                ]}
+              >
+                <DatePicker className="w-full" />
+              </Form.Item>
+            </Col>
+            <Col lg={6} md={24} xs={24}>
               <Form.Item
                 label="仓库类型"
                 name="type"

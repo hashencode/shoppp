@@ -1,0 +1,3 @@
+.iam-users-list-card .ant-card-head-tabs > .ant-tabs-nav::before {
+  border-bottom: 0 !important;
+}

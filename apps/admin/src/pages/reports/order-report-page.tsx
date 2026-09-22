@@ -21,12 +21,12 @@ import {
   type StandardListPageSpec,
   type TemplateListFilterField,
 } from '../../shared/template-kit/list'
+import { getTimeZoneOptions, isValidTimeZone, resolveDefaultTimeZone } from '../../shared/utils/time-zones'
 
 void React
 dayjs.extend(utc)
 
 const REPORT_CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY'] as const
-const REPORT_TIME_ZONES = ['UTC', 'America/New_York', 'Europe/London', 'Asia/Shanghai'] as const
 
 type ReportFilterValues = ReportingQuery & { query?: string }
 type ReportListResponse = Awaited<ReturnType<typeof fetchReportOrders>>
@@ -54,21 +54,6 @@ const isDateOnly = (value: string | null): value is string => {
   )
 }
 
-const isTimeZone = (value: string | null): value is string => {
-  if (!value) return false
-  try {
-    new Intl.DateTimeFormat('en-US', { timeZone: value }).format()
-    return true
-  } catch {
-    return false
-  }
-}
-
-const resolveDefaultTimeZone = () => {
-  const resolved = Intl.DateTimeFormat().resolvedOptions().timeZone
-  return isTimeZone(resolved) ? resolved : 'UTC'
-}
-
 const parseEntryQuery = (): ReportFilterValues => {
   const params = new URLSearchParams(window.location.search)
   const currency = params.get('currency')?.toUpperCase()
@@ -82,7 +67,7 @@ const parseEntryQuery = (): ReportFilterValues => {
       : 'USD',
     startDate: isDateOnly(startDate) ? startDate : dayjs().subtract(29, 'day').format('YYYY-MM-DD'),
     endDate: isDateOnly(endDate) ? endDate : dayjs().format('YYYY-MM-DD'),
-    timeZone: isTimeZone(timeZone) ? timeZone : resolveDefaultTimeZone(),
+    timeZone: isValidTimeZone(timeZone) ? timeZone : resolveDefaultTimeZone(),
   }
 }
 
@@ -227,10 +212,7 @@ export const OrderReportPage = () => {
         type: 'select',
         name: 'timeZone',
         label: t('Time zone'),
-        options: [...new Set([entryBaseline.timeZone, ...REPORT_TIME_ZONES])].map((value) => ({
-          label: value,
-          value,
-        })),
+        options: getTimeZoneOptions(entryBaseline.timeZone),
         selectProps: { 'aria-label': t('Report time zone'), showSearch: true },
       },
       {

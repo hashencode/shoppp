@@ -23,7 +23,7 @@
 - 路由、菜单、权限都走已有 route contract。
 - 新页面先复用 `src/pages/templates/*` 与 `src/shared/template-kit/*`。
 - 若需求是“从其他项目迁移页面”，优先阅读 `docs/ai/form-migration-rules.md` 或 `docs/ai/list-migration-rules.md`，先做旧新对照清单，再决定是否接入 recipe。
-- 标准列表筛选模板必须优先支持字段：`input`、`select`、`date`、`date-range`；可搜索下拉优先通过 `selectProps.showSearch/filterOption/onSearch` 表达。
+- 标准列表筛选模板必须优先支持字段：`input`、`select`、`date`、`date-range`；开始和结束日期默认拆成两个 `date` 字段，只有业务要求两个值成对填写、共同提交为一个完整区间时才使用 `date-range`。可搜索下拉优先通过 `selectProps.showSearch/filterOption/onSearch` 表达。
 - 普通筛选项（如 `Input / Select / DatePicker / RangePicker`）禁止使用 `custom` 实现；`custom` 仅用于真正的业务特例字段。
 - 页面先按模块拆解（筛选区/内容区/反馈区/权限区），再选组件。
 - 标准查询列表页分页必须复用 `src/shared/hooks/use-standard-pagination.ts`，禁止页面内散装实现分页状态。
@@ -174,7 +174,7 @@ AI 在输出实现方案时，必须包含：
 - 表单类型选择没有给出判别依据
 - 出现大量硬编码样式且未考虑深色模式
 - 普通筛选项使用 `custom` 实现
-- 日期范围使用 `custom + RangePicker`
+- 可拆分的开始/结束日期使用 `date-range`，或日期范围使用 `custom + RangePicker`
 - 基础 CRUD 表单默认关闭必填标识
 - 操作列宽度没有固定常量或没有注释说明计算过程
 - 只做类型通过，没有验证关键跳转链路

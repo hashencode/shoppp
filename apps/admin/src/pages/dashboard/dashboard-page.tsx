@@ -30,10 +30,10 @@ import {
   useTemplateListFilters,
 } from '../../shared/template-kit/list'
 import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
+import { getTimeZoneOptions, resolveDefaultTimeZone } from '../../shared/utils/time-zones'
 
 void React
 
-const TIME_ZONES = ['UTC', 'America/New_York', 'Europe/London', 'Asia/Shanghai']
 const CURRENCY_OPTIONS = [
   ...new Set([
     'CNY',
@@ -53,7 +53,7 @@ const initialQuery = (): ReportingQuery => ({
   currency: 'CNY',
   endDate: dayjs().format('YYYY-MM-DD'),
   startDate: dayjs().subtract(29, 'day').format('YYYY-MM-DD'),
-  timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+  timeZone: resolveDefaultTimeZone(),
 })
 
 type DashboardFilterValues = {
@@ -271,10 +271,7 @@ export const DashboardPage = () => {
         type: 'select',
         name: 'timeZone',
         label: t('Time zone'),
-        options: [...new Set([defaultQuery.timeZone, ...TIME_ZONES])].map((value) => ({
-          label: value,
-          value,
-        })),
+        options: getTimeZoneOptions(defaultQuery.timeZone),
         formItemProps: { rules: [{ required: true }] },
         selectProps: {
           'aria-label': t('Time zone'),
@@ -287,6 +284,7 @@ export const DashboardPage = () => {
         type: 'date-range',
         name: 'dateRange',
         label: t('Date range'),
+        colProps: { sm: 24, md: 16, lg: 16, xl: 12, xxl: 12 },
         formItemProps: {
           rules: [
             {

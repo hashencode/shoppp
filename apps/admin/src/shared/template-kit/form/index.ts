@@ -1,4 +1,5 @@
 export { useTemplateFormController } from './use-template-form-controller'
+export { buildDateOrderRule, DATE_ORDER_ERROR_MESSAGE } from './date-order-rule'
 export { useDynamicFormReset } from './use-dynamic-form-reset'
 export { TemplateFormStateGate } from './template-form-state-gate'
 export {

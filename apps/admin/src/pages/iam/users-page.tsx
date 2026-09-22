@@ -7,7 +7,7 @@ import {
   type AdminUser,
   type AdminUserStatus,
 } from '@shoppp/contracts'
-import { Alert, App, Button, Card, Form, Input, Modal, Select, Table, Tabs, Tag } from 'antd'
+import { Alert, App, Button, Card, Form, Input, Modal, Select, Table, Tag } from 'antd'
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -44,6 +44,7 @@ import {
   type TemplateListFilterField,
   useTemplateListController,
 } from '../../shared/template-kit/list'
+import './users-page.css'
 
 void React
 
@@ -122,6 +123,9 @@ const deliveryTag = (invitation: AdminInvitation, t: Translate) => {
 }
 
 type IndependentListCardProps<TItem> = {
+  activeTabKey: ActiveTab
+  tabList: Array<{ key: ActiveTab; tab: React.ReactNode }>
+  onTabChange: (key: ActiveTab) => void
   tableId: string
   columns: ColumnsType<TItem>
   rowKey: string
@@ -142,6 +146,9 @@ type IndependentListCardProps<TItem> = {
 }
 
 const IndependentListCard = <TItem extends object>({
+  activeTabKey,
+  tabList,
+  onTabChange,
   tableId,
   columns,
   rowKey,
@@ -215,8 +222,13 @@ const IndependentListCard = <TItem extends object>({
 
   return (
     <Card
+      className="iam-users-list-card"
+      tabList={tabList}
+      activeTabKey={activeTabKey}
+      onTabChange={(key) => onTabChange(key as ActiveTab)}
+      tabProps={{ size: 'middle' }}
       variant="borderless"
-      extra={
+      tabBarExtraContent={
         <ListToolbarActions
           tableSize={tableSize}
           onTableSizeChange={setTableSize}
@@ -609,6 +621,10 @@ export const UsersPage = () => {
       {t('Invite user')}
     </Button>
   ) : null
+  const listTabs: Array<{ key: ActiveTab; tab: React.ReactNode }> = [
+    { key: 'users', tab: t('Users') },
+    { key: 'invitations', tab: t('Invitations') },
+  ]
 
   return (
     <CustomPageRecipe title={t('Users and invitations')} extra={pageExtra}>
@@ -648,46 +664,39 @@ export const UsersPage = () => {
         />
       </Card>
 
-      <Tabs
-        activeKey={activeTab}
-        onChange={(key) => setActiveTab(key as ActiveTab)}
-        items={[
-          {
-            key: 'users',
-            label: t('Users'),
-            children: (
-              <IndependentListCard<AdminUser>
-                tableId="iam-users-list"
-                columns={userColumns}
-                rowKey="id"
-                queryState={usersController}
-                pagination={buildStandardListPagination(userPagination, locale)}
-                scrollX={720}
-                emptyTitle={t('No users match these filters.')}
-                onReload={() => void loadUsers()}
-                onResetEmpty={resetVisibleFilters}
-              />
-            ),
-          },
-          {
-            key: 'invitations',
-            label: t('Invitations'),
-            children: (
-              <IndependentListCard<AdminInvitation>
-                tableId="iam-invitations-list"
-                columns={invitationColumns}
-                rowKey="id"
-                queryState={invitationsController}
-                pagination={buildStandardListPagination(invitationPagination, locale)}
-                scrollX={670 + INVITATION_ACTION_LAYOUT.columnWidth}
-                emptyTitle={t('No invitations match these filters.')}
-                onReload={() => void loadInvitations()}
-                onResetEmpty={resetVisibleFilters}
-              />
-            ),
-          },
-        ]}
-      />
+      {activeTab === 'users' ? (
+        <IndependentListCard<AdminUser>
+          key="iam-users-list"
+          activeTabKey={activeTab}
+          tabList={listTabs}
+          onTabChange={setActiveTab}
+          tableId="iam-users-list"
+          columns={userColumns}
+          rowKey="id"
+          queryState={usersController}
+          pagination={buildStandardListPagination(userPagination, locale)}
+          scrollX={720}
+          emptyTitle={t('No users match these filters.')}
+          onReload={() => void loadUsers()}
+          onResetEmpty={resetVisibleFilters}
+        />
+      ) : (
+        <IndependentListCard<AdminInvitation>
+          key="iam-invitations-list"
+          activeTabKey={activeTab}
+          tabList={listTabs}
+          onTabChange={setActiveTab}
+          tableId="iam-invitations-list"
+          columns={invitationColumns}
+          rowKey="id"
+          queryState={invitationsController}
+          pagination={buildStandardListPagination(invitationPagination, locale)}
+          scrollX={670 + INVITATION_ACTION_LAYOUT.columnWidth}
+          emptyTitle={t('No invitations match these filters.')}
+          onReload={() => void loadInvitations()}
+          onResetEmpty={resetVisibleFilters}
+        />
+      )}
 
       <Modal
         title={t('Invite user')}

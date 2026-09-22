@@ -235,15 +235,19 @@ describe('DashboardPage', () => {
     fireEvent.click(await screen.findByText('EUR', { selector: '.ant-select-item-option-content' }))
     expect(requests).toHaveLength(1)
     expect(screen.getByText('Gross sales ($)')).toBeTruthy()
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Time zone' }))
+    const timeZone = screen.getByRole('combobox', { name: 'Time zone' })
+    fireEvent.mouseDown(timeZone)
+    fireEvent.change(timeZone, { target: { value: 'Europe/London' } })
     fireEvent.click(
       await screen.findByText('Europe/London', { selector: '.ant-select-item-option-content' })
     )
     expect(requests).toHaveLength(1)
     expect(screen.getByText('Date range')).toBeTruthy()
-    expect(screen.getByPlaceholderText('Start date').closest('.ant-picker-range')).toBe(
-      screen.getByPlaceholderText('End date').closest('.ant-picker-range')
-    )
+    const dateRange = screen.getByPlaceholderText('Start date').closest('.ant-picker-range')
+    expect(dateRange).toBe(screen.getByPlaceholderText('End date').closest('.ant-picker-range'))
+    const dateRangeColumn = dateRange?.closest('.ant-form-item')?.parentElement
+    expect(dateRangeColumn?.className).toContain('ant-col-md-16')
+    expect(dateRangeColumn?.className).toContain('ant-col-xl-12')
     fireEvent.focus(screen.getByPlaceholderText('Start date'))
     fireEvent.change(screen.getByPlaceholderText('Start date'), {
       target: { value: '2026-07-01' },

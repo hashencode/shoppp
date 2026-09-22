@@ -1,4 +1,4 @@
-import { DatePicker, Form, Input, InputNumber, Radio, Select, Tooltip, App, theme } from 'antd'
+import { App, Col, DatePicker, Form, Input, InputNumber, Radio, Row, Select, Tooltip, theme } from 'antd'
 import type { RadioChangeEvent } from 'antd'
 import dayjs, { type Dayjs } from 'dayjs'
 import React, { useEffect, useMemo } from 'react'
@@ -11,6 +11,7 @@ import {
 } from '../../../shared/constants/list-refresh-channel'
 import {
   BasicCrudFormRecipe,
+  buildDateOrderRule,
   useTemplateFormController,
   type BasicCrudFormSpec,
 } from '../../../shared/template-kit/form'
@@ -21,12 +22,12 @@ import {
 } from '../../../shared/template-kit/hooks'
 import { createForm, fetchFormDetail, type FormEntity, type FormPayload, updateForm } from './api'
 
-const { RangePicker } = DatePicker
 void React
 
 type BasicFormValues = {
   title: string
-  dateRange: [Dayjs, Dayjs]
+  startDate: Dayjs
+  endDate: Dayjs
   goal: string
   standard: string
   client?: string
@@ -38,12 +39,14 @@ type BasicFormValues = {
 
 const buildDefaultValues = (): Partial<BasicFormValues> => ({
   publicType: '1',
-  dateRange: [dayjs().startOf('month'), dayjs().endOf('month')],
+  startDate: dayjs().startOf('month'),
+  endDate: dayjs().endOf('month'),
 })
 
 const toFormValues = (entity: FormEntity): BasicFormValues => ({
   title: entity.title,
-  dateRange: [dayjs(entity.dateRangeStart), dayjs(entity.dateRangeEnd)],
+  startDate: dayjs(entity.dateRangeStart),
+  endDate: dayjs(entity.dateRangeEnd),
   goal: entity.goal,
   standard: entity.standard,
   client: entity.client,
@@ -55,8 +58,8 @@ const toFormValues = (entity: FormEntity): BasicFormValues => ({
 
 const toFormPayload = (values: BasicFormValues): FormPayload => ({
   title: values.title,
-  dateRangeStart: values.dateRange[0].toISOString(),
-  dateRangeEnd: values.dateRange[1].toISOString(),
+  dateRangeStart: values.startDate.toISOString(),
+  dateRangeEnd: values.endDate.toISOString(),
   goal: values.goal,
   standard: values.standard,
   client: values.client,
@@ -152,13 +155,34 @@ export const BasicFormPage = () => {
             <Input placeholder="给目标起个名字" />
           </Form.Item>
 
-          <Form.Item
-            label="起止日期"
-            name="dateRange"
-            rules={[{ required: true, message: '请选择起止日期' }]}
-          >
-            <RangePicker className="w-full" />
-          </Form.Item>
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
+              <Form.Item
+                label="开始日期"
+                name="startDate"
+                dependencies={['endDate']}
+                rules={[
+                  { required: true, message: '请选择开始日期' },
+                  buildDateOrderRule('startDate', 'endDate'),
+                ]}
+              >
+                <DatePicker className="w-full" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item
+                label="结束日期"
+                name="endDate"
+                dependencies={['startDate']}
+                rules={[
+                  { required: true, message: '请选择结束日期' },
+                  buildDateOrderRule('startDate', 'endDate'),
+                ]}
+              >
+                <DatePicker className="w-full" />
+              </Form.Item>
+            </Col>
+          </Row>
 
           <Form.Item
             label="目标描述"

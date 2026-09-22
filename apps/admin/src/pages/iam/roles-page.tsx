@@ -178,13 +178,6 @@ export const RolesPage = () => {
       selectItems: (response) => response?.items ?? [],
       mapError: normalizeApiError,
       filterFields,
-      renderBetweenFilterAndContent: (
-        <Alert
-          type="info"
-          showIcon
-          title={t('Role permissions are authoritative on each protected API request.')}
-        />
-      ),
       toolbarExtra: ({ reload }) =>
         canWrite ? <CreateRoleAction permitted={permissions ?? []} reload={reload} /> : null,
       toolbarExtraVisible: canWrite,
