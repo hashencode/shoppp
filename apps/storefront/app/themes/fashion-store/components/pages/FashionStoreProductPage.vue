@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { submitProductReviewSchema } from "@shoppp/contracts";
+
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { ProductPageModel } from "../../../../theme-engine/view-models";
 import {
@@ -47,9 +49,18 @@ const optionUpdateCount = ref(0);
 const previewIntentCount = ref(0);
 const visibleReviewCount = ref(3);
 const reviewRating = ref(0);
+const hoveredReviewRating = ref(0);
 const reviewName = ref("");
+const reviewEmail = ref("");
 const reviewBody = ref("");
-const reviewErrors = ref<{ rating?: string; name?: string; body?: string }>({});
+const reviewConsentAccepted = ref(false);
+const reviewErrors = ref<{
+  rating?: string;
+  name?: string;
+  email?: string;
+  body?: string;
+  consent?: string;
+}>({});
 const reviewFormState = ref<{ kind: "idle" | "saving" | "success" | "error"; message: string }>({
   kind: "idle",
   message: "",
@@ -120,8 +131,8 @@ const reviewBands = computed(() =>
 );
 
 function reviewInputChanged(): void {
-  reviewSubmissionKey = null;
-  reviewErrors.value = {};
+  if (reviewSubmissionKey !== null) reviewSubmissionKey = null;
+  if (Object.keys(reviewErrors.value).length) reviewErrors.value = {};
   if (reviewFormState.value.kind === "error") reviewFormState.value = { kind: "idle", message: "" };
 }
 
@@ -129,12 +140,20 @@ async function submitReview(): Promise<void> {
   if (reviewFormState.value.kind === "saving" || reviewFormState.value.kind === "success") return;
   const errors: typeof reviewErrors.value = {};
   const name = reviewName.value.trim();
+  const email = reviewEmail.value.trim();
   const body = reviewBody.value.trim();
-  if (reviewRating.value < 1 || reviewRating.value > 5)
+  if (!submitProductReviewSchema.shape.rating.safeParse(reviewRating.value).success)
     errors.rating = "Choose a rating from 1 to 5 stars.";
-  if (name.length < 2 || name.length > 80) errors.name = "Enter a name of 2 to 80 characters.";
-  if (body.length < 10 || body.length > 2_000)
+  if (!submitProductReviewSchema.shape.displayName.safeParse(name).success)
+    errors.name = "Enter a name of 2 to 80 characters.";
+  if (!submitProductReviewSchema.shape.email.safeParse(email).success)
+    errors.email = "Enter a valid email address.";
+  if (!submitProductReviewSchema.shape.body.safeParse(body).success)
     errors.body = "Write a review of 10 to 2,000 characters.";
+  if (
+    !submitProductReviewSchema.shape.consentAccepted.safeParse(reviewConsentAccepted.value).success
+  )
+    errors.consent = "Accept the terms and privacy policy before submitting.";
   reviewErrors.value = errors;
   if (Object.keys(errors).length) return;
   reviewFormState.value = { kind: "saving", message: "Saving your review…" };
@@ -142,7 +161,13 @@ async function submitReview(): Promise<void> {
   try {
     await commerceApi.submitProductReview(
       presentation.value.slug,
-      { body, displayName: name, rating: reviewRating.value },
+      {
+        body,
+        consentAccepted: true,
+        displayName: name,
+        email,
+        rating: reviewRating.value,
+      },
       reviewSubmissionKey,
     );
     reviewFormState.value = {
@@ -289,8 +314,11 @@ function resetProductState(): void {
   previewIntentCount.value = 0;
   visibleReviewCount.value = 3;
   reviewRating.value = 0;
+  hoveredReviewRating.value = 0;
   reviewName.value = "";
+  reviewEmail.value = "";
   reviewBody.value = "";
+  reviewConsentAccepted.value = false;
   reviewErrors.value = {};
   reviewFormState.value = { kind: "idle", message: "" };
   reviewSubmissionKey = null;
@@ -1026,9 +1054,6 @@ watch(
                           <span class="fashion-product-rating-band-count">{{ band.count }}</span>
                         </div>
                       </div>
-                      <p v-else class="col-lg-6 col-md-8 mb-0">
-                        Rating breakdown is unavailable for this historical review snapshot.
-                      </p>
                     </div>
                     <div class="row g-0 mb-4 md-mb-35px fashion-product-reviews">
                       <div
@@ -1092,7 +1117,6 @@ watch(
                         <div class="row justify-content-center mb-30px sm-mb-10px">
                           <div class="col-md-9 text-center">
                             <h4 class="alt-font text-dark-gray fw-500 mb-15px">Add a review</h4>
-                            <p class="mb-0">Your review is checked before it appears publicly.</p>
                           </div>
                         </div>
                         <p
@@ -1125,6 +1149,7 @@ watch(
                               type="text"
                               maxlength="80"
                               autocomplete="name"
+                              placeholder="Enter your name"
                               :disabled="reviewFormState.kind === 'saving'"
                               :aria-invalid="Boolean(reviewErrors.name)"
                               :aria-describedby="
@@ -1140,18 +1165,52 @@ watch(
                               {{ reviewErrors.name }}
                             </p>
                           </div>
-                          <div class="col-lg-7 col-md-6 mb-20px">
+                          <div class="col-lg-5 col-md-6 mb-20px">
+                            <label class="form-label mb-15px" for="product-review-email"
+                              >Your email address*</label
+                            >
+                            <input
+                              id="product-review-email"
+                              v-model="reviewEmail"
+                              class="form-control border-radius-4px"
+                              type="email"
+                              maxlength="254"
+                              autocomplete="email"
+                              placeholder="Enter your email address"
+                              :disabled="reviewFormState.kind === 'saving'"
+                              :aria-invalid="Boolean(reviewErrors.email)"
+                              :aria-describedby="
+                                reviewErrors.email ? 'product-review-email-error' : undefined
+                              "
+                              @input="reviewInputChanged"
+                            />
+                            <p
+                              v-if="reviewErrors.email"
+                              id="product-review-email-error"
+                              class="fashion-product-review-field-error"
+                            >
+                              {{ reviewErrors.email }}
+                            </p>
+                          </div>
+                          <div class="col-lg-2 mb-20px">
                             <fieldset
                               :aria-describedby="
                                 reviewErrors.rating ? 'product-review-rating-error' : undefined
                               "
                             >
                               <legend class="form-label mb-15px">Your rating*</legend>
-                              <div class="fashion-product-review-rating-options">
+                              <div
+                                class="fashion-product-review-rating-options"
+                                @mouseleave="hoveredReviewRating = 0"
+                              >
                                 <label
                                   v-for="star in 5"
                                   :key="star"
                                   class="fashion-product-review-rating-option"
+                                  :data-preview-active="
+                                    star <= hoveredReviewRating ? 'true' : undefined
+                                  "
+                                  @mouseenter="hoveredReviewRating = star"
                                 >
                                   <input
                                     v-model.number="reviewRating"
@@ -1165,7 +1224,9 @@ watch(
                                   <span aria-hidden="true">
                                     <FashionStoreIcon
                                       name="star"
-                                      :filled="star <= (reviewRating ?? 0)"
+                                      :filled="
+                                        star <= (hoveredReviewRating || (reviewRating ?? 0))
+                                      "
                                     />
                                   </span>
                                 </label>
@@ -1187,8 +1248,9 @@ watch(
                               id="product-review-body"
                               v-model="reviewBody"
                               class="form-control border-radius-4px"
-                              rows="5"
+                              rows="4"
                               maxlength="2000"
+                              placeholder="Your message"
                               :disabled="reviewFormState.kind === 'saving'"
                               :aria-invalid="Boolean(reviewErrors.body)"
                               :aria-describedby="
@@ -1204,10 +1266,56 @@ watch(
                               {{ reviewErrors.body }}
                             </p>
                           </div>
-                          <div class="col-12 text-center">
+                          <div class="col-lg-9 md-mb-25px">
+                            <div
+                              class="position-relative terms-condition-box text-start mt-10px"
+                              :class="{ 'is-invalid': reviewErrors.consent }"
+                            >
+                              <label class="d-inline-block">
+                                <input
+                                  id="product-review-consent"
+                                  v-model="reviewConsentAccepted"
+                                  type="checkbox"
+                                  class="terms-condition check-box align-middle"
+                                  :disabled="reviewFormState.kind === 'saving'"
+                                  :aria-invalid="Boolean(reviewErrors.consent)"
+                                  :aria-describedby="
+                                    reviewErrors.consent
+                                      ? 'product-review-consent-error'
+                                      : undefined
+                                  "
+                                  @change="reviewInputChanged"
+                                />
+                                <span class="box fs-15"
+                                  >I accept the
+                                  <a
+                                    href="/policies/terms"
+                                    data-fashion-store-route
+                                    class="text-decoration-line-bottom text-dark-gray fw-500"
+                                    >terms and conditions</a
+                                  >
+                                  and I have read the
+                                  <a
+                                    href="/policies/privacy"
+                                    data-fashion-store-route
+                                    class="text-decoration-line-bottom text-dark-gray fw-500"
+                                    >privacy policy</a
+                                  >.</span
+                                >
+                              </label>
+                              <p
+                                v-if="reviewErrors.consent"
+                                id="product-review-consent-error"
+                                class="fashion-product-review-field-error"
+                              >
+                                {{ reviewErrors.consent }}
+                              </p>
+                            </div>
+                          </div>
+                          <div class="col-lg-3 text-start text-lg-end">
                             <button
                               type="submit"
-                              class="btn btn-medium btn-dark-gray btn-round-edge"
+                              class="btn btn-small btn-dark-gray btn-box-shadow btn-round-edge"
                               :disabled="reviewFormState.kind === 'saving'"
                             >
                               {{

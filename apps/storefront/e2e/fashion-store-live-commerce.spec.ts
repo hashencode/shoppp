@@ -125,6 +125,15 @@ async function expectLiveCanonicalShell(page: Page, home = false): Promise<void>
   await expect(footer.getByText("Become a member", { exact: true })).toBeVisible();
   await expect(footer.getByText("Newsletter sign-up is currently unavailable.")).toBeVisible();
   await expect(footer.locator("form")).toHaveCount(0);
+  if (page.viewportSize()!.width <= 575) {
+    const [quickContact, footerRow] = await Promise.all([
+      footer.getByText("Quick contact", { exact: true }).locator("..").boundingBox(),
+      footer.locator(".row.justify-content-center.fs-15").boundingBox(),
+    ]);
+    expect(quickContact).not.toBeNull();
+    expect(footerRow).not.toBeNull();
+    expect(quickContact!.width).toBeLessThanOrEqual(footerRow!.width * 0.6);
+  }
   await expect(footer.getByText("My account", { exact: true })).toHaveAttribute(
     "aria-disabled",
     "true",
@@ -165,6 +174,12 @@ test("live public contact reaches Contact, Header, and Footer", async ({ page })
       await link.locator("..").evaluate((element) => getComputedStyle(element).display),
     ).not.toBe("none");
   }
+  expect(
+    await page.locator("body").evaluate((body) => body.scrollWidth - body.clientWidth),
+  ).toBeLessThanOrEqual(1);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expectLiveCanonicalShell(page);
   expect(
     await page.locator("body").evaluate((body) => body.scrollWidth - body.clientWidth),
   ).toBeLessThanOrEqual(1);

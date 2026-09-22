@@ -8,7 +8,9 @@ const productId = "review-product-001";
 const now = "2026-09-17T00:00:00.000Z";
 const validReview = {
   body: "The fit and finish matched the photos I saw.",
+  consentAccepted: true,
   displayName: "Alex Shopper",
+  email: "alex.shopper@example.test",
   rating: 4,
 };
 
@@ -97,6 +99,13 @@ describe("Product review submission and moderation", () => {
     expect(await env.DB.prepare("SELECT COUNT(*) AS count FROM product_reviews").first()).toEqual({
       count: 1,
     });
+    expect(
+      await env.DB.prepare(
+        "SELECT consent_accepted_at AS consentAcceptedAt FROM product_reviews",
+      ).first(),
+    ).toEqual({
+      consentAcceptedAt: expect.any(String),
+    });
 
     const support = appFor("review-support");
     const pendingDenied = await support.fetch(adminRequest("/admin/catalog/reviews"), env);
@@ -120,11 +129,15 @@ describe("Product review submission and moderation", () => {
     expect(decisionDenied.status).toBe(403);
 
     const pending = await app.fetch(adminRequest("/admin/catalog/reviews"), env);
-    expect(await pending.json()).toMatchObject({
+    const pendingBody = await pending.json<{
+      data: { items: Array<Record<string, unknown>> };
+    }>();
+    expect(pendingBody).toMatchObject({
       data: {
         items: [{ id: result.data.id, displayName: validReview.displayName, status: "pending" }],
       },
     });
+    expect(pendingBody.data.items[0]).not.toHaveProperty("consentAcceptedAt");
     const decision = await app.fetch(
       adminRequest(`/admin/catalog/reviews/${result.data.id}/moderate`, {
         body: JSON.stringify({ decision: "approved", reason: "Reviewed content" }),
@@ -154,6 +167,12 @@ describe("Product review submission and moderation", () => {
   test("rejects malformed, cross-origin, oversized, and rate-limited submissions", async () => {
     const app = appFor();
     expect((await app.fetch(publicRequest({ ...validReview, rating: 0 }), env)).status).toBe(422);
+    expect(
+      (await app.fetch(publicRequest({ ...validReview, email: "not-an-email" }), env)).status,
+    ).toBe(422);
+    expect(
+      (await app.fetch(publicRequest({ ...validReview, consentAccepted: false }), env)).status,
+    ).toBe(422);
     expect((await app.fetch(publicRequest({ ...validReview, body: "short" }), env)).status).toBe(
       422,
     );

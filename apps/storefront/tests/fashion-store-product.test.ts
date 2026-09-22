@@ -22,25 +22,25 @@ const productPageSource = readFile(
   ),
   "utf8",
 );
+const shellSource = readFile(
+  new URL("../app/themes/fashion-store/components/shared/FashionStoreShell.vue", import.meta.url),
+  "utf8",
+);
+const footerSource = readFile(
+  new URL("../app/themes/fashion-store/components/shared/FashionStoreFooter.vue", import.meta.url),
+  "utf8",
+);
+const integrationSource = readFile(
+  new URL("../app/themes/fashion-store/integration.css", import.meta.url),
+  "utf8",
+);
 
 describe("Fashion Store product detail", () => {
   test("keeps internal page fit owned by the shared canonical shell", async () => {
     const [shell, footer, integration] = await Promise.all([
-      readFile(
-        new URL(
-          "../app/themes/fashion-store/components/shared/FashionStoreShell.vue",
-          import.meta.url,
-        ),
-        "utf8",
-      ),
-      readFile(
-        new URL(
-          "../app/themes/fashion-store/components/shared/FashionStoreFooter.vue",
-          import.meta.url,
-        ),
-        "utf8",
-      ),
-      readFile(new URL("../app/themes/fashion-store/integration.css", import.meta.url), "utf8"),
+      shellSource,
+      footerSource,
+      integrationSource,
     ]);
 
     expect(shell).not.toContain("home-layout");
@@ -64,6 +64,42 @@ describe("Fashion Store product detail", () => {
     );
     expect(integration).not.toMatch(
       /\[data-fashion-store-header\] \+ main > \.top-space-margin\s*\{[^}]*margin-top:\s*(?:79|118|119)px/,
+    );
+  });
+
+  test("pins the user-approved Product omissions", async () => {
+    const [component, footer] = await Promise.all([productPageSource, footerSource]);
+
+    expect(component).not.toContain("['compare', 'question', 'share']");
+    expect(footer).not.toContain("liveMode ? 'col-12' : 'col-6'");
+  });
+
+  test("pins the approved Product review and interaction state polish", async () => {
+    const [component, integration] = await Promise.all([productPageSource, integrationSource]);
+
+    expect(component).not.toContain(
+      "Rating breakdown is unavailable for this historical review snapshot.",
+    );
+    expect(component).toContain("hoveredReviewRating");
+    expect(component).toContain("@mouseenter=\"hoveredReviewRating = star\"");
+    expect(component).toContain("@mouseleave=\"hoveredReviewRating = 0\"");
+    expect(integration).toMatch(
+      /\.fashion-product-review-form legend\.form-label\s*\{[^}]*font-size:\s*17px;[^}]*line-height:\s*32px;/,
+    );
+    expect(integration).toMatch(
+      /\.fashion-product-secondary-actions button:disabled\s*\{[^}]*cursor:\s*default;[^}]*opacity:/,
+    );
+    expect(integration).toMatch(
+      /\.fashion-store-footer-canonical a\[href\]:not\(\[aria-disabled="true"\]\):hover\s*\{[^}]*color:\s*var\(--base-color\)\s*!important;/,
+    );
+    expect(integration).toMatch(
+      /\.fashion-product-review-rating-option\[data-preview-active="true"\]\s+span/,
+    );
+    expect(integration).toMatch(
+      /@media \(max-width: 767px\)[\s\S]*\.fashion-product-review-rating-option\s*\{[^}]*min-width:\s*44px;[^}]*min-height:\s*44px;/,
+    );
+    expect(integration).toContain(
+      ".btn.btn-switch-text:hover .btn-double-text.btn-double-text",
     );
   });
 

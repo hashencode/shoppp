@@ -3,10 +3,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { recordThemeBehaviorEvidence } from "./support/theme-behavior-evidence";
 import { expectFashionStoreProductComposition } from "./support/fashion-store-product-composition";
-import {
-  fashionStoreProductFeedbackGeometry,
-  fashionStoreProductParityProfile,
-} from "../app/themes/fashion-store/contracts/pages/product";
+import { fashionStoreProductParityProfile } from "../app/themes/fashion-store/contracts/pages/product";
 
 const sourceOrigin = `http://127.0.0.1:${Number(
   process.env.STOREFRONT_FASHION_STORE_SOURCE_PORT || 3427,
@@ -31,7 +28,9 @@ test("compare-at prices remain secondary on Home, Shop, and Product cards", asyn
   }
 });
 
-test("Product consumes the frozen historical Vue geometry profile", async ({ page }, testInfo) => {
+test("Product preserves stable geometry while approved responsive regions remain source-shaped", async ({
+  page,
+}, testInfo) => {
   const viewportName = isFashionStoreViewport(testInfo, "desktop")
     ? "desktop"
     : isFashionStoreViewport(testInfo, "mobile")
@@ -47,47 +46,58 @@ test("Product consumes the frozen historical Vue geometry profile", async ({ pag
   );
   expect(profile).toBeDefined();
   if (!profile) throw new Error("Missing frozen Product viewport profile.");
-  const feedback = fashionStoreProductFeedbackGeometry[viewportName];
-
-  const selectors = {
+  const stableSelectors = {
     breadcrumb: ".breadcrumb",
-    footer: "footer",
     gallery: ".fashion-product-gallery .row.overflow-hidden",
     productInfo: ".product-info",
-    relatedHeading: ".fashion-product-related .row.mb-5",
-    tabs: ".fashion-product-tabs .nav-tabs",
   } as const;
   const documentSize = await page.evaluate(() => ({
     height: document.documentElement.scrollHeight,
     width: document.documentElement.scrollWidth,
   }));
-  for (const dimension of ["height", "width"] as const) {
-    const expected = dimension === "height" ? feedback.documentHeight : profile.document.width;
-    expect(Math.abs(documentSize[dimension] - expected)).toBeLessThanOrEqual(
-      profile.geometryTolerancePx,
-    );
-  }
-  for (const [name, selector] of Object.entries(selectors)) {
+  expect(Math.abs(documentSize.width - profile.document.width)).toBeLessThanOrEqual(
+    profile.geometryTolerancePx,
+  );
+  expect(documentSize.height).toBeGreaterThan(page.viewportSize()!.height);
+  for (const [name, selector] of Object.entries(stableSelectors)) {
     const actual = await page.locator(selector).first().boundingBox();
     expect(actual, `${name} must exist`).not.toBeNull();
     const expected: { x: number; y: number; width: number; height: number } = {
       ...profile.geometry[name as keyof typeof profile.geometry],
     };
-    if (name === "productInfo") expected.height = feedback.productInfoHeight;
-    if (name === "tabs") {
-      expected.y = feedback.tabsY;
-      if (viewportName === "mobile")
-        expected.height = fashionStoreProductFeedbackGeometry.mobile.tabsHeight;
-    }
-    if (name === "relatedHeading") expected.y = feedback.relatedHeadingY;
-    if (name === "footer") expected.y = feedback.footerY;
-    for (const dimension of ["x", "y", "width", "height"] as const) {
+    const dimensions =
+      name === "productInfo"
+        ? (["x", "y", "width"] as const)
+        : (["x", "y", "width", "height"] as const);
+    for (const dimension of dimensions) {
       expect(
         Math.abs(actual![dimension] - expected[dimension]),
         `${name}.${dimension}`,
       ).toBeLessThanOrEqual(profile.geometryTolerancePx);
     }
   }
+  const responsiveGeometry = await page.evaluate(() => {
+    const bounds = (selector: string) => {
+      const { bottom, height, top, width, x } = document
+        .querySelector<HTMLElement>(selector)!
+        .getBoundingClientRect();
+      return { bottom, height, top, width, x };
+    };
+    return {
+      footer: bounds("footer"),
+      relatedHeading: bounds(".fashion-product-related .row.mb-5"),
+      tabLinks: [...document.querySelectorAll<HTMLElement>(".fashion-product-tabs .nav-link")].map(
+        ({ offsetTop }) => offsetTop,
+      ),
+      tabs: bounds(".fashion-product-tabs .nav-tabs"),
+    };
+  });
+  expect(responsiveGeometry.tabs.height).toBe(profile.geometry.tabs.height);
+  expect(new Set(responsiveGeometry.tabLinks).size).toBe(viewportName === "desktop" ? 1 : 4);
+  expect(responsiveGeometry.relatedHeading.top).toBeGreaterThan(responsiveGeometry.tabs.bottom);
+  expect(responsiveGeometry.footer.top).toBeGreaterThan(responsiveGeometry.relatedHeading.bottom);
+  expect(responsiveGeometry.footer.x).toBe(0);
+  expect(responsiveGeometry.footer.width).toBe(page.viewportSize()!.width);
 });
 
 async function prepareProduct(page: Page, dismissCookie = true): Promise<void> {
@@ -105,7 +115,13 @@ test("Product Reviews keeps legacy ratings honest and saves a pending review onc
     !isFashionStoreViewport(testInfo, "desktop") && !isFashionStoreViewport(testInfo, "mobile"),
     "Review interaction runs at desktop and mobile.",
   );
-  const submissions: Array<{ rating: number; displayName: string; body: string }> = [];
+  const submissions: Array<{
+    rating: number;
+    displayName: string;
+    email: string;
+    body: string;
+    consentAccepted: boolean;
+  }> = [];
   await page.route("**/api/catalog/products/relaxed-corduroy-shirt/reviews", async (route) => {
     submissions.push(route.request().postDataJSON());
     await route.fulfill({
@@ -119,9 +135,74 @@ test("Product Reviews keeps legacy ratings honest and saves a pending review onc
   await prepareProduct(page);
   await page.getByRole("tab", { name: "Reviews (165)" }).click();
   const panel = page.getByRole("tabpanel", { name: "Reviews (165)" });
+  const reviewLayout = await panel.evaluate((root) => {
+    const bounds = (selector: string) => {
+      const { bottom, left, top } = root
+        .querySelector<HTMLElement>(selector)!
+        .getBoundingClientRect();
+      return { bottom, left, top };
+    };
+    const columnWidth = (selector: string) =>
+      root
+        .querySelector<HTMLElement>(selector)!
+        .closest<HTMLElement>("[class*='col-lg-']")!
+        .getBoundingClientRect().width;
+    return {
+      agreement: bounds(".terms-condition-box"),
+      agreementColumnWidth: columnWidth(".terms-condition-box"),
+      email: bounds("#product-review-email"),
+      emailColumnWidth: columnWidth("#product-review-email"),
+      name: bounds("#product-review-name"),
+      nameColumnWidth: columnWidth("#product-review-name"),
+      rating: bounds(".fashion-product-review-rating-options"),
+      ratingColumnWidth: columnWidth(".fashion-product-review-rating-options"),
+      submit: bounds("button[type='submit']"),
+      submitColumnWidth: columnWidth("button[type='submit']"),
+    };
+  });
+  if (isFashionStoreViewport(testInfo, "desktop")) {
+    expect(Math.abs(reviewLayout.name.top - reviewLayout.email.top)).toBeLessThanOrEqual(2);
+    expect(Math.abs(reviewLayout.email.top - reviewLayout.rating.top)).toBeLessThanOrEqual(45);
+    expect(reviewLayout.submit.left).toBeGreaterThan(reviewLayout.agreement.left);
+    const fieldRowWidth =
+      reviewLayout.nameColumnWidth + reviewLayout.emailColumnWidth + reviewLayout.ratingColumnWidth;
+    expect(reviewLayout.nameColumnWidth / fieldRowWidth).toBeCloseTo(5 / 12, 2);
+    expect(reviewLayout.emailColumnWidth / fieldRowWidth).toBeCloseTo(5 / 12, 2);
+    expect(reviewLayout.ratingColumnWidth / fieldRowWidth).toBeCloseTo(2 / 12, 2);
+    const actionRowWidth = reviewLayout.agreementColumnWidth + reviewLayout.submitColumnWidth;
+    expect(reviewLayout.agreementColumnWidth / actionRowWidth).toBeCloseTo(9 / 12, 2);
+    expect(reviewLayout.submitColumnWidth / actionRowWidth).toBeCloseTo(3 / 12, 2);
+  } else {
+    expect(reviewLayout.email.top).toBeGreaterThan(reviewLayout.name.bottom);
+    expect(reviewLayout.rating.top).toBeGreaterThan(reviewLayout.email.bottom);
+    expect(reviewLayout.submit.top).toBeGreaterThan(reviewLayout.agreement.bottom);
+    expect(reviewLayout.submit.left).toBeLessThanOrEqual(reviewLayout.agreement.left + 2);
+  }
   await expect(
     panel.getByText("Rating breakdown is unavailable for this historical review snapshot."),
-  ).toBeVisible();
+  ).toHaveCount(0);
+  const ratingLegend = panel.locator("legend.form-label", { hasText: "Your rating*" });
+  await expect(ratingLegend).toHaveCSS("font-size", "17px");
+  await expect(ratingLegend).toHaveCSS("line-height", "32px");
+  const ratingOptions = panel.locator(".fashion-product-review-rating-option");
+  await ratingOptions.nth(3).hover();
+  for (const option of await ratingOptions.all()) {
+    const index = await option.evaluate((node) =>
+      [...node.parentElement!.children].indexOf(node),
+    );
+    await expect(option.locator("span")).toHaveCSS(
+      "color",
+      index <= 3 ? "rgb(189, 97, 0)" : "rgb(232, 137, 11)",
+    );
+  }
+  if (isFashionStoreViewport(testInfo, "mobile")) {
+    for (const option of await ratingOptions.all()) {
+      const box = await option.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.width).toBeGreaterThanOrEqual(44);
+      expect(box!.height).toBeGreaterThanOrEqual(44);
+    }
+  }
   await expect(
     panel.locator(".fashion-product-reviews [role='img'][aria-label*='out of 5 stars']"),
   ).toHaveCount(0);
@@ -129,18 +210,32 @@ test("Product Reviews keeps legacy ratings honest and saves a pending review onc
   await expect(panel.locator("img[alt*='avatar'], img[alt*='portrait']")).toHaveCount(0);
   await panel.getByRole("button", { name: "Submit review" }).click();
   await expect(panel.getByText("Choose a rating from 1 to 5 stars.")).toBeVisible();
+  await expect(panel.getByText("Enter a valid email address.")).toBeVisible();
+  await expect(
+    panel.getByText("Accept the terms and privacy policy before submitting."),
+  ).toBeVisible();
+  expect(submissions).toHaveLength(0);
   await panel.getByRole("radio", { name: "4 stars" }).check();
   await panel.getByLabel("Your name*").fill("Alex Shopper");
+  await panel.getByLabel("Your email address*").fill("alex.shopper@example.test");
   await panel
     .getByLabel("Your review*")
     .fill("The product page was clear and the item fit as expected.");
+  await panel.getByRole("button", { name: "Submit review" }).click();
+  await expect(
+    panel.getByText("Accept the terms and privacy policy before submitting."),
+  ).toBeVisible();
+  expect(submissions).toHaveLength(0);
+  await panel.getByLabel(/I accept the terms and conditions/).check();
   await panel.getByRole("button", { name: "Submit review" }).click();
   await expect(panel.getByRole("status")).toContainText("awaiting moderation");
   expect(submissions).toEqual([
     {
       rating: 4,
       displayName: "Alex Shopper",
+      email: "alex.shopper@example.test",
       body: "The product page was clear and the item fit as expected.",
+      consentAccepted: true,
     },
   ]);
 });
@@ -177,10 +272,13 @@ test("Product review submission retains input after a recoverable error and retr
   const panel = page.getByRole("tabpanel", { name: "Reviews (165)" });
   await panel.getByRole("radio", { name: "5 stars" }).check();
   await panel.getByLabel("Your name*").fill("Morgan Shopper");
+  await panel.getByLabel("Your email address*").fill("morgan.shopper@example.test");
   await panel.getByLabel("Your review*").fill("The details helped me choose the right option.");
+  await panel.getByLabel(/I accept the terms and conditions/).check();
   await panel.getByRole("button", { name: "Submit review" }).click();
   await expect(panel.getByRole("alert")).toContainText("Temporary review service error.");
   await expect(panel.getByLabel("Your name*")).toHaveValue("Morgan Shopper");
+  await expect(panel.getByLabel("Your email address*")).toHaveValue("morgan.shopper@example.test");
   await expect(panel.getByLabel("Your review*")).toHaveValue(
     "The details helped me choose the right option.",
   );
@@ -213,7 +311,7 @@ test("Product demo reviews show matching ratings, five bands, and expandable ent
   await expect(panel.locator(".fashion-product-reviews > div.border-bottom")).toHaveCount(4);
   await expect(panel.getByRole("button", { name: "Show more reviews" })).toHaveCount(0);
   await expect(panel.locator("img[alt*='avatar'], img[alt*='portrait']")).toHaveCount(0);
-  for (const width of [320, 390, 768, 992, 1024, 1100, 1440]) {
+  for (const width of [320, 390, 575, 767, 768, 991, 992, 1024, 1100, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     const layout = await panel.evaluate((root) => ({
       overflow: document.documentElement.scrollWidth - window.innerWidth,
@@ -405,7 +503,7 @@ test("Product preserves source structure, facts, assets, and responsive geometry
     expectedSwatches: ["#d4af37", "#5881bf", "#87a968"],
     name: "Relaxed corduroy shirt",
     relatedProductCount: 4,
-    secondaryActionCount: 3,
+    secondaryActionCount: 2,
     viewport,
   });
   await expect(product.locator(".product-image-thumb button")).toHaveCount(6);
@@ -509,7 +607,7 @@ test("Product price and rating stay readable across content-stress widths", asyn
     node.textContent = `SKU: ${"LONG-PRODUCT-SKU-".repeat(5)}`;
   });
 
-  for (const width of [320, 390, 768, 992, 1024, 1100, 1440]) {
+  for (const width of [320, 390, 575, 767, 768, 991, 992, 1024, 1100, 1440]) {
     await page.setViewportSize({ height: 900, width });
     const layout = await product.locator(".fashion-product-rating-line").evaluate((row) => {
       const stars = [...row.querySelectorAll('[data-fashion-store-icon="star"]')].map((star) =>
@@ -545,16 +643,42 @@ test("Product price and rating stay readable across content-stress widths", asyn
       ),
     }));
     if (width <= 575) {
-      expect(new Set(controls.actions.map(({ top }) => top)).size).toBe(3);
-      expect(new Set(controls.actions.map(({ left }) => left)).size).toBe(1);
-      expect(controls.actions[2]!.width).toBeGreaterThanOrEqual(width - 30);
+      expect(controls.actions).toHaveLength(2);
+      expect(new Set(controls.actions.map(({ top }) => top)).size).toBe(1);
     }
-    if (width <= 991) {
-      expect(controls.tabs[0]).toBe(controls.tabs[1]);
-      expect(controls.tabs[2]).toBe(controls.tabs[3]);
-      expect(controls.tabs[2]).toBeGreaterThan(controls.tabs[0]!);
+    if (width >= 768) {
+      expect(new Set(controls.tabs).size).toBe(1);
+    } else {
+      expect(new Set(controls.tabs).size).toBe(4);
     }
   }
+});
+
+test("Product disabled secondary actions and footer links expose truthful hover states", async ({
+  page,
+}, testInfo) => {
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Hover styling is checked on desktop.");
+  await prepareProduct(page);
+
+  const secondaryActions = page.locator(".fashion-product-secondary-actions button");
+  await expect(secondaryActions).toHaveCount(2);
+  for (const action of await secondaryActions.all()) {
+    await expect(action).toBeDisabled();
+    await expect(action).toHaveCSS("cursor", "default");
+    await expect(action).toHaveCSS("opacity", "0.55");
+  }
+  const secondaryActionIcons = page.locator(
+    ".fashion-product-secondary-actions .col-auto:has(button:disabled) .feature-box-icon",
+  );
+  await expect(secondaryActionIcons).toHaveCount(2);
+  for (const icon of await secondaryActionIcons.all()) {
+    await expect(icon).toHaveCSS("opacity", "0.55");
+  }
+
+  const termsLink = page.locator("footer.fashion-store-footer-canonical a[href='/policies/terms']");
+  await termsLink.scrollIntoViewIfNeeded();
+  await termsLink.hover();
+  await expect(termsLink).toHaveCSS("color", "rgb(254, 227, 0)");
 });
 
 test("Product description media falls back accessibly and recovers on remount", async ({

@@ -17,6 +17,9 @@ interface ReviewRow {
   submitted_at: string;
 }
 
+const reviewProjection = `body, display_name, id, moderated_at, moderated_by,
+  moderation_reason, product_id, rating, status, submitted_at`;
+
 function view(row: ReviewRow) {
   return {
     body: row.body,
@@ -42,11 +45,12 @@ export async function submitProductReview(
   const inserted = await db
     .prepare(
       `INSERT INTO product_reviews
-         (id, product_id, rating, display_name, body, status, submitted_at)
-       SELECT ?, id, ?, ?, ?, 'pending', ? FROM products
+         (id, product_id, rating, display_name, body, consent_accepted_at,
+          status, submitted_at)
+       SELECT ?, id, ?, ?, ?, ?, 'pending', ? FROM products
         WHERE slug = ? AND status = 'published'`,
     )
-    .bind(id, input.rating, input.displayName, input.body, now, slug)
+    .bind(id, input.rating, input.displayName, input.body, now, now, slug)
     .run();
   if (inserted.meta.changes !== 1) {
     throw new ApiError(404, "product_not_found", "The published Product was not found.");
@@ -66,7 +70,7 @@ export async function listPendingProductReviews(db: D1Database, after?: string) 
   }
   const result = await db
     .prepare(
-      `SELECT * FROM product_reviews
+      `SELECT ${reviewProjection} FROM product_reviews
         WHERE status = 'pending'
           AND (? IS NULL OR submitted_at > ? OR (submitted_at = ? AND id > ?))
         ORDER BY submitted_at, id LIMIT 51`,
@@ -87,7 +91,7 @@ export async function listPendingProductReviews(db: D1Database, after?: string) 
 
 export async function getProductReview(db: D1Database, id: string) {
   const row = await db
-    .prepare("SELECT * FROM product_reviews WHERE id = ?")
+    .prepare(`SELECT ${reviewProjection} FROM product_reviews WHERE id = ?`)
     .bind(id)
     .first<ReviewRow>();
   if (!row) throw new ApiError(404, "review_not_found", "The review was not found.");

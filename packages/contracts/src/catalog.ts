@@ -308,7 +308,9 @@ export const submitProductReviewSchema = z
   .object({
     rating: z.int().min(1).max(5),
     displayName: z.string().trim().min(2).max(80),
+    email: z.email().max(254),
     body: z.string().trim().min(10).max(2_000),
+    consentAccepted: z.literal(true),
   })
   .strict();
 

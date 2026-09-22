@@ -148,6 +148,22 @@
   cursor: pointer;
 }
 
+[data-fashion-store-product] .fashion-product-secondary-actions button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+[data-fashion-store-product]
+  .fashion-product-secondary-actions
+  .col-auto:has(button:disabled)
+  .feature-box-icon {
+  opacity: 0.55;
+}
+
+.fashion-store-footer-canonical a[href]:not([aria-disabled="true"]):hover {
+  color: var(--base-color) !important;
+}
+
 [data-fashion-store-product] .btn-cart .btn-double-text {
   white-space: nowrap;
 }
@@ -207,47 +223,10 @@
   [data-fashion-store-product] .fashion-product-tabs {
     padding-bottom: 75px;
   }
-}
-
-@media (max-width: 991px) {
-  [data-fashion-store-product] .fashion-product-tabs .nav.nav-tabs {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 8px;
-    row-gap: 10px;
-  }
 
   [data-fashion-store-product] .fashion-product-tabs .nav-item {
-    display: flex;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-  }
-
-  [data-fashion-store-product] .fashion-product-tabs .nav-link {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-end;
-    width: 100%;
-    min-height: 52px;
-    text-align: center;
-  }
-}
-
-@media (max-width: 575px) {
-  [data-fashion-store-product] .fashion-product-secondary-actions {
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  [data-fashion-store-product] .fashion-product-secondary-actions .col-auto {
-    width: 100%;
-  }
-
-  [data-fashion-store-product] .fashion-product-tabs .nav-link {
-    margin-bottom: -1px;
-    padding: 0;
+    padding-right: 14px;
+    padding-left: 14px;
   }
 }
 
@@ -2776,6 +2755,11 @@ body[data-fashion-store-shell="true"] {
   margin-top: 36px;
 }
 
+[data-fashion-store-product] .fashion-product-review-form legend.form-label {
+  font-size: 17px;
+  line-height: 32px;
+}
+
 [data-fashion-store-product] .fashion-product-review-rating-options {
   display: flex;
   flex-wrap: nowrap;
@@ -2803,7 +2787,9 @@ body[data-fashion-store-shell="true"] {
 }
 
 [data-fashion-store-product] .fashion-product-review-rating-option input:checked + span,
-[data-fashion-store-product] .fashion-product-review-rating-option:hover span {
+[data-fashion-store-product]
+  .fashion-product-review-rating-option[data-preview-active="true"]
+  span {
   color: #bd6100;
 }
 
@@ -2820,5 +2806,52 @@ body[data-fashion-store-shell="true"] {
 @media (max-width: 991px) {
   [data-fashion-store-product] .fashion-product-rating-distribution {
     padding-inline: 15px;
+  }
+}
+
+@media (max-width: 767px) {
+  [data-fashion-store-product] .fashion-product-review-rating-option {
+    display: inline-flex;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  [data-fashion-store-product] .shop-color li > input + label,
+  [data-fashion-store-product] .shop-size li > input + label {
+    display: inline-flex;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  [data-fashion-store-product] .quantity button {
+    top: 0;
+    width: 44px;
+    min-width: 44px;
+    height: 54px;
+    min-height: 44px;
+    margin: 0;
+    transform: none;
+  }
+
+  [data-fashion-store-product] .quantity,
+  [data-fashion-store-product] .quantity .qty-text {
+    width: 132px;
+  }
+
+  [data-fashion-store-product] .quantity button.qty-minus {
+    left: 0;
+  }
+
+  [data-fashion-store-product] .quantity button.qty-plus {
+    right: 0;
+    left: auto;
+  }
+
+  [data-fashion-store-product] .fashion-product-secondary-actions button {
+    min-height: 44px;
   }
 }

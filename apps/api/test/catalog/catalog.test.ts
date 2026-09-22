@@ -882,8 +882,12 @@ describe("catalog management and publishing", () => {
         body: JSON.stringify({
           content: {
             ...content,
-            optionDefinitions: [{ name: "color", presentation: "text", values: [{ label: "Charcoal" }] }],
-            variantOptions: [{ id: "wrong-variant", optionValues: { color: "Charcoal" }, title: "Charcoal" }],
+            optionDefinitions: [
+              { name: "color", presentation: "text", values: [{ label: "Charcoal" }] },
+            ],
+            variantOptions: [
+              { id: "wrong-variant", optionValues: { color: "Charcoal" }, title: "Charcoal" },
+            ],
           },
           expectedDraftVersion: null,
           expectedProductVersion,
@@ -895,7 +899,9 @@ describe("catalog management and publishing", () => {
       env,
     );
     expect(invalidOptions.status).toBe(422);
-    expect(await invalidOptions.json()).toMatchObject({ error: { code: "product_revision_options_invalid" } });
+    expect(await invalidOptions.json()).toMatchObject({
+      error: { code: "product_revision_options_invalid" },
+    });
 
     const first = await stage(null);
     expect(first.status, JSON.stringify(await first.clone().json())).toBe(200);
@@ -1296,9 +1302,9 @@ describe("catalog management and publishing", () => {
       const submittedAt = new Date(Date.parse(NOW) + index * 1_000).toISOString();
       await env.DB.prepare(
         `INSERT INTO product_reviews
-          (id, product_id, rating, display_name, body, status, submitted_at,
+          (id, product_id, rating, display_name, body, consent_accepted_at, status, submitted_at,
            moderated_at, moderated_by, moderation_reason)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
         .bind(
           review.id,
@@ -1306,6 +1312,7 @@ describe("catalog management and publishing", () => {
           review.rating,
           review.name,
           "A product-specific review with enough useful detail.",
+          submittedAt,
           review.status,
           submittedAt,
           review.status === "pending" ? null : submittedAt,
@@ -1355,6 +1362,8 @@ describe("catalog management and publishing", () => {
     });
     expect(nextRow!.manifest_json).not.toContain("Pending secret");
     expect(nextRow!.manifest_json).not.toContain("Rejected secret");
+    expect(nextRow!.manifest_json).not.toContain("consentAcceptedAt");
+    expect(nextRow!.manifest_json).not.toContain("consent_accepted_at");
     expect(
       await env.DB.prepare("SELECT manifest_json FROM catalog_releases WHERE id = ?")
         .bind(initial.data.releaseId)

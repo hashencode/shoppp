@@ -249,8 +249,7 @@ function fallbackLogoAt2x(): string {
         </div>
 
         <div
-          class="col-lg-3 col-md-4 col-sm-5 md-mb-50px xs-mb-30px order-sm-2 order-lg-2 offset-md-2 offset-lg-0"
-          :class="liveMode ? 'col-12' : 'col-6'"
+          class="col-6 col-lg-3 col-md-4 col-sm-5 md-mb-50px xs-mb-30px order-sm-2 order-lg-2 offset-md-2 offset-lg-0"
         >
           <span class="fw-500 d-block text-white mb-10px fs-17">Quick contact</span>
           <div v-if="liveMode && publicContact?.publicPhone">
