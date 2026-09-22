@@ -295,6 +295,7 @@ export async function previewPublishedProductRevision(
   const manifest = await buildCatalogReleaseManifest(context.env.DB, {
     candidateProductId: productId,
     candidateRevisionId: revisionId,
+    environment: context.env.ENVIRONMENT,
     mediaOrigin: context.env.MEDIA_PUBLIC_ORIGIN,
     releaseId: `revision-preview-${revisionId}`,
     storefrontOrigin: context.env.STOREFRONT_ORIGIN,

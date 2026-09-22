@@ -27,12 +27,12 @@ deepened: 2026-09-22
 ### Execution Checkpoint
 
 - **Classification:** Active product successor after FS-F12 completed U7 human acceptance on 2026-09-22.
-- **Current product pointer:** `FS-F14-U4` — build Collection authority and ordered membership management.
+- **Current product pointer:** `FS-F14-U5` — build versioned Content Pages and Articles.
 - **Activation condition:** Met. FS-F13 and FS-F12 are complete and FS-F12 handed execution to FS-F14.
-- **Completed units:** U1 (U1.1-U1.3), U2, and U3 completed on 2026-09-23; retained evidence is in `docs/progress/storefront-control-plane-verification.md`.
-- **Current unit:** U4, Collection authority and ordered membership management.
-- **Next concrete action:** Characterize current Product-save membership effects, then add proof-first Catalog API/Admin tests for single-writer Collection editing, optimistic reorder conflicts, backlink-safe archive/slug changes, and the guarded Product-to-Collection handoff before removing implicit Product membership writes.
-- **Blocker:** None for local U4 implementation. Remote mutation, deployment, and candidate/DC/PG advancement remain outside this stage.
+- **Completed units:** U1 (U1.1-U1.3), U2, U3, and U4 completed on 2026-09-23; retained evidence is in `docs/progress/storefront-control-plane-verification.md`.
+- **Current unit:** U5, versioned Content Pages and Articles.
+- **Next concrete action:** Add proof-first API and Admin coverage for permission-separated Page/Article draft and publish flows, bounded structured content, route/redirect uniqueness, and zero-Article truthfulness; then implement direct Content list/edit routes and Release-backed Fashion destinations without sample Article fallbacks.
+- **Blocker:** None for local U5 implementation. Remote mutation, deployment, and candidate/DC/PG advancement remain outside this stage.
 - **Handback:** After U1-U9 and the Definition of Done pass, return to `REL-Pre-DC`. No candidate is frozen automatically.
 
 ---

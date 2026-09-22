@@ -537,6 +537,7 @@ async function assembleCandidateManifest(
   const v2 = await buildCatalogReleaseManifest(db, {
     aggregatePublishedCatalog: true,
     candidateProductId: product.id,
+    environment,
     mediaOrigin,
     policies,
     releaseId,

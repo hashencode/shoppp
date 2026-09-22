@@ -177,7 +177,6 @@ async function appendTaxonomyStatements(
   input: ProductDraftInput,
   now: string,
   expectedVersion?: number,
-  includeCollections = true,
 ) {
   for (const category of input.categories) {
     const existing = await db
@@ -214,125 +213,17 @@ async function appendTaxonomyStatements(
             .bind(productId, categoryId, productId, expectedVersion),
     );
   }
-  if (!includeCollections) return;
-  for (const [position, collection] of input.collections.entries()) {
-    const existing = await db
-      .prepare("SELECT id FROM collections WHERE slug = ?")
-      .bind(collection.slug)
-      .first<{ id: string }>();
-    const collectionId = existing?.id ?? crypto.randomUUID();
-    const membershipPositions = existing
-      ? await db
-          .prepare(
-            `SELECT MAX(CASE WHEN cm.product_id = ? THEN cm.position END) AS existing_position,
-                    MAX(cm.position) AS last_position
-               FROM collection_memberships cm
-              WHERE cm.collection_id = ?
-                AND cm.collection_version = (
-                  SELECT MAX(cv.version) FROM collection_versions cv WHERE cv.collection_id = ?
-                )`,
-          )
-          .bind(productId, collectionId, collectionId)
-          .first<{ existing_position: number | null; last_position: number | null }>()
-      : null;
-    const membershipPosition =
-      membershipPositions?.existing_position ??
-      (membershipPositions?.last_position == null
-        ? position
-        : membershipPositions.last_position + 1);
-    if (!existing) {
-      statements.push(
-        expectedVersion === undefined
-          ? db
-              .prepare(
-                "INSERT INTO collections (id, slug, name, description, status, created_at, updated_at) VALUES (?, ?, ?, '', 'draft', ?, ?)",
-              )
-              .bind(collectionId, collection.slug, collection.name, now, now)
-          : db
-              .prepare(
-                `INSERT INTO collections (id, slug, name, description, status, created_at, updated_at)
-                 SELECT ?, ?, ?, '', 'draft', ?, ? WHERE EXISTS (SELECT 1 FROM products WHERE id = ? AND version = ?)`,
-              )
-              .bind(
-                collectionId,
-                collection.slug,
-                collection.name,
-                now,
-                now,
-                productId,
-                expectedVersion,
-              ),
-      );
-      statements.push(
-        expectedVersion === undefined
-          ? db
-              .prepare(
-                `INSERT INTO collection_versions
-                  (collection_id, version, slug, name, description, status, created_at, updated_at)
-                 VALUES (?, 1, ?, ?, '', 'draft', ?, ?)`,
-              )
-              .bind(collectionId, collection.slug, collection.name, now, now)
-          : db
-              .prepare(
-                `INSERT INTO collection_versions
-                  (collection_id, version, slug, name, description, status, created_at, updated_at)
-                 SELECT ?, 1, ?, ?, '', 'draft', ?, ?
-                  WHERE EXISTS (SELECT 1 FROM products WHERE id = ? AND version = ?)`,
-              )
-              .bind(
-                collectionId,
-                collection.slug,
-                collection.name,
-                now,
-                now,
-                productId,
-                expectedVersion,
-              ),
-      );
-    }
-    statements.push(
-      expectedVersion === undefined
-        ? db
-            .prepare(
-              `INSERT INTO collection_memberships
-                (collection_id, collection_version, product_id, position)
-               SELECT ?, MAX(version), ?, ? FROM collection_versions WHERE collection_id = ?`,
-            )
-            .bind(collectionId, productId, membershipPosition, collectionId)
-        : db
-            .prepare(
-              `INSERT INTO collection_memberships
-                (collection_id, collection_version, product_id, position)
-               SELECT ?, MAX(cv.version), ?, ? FROM collection_versions cv
-                WHERE cv.collection_id = ?
-                  AND EXISTS (SELECT 1 FROM products WHERE id = ? AND version = ?)`,
-            )
-            .bind(
-              collectionId,
-              productId,
-              membershipPosition,
-              collectionId,
-              productId,
-              expectedVersion,
-            ),
-    );
-  }
 }
 
 export async function createProduct(context: CatalogContext, input: ProductDraftInput) {
-  await assertMediaExists(context.env.MEDIA, input);
-  for (const collection of input.collections) {
-    const existing = await context.env.DB.prepare("SELECT id FROM collections WHERE slug = ?")
-      .bind(collection.slug)
-      .first();
-    if (existing) {
-      throw new ApiError(
-        409,
-        "collection_membership_maintenance_required",
-        "Collection membership is maintained in Collection management. Save the Product without changing membership.",
-      );
-    }
+  if (input.collections.length) {
+    throw new ApiError(
+      409,
+      "collection_membership_maintenance_required",
+      "Collection membership is maintained in Collection management. Create the Product first, then add it to a Collection.",
+    );
   }
+  await assertMediaExists(context.env.MEDIA, input);
   const optionDefinitions =
     input.optionDefinitions ?? deriveTextProductOptionDefinitions(input.variants);
   assertOptionDefinitions(optionDefinitions, input.variants);
@@ -737,7 +628,6 @@ export async function updateProduct(
     input,
     now,
     expectedVersion,
-    false,
   );
   const productUpdateIndex = statements.length;
   statements.push(

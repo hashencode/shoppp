@@ -477,12 +477,39 @@ export const collectionVersions = sqliteTable(
     coverAssetId: text("cover_asset_id"),
     seoJson: text("seo_json").notNull().default("{}"),
     status: text("status", { enum: ["draft", "published", "archived"] }).notNull(),
+    redirectFromSlug: text("redirect_from_slug"),
     publishedAt: text("published_at"),
     ...timestamps,
   },
   (table) => [
     primaryKey({ columns: [table.collectionId, table.version] }),
     check("collection_versions_version_positive", sql`${table.version} > 0`),
+  ],
+);
+
+export const collectionRouteRedirects = sqliteTable(
+  "collection_route_redirects",
+  {
+    environment: text("environment", {
+      enum: ["development", "staging", "production"],
+    }).notNull(),
+    fromPath: text("from_path").notNull(),
+    toPath: text("to_path").notNull(),
+    collectionId: text("collection_id").notNull(),
+    collectionVersion: integer("collection_version").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.environment, table.fromPath] }),
+    foreignKey({
+      columns: [table.collectionId, table.collectionVersion],
+      foreignColumns: [collectionVersions.collectionId, collectionVersions.version],
+    }).onDelete("restrict"),
+    index("collection_route_redirects_target_lookup").on(
+      table.collectionId,
+      table.collectionVersion,
+      table.environment,
+    ),
   ],
 );
 

@@ -103,6 +103,19 @@ describe('auth-route-guards', () => {
     })
   })
 
+  it('registers the independent Collection list and editor behind catalog.read', () => {
+    expect(templateRoutes.find(({ key }) => key === 'catalog-collections')).toMatchObject({
+      inMenu: false,
+      path: '/catalog/collections',
+      permission: 'catalog.read',
+    })
+    expect(templateRoutes.find(({ key }) => key === 'catalog-collection-form')).toMatchObject({
+      inMenu: false,
+      path: '/catalog/collections/form',
+      permission: 'catalog.read',
+    })
+  })
+
   it('uses the API permission set as the authority for theme routes', () => {
     const renderPermission = (permissions: readonly 'themes.read'[]) =>
       renderInLocale(

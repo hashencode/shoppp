@@ -114,6 +114,36 @@ const commerceRoutes: TemplateRoute[] = [
       ),
   },
   {
+    key: 'catalog-collections',
+    path: '/catalog/collections',
+    title: 'Collections',
+    icon: createElement(ShoppingOutlined),
+    permission: 'catalog.read',
+    inMenu: false,
+    breadcrumb: ['Catalog', 'Collections'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/catalog/collection-list-page').then((m) => ({
+          default: m.CollectionListPage,
+        }))
+      ),
+  },
+  {
+    key: 'catalog-collection-form',
+    path: '/catalog/collections/form',
+    title: 'Collection',
+    icon: createElement(FormOutlined),
+    permission: 'catalog.read',
+    inMenu: false,
+    breadcrumb: ['Catalog', 'Collections', 'Collection'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/catalog/collection-form-page').then((m) => ({
+          default: m.CollectionFormPage,
+        }))
+      ),
+  },
+  {
     key: 'catalog-reviews',
     path: '/catalog/reviews',
     title: 'Reviews',

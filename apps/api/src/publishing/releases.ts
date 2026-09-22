@@ -245,6 +245,7 @@ export async function publishProduct(
   try {
     const manifest = await buildCatalogReleaseManifest(context.env.DB, {
       candidateProductId: productId,
+      environment: context.env.ENVIRONMENT,
       mediaOrigin: context.env.MEDIA_PUBLIC_ORIGIN,
       releaseId,
       storefrontOrigin: context.env.STOREFRONT_ORIGIN,
@@ -274,26 +275,13 @@ export async function publishProduct(
       releaseId,
       requestId: context.get("requestId"),
     });
-    await context.env.DB.batch([
-      context.env.DB.prepare(
-        `UPDATE catalog_releases
-            SET status = 'building', build_correlation_id = ?, updated_at = ?
-          WHERE id = ?`,
-      ).bind(build.correlationId, new Date().toISOString(), releaseId),
-      context.env.DB.prepare(
-        `UPDATE collection_versions
-            SET status = 'published', published_at = COALESCE(published_at, ?), updated_at = ?
-          WHERE (collection_id, version) IN (
-            SELECT cm.collection_id, cm.collection_version
-              FROM collection_memberships cm
-             WHERE cm.product_id = ?
-               AND cm.collection_version = (
-                 SELECT MAX(cv.version) FROM collection_versions cv
-                  WHERE cv.collection_id = cm.collection_id
-               )
-          )`,
-      ).bind(now, now, productId),
-    ]);
+    await context.env.DB.prepare(
+      `UPDATE catalog_releases
+          SET status = 'building', build_correlation_id = ?, updated_at = ?
+        WHERE id = ?`,
+    )
+      .bind(build.correlationId, new Date().toISOString(), releaseId)
+      .run();
     await recordAuditEvent(context.env.DB, {
       action: "catalog.publish",
       actorId: principal.id,
@@ -395,6 +383,7 @@ export async function publishPublishedProductRevision(
   try {
     const manifest = await buildCatalogReleaseManifest(db, {
       candidateProductId: productId,
+      environment: context.env.ENVIRONMENT,
       ...(input.revisionId ? { candidateRevisionId: input.revisionId } : {}),
       mediaOrigin: context.env.MEDIA_PUBLIC_ORIGIN,
       releaseId,

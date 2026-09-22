@@ -127,4 +127,61 @@ describe("Fashion Store collection", () => {
       }),
     );
   });
+
+  test("keeps a release-backed empty Collection truthful without inventing cover media", () => {
+    const emptyReleaseViewModel = {
+      collections: [
+        {
+          action: {
+            id: "open-empty-collection",
+            intent: "navigation",
+            label: "View Empty edit",
+            target: "/collections/empty-edit",
+          },
+          id: "col_01JEMPTY000000000000000000",
+          name: "Empty edit",
+        },
+      ],
+      description: "Products will appear after publication.",
+      heading: "Empty edit",
+      kind: "collection-grid",
+      products: [],
+      resource: {
+        id: "col_01JEMPTY000000000000000000",
+        kind: "collection",
+        name: "Empty edit",
+        productIds: [],
+        slug: "empty-edit",
+      },
+      state: "empty",
+    } as unknown as PresentationViewModel;
+
+    expect(
+      normalizeFashionStoreCatalogPresentation(emptyReleaseViewModel, "/collections"),
+    ).toEqual({
+      cards: [
+        {
+          count: "0 items",
+          destination: "/collections/empty-edit",
+          label: "Empty edit",
+        },
+      ],
+      title: "Collection",
+      variant: "landing",
+    });
+    expect(
+      normalizeFashionStoreCatalogPresentation(
+        emptyReleaseViewModel,
+        "/collections/empty-edit",
+      ),
+    ).toEqual(
+      expect.objectContaining({
+        arrivals: [],
+        items: [],
+        layout: "none",
+        title: "Empty edit",
+        variant: "grid",
+      }),
+    );
+  });
 });

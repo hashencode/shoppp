@@ -223,3 +223,40 @@ candidate, or change runtime behavior.
   changed Admin ESLint, Prettier, and `git diff --check` passed.
 - No remote candidate, deployment, DC, or PG state was created or advanced. U3 completes local
   control-path capability only; product execution advances to U4.
+
+## U4 Collection authority and ordered membership evidence
+
+- Characterized the post-U1 cutover: `collection_versions` and `collection_memberships` already own
+  current membership; the legacy table fails closed, Product updates reject changed membership, but
+  Product creation and Admin still exposed an implicit slug writer. U4 removes those remaining
+  write paths without restoring a dual-write compatibility layer.
+- Added independent Collection list/detail APIs and Admin pages for identity, presentation, SEO,
+  status, cover media, ordered Product membership, optimistic versions, candidate/live inclusion,
+  stale causes, permission-appropriate next actions, and exact return navigation.
+- Membership validation and persistence use `json_each` plus bounded set-based statements, so the
+  declared 10,000-member contract remains below D1 bind and invocation ceilings. Collection list
+  hydration uses a bounded page query set instead of per-row membership and Release queries.
+- Product Admin now renders membership read-only and uses an unsaved-change guard before handing
+  the operator to Product-filtered Collection management. The handoff context survives Show all,
+  adds a nonmember Product to an existing Collection, and refreshes the Product summary on return.
+- Collection publication is the only Collection lifecycle writer. Product publication no longer
+  promotes Collection drafts. Draft slug changes retain a version-bound redirect intent; only an
+  authorized Collection publish activates normalized redirect rows. Concurrent renames cannot
+  overwrite one another, and referenced published predecessors block successor publication until
+  Navigation is repaired.
+- Backlink diagnostics use exact environment/version resolution and shared permission filtering;
+  hidden Navigation IDs, versions, and field paths are not disclosed. Candidate source locks map to
+  a stable retryable conflict, malformed list queries use the standard validation envelope, and
+  legacy Collection SEO is backfilled and parsed through the canonical schema.
+- Proof-first failures covered missing Collection routes/modules, implicit Product membership
+  creation, stale/reorder conflicts, cover validation, handoff behavior, and review-discovered
+  publication, permission, D1, redirect, and compatibility gaps. A full structured code review
+  confirmed 13 findings; all were repaired and regression-tested. The retained review artifact is
+  `/tmp/compound-engineering-501/ce-code-review/20260923-062121-ba0505b2/report.md`.
+- Authoritative verification on 2026-09-23: Contracts `55/55`, DB workers `22/22`, DB seed `1/1`,
+  API workers `315/315`, Admin workers `571/571`, API focused `70/70`, Admin focused `18/18`,
+  Fashion official unit `69/69`, Storefront Collection proof `17/17`, Playwright Collection desktop
+  `5/5`, and live Collection landing `1/1` passed. API, Admin, Contracts, DB, and Storefront scoped
+  TypeScript checks, scoped ESLint, and `git diff --check` passed.
+- No remote candidate, deployment, DC, or PG state was created or advanced. U4 completes local
+  Collection control capability only; product execution advances to U5.

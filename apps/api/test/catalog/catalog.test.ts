@@ -2,13 +2,14 @@ import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { createApp } from "../../src/http/app";
+import { listCollections } from "../../src/catalog/collections";
 import { ADMIN_ROLE_IDS, seedHumanAdmin } from "../fixtures/admin-iam";
 
 const NOW = "2026-07-30T00:00:00.000Z";
 
 const validProduct = {
   categories: [{ name: "Travel", slug: "travel" }],
-  collections: [{ name: "Launch collection", slug: "launch-collection" }],
+  collections: [],
   description: "A durable carry-on designed for international travel.",
   media: [
     {
@@ -52,8 +53,14 @@ async function resetCatalog(): Promise<void> {
     env.DB.prepare("PRAGMA defer_foreign_keys = ON"),
     env.DB.prepare("DELETE FROM idempotency_claims"),
     env.DB.prepare("DELETE FROM audit_events"),
+    env.DB.prepare("DELETE FROM catalog_release_media_ledger"),
+    env.DB.prepare("DELETE FROM catalog_release_sources"),
     env.DB.prepare("DELETE FROM catalog_releases"),
     env.DB.prepare("DELETE FROM policy_versions"),
+    env.DB.prepare("DELETE FROM navigation_collection_references"),
+    env.DB.prepare("DELETE FROM navigation_items"),
+    env.DB.prepare("DELETE FROM navigation_menu_versions"),
+    env.DB.prepare("DELETE FROM collection_route_redirects"),
     env.DB.prepare("DELETE FROM collection_memberships"),
     env.DB.prepare("DELETE FROM collection_versions"),
     env.DB.prepare("DELETE FROM collections"),
@@ -68,6 +75,7 @@ async function resetCatalog(): Promise<void> {
     env.DB.prepare("DELETE FROM warehouses"),
     env.DB.prepare("DELETE FROM product_variants"),
     env.DB.prepare("DELETE FROM products"),
+    env.DB.prepare("DELETE FROM settings WHERE key = 'storefront.redirects'"),
     env.DB.prepare("DELETE FROM admin_identities"),
   ]);
 }
@@ -131,6 +139,49 @@ async function productVersion(productId: string): Promise<number> {
   return row.version;
 }
 
+function collectionBody(
+  overrides: Partial<{
+    description: string;
+    expectedVersion: number;
+    name: string;
+    productIds: string[];
+    reason: string;
+    redirectFromOldSlug: boolean;
+    seoDescription: string;
+    seoTitle: string;
+    slug: string;
+    status: "archived" | "draft" | "published";
+  }> = {},
+) {
+  return {
+    description: "Collection description",
+    name: "Collection",
+    productIds: [],
+    reason: "Maintain Collection authority",
+    seoDescription: "Collection description",
+    seoTitle: "Collection",
+    slug: "collection",
+    status: "draft" as const,
+    ...overrides,
+  };
+}
+
+async function createCollection(
+  app: ReturnType<typeof createApp>,
+  overrides: Parameters<typeof collectionBody>[0] = {},
+) {
+  const response = await app.fetch(
+    request("/admin/catalog/collections", {
+      body: JSON.stringify(collectionBody(overrides)),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    }),
+    env,
+  );
+  expect(response.status, await response.clone().text()).toBe(201);
+  return (await response.json<{ data: { id: string; version: number } }>()).data;
+}
+
 async function seedPublishedPolicies(): Promise<void> {
   for (const kind of ["privacy", "returns", "shipping", "terms"] as const) {
     await env.DB.prepare(
@@ -169,7 +220,7 @@ describe("catalog management and publishing", () => {
     await seedPublishedPolicies();
   });
 
-  test("accepts legacy draft writers and derives neutral text option presentation", async () => {
+  test("derives neutral text option presentation and rejects legacy Product membership writes", async () => {
     const { app } = appFor();
     await uploadValidMedia(app);
     const { optionDefinitions: _omitted, ...legacyPayload } = validProduct;
@@ -193,7 +244,7 @@ describe("catalog management and publishing", () => {
       )
         .bind(created.data.id)
         .first(),
-    ).toMatchObject({ collection_version: 1, position: 0, product_id: created.data.id });
+    ).toBeNull();
     expect(
       (
         await env.DB.prepare(
@@ -203,6 +254,19 @@ describe("catalog management and publishing", () => {
           .first<{ count: number }>()
       )?.count,
     ).toBe(0);
+    const membershipWrite = await app.fetch(
+      productRequest({
+        ...legacyPayload,
+        collections: [{ name: "Launch collection", slug: "launch-collection" }],
+        slug: "legacy-membership-write",
+        variants: [{ ...validProduct.variants[0]!, sku: "LEGACY-MEMBERSHIP-001" }],
+      }),
+      env,
+    );
+    expect(membershipWrite.status).toBe(409);
+    expect(await membershipWrite.json()).toMatchObject({
+      error: { code: "collection_membership_maintenance_required" },
+    });
   });
 
   test("fails closed on Product membership changes while preserving safe Product edits", async () => {
@@ -264,6 +328,795 @@ describe("catalog management and publishing", () => {
     ).toEqual(beforeMemberships);
   });
 
+  test("creates and differentially reorders a versioned Collection without Product-side writes", async () => {
+    const { app } = appFor();
+    await uploadValidMedia(app);
+    const firstProductResponse = await app.fetch(
+      productRequest({ ...validProduct, collections: [] }),
+      env,
+    );
+    const firstProduct = await firstProductResponse.json<{ data: { id: string } }>();
+    const secondPayload = {
+      ...validProduct,
+      collections: [],
+      name: "Checked luggage",
+      slug: "checked-luggage",
+      media: [{ ...validProduct.media[0]!, r2Key: "catalog/products/checked.webp" }],
+      variants: [{ ...validProduct.variants[0]!, sku: "CHECKED-001" }],
+    };
+    await app.fetch(
+      request("/admin/media/catalog/products/checked.webp", {
+        body: new Uint8Array([82, 73, 70, 70]),
+        headers: { "Content-Length": "4", "Content-Type": "image/webp" },
+        method: "PUT",
+      }),
+      env,
+    );
+    const secondProductResponse = await app.fetch(productRequest(secondPayload), env);
+    const secondProduct = await secondProductResponse.json<{ data: { id: string } }>();
+
+    const createResponse = await app.fetch(
+      request("/admin/catalog/collections", {
+        body: JSON.stringify({
+          description: "Travel essentials",
+          name: "Travel",
+          productIds: [firstProduct.data.id, secondProduct.data.id],
+          reason: "Create ordered travel collection",
+          seoDescription: "Travel essentials",
+          seoTitle: "Travel collection",
+          slug: "travel",
+          status: "published",
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(createResponse.status, await createResponse.clone().text()).toBe(201);
+    const created = await createResponse.json<{ data: { id: string; version: number } }>();
+
+    const concurrentUpdate = (productIds: string[], reason: string) =>
+      app.fetch(
+        request(`/admin/catalog/collections/${created.data.id}`, {
+        body: JSON.stringify({
+          description: "Travel essentials",
+          expectedVersion: created.data.version,
+          name: "Travel",
+          productIds,
+          reason,
+          seoDescription: "Travel essentials",
+          seoTitle: "Travel collection",
+          slug: "travel",
+          status: "published",
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "PUT",
+      }),
+      env,
+    );
+    const contenders = await Promise.all([
+      concurrentUpdate(
+        [secondProduct.data.id, firstProduct.data.id],
+        "Prioritize checked luggage",
+      ),
+      concurrentUpdate([firstProduct.data.id], "Prioritize carry-on luggage"),
+    ]);
+    expect(contenders.map(({ status }) => status).sort()).toEqual([200, 409]);
+    const accepted = contenders.find(({ status }) => status === 200)!;
+    const rejected = contenders.find(({ status }) => status === 409)!;
+    expect(await rejected.json()).toMatchObject({
+      error: { code: "stale_collection_version" },
+    });
+    const reordered = await accepted.json<{ data: { productIds: string[]; version: number } }>();
+    expect([
+      [secondProduct.data.id, firstProduct.data.id],
+      [firstProduct.data.id],
+    ]).toContainEqual(reordered.data.productIds);
+
+    const current = await app.fetch(request(`/admin/catalog/collections/${created.data.id}`), env);
+    expect(await current.json()).toMatchObject({
+      data: {
+        name: "Travel",
+        productIds: reordered.data.productIds,
+        version: reordered.data.version,
+      },
+    });
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM collection_versions WHERE collection_id = ?",
+      )
+        .bind(created.data.id)
+        .first(),
+    ).toEqual({ count: 2 });
+
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO navigation_menu_versions
+          (menu_id, version, placement, status, created_at, updated_at)
+         VALUES ('menu.header', 1, 'header', 'draft', ?, ?)`,
+      ).bind(NOW, NOW),
+      env.DB.prepare(
+        `INSERT INTO navigation_items
+          (menu_id, menu_version, item_id, parent_item_id, position, label, target_json)
+         VALUES ('menu.header', 1, 'nav.travel', NULL, 0, 'Travel', ?)`,
+      ).bind(JSON.stringify({ id: created.data.id, kind: "collection" })),
+      env.DB.prepare(
+        `INSERT INTO navigation_collection_references
+          (menu_id, menu_version, item_id, collection_id, collection_version, environment, created_at)
+         VALUES ('menu.header', 1, 'nav.travel', ?, ?, ?, ?)`,
+      ).bind(created.data.id, reordered.data.version, env.ENVIRONMENT, NOW),
+    ]);
+
+    const blockedSlug = await app.fetch(
+      request(`/admin/catalog/collections/${created.data.id}`, {
+        body: JSON.stringify({
+          description: "Travel essentials",
+          expectedVersion: reordered.data.version,
+          name: "Travel",
+          productIds: [secondProduct.data.id, firstProduct.data.id],
+          reason: "Rename travel collection",
+          seoDescription: "Travel essentials",
+          seoTitle: "Travel collection",
+          slug: "travel-edit",
+          status: "published",
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(blockedSlug.status).toBe(409);
+    expect(await blockedSlug.json()).toMatchObject({
+      error: {
+        code: "collection_has_backlinks",
+        details: { backlinks: [] },
+      },
+    });
+
+    const draftRename = await app.fetch(
+      request(`/admin/catalog/collections/${created.data.id}`, {
+        body: JSON.stringify({
+          description: "Travel essentials",
+          expectedVersion: reordered.data.version,
+          name: "Travel",
+          productIds: [secondProduct.data.id, firstProduct.data.id],
+          reason: "Rename with validated redirect",
+          redirectFromOldSlug: true,
+          seoDescription: "Travel essentials",
+          seoTitle: "Travel collection",
+          slug: "travel-edit",
+          status: "draft",
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(draftRename.status).toBe(200);
+    const renamedDraft = await draftRename.json<{ data: { version: number } }>();
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM collection_route_redirects",
+      ).first(),
+    ).toEqual({ count: 0 });
+    expect(
+      await env.DB.prepare(
+        "SELECT redirect_from_slug FROM collection_versions WHERE collection_id = ? AND version = ?",
+      )
+        .bind(created.data.id, renamedDraft.data.version)
+        .first(),
+    ).toEqual({ redirect_from_slug: "travel" });
+
+    const blockedPublish = await app.fetch(
+      request(`/admin/catalog/collections/${created.data.id}`, {
+        body: JSON.stringify({
+          description: "Travel essentials",
+          expectedVersion: renamedDraft.data.version,
+          name: "Travel",
+          productIds: [secondProduct.data.id, firstProduct.data.id],
+          reason: "Publish renamed collection",
+          redirectFromOldSlug: true,
+          seoDescription: "Travel essentials",
+          seoTitle: "Travel collection",
+          slug: "travel-edit",
+          status: "published",
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(blockedPublish.status).toBe(409);
+    expect(await blockedPublish.json()).toMatchObject({
+      error: { code: "collection_has_backlinks" },
+    });
+
+    await env.DB.batch([
+      env.DB.prepare("DELETE FROM navigation_collection_references"),
+      env.DB.prepare("DELETE FROM navigation_items"),
+      env.DB.prepare("DELETE FROM navigation_menu_versions"),
+    ]);
+    const publishedRename = await app.fetch(
+      request(`/admin/catalog/collections/${created.data.id}`, {
+        body: JSON.stringify({
+          description: "Travel essentials",
+          expectedVersion: renamedDraft.data.version,
+          name: "Travel",
+          productIds: [secondProduct.data.id, firstProduct.data.id],
+          reason: "Publish renamed collection after repair",
+          redirectFromOldSlug: true,
+          seoDescription: "Travel essentials",
+          seoTitle: "Travel collection",
+          slug: "travel-edit",
+          status: "published",
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(publishedRename.status, await publishedRename.clone().text()).toBe(200);
+    const redirected = await publishedRename.json<{ data: { version: number } }>();
+    expect(
+      await env.DB.prepare(
+        "SELECT from_path, to_path FROM collection_route_redirects WHERE environment = ?",
+      )
+        .bind(env.ENVIRONMENT)
+        .first(),
+    ).toEqual({ from_path: "/collections/travel", to_path: "/collections/travel-edit" });
+
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO navigation_menu_versions
+          (menu_id, version, placement, status, created_at, updated_at)
+         VALUES ('menu.header', 2, 'header', 'draft', ?, ?)`,
+      ).bind(NOW, NOW),
+      env.DB.prepare(
+        `INSERT INTO navigation_items
+          (menu_id, menu_version, item_id, parent_item_id, position, label, target_json)
+         VALUES ('menu.header', 2, 'nav.travel', NULL, 0, 'Travel', ?)`,
+      ).bind(JSON.stringify({ id: created.data.id, kind: "collection" })),
+      env.DB.prepare(
+        `INSERT INTO navigation_collection_references
+          (menu_id, menu_version, item_id, collection_id, collection_version, environment, created_at)
+         VALUES ('menu.header', 2, 'nav.travel', ?, ?, ?, ?)`,
+      ).bind(created.data.id, redirected.data.version, env.ENVIRONMENT, NOW),
+    ]);
+    const blockedArchive = await app.fetch(
+      request(`/admin/catalog/collections/${created.data.id}`, {
+        body: JSON.stringify({
+          description: "Travel essentials",
+          expectedVersion: redirected.data.version,
+          name: "Travel",
+          productIds: [secondProduct.data.id, firstProduct.data.id],
+          reason: "Archive referenced collection",
+          seoDescription: "Travel essentials",
+          seoTitle: "Travel collection",
+          slug: "travel-edit",
+          status: "archived",
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(blockedArchive.status).toBe(409);
+  });
+
+  test("rejects an unknown Collection cover asset without creating a version", async () => {
+    const { app } = appFor();
+    const response = await app.fetch(
+      request("/admin/catalog/collections", {
+        body: JSON.stringify({
+          coverAssetId: "00000000-0000-4000-8000-000000000099",
+          description: "Travel essentials",
+          name: "Travel",
+          productIds: [],
+          reason: "Create travel collection",
+          seoDescription: "Travel essentials",
+          seoTitle: "Travel collection",
+          slug: "travel",
+          status: "draft",
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({
+      error: { code: "collection_cover_asset_invalid" },
+    });
+    expect(
+      (
+        await env.DB.prepare("SELECT COUNT(*) AS count FROM collection_versions").first<{
+          count: number;
+        }>()
+      )?.count,
+    ).toBe(0);
+  });
+
+  test("persists the declared 10,000-member Collection boundary with one ordered set write", async () => {
+    const { app } = appFor();
+    const productIds = Array.from(
+      { length: 10_000 },
+      (_, index) => `10000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+    );
+    await env.DB.prepare(
+      `INSERT INTO products
+        (id, slug, name, description, status, seo_title, seo_description, created_at, updated_at)
+       SELECT CAST(value AS TEXT), 'bulk-' || key, 'Bulk ' || key, '', 'draft', '', '', ?, ?
+         FROM json_each(?)`,
+    )
+      .bind(NOW, NOW, JSON.stringify(productIds))
+      .run();
+    const response = await app.fetch(
+      request("/admin/catalog/collections", {
+        body: JSON.stringify(
+          collectionBody({
+            name: "Bulk",
+            productIds,
+            reason: "Prove maximum ordered membership",
+            seoTitle: "Bulk",
+            slug: "bulk",
+          }),
+        ),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(response.status, await response.clone().text()).toBe(201);
+    const created = await response.json<{ data: { id: string; productIds: string[] } }>();
+    expect(created.data.productIds).toHaveLength(10_000);
+    expect(created.data.productIds[0]).toBe(productIds[0]);
+    expect(created.data.productIds.at(-1)).toBe(productIds.at(-1));
+    expect(
+      await env.DB.prepare(
+        `SELECT COUNT(*) AS count, MIN(position) AS first_position, MAX(position) AS last_position
+           FROM collection_memberships WHERE collection_id = ?`,
+      )
+        .bind(created.data.id)
+        .first(),
+    ).toEqual({ count: 10_000, first_position: 0, last_position: 9_999 });
+  });
+
+  test("requires catalog.publish separately for Collection publication", async () => {
+    const { app } = appFor();
+    await env.DB.prepare(
+      "DELETE FROM admin_role_permissions WHERE role_id = ? AND permission_key = 'catalog.publish'",
+    )
+      .bind(ADMIN_ROLE_IDS.catalogManager)
+      .run();
+    try {
+      const draftResponse = await app.fetch(
+        request("/admin/catalog/collections", {
+          body: JSON.stringify({
+            description: "Travel essentials",
+            name: "Travel",
+            productIds: [],
+            reason: "Create travel draft",
+            seoDescription: "Travel essentials",
+            seoTitle: "Travel collection",
+            slug: "travel",
+            status: "draft",
+          }),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        }),
+        env,
+      );
+      expect(draftResponse.status).toBe(201);
+      const draft = await draftResponse.json<{ data: { id: string; version: number } }>();
+      const publishResponse = await app.fetch(
+        request(`/admin/catalog/collections/${draft.data.id}`, {
+          body: JSON.stringify({
+            description: "Travel essentials",
+            expectedVersion: draft.data.version,
+            name: "Travel",
+            productIds: [],
+            reason: "Publish travel collection",
+            seoDescription: "Travel essentials",
+            seoTitle: "Travel collection",
+            slug: "travel",
+            status: "published",
+          }),
+          headers: { "Content-Type": "application/json" },
+          method: "PUT",
+        }),
+        env,
+      );
+      expect(publishResponse.status).toBe(403);
+    } finally {
+      await env.DB.prepare(
+        `INSERT OR IGNORE INTO admin_role_permissions (role_id, permission_key, created_at)
+         VALUES (?, 'catalog.publish', ?)`,
+      )
+        .bind(ADMIN_ROLE_IDS.catalogManager, NOW)
+        .run();
+    }
+  });
+
+  test("returns only permission-approved exact-version and environment Collection backlinks", async () => {
+    await seedHumanAdmin(env.DB, {
+      email: "catalog-admin@example.test",
+      id: "admin-catalog-admin",
+      roleId: ADMIN_ROLE_IDS.admin,
+      subject: "catalog-admin",
+    });
+    const { app } = appFor("catalog-admin");
+    const collection = await createCollection(app, { status: "published" });
+    const draftResponse = await app.fetch(
+      request(`/admin/catalog/collections/${collection.id}`, {
+        body: JSON.stringify(
+          collectionBody({
+            expectedVersion: collection.version,
+            name: "Collection draft",
+            reason: "Stage successor",
+            seoTitle: "Collection draft",
+            status: "draft",
+          }),
+        ),
+        headers: { "Content-Type": "application/json" },
+        method: "PUT",
+      }),
+      env,
+    );
+    const draft = await draftResponse.json<{ data: { version: number } }>();
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO navigation_menu_versions
+          (menu_id, version, placement, status, created_at, updated_at)
+         VALUES ('menu.scope', 1, 'header', 'draft', ?, ?)`,
+      ).bind(NOW, NOW),
+      ...["current-v1", "other-env-v1", "current-v2"].map((itemId, position) =>
+        env.DB.prepare(
+          `INSERT INTO navigation_items
+            (menu_id, menu_version, item_id, parent_item_id, position, label, target_json)
+           VALUES ('menu.scope', 1, ?, NULL, ?, ?, ?)`,
+        ).bind(
+          itemId,
+          position,
+          itemId,
+          JSON.stringify({ id: collection.id, kind: "collection" }),
+        ),
+      ),
+      env.DB.prepare(
+        `INSERT INTO navigation_collection_references
+          (menu_id, menu_version, item_id, collection_id, collection_version, environment, created_at)
+         VALUES ('menu.scope', 1, 'current-v1', ?, 1, ?, ?)`,
+      ).bind(collection.id, env.ENVIRONMENT, NOW),
+      env.DB.prepare(
+        `INSERT INTO navigation_collection_references
+          (menu_id, menu_version, item_id, collection_id, collection_version, environment, created_at)
+         VALUES ('menu.scope', 1, 'other-env-v1', ?, 1, 'development', ?)`,
+      ).bind(collection.id, NOW),
+      env.DB.prepare(
+        `INSERT INTO navigation_collection_references
+          (menu_id, menu_version, item_id, collection_id, collection_version, environment, created_at)
+         VALUES ('menu.scope', 1, 'current-v2', ?, ?, ?, ?)`,
+      ).bind(collection.id, draft.data.version, env.ENVIRONMENT, NOW),
+    ]);
+    const response = await app.fetch(
+      request(`/admin/catalog/collections/${collection.id}`, {
+        body: JSON.stringify(
+          collectionBody({
+            expectedVersion: draft.data.version,
+            name: "Collection next",
+            reason: "Publish exact scoped successor",
+            seoTitle: "Collection next",
+            status: "published",
+          }),
+        ),
+        headers: { "Content-Type": "application/json" },
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      error: {
+        code: "collection_has_backlinks",
+        details: {
+          backlinks: [
+            {
+              environment: env.ENVIRONMENT,
+              fieldPath: "items.current-v1.target",
+              id: "menu.scope",
+              version: 1,
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  test.each([
+    ["page", "0"],
+    ["pageSize", "101"],
+    ["productId", "not-a-public-id"],
+    ["status", "retired"],
+  ])("returns the standard validation envelope for invalid Collection %s", async (key, value) => {
+    const { app } = appFor();
+    const response = await app.fetch(
+      request(`/admin/catalog/collections?${key}=${encodeURIComponent(value)}`),
+      env,
+    );
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({
+      error: { code: "validation_failed", details: [{ path: [key] }] },
+    });
+  });
+
+  test("maps a pending candidate source lock to an atomic retryable Collection conflict", async () => {
+    const { app } = appFor();
+    const collection = await createCollection(app);
+    await env.DB.prepare(
+      `INSERT INTO catalog_releases
+        (id, status, manifest_json, approved_at, purpose, environment, manifest_digest,
+         source_digest, candidate_status, candidate_expires_at, created_at, updated_at)
+       VALUES ('collection-lock-candidate', 'building', ?, ?, 'private-preview', ?, ?, ?,
+               'pending', '2099-09-30T00:00:00.000Z', ?, ?)`,
+    )
+      .bind(
+        JSON.stringify({ environment: env.ENVIRONMENT, purpose: "private-preview", schemaVersion: 3 }),
+        NOW,
+        env.ENVIRONMENT,
+        "a".repeat(64),
+        "b".repeat(64),
+        NOW,
+        NOW,
+      )
+      .run();
+    const response = await app.fetch(
+      request(`/admin/catalog/collections/${collection.id}`, {
+        body: JSON.stringify(
+          collectionBody({
+            expectedVersion: collection.version,
+            name: "Locked update",
+            reason: "Attempt during candidate freeze",
+          }),
+        ),
+        headers: { "Content-Type": "application/json" },
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      error: { code: "catalog_candidate_sources_locked" },
+    });
+    expect(
+      await env.DB.prepare(
+        "SELECT version, name FROM collection_versions WHERE collection_id = ?",
+      )
+        .bind(collection.id)
+        .all(),
+    ).toMatchObject({ results: [{ name: "Collection", version: 1 }] });
+  });
+
+  test("hydrates a Collection list page with a constant four D1 statements", async () => {
+    const { app } = appFor();
+    await createCollection(app, { name: "First", seoTitle: "First", slug: "first" });
+    await createCollection(app, { name: "Second", seoTitle: "Second", slug: "second" });
+    let prepares = 0;
+    const countingDb = new Proxy(env.DB, {
+      get(target, property) {
+        if (property === "prepare") {
+          return (sql: string) => {
+            prepares += 1;
+            return target.prepare(sql);
+          };
+        }
+        const value = Reflect.get(target, property);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    const response = await listCollections(
+      {
+        env: { DB: countingDb, ENVIRONMENT: env.ENVIRONMENT },
+        get: () => "list-query-count",
+      } as unknown as Parameters<typeof listCollections>[0],
+      { page: 1, pageSize: 100 },
+    );
+    expect(response.data).toHaveLength(2);
+    expect(prepares).toBe(4);
+  });
+
+  test("reports exact candidate/live Collection inclusion and saved-version stale causes", async () => {
+    const { app } = appFor();
+    const collection = await createCollection(app, { status: "published" });
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO catalog_releases
+          (id, status, manifest_json, approved_at, purpose, environment, candidate_status, created_at, updated_at)
+         VALUES ('collection-candidate-exact', 'approved', '{"schemaVersion":2}',
+                 ?, 'private-preview', ?, 'succeeded', ?, ?)`,
+      ).bind(NOW, env.ENVIRONMENT, NOW, NOW),
+      env.DB.prepare(
+        `INSERT INTO catalog_releases
+          (id, status, manifest_json, approved_at, purpose, environment, created_at, updated_at)
+         VALUES ('collection-live-exact', 'deployed', '{"schemaVersion":2}', ?, 'public', ?, ?, ?)`,
+      ).bind(NOW, env.ENVIRONMENT, NOW, NOW),
+      env.DB.prepare(
+        `INSERT INTO catalog_release_sources
+          (release_id, source_kind, source_id, source_version, source_digest, environment, created_at)
+         VALUES ('collection-candidate-exact', 'collection', ?, 1, ?, ?, ?)`,
+      ).bind(collection.id, "c".repeat(64), env.ENVIRONMENT, NOW),
+      env.DB.prepare(
+        `INSERT INTO catalog_release_sources
+          (release_id, source_kind, source_id, source_version, source_digest, environment, created_at)
+         VALUES ('collection-live-exact', 'collection', ?, 1, ?, ?, ?)`,
+      ).bind(collection.id, "d".repeat(64), env.ENVIRONMENT, NOW),
+    ]);
+    const exact = await app.fetch(request(`/admin/catalog/collections/${collection.id}`), env);
+    expect(await exact.json()).toMatchObject({
+      data: {
+        candidate: {
+          candidateDigest: "c".repeat(64),
+          candidateReleaseId: "collection-candidate-exact",
+          candidateStaleCause: null,
+          liveDigest: "d".repeat(64),
+          liveReleaseId: "collection-live-exact",
+          liveStaleCause: null,
+        },
+      },
+    });
+    const draft = await app.fetch(
+      request(`/admin/catalog/collections/${collection.id}`, {
+        body: JSON.stringify(
+          collectionBody({
+            expectedVersion: collection.version,
+            name: "Collection v2",
+            reason: "Save newer collection state",
+            seoTitle: "Collection v2",
+          }),
+        ),
+        headers: { "Content-Type": "application/json" },
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(draft.status).toBe(200);
+    const stale = await app.fetch(request(`/admin/catalog/collections/${collection.id}`), env);
+    expect(await stale.json()).toMatchObject({
+      data: {
+        candidate: {
+          candidateReleaseId: null,
+          candidateStaleCause: "saved_version_newer",
+          liveReleaseId: null,
+          liveStaleCause: "saved_version_newer",
+        },
+      },
+    });
+  });
+
+  test("activates concurrent Collection redirects independently and preserves old-route collisions", async () => {
+    const { app } = appFor();
+    const first = await createCollection(app, {
+      name: "First",
+      seoTitle: "First",
+      slug: "first",
+      status: "published",
+    });
+    const second = await createCollection(app, {
+      name: "Second",
+      seoTitle: "Second",
+      slug: "second",
+      status: "published",
+    });
+    const stageRename = async (id: string, version: number, name: string, slug: string) => {
+      const response = await app.fetch(
+        request(`/admin/catalog/collections/${id}`, {
+          body: JSON.stringify(
+            collectionBody({
+              expectedVersion: version,
+              name,
+              reason: `Stage ${name} redirect`,
+              redirectFromOldSlug: true,
+              seoTitle: name,
+              slug,
+              status: "draft",
+            }),
+          ),
+          headers: { "Content-Type": "application/json" },
+          method: "PUT",
+        }),
+        env,
+      );
+      expect(response.status).toBe(200);
+      return (await response.json<{ data: { version: number } }>()).data.version;
+    };
+    const [firstDraft, secondDraft] = await Promise.all([
+      stageRename(first.id, first.version, "First next", "first-next"),
+      stageRename(second.id, second.version, "Second next", "second-next"),
+    ]);
+    expect(
+      await env.DB.prepare("SELECT COUNT(*) AS count FROM collection_route_redirects").first(),
+    ).toEqual({ count: 0 });
+    const publishRename = (id: string, version: number, name: string, slug: string) =>
+      app.fetch(
+        request(`/admin/catalog/collections/${id}`, {
+          body: JSON.stringify(
+            collectionBody({
+              expectedVersion: version,
+              name,
+              reason: `Publish ${name} redirect`,
+              redirectFromOldSlug: true,
+              seoTitle: name,
+              slug,
+              status: "published",
+            }),
+          ),
+          headers: { "Content-Type": "application/json" },
+          method: "PUT",
+        }),
+        env,
+      );
+    const published = await Promise.all([
+      publishRename(first.id, firstDraft, "First next", "first-next"),
+      publishRename(second.id, secondDraft, "Second next", "second-next"),
+    ]);
+    expect(published.map(({ status }) => status)).toEqual([200, 200]);
+    expect(
+      await env.DB.prepare(
+        "SELECT from_path, to_path FROM collection_route_redirects ORDER BY from_path",
+      ).all(),
+    ).toMatchObject({
+      results: [
+        { from_path: "/collections/first", to_path: "/collections/first-next" },
+        { from_path: "/collections/second", to_path: "/collections/second-next" },
+      ],
+    });
+
+    const collision = await createCollection(app, {
+      name: "Collision",
+      seoTitle: "Collision",
+      slug: "collision",
+      status: "published",
+    });
+    const storedRedirects = [{ from: "/collections/collision", to: "/collections/existing" }];
+    await env.DB.prepare(
+      "INSERT INTO settings (key, value_json, updated_at) VALUES ('storefront.redirects', ?, ?)",
+    )
+      .bind(JSON.stringify(storedRedirects), NOW)
+      .run();
+    const rejected = await app.fetch(
+      request(`/admin/catalog/collections/${collision.id}`, {
+        body: JSON.stringify(
+          collectionBody({
+            expectedVersion: collision.version,
+            name: "Collision next",
+            reason: "Reject colliding old route",
+            redirectFromOldSlug: true,
+            seoTitle: "Collision next",
+            slug: "collision-next",
+            status: "draft",
+          }),
+        ),
+        headers: { "Content-Type": "application/json" },
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(rejected.status).toBe(409);
+    expect(await rejected.json()).toMatchObject({
+      error: { code: "collection_redirect_conflict" },
+    });
+    expect(
+      await env.DB.prepare(
+        "SELECT value_json FROM settings WHERE key = 'storefront.redirects'",
+      ).first(),
+    ).toEqual({ value_json: JSON.stringify(storedRedirects) });
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM collection_versions WHERE collection_id = ?",
+      )
+        .bind(collision.id)
+        .first(),
+    ).toEqual({ count: 1 });
+  });
+
   test("creates a complete draft, previews it, and publishes one correlated build", async () => {
     const buildTrigger = vi.fn(async () => {
       expect(
@@ -280,10 +1133,53 @@ describe("catalog management and publishing", () => {
     expect(createResponse.status).toBe(201);
     const created = await createResponse.json<{ data: { id: string; status: string } }>();
     expect(created.data.status).toBe("draft");
+    const collectionResponse = await app.fetch(
+      request("/admin/catalog/collections", {
+        body: JSON.stringify({
+          description: "Launch collection",
+          name: "Launch collection",
+          productIds: [created.data.id],
+          reason: "Create launch collection",
+          seoDescription: "Launch collection",
+          seoTitle: "Launch collection",
+          slug: "launch-collection",
+          status: "published",
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(collectionResponse.status).toBe(201);
+    const collection = await collectionResponse.json<{ data: { id: string; version: number } }>();
+    const collectionDraft = await app.fetch(
+      request(`/admin/catalog/collections/${collection.data.id}`, {
+        body: JSON.stringify({
+          description: "Unreleased launch collection",
+          expectedVersion: collection.data.version,
+          name: "Launch collection draft",
+          productIds: [created.data.id],
+          reason: "Stage collection independently",
+          seoDescription: "Unreleased launch collection",
+          seoTitle: "Launch collection draft",
+          slug: "launch-collection-draft",
+          status: "draft",
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(collectionDraft.status).toBe(200);
 
     const updateResponse = await app.fetch(
       request(`/admin/catalog/products/${created.data.id}`, {
-        body: JSON.stringify({ ...validProduct, name: "Carry-on Pro", slug: "carry-on-pro" }),
+        body: JSON.stringify({
+          ...validProduct,
+          collections: [{ name: "Launch collection draft", slug: "launch-collection-draft" }],
+          name: "Carry-on Pro",
+          slug: "carry-on-pro",
+        }),
         headers: { "Content-Type": "application/json" },
         method: "PUT",
       }),
@@ -373,6 +1269,18 @@ describe("catalog management and publishing", () => {
         .bind(created.data.id)
         .first(),
     ).toEqual({ status: "published" });
+    expect(
+      await env.DB.prepare(
+        "SELECT version, status FROM collection_versions WHERE collection_id = ? ORDER BY version",
+      )
+        .bind(collection.data.id)
+        .all(),
+    ).toMatchObject({
+      results: [
+        { status: "published", version: 1 },
+        { status: "draft", version: 2 },
+      ],
+    });
     expect(
       await env.DB.prepare(
         "SELECT reason FROM audit_events WHERE action = 'catalog.publish' ORDER BY created_at DESC LIMIT 1",
@@ -1113,7 +2021,6 @@ describe("catalog management and publishing", () => {
     expect(secondUpload.status).toBe(201);
     const otherProduct = {
       ...validProduct,
-      collections: [{ name: "Duffel collection", slug: "duffel-collection" }],
       media: [{ ...validProduct.media[0]!, r2Key: "catalog/products/duffel.webp" }],
       slug: "duffel",
       variants: [{ ...validProduct.variants[0]!, sku: "DUFFEL-001" }],
@@ -1701,7 +2608,6 @@ describe("catalog management and publishing", () => {
     await uploadValidMedia(app);
     const identityProduct = {
       ...validProduct,
-      collections: [{ name: "Identity collection", slug: "identity-collection" }],
       slug: "identity-original",
     };
     const created = await (
@@ -1732,38 +2638,10 @@ describe("catalog management and publishing", () => {
         .bind(originalProductId)
         .first(),
     ).toEqual({ id: originalProductId, slug: "identity-renamed" });
-    const originalCollection = await env.DB.prepare(
-      "SELECT id FROM collections WHERE slug = 'identity-collection'",
-    ).first<{ id: string }>();
-    await env.DB.prepare(
-      "UPDATE collections SET slug = 'identity-collection-renamed', status = 'archived' WHERE id = ?",
-    )
-      .bind(originalCollection!.id)
-      .run();
-    await env.DB.prepare(
-      "UPDATE collection_versions SET slug = 'identity-collection-renamed', status = 'archived' WHERE collection_id = ?",
-    )
-      .bind(originalCollection!.id)
-      .run();
-    await env.DB.prepare("UPDATE collections SET status = 'draft' WHERE id = ?")
-      .bind(originalCollection!.id)
-      .run();
-    expect(
-      await env.DB.prepare("SELECT id, slug FROM collections WHERE id = ?")
-        .bind(originalCollection!.id)
-        .first(),
-    ).toEqual({ id: originalCollection!.id, slug: "identity-collection-renamed" });
-
     await env.DB.batch([
       env.DB.prepare("DELETE FROM product_media WHERE product_id = ?").bind(originalProductId),
       env.DB.prepare("DELETE FROM product_media_assets WHERE product_id = ?").bind(
         originalProductId,
-      ),
-      env.DB.prepare("DELETE FROM collection_memberships WHERE product_id = ?").bind(
-        originalProductId,
-      ),
-      env.DB.prepare("DELETE FROM collection_versions WHERE collection_id = ?").bind(
-        originalCollection!.id,
       ),
       env.DB.prepare("DELETE FROM product_categories WHERE product_id = ?").bind(originalProductId),
       env.DB.prepare(
@@ -1771,13 +2649,11 @@ describe("catalog management and publishing", () => {
       ).bind(originalProductId),
       env.DB.prepare("DELETE FROM product_variants WHERE product_id = ?").bind(originalProductId),
       env.DB.prepare("DELETE FROM products WHERE id = ?").bind(originalProductId),
-      env.DB.prepare("DELETE FROM collections WHERE id = ?").bind(originalCollection!.id),
     ]);
     const recreated = await (
       await app.fetch(
         productRequest({
           ...identityProduct,
-          collections: [{ name: "Identity collection", slug: "identity-collection-renamed" }],
           slug: "identity-renamed",
         }),
         env,
@@ -1785,17 +2661,12 @@ describe("catalog management and publishing", () => {
     ).json<{ data: { id: string } }>();
     const productId = recreated.data.id;
     expect(productId).not.toBe(originalProductId);
-    const recreatedCollection = await env.DB.prepare(
-      "SELECT id FROM collections WHERE slug = 'identity-collection-renamed'",
-    ).first<{ id: string }>();
-    expect(recreatedCollection!.id).not.toBe(originalCollection!.id);
     expect(
       (
         await app.fetch(
           request(`/admin/catalog/products/${productId}`, {
             body: JSON.stringify({
               ...identityProduct,
-              collections: [{ name: "Identity collection", slug: "identity-collection-renamed" }],
               slug: "identity-final",
             }),
             headers: { "Content-Type": "application/json" },
@@ -1805,19 +2676,6 @@ describe("catalog management and publishing", () => {
         )
       ).status,
     ).toBe(200);
-    await env.DB.prepare(
-      "UPDATE collections SET slug = 'identity-collection-final', status = 'archived' WHERE id = ?",
-    )
-      .bind(recreatedCollection!.id)
-      .run();
-    await env.DB.prepare(
-      "UPDATE collection_versions SET slug = 'identity-collection-final', status = 'archived' WHERE collection_id = ?",
-    )
-      .bind(recreatedCollection!.id)
-      .run();
-    await env.DB.prepare("UPDATE collections SET status = 'draft' WHERE id = ?")
-      .bind(recreatedCollection!.id)
-      .run();
     await env.DB.prepare("UPDATE products SET status = 'archived' WHERE id = ?")
       .bind(productId)
       .run();
@@ -1840,14 +2698,10 @@ describe("catalog management and publishing", () => {
     ).first<{ manifest_json: string }>();
     const manifest = JSON.parse(release!.manifest_json);
     expect(manifest.products[0]).toMatchObject({
-      collectionIds: [recreatedCollection!.id],
+      collectionIds: [],
       id: productId,
     });
-    expect(manifest.collections[0]).toMatchObject({
-      id: recreatedCollection!.id,
-      productIds: [productId],
-      slug: "identity-collection-final",
-    });
+    expect(manifest.collections).toEqual([]);
   });
 
   test("allows a view-only operator to read but denies and audits mutation", async () => {

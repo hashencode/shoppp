@@ -144,7 +144,7 @@ describe("private Catalog Release candidate boundary", () => {
 });
 
 const product = {
-  collections: [{ name: "Travel", slug: "travel" }],
+  collections: [],
   description: "Candidate product",
   media: [{ altText: "Carry-on", height: 100, r2Key: "catalog/candidate.webp", width: 100 }],
   name: "Carry-on",
@@ -222,12 +222,23 @@ async function seedCandidateSources(app: ReturnType<typeof createApp>) {
     env,
   );
   expect(published.status, await published.clone().text()).toBe(202);
-  await env.DB.prepare(
-    `UPDATE collection_versions SET status = 'published', published_at = ?, updated_at = ?
-      WHERE collection_id IN (SELECT collection_id FROM collection_memberships WHERE product_id = ?)`,
-  )
-    .bind("2026-09-23T00:00:00.000Z", "2026-09-23T00:00:00.000Z", productId)
-    .run();
+  const collection = await app.fetch(
+    adminRequest("/admin/catalog/collections", {
+      body: JSON.stringify({
+        description: "Travel essentials",
+        name: "Travel",
+        productIds: [productId],
+        reason: "Candidate source",
+        seoDescription: "Travel essentials",
+        seoTitle: "Travel",
+        slug: "travel",
+        status: "published",
+      }),
+      method: "POST",
+    }),
+    env,
+  );
+  expect(collection.status, await collection.clone().text()).toBe(201);
   await env.DB.prepare(
     `INSERT INTO store_identity_versions
       (identity_id, version, status, storefront_name, tagline, seo_json,
@@ -249,6 +260,7 @@ describe("private candidate builder integration", () => {
       env.DB.prepare("DELETE FROM navigation_policy_references"),
       env.DB.prepare("DELETE FROM navigation_items"),
       env.DB.prepare("DELETE FROM navigation_menu_versions"),
+      env.DB.prepare("DELETE FROM collection_route_redirects"),
       env.DB.prepare("DELETE FROM policy_versions"),
       env.DB.prepare("DELETE FROM store_identity_versions"),
       env.DB.prepare("DELETE FROM collection_memberships"),
@@ -787,6 +799,7 @@ describe("private candidate builder integration", () => {
       const manifest = await buildCatalogReleaseManifest(env.DB, {
         aggregatePublishedCatalog: true,
         candidateProductId: product!.id,
+        environment: env.ENVIRONMENT,
         mediaOrigin: "https://media.example.test",
         releaseId: "published-collection-probe",
         storefrontOrigin: env.STOREFRONT_ORIGIN,
@@ -841,6 +854,7 @@ describe("private candidate builder integration", () => {
       const manifest = await buildCatalogReleaseManifest(env.DB, {
         aggregatePublishedCatalog: true,
         candidateProductId: "00000000-0000-4000-8000-000000000001",
+        environment: env.ENVIRONMENT,
         mediaOrigin: "https://media.example.test",
         releaseId: "bind-probe",
         storefrontOrigin: env.STOREFRONT_ORIGIN,

@@ -54,6 +54,7 @@ const DISPOSABLE_TABLES = [
   "collection_products",
   "collection_memberships",
   "collection_versions",
+  "collection_route_redirects",
   "collections",
   "content_article_versions",
   "content_page_versions",

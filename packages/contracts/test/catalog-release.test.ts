@@ -5,6 +5,7 @@ import {
   catalogReleaseV3Schema,
   catalogReleaseDigestInput,
   catalogReleaseSupportsStableReferences,
+  collectionWriteRequestSchema,
   parseCatalogRelease,
   resolveStableCatalogReference,
   type CanonicalCatalogRelease,
@@ -72,6 +73,26 @@ const canonicalRelease = {
 } as const;
 
 describe("catalog release contracts", () => {
+  test("requires unique ordered Product IDs for Collection writes", () => {
+    const input = {
+      description: "Travel",
+      name: "Travel",
+      productIds: ["prd_01J00000000000000000000000", "prd_01J00000000000000000000000"],
+      reason: "Reorder travel products",
+      seoDescription: "Travel",
+      seoTitle: "Travel",
+      slug: "travel",
+      status: "draft",
+    };
+    expect(collectionWriteRequestSchema.safeParse(input).success).toBe(false);
+    expect(
+      collectionWriteRequestSchema.parse({
+        ...input,
+        productIds: ["prd_01J00000000000000000000000", "prd_01J00000000000000000000001"],
+      }).productIds,
+    ).toEqual(input.productIds.map((_, index) => `prd_01J0000000000000000000000${index}`));
+  });
+
   test("accepts a private schema-v3 candidate with a normalized source vector", () => {
     const digest = "a".repeat(64);
     const candidate = catalogReleaseV3Schema.parse({

@@ -239,6 +239,87 @@ export type CatalogListResponse = {
   total: number
 }
 
+export type CatalogCollection = {
+  candidate: {
+    candidateDigest: string | null
+    candidateReleaseId: string | null
+    candidateStaleCause: 'saved_version_newer' | null
+    liveDigest: string | null
+    liveReleaseId: string | null
+    liveStaleCause: 'saved_version_newer' | null
+  }
+  coverAssetId: string | null
+  createdAt: string
+  description: string
+  id: string
+  name: string
+  productIds: string[]
+  products: Array<{ id: string; name: string; position: number; slug: string }>
+  publishedAt: string | null
+  redirectFromOldSlug: boolean
+  seo: { description: string; title: string }
+  slug: string
+  status: 'draft' | 'published' | 'archived'
+  updatedAt: string
+  version: number
+}
+
+export type CollectionWritePayload = {
+  coverAssetId?: string | null
+  description: string
+  expectedVersion?: number
+  name: string
+  productIds: string[]
+  reason: string
+  redirectFromOldSlug?: boolean
+  seoDescription: string
+  seoTitle: string
+  slug: string
+  status: CatalogCollection['status']
+}
+
+export const fetchCatalogCollections = async (filters: {
+  page?: number
+  pageSize?: number
+  productId?: string
+  query?: string
+  status?: CatalogCollection['status']
+}): Promise<{ data: CatalogCollection[]; total: number }> => {
+  const response = await apiClient.get<{ data: CatalogCollection[]; meta: { total: number } }>(
+    '/admin/catalog/collections',
+    { params: filters }
+  )
+  return { data: response.data.data, total: response.data.meta.total }
+}
+
+export const fetchCatalogCollection = async (id: string): Promise<CatalogCollection> => {
+  const response = await apiClient.get<{ data: CatalogCollection }>(
+    `/admin/catalog/collections/${id}`
+  )
+  return response.data.data
+}
+
+export const createCatalogCollection = async (
+  payload: CollectionWritePayload
+): Promise<CatalogCollection> => {
+  const response = await apiClient.post<{ data: CatalogCollection }>(
+    '/admin/catalog/collections',
+    payload
+  )
+  return response.data.data
+}
+
+export const updateCatalogCollection = async (
+  id: string,
+  payload: CollectionWritePayload
+): Promise<CatalogCollection> => {
+  const response = await apiClient.put<{ data: CatalogCollection }>(
+    `/admin/catalog/collections/${id}`,
+    payload
+  )
+  return response.data.data
+}
+
 export const fetchCatalogProducts = async (
   filters: CatalogListFilters
 ): Promise<CatalogListResponse> => {

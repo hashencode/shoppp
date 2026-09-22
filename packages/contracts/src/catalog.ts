@@ -16,6 +16,51 @@ export const catalogPriceSchema = moneySchema
   });
 
 export const productStatusSchema = z.enum(["draft", "scheduled", "published", "archived"]);
+export const collectionStatusSchema = z.enum(["draft", "published", "archived"]);
+export const collectionSeoSchema = z
+  .object({
+    description: z.string().trim().max(500),
+    title: z.string().trim().min(1).max(300),
+  })
+  .strict();
+export const collectionWriteRequestSchema = z
+  .object({
+    coverAssetId: publicIdSchema.nullable().optional(),
+    description: z.string().trim().max(50_000),
+    expectedVersion: z.int().positive().optional(),
+    name: z.string().trim().min(1).max(300),
+    productIds: z.array(publicIdSchema).max(10_000),
+    reason: z.string().trim().min(3).max(500),
+    redirectFromOldSlug: z.boolean().optional().default(false),
+    seoDescription: z.string().trim().max(500),
+    seoTitle: z.string().trim().min(1).max(300),
+    slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    status: collectionStatusSchema,
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const seen = new Set<string>();
+    value.productIds.forEach((id, index) => {
+      if (seen.has(id)) {
+        context.addIssue({
+          code: "custom",
+          message: "Collection Product membership must be unique.",
+          path: ["productIds", index],
+        });
+      }
+      seen.add(id);
+    });
+  });
+export const collectionListQuerySchema = z
+  .object({
+    page: z.coerce.number().int().positive().default(1),
+    pageSize: z.coerce.number().int().min(1).max(100).default(20),
+    productId: publicIdSchema.optional(),
+    query: z.string().trim().max(300).optional(),
+    status: collectionStatusSchema.optional(),
+  })
+  .strict();
+export type CollectionWriteRequest = z.infer<typeof collectionWriteRequestSchema>;
 export const catalogBuildResultSchema = z
   .object({
     failureCode: z.string().trim().min(3).max(120).optional(),

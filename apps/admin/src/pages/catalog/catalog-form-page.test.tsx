@@ -199,6 +199,46 @@ describe('CatalogFormPage', () => {
     await waitFor(() => expect(submitted?.variants[0]?.prices[0]?.compareAtAmount).toBe(16900))
   })
 
+  it('shows read-only Collection membership and guards the filtered management handoff', async () => {
+    const collectionDetail: ProductDetail = {
+      ...detail,
+      collections: [{ id: 'collection-001', name: 'Travel', slug: 'travel' }],
+    }
+    server.use(
+      http.get('*/admin/catalog/products/product-001', () =>
+        HttpResponse.json({ data: collectionDetail })
+      )
+    )
+    render(
+      <MemoryRouter
+        initialEntries={['/catalog/products/form?mode=modify&id=product-001']}
+      >
+        <AuthTestProvider permissions={['catalog.read', 'catalog.write']}>
+          <ThemeProvider>
+            <App>
+              <Routes>
+                <Route path="/catalog/products/form" element={<CatalogFormPage />} />
+                <Route path="/catalog/collections" element={<ReturnProbe />} />
+              </Routes>
+            </App>
+          </ThemeProvider>
+        </AuthTestProvider>
+      </MemoryRouter>
+    )
+
+    expect(await screen.findByText('Travel')).toBeTruthy()
+    expect(screen.queryByLabelText('Collection slugs')).toBeNull()
+    fireEvent.change(screen.getByLabelText('名称'), { target: { value: 'Unsaved Carry-on' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Manage Collection membership' }))
+    expect((await screen.findAllByText('Leave with unsaved Product changes?')).length).toBeGreaterThan(0)
+    fireEvent.click(screen.getByRole('button', { name: 'Open Collection management' }))
+    expect(
+      await screen.findByText(
+        '/catalog/collections?handoffProductId=product-001&returnTo=%2Fcatalog%2Fproducts%2Fform%3Fmode%3Dmodify%26id%3Dproduct-001'
+      )
+    ).toBeTruthy()
+  })
+
   it('authors ordered multi-option swatches through the presentation-only endpoint', async () => {
     const optionDetail: ProductDetail = {
       ...detail,

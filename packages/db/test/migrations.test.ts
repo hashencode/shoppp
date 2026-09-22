@@ -316,6 +316,9 @@ describe("D1 migrations", () => {
     const migrationIndex = env.TEST_MIGRATIONS.findIndex(({ name }) =>
       name.endsWith("0032_storefront_control_authorities.sql"),
     );
+    const collectionFixIndex = env.TEST_MIGRATIONS.findIndex(({ name }) =>
+      name.endsWith("0035_collection_version_transition_guard.sql"),
+    );
     await db.batch([
       db
         .prepare(
@@ -372,7 +375,19 @@ describe("D1 migrations", () => {
     const preflight = await runStorefrontControlPreflight(db);
     expect(preflight).toMatchObject({ checkedMemberships: 2, issues: [], ok: true });
     expect(preflight.membershipDigest).toMatch(/^[a-f0-9]{64}$/);
-    await applyD1Migrations(db, env.TEST_MIGRATIONS.slice(migrationIndex));
+    await applyD1Migrations(
+      db,
+      env.TEST_MIGRATIONS.slice(migrationIndex, collectionFixIndex),
+    );
+    expect(
+      await db
+        .prepare(
+          `SELECT seo_json FROM collection_versions
+            WHERE collection_id = 'collection_00000000000000000000' AND version = 1`,
+        )
+        .first(),
+    ).toEqual({ seo_json: "{}" });
+    await applyD1Migrations(db, env.TEST_MIGRATIONS.slice(collectionFixIndex));
 
     expect(
       await db
@@ -390,6 +405,17 @@ describe("D1 migrations", () => {
       manifest_json: '{"schemaVersion":1,"historical":true}',
       purpose: "public",
       source_digest: null,
+    });
+    expect(
+      await db
+        .prepare(
+          `SELECT seo_json, redirect_from_slug FROM collection_versions
+            WHERE collection_id = 'collection_00000000000000000000' AND version = 1`,
+        )
+        .first(),
+    ).toEqual({
+      redirect_from_slug: null,
+      seo_json: JSON.stringify({ title: "Launch", description: "" }),
     });
     expect(
       await db

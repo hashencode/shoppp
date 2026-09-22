@@ -18,6 +18,8 @@ import {
   auditQuerySchema,
   cancelOrderRequestSchema,
   catalogBuildResultSchema,
+  collectionListQuerySchema,
+  collectionWriteRequestSchema,
   submitProductReviewSchema,
   moderateProductReviewSchema,
   createCartRequestSchema,
@@ -80,6 +82,12 @@ import {
   updateProductOptionDefinitions,
   updateProductPresentation,
 } from "../catalog/products";
+import {
+  createCollection,
+  getCollection,
+  listCollections,
+  updateCollection,
+} from "../catalog/collections";
 import { getLiveProduct, getLiveProductById } from "../catalog/public";
 import {
   getProductReview,
@@ -2428,6 +2436,45 @@ export function createApp(options: CreateAppOptions = {}) {
   app.get("/admin/catalog/products", async (context) => {
     await requirePermission(context, "catalog.read", { type: "product" });
     return context.json(await listProducts(context));
+  });
+  app.get("/admin/catalog/collections", async (context) => {
+    await requirePermission(context, "catalog.read", { type: "collection" });
+    const input = validatedQuery(context, collectionListQuerySchema);
+    return context.json(await listCollections(context, input));
+  });
+  app.get("/admin/catalog/collections/:id", async (context) => {
+    const id = context.req.param("id");
+    await requirePermission(context, "catalog.read", { id, type: "collection" });
+    return context.json({
+      data: await getCollection(context.env.DB, id, context.env.ENVIRONMENT),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post("/admin/catalog/collections", async (context) => {
+    await requirePermission(context, "catalog.write", { type: "collection" });
+    const input = await parseJson(context, collectionWriteRequestSchema);
+    if (input.status === "published" || input.status === "archived") {
+      await requirePermission(context, "catalog.publish", { type: "collection" });
+    }
+    return context.json(
+      {
+        data: await createCollection(context, input),
+        meta: { requestId: context.get("requestId") },
+      },
+      201,
+    );
+  });
+  app.put("/admin/catalog/collections/:id", async (context) => {
+    const id = context.req.param("id");
+    await requirePermission(context, "catalog.write", { id, type: "collection" });
+    const input = await parseJson(context, collectionWriteRequestSchema);
+    if (input.status === "published" || input.status === "archived") {
+      await requirePermission(context, "catalog.publish", { id, type: "collection" });
+    }
+    return context.json({
+      data: await updateCollection(context, id, input),
+      meta: { requestId: context.get("requestId") },
+    });
   });
   app.get("/admin/catalog/products/:id", async (context) => {
     await requirePermission(context, "catalog.read", {

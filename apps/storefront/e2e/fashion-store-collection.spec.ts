@@ -76,6 +76,23 @@ test("Collection preserves source cards, imagery, counts, order, links, and resp
   expect(fashionStoreViewport(testInfo)).toBeDefined();
 });
 
+test("Collection browser output keeps optional cover media absent rather than fabricating placeholders", async ({
+  page,
+}, testInfo) => {
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"), "Truthfulness evidence runs once.");
+  await prepareCollection(page);
+  const cards = page.locator("[data-fashion-store-collection] .categories-style-02");
+  await expect(cards).toHaveCount(6);
+  expect(
+    await cards.evaluateAll((items) =>
+      items.every((item) => {
+        const image = item.querySelector("img");
+        return image ? !image.getAttribute("src")?.includes("placeholder") : true;
+      }),
+    ),
+  ).toBe(true);
+});
+
 test("collection-card-focus interaction: cards expose pointer and keyboard state before Nuxt navigation", async ({
   page,
 }, testInfo) => {

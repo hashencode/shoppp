@@ -85,6 +85,7 @@ interface BuildManifestOptions {
   aggregatePublishedCatalog?: boolean;
   candidateProductId: string;
   candidateRevisionId?: string;
+  environment: "development" | "staging" | "production";
   mediaOrigin: string;
   policies?: BuildCatalogInput["policies"];
   releaseId: string;
@@ -496,7 +497,33 @@ export async function buildCatalogReleaseManifest(
     {},
   );
   const policies = options.policies ?? (await publishedPolicies(db));
-  const redirects = await setting<BuildCatalogInput["redirects"]>(db, "storefront.redirects", []);
+  const legacyRedirects = await setting<BuildCatalogInput["redirects"]>(
+    db,
+    "storefront.redirects",
+    [],
+  );
+  const collectionRedirects = await db
+    .prepare(
+      `SELECT from_path AS "from", to_path AS "to"
+         FROM collection_route_redirects
+        WHERE environment = ?
+        ORDER BY from_path`,
+    )
+    .bind(options.environment)
+    .all<{ from: string; to: string }>();
+  const redirectsBySource = new Map(legacyRedirects.map((redirect) => [redirect.from, redirect]));
+  for (const redirect of collectionRedirects.results) {
+    const existing = redirectsBySource.get(redirect.from);
+    if (existing && existing.to !== redirect.to) {
+      throw new ApiError(
+        409,
+        "storefront_redirect_conflict",
+        `Redirect ${redirect.from} has conflicting destinations.`,
+      );
+    }
+    redirectsBySource.set(redirect.from, redirect);
+  }
+  const redirects = [...redirectsBySource.values()];
   return buildStaticRouteManifest({
     collections: collections.results.map((collection) => {
       const productReferences = memberships.results

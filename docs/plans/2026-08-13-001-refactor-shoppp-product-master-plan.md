@@ -6,7 +6,7 @@ topic: shoppp-product-master-plan
 execution: knowledge-work
 plan_role: product-master
 current_plan: 2026-09-22-0043-feat-storefront-control-plane-plan.md
-current_unit: FS-F14-U4
+current_unit: FS-F14-U5
 ---
 
 # Shoppp Product Master Plan
@@ -46,10 +46,10 @@ template-specific repair does not change product membership or candidate scope b
 ## Current execution pointer
 
 - **Active product plan:** `FS-F14` — [Storefront Control Plane](2026-09-22-0043-feat-storefront-control-plane-plan.md).
-- **Current unit:** `FS-F14-U4` — build Collection authority and ordered membership management.
-- **Current result:** FS-F14 U3 completed direct Store Identity and Policy controls, optimistic and audited lifecycle transitions, permission-filtered Logo/Policy backlink diagnostics, bounded structured content, and required published-Policy inclusion for new Catalog candidates.
-- **Next action:** Characterize current Product-save membership effects, then add proof-first Catalog API/Admin coverage for single-writer Collection editing, optimistic reorder conflicts, backlink-safe archive/slug changes, and the guarded Product-to-Collection handoff.
-- **Blockers:** None for local U4 implementation. Remote mutation, candidate selection, deployment, DC, and PG remain separately gated.
+- **Current unit:** `FS-F14-U5` — build versioned Content Pages and Articles.
+- **Current result:** FS-F14 U4 completed the independent versioned Collection editor, ordered membership single-writer, guarded Product handoff, permission-filtered backlinks, publish-bound redirects, D1-bounded writes and reads, and Release-backed Fashion Collection proof.
+- **Next action:** Add proof-first API and Admin coverage for permission-separated Page/Article draft and publish flows, bounded structured content, route/redirect uniqueness, and zero-Article truthfulness; then implement direct Content routes and Release-backed Fashion destinations.
+- **Blockers:** None for local U5 implementation. Remote mutation, candidate selection, deployment, DC, and PG remain separately gated.
 - **Handback:** Complete FS-F14 U1-U9, then return product control to `REL-Pre-DC`; no Candidate, DC, deployment, or PG state advances automatically.
 
 The active child plan is authoritative if this summary and its execution checkpoint temporarily
@@ -58,7 +58,7 @@ checkpoint here.
 
 ## Product-level sequence
 
-1. Execute active `FS-F14-U4` and the remaining Storefront Control Plane units to replace hardcoded or duplicate Fashion storefront controls with their canonical Admin authorities and immutable Preview path.
+1. Execute active `FS-F14-U5` and the remaining Storefront Control Plane units to replace hardcoded or duplicate Fashion storefront controls with their canonical Admin authorities and immutable Preview path.
 2. Return to `REL-Pre-DC` for capability reconciliation and immutable candidate selection.
 3. Run DC and PG only through their named human and production authorities.
 

@@ -51,7 +51,6 @@ type CatalogFormValues = {
   publicationStatus: 'draft' | 'scheduled'
   scheduledAt?: string
   categorySlugs?: string
-  collectionSlugs?: string
   amount: number
   compareAtAmount?: number
   currency: string
@@ -98,7 +97,6 @@ const toValues = (detail: ProductDetail): CatalogFormValues => {
     publicationStatus: detail.product.status === 'scheduled' ? 'scheduled' : 'draft',
     scheduledAt: detail.product.scheduled_at ?? undefined,
     categorySlugs: detail.categories?.map((item) => item.slug).join(', '),
-    collectionSlugs: detail.collections?.map((item) => item.slug).join(', '),
     amount: price?.amount ?? 0,
     compareAtAmount: price?.compare_at_amount ?? undefined,
     currency: price?.currency ?? 'USD',
@@ -125,7 +123,7 @@ const taxonomyItems = (value?: string) =>
 
 const toPayload = (values: CatalogFormValues): ProductDraftPayload => ({
   categories: taxonomyItems(values.categorySlugs),
-  collections: taxonomyItems(values.collectionSlugs),
+  collections: [],
   description: values.description,
   media: [
     {
@@ -281,6 +279,8 @@ export const CatalogFormPage = () => {
       const { optionDefinitions: _createOnlyOptionDefinitions, ...ordinaryUpdate } = prepared
       await updateCatalogProduct(id, {
         ...ordinaryUpdate,
+        collections:
+          detailData?.collections?.map(({ name, slug }) => ({ name, slug })) ?? [],
         expectedVersion: optionExpectedVersion,
       })
       return fetchCatalogProduct(id)
@@ -325,6 +325,29 @@ export const CatalogFormPage = () => {
     detailData.product.status === 'published' ||
     detailData.product.status === 'archived'
   )
+
+  const openCollectionManagement = useCallback(() => {
+    if (!detailData) return
+    const proceed = () => {
+      const returnParams = new URLSearchParams(searchParams)
+      const returnTo = `/catalog/products/form?${returnParams.toString()}`
+      const params = new URLSearchParams({
+        handoffProductId: detailData.product.id,
+        returnTo,
+      })
+      navigate(`/catalog/collections?${params.toString()}`)
+    }
+    if (!form.isFieldsTouched() && !pendingFile) {
+      proceed()
+      return
+    }
+    modal.confirm({
+      title: t('Leave with unsaved Product changes?'),
+      content: t('Collection membership is edited separately. Continuing discards unsaved Product changes.'),
+      okText: t('Open Collection management'),
+      onOk: proceed,
+    })
+  }, [detailData, form, modal, navigate, pendingFile, searchParams, t])
 
   const replaceOptionDefinition = useCallback(
     (
@@ -577,13 +600,22 @@ export const CatalogFormPage = () => {
               >
                 <Input placeholder="travel, luggage" />
               </Form.Item>
-              <Form.Item
-                label={t('Collection slugs')}
-                name="collectionSlugs"
-                extra={t('Comma-separated URL-safe slugs')}
-              >
-                <Input placeholder="new-arrivals, summer-2026" />
-              </Form.Item>
+              {detailData ? (
+                <Form.Item label={t('Collections')}>
+                  <div className="space-y-2">
+                    <div>
+                      {detailData.collections?.length
+                        ? detailData.collections.map(({ name }) => name).join(', ')
+                        : t('This Product is not in any Collection.')}
+                    </div>
+                    {!isReadonly ? (
+                      <Button onClick={openCollectionManagement}>
+                        {t('Manage Collection membership')}
+                      </Button>
+                    ) : null}
+                  </div>
+                </Form.Item>
+              ) : null}
               <Form.Item
                 label={t('Publication status')}
                 name="publicationStatus"
@@ -1106,6 +1138,7 @@ export const CatalogFormPage = () => {
       changeSwatch,
       optionDefinitions,
       optionErrors,
+      openCollectionManagement,
       optionPresentationReadonly,
       optionSaving,
       productPresentation,
@@ -1116,6 +1149,7 @@ export const CatalogFormPage = () => {
       fromSetupGuide,
       navigate,
       isAddMode,
+      isReadonly,
       loadDetail,
       modeView,
       parsedMode,
