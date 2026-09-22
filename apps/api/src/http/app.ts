@@ -174,6 +174,14 @@ import {
   type BuildTrigger,
 } from "../publishing/releases";
 import {
+  abandonPrivateCatalogCandidate,
+  assertCatalogReleaseLifecycle,
+  buildPrivateCatalogCandidate,
+  getPrivateCatalogCandidate,
+  getPrivateCatalogCandidateStatus,
+  type CatalogCandidateFreezeEvent,
+} from "../publishing/candidate-releases";
+import {
   assertManualFashionPreparationNamespace,
   defaultExperienceBuildTrigger,
   getStorefrontExperienceBuild,
@@ -243,6 +251,8 @@ import { ApiError, errorEnvelope } from "./errors";
 import { assertEnvironmentIsolation } from "./environment";
 
 export interface CreateAppOptions {
+  readonly catalogCandidateBeforeCommit?: () => Promise<void>;
+  readonly catalogCandidateFreezeHook?: (event: CatalogCandidateFreezeEvent) => Promise<void>;
   readonly testIdentityVerifier?: TestIdentityVerifier;
   readonly analyticsRateLimiter?: RateLimiter;
   readonly buildManifestToken?: string;
@@ -259,6 +269,38 @@ export interface CreateAppOptions {
   readonly passwordResetSecret?: string;
   readonly turnstileRequired?: boolean;
   readonly turnstileVerifier?: TurnstileVerifier;
+}
+
+async function requireCatalogReleaseRead(
+  context: Context<ApiEnvironment>,
+  catalogReleaseId: string,
+): Promise<void> {
+  await requirePermission(context, "catalog.read", {
+    id: catalogReleaseId,
+    type: "catalog_release",
+  });
+  const release = await context.env.DB.prepare("SELECT purpose FROM catalog_releases WHERE id = ?")
+    .bind(catalogReleaseId)
+    .first<{ purpose: "private-preview" | "public" }>();
+  if (release?.purpose !== "private-preview") return;
+  if (context.get("principal").principalKind !== "human") {
+    throw new ApiError(
+      403,
+      "human_principal_required",
+      "Private candidates require a human operator.",
+    );
+  }
+  for (const permission of [
+    "identity.read",
+    "policies.read",
+    "content.read",
+    "navigation.read",
+  ] as const) {
+    await requirePermission(context, permission, {
+      id: catalogReleaseId,
+      type: "catalog_release_candidate",
+    });
+  }
 }
 
 function requireAdminBrowserOrigin(context: Context<ApiEnvironment>): void {
@@ -1088,15 +1130,35 @@ export function createApp(options: CreateAppOptions = {}) {
     const expectedToken = options.buildManifestToken ?? context.env.BUILD_MANIFEST_TOKEN;
     requireBuildCredential(context, expectedToken);
     const release = await context.env.DB.prepare(
-      `SELECT manifest_json
+      `SELECT manifest_json, status, purpose, environment, candidate_status
          FROM catalog_releases
         WHERE id = ? AND status IN ('approved', 'building', 'deployed')`,
     )
       .bind(context.req.param("id"))
-      .first<{ manifest_json: string }>();
+      .first<{
+        candidate_status: string | null;
+        environment: ApiEnvironment["Bindings"]["ENVIRONMENT"];
+        manifest_json: string;
+        purpose: "private-preview" | "public";
+        status: string;
+      }>();
     if (!release) {
       throw new ApiError(404, "catalog_release_not_found", "The catalog release was not found.");
     }
+    assertCatalogReleaseLifecycle(
+      {
+        ...release,
+        candidateStatus: release.candidate_status,
+        schemaVersion: Number(
+          (JSON.parse(release.manifest_json) as { schemaVersion?: number }).schemaVersion ?? 1,
+        ),
+      },
+      {
+        environment: context.env.ENVIRONMENT,
+        operation: "public-manifest-read",
+        principalKind: "service",
+      },
+    );
     context.header("Cache-Control", "private, no-store");
     return context.json(JSON.parse(release.manifest_json));
   });
@@ -1112,6 +1174,35 @@ export function createApp(options: CreateAppOptions = {}) {
     idempotency("catalog.build.result"),
     async (context) => {
       const result = await parseJson(context, catalogBuildResultSchema);
+      const release = await context.env.DB.prepare(
+        `SELECT status, purpose, environment, candidate_status, manifest_json
+           FROM catalog_releases WHERE id = ?`,
+      )
+        .bind(context.req.param("id"))
+        .first<{
+          candidate_status: string | null;
+          environment: ApiEnvironment["Bindings"]["ENVIRONMENT"];
+          manifest_json: string;
+          purpose: "private-preview" | "public";
+          status: string;
+        }>();
+      if (!release) {
+        throw new ApiError(404, "catalog_release_not_found", "The catalog release was not found.");
+      }
+      assertCatalogReleaseLifecycle(
+        {
+          ...release,
+          candidateStatus: release.candidate_status,
+          schemaVersion: Number(
+            (JSON.parse(release.manifest_json) as { schemaVersion?: number }).schemaVersion ?? 1,
+          ),
+        },
+        {
+          environment: context.env.ENVIRONMENT,
+          operation: "public-build-status",
+          principalKind: "service",
+        },
+      );
       context.header("Cache-Control", "private, no-store");
       return context.json({
         data: await recordCatalogBuildResult(context, context.req.param("id"), result),
@@ -1394,6 +1485,125 @@ export function createApp(options: CreateAppOptions = {}) {
       meta: { requestId: context.get("requestId") },
     });
   });
+  app.post(
+    "/admin/catalog/releases/preview-candidates",
+    idempotency("catalog.candidate.build"),
+    async (context) => {
+      for (const permission of [
+        "catalog.publish",
+        "catalog.read",
+        "identity.read",
+        "policies.read",
+        "content.read",
+        "navigation.read",
+      ] as const) {
+        await requirePermission(context, permission, { type: "catalog_release_candidate" });
+      }
+      const input = await parseJson(
+        context,
+        z.object({ reason: z.string().trim().min(3).max(500) }).strict(),
+      );
+      const data = await buildPrivateCatalogCandidate(context, input.reason, {
+        ...(options.catalogCandidateBeforeCommit
+          ? { beforeCommit: options.catalogCandidateBeforeCommit }
+          : {}),
+        ...(options.catalogCandidateFreezeHook
+          ? { freezeHook: options.catalogCandidateFreezeHook }
+          : {}),
+      });
+      context.header("Cache-Control", "private, no-store");
+      return context.json({ data, meta: { requestId: context.get("requestId") } }, 201);
+    },
+  );
+  app.get("/admin/catalog/releases/preview-candidates/:id", async (context) => {
+    for (const permission of [
+      "catalog.read",
+      "identity.read",
+      "policies.read",
+      "content.read",
+      "navigation.read",
+    ] as const) {
+      await requirePermission(context, permission, {
+        id: context.req.param("id"),
+        type: "catalog_release_candidate",
+      });
+    }
+    if (context.get("principal").principalKind !== "human") {
+      throw new ApiError(
+        403,
+        "human_principal_required",
+        "A human operator must inspect candidates.",
+      );
+    }
+    const data = await getPrivateCatalogCandidate(
+      context.env.DB,
+      context.req.param("id"),
+      context.env.ENVIRONMENT,
+    );
+    context.header("Cache-Control", "private, no-store");
+    return context.json({ data, meta: { requestId: context.get("requestId") } });
+  });
+  app.get("/admin/catalog/releases/preview-candidates/:id/status", async (context) => {
+    for (const permission of [
+      "catalog.read",
+      "identity.read",
+      "policies.read",
+      "content.read",
+      "navigation.read",
+    ] as const) {
+      await requirePermission(context, permission, {
+        id: context.req.param("id"),
+        type: "catalog_release_candidate",
+      });
+    }
+    if (context.get("principal").principalKind !== "human") {
+      throw new ApiError(
+        403,
+        "human_principal_required",
+        "A human operator must inspect candidates.",
+      );
+    }
+    const candidate = await getPrivateCatalogCandidateStatus(
+      context.env.DB,
+      context.req.param("id"),
+      context.env.ENVIRONMENT,
+    );
+    context.header("Cache-Control", "private, no-store");
+    return context.json({
+      data: candidate,
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post(
+    "/admin/catalog/releases/preview-candidates/:id/abandon",
+    idempotency("catalog.candidate.abandon"),
+    async (context) => {
+      for (const permission of [
+        "catalog.publish",
+        "catalog.read",
+        "identity.read",
+        "policies.read",
+        "content.read",
+        "navigation.read",
+      ] as const) {
+        await requirePermission(context, permission, {
+          id: context.req.param("id"),
+          type: "catalog_release_candidate",
+        });
+      }
+      const input = await parseJson(
+        context,
+        z.object({ reason: z.string().trim().min(3).max(500) }).strict(),
+      );
+      const data = await abandonPrivateCatalogCandidate(
+        context,
+        context.req.param("id"),
+        input.reason,
+      );
+      context.header("Cache-Control", "private, no-store");
+      return context.json({ data, meta: { requestId: context.get("requestId") } });
+    },
+  );
   app.get("/admin/storefront-experiences/catalog-releases", async (context) => {
     await requirePermission(context, "themes.preview", { type: "storefront_catalog_release" });
     await requirePermission(context, "catalog.read", { type: "catalog_release" });
@@ -1408,10 +1618,7 @@ export function createApp(options: CreateAppOptions = {}) {
       id: context.req.param("id"),
       type: "catalog_release",
     });
-    await requirePermission(context, "catalog.read", {
-      id: context.req.param("id"),
-      type: "catalog_release",
-    });
+    await requireCatalogReleaseRead(context, context.req.param("id"));
     const kind = storefrontResourceKindSchema.safeParse(context.req.query("kind"));
     if (!kind.success) {
       throw new ApiError(422, "storefront_resource_kind_invalid", "Select a valid resource kind.");
@@ -1422,12 +1629,20 @@ export function createApp(options: CreateAppOptions = {}) {
       100,
     );
     return context.json({
-      ...(await listStorefrontCatalogResources(context.env.DB, context.req.param("id"), {
-        kind: kind.data,
-        page,
-        pageSize,
-        query: context.req.query("query") ?? "",
-      })),
+      ...(await listStorefrontCatalogResources(
+        context.env.DB,
+        context.req.param("id"),
+        {
+          kind: kind.data,
+          page,
+          pageSize,
+          query: context.req.query("query") ?? "",
+        },
+        {
+          environment: context.env.ENVIRONMENT,
+          principalKind: context.get("principal").principalKind,
+        },
+      )),
       meta: { requestId: context.get("requestId") },
     });
   });
@@ -1517,10 +1732,7 @@ export function createApp(options: CreateAppOptions = {}) {
     });
     const input = validatedQuery(context, storefrontPreviewContextQuerySchema);
     if (input.catalogReleaseId) {
-      await requirePermission(context, "catalog.read", {
-        id: input.catalogReleaseId,
-        type: "catalog_release",
-      });
+      await requireCatalogReleaseRead(context, input.catalogReleaseId);
     }
     return context.json({
       data: await getLatestDeployedStorefrontExperiencePreview(
@@ -1594,10 +1806,7 @@ export function createApp(options: CreateAppOptions = {}) {
     async (context) => {
       const input = await parseJson(context, validateStorefrontExperienceDraftRequestSchema);
       if (input.catalogReleaseId) {
-        await requirePermission(context, "catalog.read", {
-          id: input.catalogReleaseId,
-          type: "catalog_release",
-        });
+        await requireCatalogReleaseRead(context, input.catalogReleaseId);
       }
       return context.json({
         data: await validateStorefrontExperienceDraft(
@@ -1625,10 +1834,7 @@ export function createApp(options: CreateAppOptions = {}) {
     async (context) => {
       const input = await parseJson(context, resolveStorefrontExperienceDraftRequestSchema);
       if (input.catalogReleaseId) {
-        await requirePermission(context, "catalog.read", {
-          id: input.catalogReleaseId,
-          type: "catalog_release",
-        });
+        await requireCatalogReleaseRead(context, input.catalogReleaseId);
       }
       const snapshot = await createStorefrontExperiencePreviewSnapshot(
         context,
@@ -1682,10 +1888,7 @@ export function createApp(options: CreateAppOptions = {}) {
     async (context) => {
       const input = await parseJson(context, approveStorefrontExperienceDraftRequestSchema);
       if (input.catalogReleaseId) {
-        await requirePermission(context, "catalog.read", {
-          id: input.catalogReleaseId,
-          type: "catalog_release",
-        });
+        await requireCatalogReleaseRead(context, input.catalogReleaseId);
       }
       return context.json({
         data: await approveStorefrontExperienceDraft(
@@ -1712,10 +1915,7 @@ export function createApp(options: CreateAppOptions = {}) {
     idempotency("storefront.experience.snapshot.build"),
     async (context) => {
       const input = await parseJson(context, createStorefrontExperienceBuildRequestSchema);
-      await requirePermission(context, "catalog.read", {
-        id: input.catalogReleaseId,
-        type: "catalog_release",
-      });
+      await requireCatalogReleaseRead(context, input.catalogReleaseId);
       if (input.manualDispatch) assertManualFashionPreparationNamespace(context.env);
       const snapshot = await getStorefrontExperienceSnapshot(
         context.env.DB,
@@ -1828,10 +2028,7 @@ export function createApp(options: CreateAppOptions = {}) {
     });
     const input = await parseJson(context, createStorefrontPreviewGrantRequestSchema);
     if (input.catalogReleaseId) {
-      await requirePermission(context, "catalog.read", {
-        id: input.catalogReleaseId,
-        type: "catalog_release",
-      });
+      await requireCatalogReleaseRead(context, input.catalogReleaseId);
     }
     return context.json(
       {
@@ -1891,7 +2088,10 @@ export function createApp(options: CreateAppOptions = {}) {
   app.put(
     "/admin/settings/contact",
     async (context, next) => {
-      await requirePermission(context, "settings.write", { id: "contact_profile", type: "setting" });
+      await requirePermission(context, "settings.write", {
+        id: "contact_profile",
+        type: "setting",
+      });
       await next();
     },
     idempotency("settings.contact.update"),

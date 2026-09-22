@@ -50,6 +50,7 @@ import {
   dryRunStorefrontExperienceMigration,
   fetchStorefrontExperienceDraft,
   fetchFashionStagingOperatorRun,
+  fetchStorefrontCatalogCandidate,
   fetchStorefrontCatalogReleases,
   fetchStorefrontPreviewBuild,
   fetchStorefrontPreviewContext,
@@ -332,6 +333,7 @@ export const ThemeEditorPage = ({
   const [catalogReleases, setCatalogReleases] = useState<StorefrontCatalogRelease[]>([])
   const [catalogReleasesLoading, setCatalogReleasesLoading] = useState(false)
   const [catalogReleasesError, setCatalogReleasesError] = useState<Error | null>(null)
+  const [candidateHandoffWarning, setCandidateHandoffWarning] = useState<Error | null>(null)
   const [catalogReleasesRetry, setCatalogReleasesRetry] = useState(0)
   const [selectedReleaseId, setSelectedReleaseId] = useState(
     () => window.sessionStorage.getItem('storefront-editor-catalog-release') ?? ''
@@ -481,7 +483,31 @@ export const ThemeEditorPage = ({
     const timer = window.setTimeout(() => {
       setCatalogReleasesLoading(true)
       setCatalogReleasesError(null)
+      setCandidateHandoffWarning(null)
+      const handedOffCandidate = window.sessionStorage.getItem('storefront-editor-catalog-release')
+      const privateCandidateHandoff = window.sessionStorage.getItem(
+        'storefront-editor-private-candidate'
+      )
       void fetchStorefrontCatalogReleases()
+        .then(async (deployed) => {
+          if (
+            !handedOffCandidate ||
+            privateCandidateHandoff !== handedOffCandidate ||
+            deployed.some(({ id }) => id === handedOffCandidate)
+          ) {
+            return deployed
+          }
+          try {
+            const candidate = await fetchStorefrontCatalogCandidate(handedOffCandidate)
+            window.sessionStorage.removeItem('storefront-editor-private-candidate')
+            return [candidate, ...deployed]
+          } catch (cause) {
+            window.sessionStorage.removeItem('storefront-editor-private-candidate')
+            window.sessionStorage.removeItem('storefront-editor-catalog-release')
+            if (!cancelled) setCandidateHandoffWarning(normalizeApiError(cause))
+            return deployed
+          }
+        })
         .then((releases) => {
           if (cancelled) return
           setCatalogReleases(releases)
@@ -1133,6 +1159,17 @@ export const ThemeEditorPage = ({
 
       {requiresCatalogRelease ? (
         <Card title={t('Live preview context')}>
+          {candidateHandoffWarning ? (
+            <Alert
+              type="warning"
+              showIcon
+              title={t('Private Catalog candidate is no longer available')}
+              description={t(
+                'The candidate handoff expired or was abandoned. Choose a deployed Catalog Release to continue.'
+              )}
+              style={{ marginBottom: 16 }}
+            />
+          ) : null}
           {!canReadCatalog ? (
             <Alert
               type="warning"

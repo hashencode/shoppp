@@ -154,3 +154,39 @@ candidate, or change runtime behavior.
   Fashion staging reset inventory now treats the four concrete reference tables as disposable in
   dependency-safe order, and its full API regression suite passes. No remote mutation, Preview
   candidate, deployment, or candidate/DC/PG state was created or advanced.
+
+## U2 Catalog Release vNext and private candidate evidence
+
+- Added Catalog Release schema v3 with explicit private-preview purpose and environment claims,
+  typed Identity, content, and navigation payloads, route output, normalized source vectors, and
+  compatible parsing for historical v1/v2 Releases. Migration
+  `0034_catalog_release_v3_candidates.sql` enforces the v3 identity invariant for inserts and
+  v2-to-v3 updates while preserving historical rows.
+- Added a persisted compare-and-set candidate lifecycle covering pending, succeeded, failed,
+  abandoned, and expired states. Pending work has a two-minute lock lease, successful artifacts
+  retain their immutable inputs for seven days, and stale pending work recovers without changing a
+  deployed Release.
+- The builder freezes the server-selected published source versions and exact ordered Collection
+  memberships, records bounded set-based source and media ledgers, and copies verified media into
+  Release-owned SHA-256 keys. The product lookup remains below D1 bind limits and the ledger writer
+  remains below D1 query limits for the tested upper bounds.
+- Candidate build, manifest, status, abandon, and Preview binding routes are human-only, require
+  every included domain read permission, and reject client-authored source identities. A
+  credentialed Preview worker can read only the candidate already bound to its persisted build;
+  service principals retain no general candidate access. Public build, deployment, and
+  prepare-release paths reject private candidates.
+- Added the permission-aware Catalog candidate panel and Theme Editor handoff. Expired handoffs
+  preserve deployed Releases, clear only stale candidate markers, and explain recovery without
+  presenting a private candidate as public.
+- Proof-first tests covered source drift, unpublished and cross-environment references, route
+  collisions, candidate/public separation, lifecycle idempotency and expiry, media immutability,
+  source-permission isolation, and historical Release compatibility. The structured review found
+  seven concrete gaps in D1 bounds, Preview-worker scoping, published Collection selection,
+  resource-picker context, schema guards, and expired handoff behavior; each was repaired and
+  covered by a focused regression before final verification.
+- Authoritative verification on 2026-09-23: Contracts `53/53`, DB workers `22/22`, API workers
+  `288/288`, Admin workers `555/555`, and Storefront focused Release-source tests `3/3` passed.
+  Contracts, DB, API, Admin, and Storefront scoped TypeScript checks passed; the DB seed test passed;
+  `git diff --check` passed.
+- No remote candidate, deployment, DC, or PG state was created or advanced. U2's completed private
+  lifecycle is local capability evidence only; product execution advances to U3.

@@ -82,6 +82,125 @@ describe("D1 migrations", () => {
         .bind(NOW, NOW, NOW)
         .run(),
     ).rejects.toThrow(/catalog_release_attestation_invalid/);
+    await env.DB.prepare(
+      `INSERT INTO settings (key, value_json, updated_at)
+       VALUES ('candidate.lock.probe', '{}', ?)
+       ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json, updated_at = excluded.updated_at`,
+    )
+      .bind(NOW)
+      .run();
+    await env.DB.prepare(
+      `INSERT INTO catalog_releases
+        (id, status, manifest_json, approved_at, purpose, environment, manifest_digest,
+         source_digest, candidate_status, candidate_expires_at, created_at, updated_at)
+       VALUES ('release_v3_immutable', 'approved', ?, ?, 'private-preview', 'development',
+               ?, ?, 'succeeded', '2026-09-30T00:00:00.000Z', ?, ?)`,
+    )
+      .bind(
+        JSON.stringify({
+          environment: "development",
+          purpose: "private-preview",
+          schemaVersion: 3,
+        }),
+        NOW,
+        "a".repeat(64),
+        "b".repeat(64),
+        NOW,
+        NOW,
+      )
+      .run();
+    await expect(
+      env.DB.prepare(
+        "UPDATE catalog_releases SET purpose = 'public' WHERE id = 'release_v3_immutable'",
+      ).run(),
+    ).rejects.toThrow(/catalog_release_v3_immutable/);
+    await expect(
+      env.DB.prepare(
+        `INSERT INTO catalog_releases
+          (id, status, manifest_json, approved_at, purpose, environment, manifest_digest,
+           source_digest, created_at, updated_at)
+         VALUES ('release_v3_missing_identity', 'approved', ?, ?, 'private-preview',
+                 'development', ?, ?, ?, ?)`,
+      )
+        .bind(JSON.stringify({ schemaVersion: 3 }), NOW, "1".repeat(64), "2".repeat(64), NOW, NOW)
+        .run(),
+    ).rejects.toThrow(/catalog_release_v3_identity_invalid/);
+    await env.DB.prepare(
+      `INSERT INTO catalog_releases
+        (id, status, manifest_json, approved_at, purpose, environment, created_at, updated_at)
+       VALUES ('release_v2_upgrade_probe', 'approved', '{"schemaVersion":2}', ?, 'public',
+               'development', ?, ?)`,
+    )
+      .bind(NOW, NOW, NOW)
+      .run();
+    await expect(
+      env.DB.prepare(
+        `UPDATE catalog_releases SET manifest_json = ?, manifest_digest = ?, source_digest = ?
+          WHERE id = 'release_v2_upgrade_probe'`,
+      )
+        .bind(JSON.stringify({ schemaVersion: 3 }), "3".repeat(64), "4".repeat(64))
+        .run(),
+    ).rejects.toThrow(/catalog_release_v3_identity_invalid/);
+
+    await env.DB.prepare(
+      `INSERT INTO catalog_releases
+        (id, status, manifest_json, approved_at, purpose, environment, manifest_digest,
+         source_digest, candidate_status, candidate_expires_at, created_at, updated_at)
+       VALUES ('release_v3_pending', 'building', ?, ?, 'private-preview', 'development',
+               ?, ?, 'pending', '2099-09-30T00:00:00.000Z', ?, ?)`,
+    )
+      .bind(
+        JSON.stringify({
+          environment: "development",
+          purpose: "private-preview",
+          schemaVersion: 3,
+        }),
+        NOW,
+        "c".repeat(64),
+        "d".repeat(64),
+        NOW,
+        NOW,
+      )
+      .run();
+    await expect(
+      env.DB.prepare(
+        "UPDATE settings SET value_json = value_json WHERE key = 'candidate.lock.probe'",
+      ).run(),
+    ).rejects.toThrow(/catalog_candidate_sources_locked/);
+    await env.DB.prepare(
+      `UPDATE catalog_releases SET candidate_status = 'failed'
+        WHERE id = 'release_v3_pending' AND candidate_status = 'pending'`,
+    ).run();
+    await expect(
+      env.DB.prepare(
+        "UPDATE settings SET value_json = value_json WHERE key = 'candidate.lock.probe'",
+      ).run(),
+    ).resolves.toBeDefined();
+    await env.DB.prepare(
+      `INSERT INTO catalog_releases
+        (id, status, manifest_json, approved_at, purpose, environment, manifest_digest,
+         source_digest, candidate_status, candidate_expires_at, created_at, updated_at)
+       VALUES ('release_v3_stale_pending', 'building', ?, ?, 'private-preview', 'development',
+               ?, ?, 'pending', '2020-01-01T00:00:00.000Z', ?, ?)`,
+    )
+      .bind(
+        JSON.stringify({
+          environment: "development",
+          purpose: "private-preview",
+          schemaVersion: 3,
+        }),
+        NOW,
+        "e".repeat(64),
+        "f".repeat(64),
+        NOW,
+        NOW,
+      )
+      .run();
+    await expect(
+      env.DB.prepare(
+        "UPDATE settings SET value_json = value_json WHERE key = 'candidate.lock.probe'",
+      ).run(),
+    ).resolves.toBeDefined();
   });
 
   test("keeps domain-owned backlinks consistent with archive races", async () => {

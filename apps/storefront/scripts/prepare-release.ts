@@ -1,10 +1,18 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { canonicalCatalogReleaseSchema, type CanonicalCatalogRelease } from "@shoppp/contracts";
+import {
+  canonicalCatalogReleaseSchema,
+  catalogReleaseV3Schema,
+  type CanonicalCatalogRelease,
+} from "@shoppp/contracts";
 import { format, resolveConfig } from "prettier";
 
 function assertCanonicalCatalogRelease(input: unknown): asserts input is CanonicalCatalogRelease {
+  const v3 = catalogReleaseV3Schema.safeParse(input);
+  if (v3.success && v3.data.purpose === "private-preview") {
+    throw new Error("catalog_candidate_private: Private Preview candidates cannot be prepared for deployment.");
+  }
   canonicalCatalogReleaseSchema.parse(input);
 }
 

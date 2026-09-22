@@ -107,6 +107,21 @@ const ADMIN_ROUTE_PERMISSIONS: readonly AdminRoutePermission[] = [
     path: "/admin/catalog/products/:id/publish",
     permission: "catalog.publish",
   },
+  {
+    method: "POST",
+    path: "/admin/catalog/releases/preview-candidates",
+    permission: "catalog.publish",
+  },
+  {
+    method: "GET",
+    path: "/admin/catalog/releases/preview-candidates/:id",
+    permission: "catalog.read",
+  },
+  {
+    method: "GET",
+    path: "/admin/catalog/releases/preview-candidates/:id/status",
+    permission: "catalog.read",
+  },
   { method: "GET", path: "/admin/inventory", permission: "inventory.read" },
   {
     method: "GET",

@@ -46,6 +46,8 @@ const DISPOSABLE_TABLES = [
   "audit_events",
   "cart_lines",
   "carts",
+  "catalog_release_media_ledger",
+  "catalog_release_sources",
   "catalog_releases",
   "categories",
   "checkout_attempts",

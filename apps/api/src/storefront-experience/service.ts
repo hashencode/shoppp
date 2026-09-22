@@ -1006,7 +1006,11 @@ export async function validateStorefrontExperienceDraft(
   assertStorefrontThemeLifecycleWritable(row.theme_id);
   assertExpectedVersion(row, expectedVersion);
   const catalogRelease = catalogReleaseId
-    ? await getCanonicalDeployedCatalogRelease(context.env.DB, catalogReleaseId)
+    ? await getCanonicalDeployedCatalogRelease(context.env.DB, catalogReleaseId, {
+        allowPrivateCandidate: true,
+        environment: context.env.ENVIRONMENT,
+        principalKind: context.get("principal").principalKind,
+      })
     : undefined;
   const resolution = resolveDraft(row, options, undefined, undefined, catalogRelease);
   const validationId = `validation-${(
@@ -1055,6 +1059,7 @@ async function validResolution(
   expectedVersion: number,
   catalogReleaseId?: string,
   options?: StorefrontExperienceServiceOptions,
+  allowPrivateCandidate = false,
 ) {
   const row = await draftRow(context.env.DB, id);
   assertStorefrontThemeLifecycleWritable(row.theme_id);
@@ -1075,7 +1080,11 @@ async function validResolution(
     );
   }
   const catalogRelease = catalogReleaseId
-    ? await getCanonicalDeployedCatalogRelease(context.env.DB, catalogReleaseId)
+    ? await getCanonicalDeployedCatalogRelease(context.env.DB, catalogReleaseId, {
+        allowPrivateCandidate,
+        environment: context.env.ENVIRONMENT,
+        principalKind: context.get("principal").principalKind,
+      })
     : undefined;
   const resolution = resolveDraft(row, options, undefined, undefined, catalogRelease);
   if (resolution.issues.length > 0) {
@@ -1305,7 +1314,14 @@ export async function createStorefrontExperiencePreviewSnapshot(
   catalogReleaseId?: string,
   options?: StorefrontExperienceServiceOptions,
 ) {
-  const resolution = await validResolution(context, id, expectedVersion, catalogReleaseId, options);
+  const resolution = await validResolution(
+    context,
+    id,
+    expectedVersion,
+    catalogReleaseId,
+    options,
+    true,
+  );
   const contact = await frozenContact(context);
   return insertSnapshot(context, {
     contact,

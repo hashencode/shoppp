@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 
 import {
   canonicalCatalogReleaseSchema,
+  catalogReleaseV3Schema,
   storefrontExperienceDraftInputSchema,
   themePackageSchema,
   type ThemePackage,
@@ -27,7 +28,7 @@ import {
 import { cleanupExpiredStorefrontPreviews } from "../../src/storefront-experience/cleanup";
 import { catalogMediaOrigins } from "../../src/storefront-experience/media-origins";
 import type { StorefrontExperienceServiceOptions } from "../../src/storefront-experience/service";
-import { ADMIN_ROLE_IDS, seedHumanAdmin } from "../fixtures/admin-iam";
+import { ADMIN_ROLE_IDS, seedHumanAdmin, seedServiceAdmin } from "../fixtures/admin-iam";
 
 async function seedOperator(role = "admin", subject = "theme-admin"): Promise<void> {
   const roleId = role === "admin" ? ADMIN_ROLE_IDS.admin : ADMIN_ROLE_IDS.support;
@@ -182,6 +183,41 @@ async function seedPreviewCatalogRelease(
      VALUES (?, 'deployed', ?, ?, ?, ?, ?)`,
   )
     .bind(id, JSON.stringify({ ...release, releaseId: id }), now, now, now, now)
+    .run();
+}
+
+async function seedPrivatePreviewCatalogRelease(id: string): Promise<void> {
+  const now = "2026-08-11T00:00:00.000Z";
+  const digest = "a".repeat(64);
+  const release = catalogReleaseV3Schema.parse({
+    ...previewCatalogRelease,
+    content: [],
+    environment: env.ENVIRONMENT,
+    identity: {
+      faviconAssetId: null,
+      id: "identity.primary",
+      logoAssets: [],
+      seo: {},
+      socialShareAssetId: null,
+      storefrontName: previewCatalogRelease.site.name,
+      tagline: "",
+      version: 1,
+    },
+    navigation: [],
+    purpose: "private-preview",
+    releaseId: id,
+    routeOutput: previewCatalogRelease.routes,
+    schemaVersion: 3,
+    sourceVersionVector: [{ digest, id: "identity.primary", kind: "store-identity", version: 1 }],
+  });
+  await env.DB.prepare(
+    `INSERT INTO catalog_releases
+      (id, status, manifest_json, approved_at, purpose, environment, manifest_digest,
+       source_digest, candidate_status, candidate_expires_at, created_at, updated_at)
+     VALUES (?, 'approved', ?, ?, 'private-preview', ?, ?, ?, 'succeeded',
+             '2099-08-11T00:00:00.000Z', ?, ?)`,
+  )
+    .bind(id, JSON.stringify(release), now, env.ENVIRONMENT, digest, digest, now, now)
     .run();
 }
 
@@ -1845,6 +1881,164 @@ describe("storefront experience API", () => {
          VALUES ('role_admin', 'catalog.read', '2026-08-04T00:00:00.000Z')`,
       ).run();
     }
+  });
+
+  test("requires every source-domain read permission when a route consumes a private candidate", async () => {
+    await seedPrivatePreviewCatalogRelease("release-private-permission-candidate");
+    const app = createApp({
+      testIdentityVerifier: async () => ({
+        email: "theme-admin@example.test",
+        principalKind: "human",
+        subject: "theme-admin",
+      }),
+      experienceBuildTrigger: async () => ({ correlationId: "private-permission-preview" }),
+    });
+    const created = await createDraft(
+      app,
+      "theme-private-permission-create",
+      catalogReadyDraftInput,
+    );
+    const privateValidation = await validateDraft(
+      app,
+      created.body.data.id,
+      1,
+      "theme-private-permission-authorized-validate",
+      "release-private-permission-candidate",
+    );
+    expect(privateValidation.status).toBe(200);
+    const privatePreview = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${created.body.data.id}/preview`,
+        {
+          catalogReleaseId: "release-private-permission-candidate",
+          expectedVersion: 1,
+          reason: "Create a public-release snapshot for grant permission proof",
+        },
+        "theme-private-permission-authorized-preview",
+      ),
+      env,
+    );
+    expect(privatePreview.status).toBe(202);
+    const snapshot = await privatePreview.json<{
+      data: { build: { id: string }; snapshot: { id: string } };
+    }>();
+    const workerManifest = await app.fetch(
+      request(`/build/storefront-experiences/builds/${snapshot.data.build.id}`, {
+        headers: { Authorization: `Bearer ${env.PREVIEW_BUILD_CALLBACK_TOKEN}` },
+      }),
+      env,
+    );
+    expect(workerManifest.status).toBe(200);
+    expect(await workerManifest.json()).toMatchObject({
+      catalogRelease: { releaseId: "release-private-permission-candidate" },
+      presentationMode: "live",
+    });
+    const resources = await app.fetch(
+      request(
+        "/admin/storefront-experiences/catalog-releases/release-private-permission-candidate/resources?kind=product",
+      ),
+      env,
+    );
+    expect(resources.status).toBe(200);
+
+    await env.DB.prepare(
+      "DELETE FROM admin_role_permissions WHERE role_id = 'role_admin' AND permission_key = 'identity.read'",
+    ).run();
+    try {
+      const validate = await validateDraft(
+        app,
+        created.body.data.id,
+        1,
+        "theme-private-permission-validate",
+        "release-private-permission-candidate",
+      );
+      expect(validate.status).toBe(403);
+
+      const preview = await app.fetch(
+        writeRequest(
+          `/admin/storefront-experiences/drafts/${created.body.data.id}/preview`,
+          {
+            catalogReleaseId: "release-private-permission-candidate",
+            expectedVersion: 1,
+            reason: "Reject private Preview without Identity read access",
+          },
+          "theme-private-permission-preview",
+        ),
+        env,
+      );
+      expect(preview.status).toBe(403);
+
+      const grant = await app.fetch(
+        writeRequest(
+          `/admin/storefront-experiences/snapshots/${snapshot.data.snapshot.id}/grants`,
+          {
+            catalogReleaseId: "release-private-permission-candidate",
+            origin: env.PREVIEW_ORIGIN,
+            reason: "Reject private grant without Identity read access",
+          },
+          "theme-private-permission-grant",
+        ),
+        env,
+      );
+      expect(grant.status).toBe(403);
+
+      const resources = await app.fetch(
+        request(
+          "/admin/storefront-experiences/catalog-releases/release-private-permission-candidate/resources?kind=product",
+        ),
+        env,
+      );
+      expect(resources.status).toBe(403);
+    } finally {
+      await env.DB.prepare(
+        `INSERT OR IGNORE INTO admin_role_permissions (role_id, permission_key, created_at)
+         VALUES ('role_admin', 'identity.read', '2026-08-04T00:00:00.000Z')`,
+      ).run();
+    }
+    for (const permission of [
+      "identity.read",
+      "policies.read",
+      "content.read",
+      "navigation.read",
+    ] as const) {
+      await env.DB.prepare(
+        "DELETE FROM admin_role_permissions WHERE role_id = 'role_admin' AND permission_key = ?",
+      )
+        .bind(permission)
+        .run();
+      const denied = await app.fetch(
+        request(
+          "/admin/storefront-experiences/catalog-releases/release-private-permission-candidate/resources?kind=product",
+        ),
+        env,
+      );
+      expect(denied.status).toBe(403);
+      await env.DB.prepare(
+        `INSERT OR IGNORE INTO admin_role_permissions (role_id, permission_key, created_at)
+         VALUES ('role_admin', ?, '2026-08-04T00:00:00.000Z')`,
+      )
+        .bind(permission)
+        .run();
+    }
+    await seedServiceAdmin(env.DB, {
+      id: "private-candidate-service",
+      roleId: ADMIN_ROLE_IDS.admin,
+      subject: "private-candidate-service",
+    });
+    const serviceApp = createApp({
+      testIdentityVerifier: async () => ({
+        principalKind: "service",
+        serviceName: "Private candidate service",
+        subject: "private-candidate-service",
+      }),
+    });
+    const serviceDenied = await serviceApp.fetch(
+      request(
+        "/admin/storefront-experiences/catalog-releases/release-private-permission-candidate/resources?kind=product",
+      ),
+      env,
+    );
+    expect(serviceDenied.status).toBe(403);
   });
 
   test("persists catalog references as stable identifiers and validates declared fields", async () => {

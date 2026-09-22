@@ -23,6 +23,7 @@ afterEach(() => {
   cleanup()
   transport?.restore()
   sessionStorage.removeItem('storefront-editor-catalog-release')
+  sessionStorage.removeItem('storefront-editor-private-candidate')
 })
 
 const theme: AdminStorefrontTheme = {
@@ -127,7 +128,7 @@ const draft: StorefrontExperienceDraft = {
   validations: [],
 }
 
-const renderEditor = (failure: 'conflict' | 'persistent') => {
+const renderEditor = (failure: 'conflict' | 'persistent', staleCandidate = false) => {
   let failMedia = true
   transport = installBrowserApi((request) => {
     if (
@@ -171,6 +172,15 @@ const renderEditor = (failure: 'conflict' | 'persistent') => {
           ],
         },
       }
+    if (
+      staleCandidate &&
+      request.url === '/admin/catalog/releases/preview-candidates/release-stale-candidate'
+    ) {
+      return {
+        status: 409,
+        data: { error: { code: 'catalog_candidate_unavailable', message: 'Expired candidate' } },
+      }
+    }
     if (request.url?.endsWith('/resources'))
       return {
         data: {
@@ -209,6 +219,31 @@ const renderEditor = (failure: 'conflict' | 'persistent') => {
 }
 
 describe('ThemeEditorPage browser behavior', () => {
+  it(
+    'preserves deployed releases and clears a stale private-candidate handoff',
+    { timeout: 20_000 },
+    async () => {
+      sessionStorage.setItem('storefront-editor-catalog-release', 'release-stale-candidate')
+      sessionStorage.setItem('storefront-editor-private-candidate', 'release-stale-candidate')
+      renderEditor('persistent', true)
+
+      await waitFor(() => {
+        expect(
+          transport?.requests.some(
+            ({ url }) =>
+              url === '/admin/catalog/releases/preview-candidates/release-stale-candidate'
+          )
+        ).toBe(true)
+        expect(document.body.textContent).toContain(
+          translateMessage('zh-CN', 'Private Catalog candidate is no longer available')
+        )
+        expect(document.body.textContent).toContain('release-browser')
+        expect(sessionStorage.getItem('storefront-editor-catalog-release')).toBeNull()
+        expect(sessionStorage.getItem('storefront-editor-private-candidate')).toBeNull()
+      })
+    }
+  )
+
   it(
     'keeps the final Home content Section visible and focuses its local error',
     { timeout: 20_000 },

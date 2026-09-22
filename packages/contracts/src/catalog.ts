@@ -1,6 +1,7 @@
 import * as z from "zod";
 
 import { moneySchema, publicIdSchema } from "./common";
+import { storefrontContentDocumentSchema } from "./storefront-content";
 
 export const catalogPriceSchema = moneySchema
   .extend({ compareAtAmount: z.int().nonnegative().optional() })
@@ -730,6 +731,116 @@ export const canonicalCatalogReleaseSchema = z
   .strict()
   .superRefine(validateCanonicalCatalogRelease);
 
+export const catalogReleasePurposeSchema = z.enum(["private-preview", "public"]);
+export const catalogReleaseEnvironmentSchema = z.enum(["development", "staging", "production"]);
+export const catalogReleaseSourceKindSchema = z.enum([
+  "store-identity",
+  "policy",
+  "product",
+  "collection",
+  "page",
+  "article",
+  "navigation",
+]);
+export const catalogReleaseSourceSchema = z
+  .object({
+    digest: z.string().regex(/^[a-f0-9]{64}$/),
+    id: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{2,159}$/),
+    kind: catalogReleaseSourceKindSchema,
+    version: z.int().positive(),
+  })
+  .strict();
+export const catalogReleaseContentRecordSchema = z
+  .object({
+    digest: z.string().regex(/^[a-f0-9]{64}$/),
+    id: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{2,159}$/),
+    kind: z.enum(["article", "page", "policy"]),
+    payload: z
+      .object({
+        effectiveDate: z.iso.date().optional(),
+        sections: storefrontContentDocumentSchema,
+        seo: z.record(z.string(), z.unknown()).optional(),
+        summary: z.string().max(500).optional(),
+      })
+      .strict(),
+    route: catalogRouteSchema,
+    slug: catalogSlugSchema,
+    title: z.string().trim().min(1).max(300),
+    version: z.int().positive(),
+  })
+  .strict();
+export const catalogReleaseNavigationRecordSchema = z
+  .object({
+    digest: z.string().regex(/^[a-f0-9]{64}$/),
+    id: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{2,159}$/),
+    items: z.array(z.unknown()).max(500),
+    placement: z.enum(["header", "footer"]),
+    version: z.int().positive(),
+  })
+  .strict();
+
+export const catalogReleaseV3Schema = z
+  .object({
+    ...catalogReleaseDocumentBase,
+    collections: z.array(canonicalCatalogReleaseCollectionSchema),
+    content: z.array(catalogReleaseContentRecordSchema).max(5_000),
+    environment: catalogReleaseEnvironmentSchema,
+    generatedAt: z.iso.datetime(),
+    identity: z
+      .object({
+        faviconAssetId: z.string().nullable(),
+        id: z.literal("identity.primary"),
+        logoAssets: z.array(
+          z
+            .object({
+              assetId: z.string(),
+              variant: z.enum(["primary", "light", "dark", "compact"]),
+            })
+            .strict(),
+        ),
+        seo: z.record(z.string(), z.unknown()),
+        socialShareAssetId: z.string().nullable(),
+        storefrontName: z.string().trim().min(1).max(120),
+        tagline: z.string().max(240),
+        version: z.int().positive(),
+      })
+      .strict(),
+    navigation: z.array(catalogReleaseNavigationRecordSchema).max(20),
+    products: z.array(canonicalCatalogReleaseProductSchema),
+    purpose: catalogReleasePurposeSchema,
+    redirects: z.array(canonicalRedirectSchema),
+    routeOutput: z.array(catalogRouteSchema),
+    routes: z.array(catalogRouteSchema),
+    schemaVersion: z.literal(3),
+    sourceVersionVector: z.array(catalogReleaseSourceSchema).min(1).max(20_000),
+  })
+  .strict()
+  .superRefine((release, context) => {
+    validateCanonicalCatalogRelease(release, context);
+    validateUniqueReleaseValues(
+      release.sourceVersionVector.map(({ id, kind }) => `${kind}:${id}`),
+      context,
+      ["sourceVersionVector"],
+      "Catalog Release sources must be unique by kind and ID.",
+    );
+    validateUniqueReleaseValues(
+      release.routeOutput,
+      context,
+      ["routeOutput"],
+      "Catalog Release route output must be unique.",
+    );
+    if (
+      release.routeOutput.length !== release.routes.length ||
+      release.routeOutput.some((route, index) => release.routes[index] !== route)
+    ) {
+      addCatalogReleaseIssue(
+        context,
+        ["routeOutput"],
+        "Catalog Release route output must match the ordered routes.",
+      );
+    }
+  });
+
 export const legacyCatalogReleaseSchema = z
   .object({
     ...catalogReleaseDocumentBase,
@@ -743,11 +854,15 @@ export const legacyCatalogReleaseSchema = z
   .strict();
 
 export const catalogReleaseSchema = z.union([
+  catalogReleaseV3Schema,
   canonicalCatalogReleaseSchema,
   legacyCatalogReleaseSchema,
 ]);
 
 export type CanonicalCatalogRelease = z.infer<typeof canonicalCatalogReleaseSchema>;
+export type CatalogReleaseV3 = z.infer<typeof catalogReleaseV3Schema>;
+export type CatalogReleaseEnvironment = z.infer<typeof catalogReleaseEnvironmentSchema>;
+export type CatalogReleaseSource = z.infer<typeof catalogReleaseSourceSchema>;
 export type CanonicalCatalogReleaseCollection = z.infer<
   typeof canonicalCatalogReleaseCollectionSchema
 >;
@@ -758,10 +873,13 @@ export type LegacyCatalogReleaseProduct = z.infer<typeof legacyCatalogReleasePro
 export type CatalogRelease = z.infer<typeof catalogReleaseSchema>;
 
 export type ParsedCatalogRelease =
+  | { compatibility: "vnext"; release: CatalogReleaseV3 }
   | { compatibility: "canonical"; release: CanonicalCatalogRelease }
   | { compatibility: "legacy"; release: LegacyCatalogRelease };
 
 export function parseCatalogRelease(input: unknown): ParsedCatalogRelease {
+  const vnext = catalogReleaseV3Schema.safeParse(input);
+  if (vnext.success) return { compatibility: "vnext", release: vnext.data };
   const canonical = canonicalCatalogReleaseSchema.safeParse(input);
   if (canonical.success) return { compatibility: "canonical", release: canonical.data };
   return { compatibility: "legacy", release: legacyCatalogReleaseSchema.parse(input) };
@@ -769,8 +887,11 @@ export function parseCatalogRelease(input: unknown): ParsedCatalogRelease {
 
 export function catalogReleaseSupportsStableReferences(
   release: CatalogRelease,
-): release is CanonicalCatalogRelease {
-  return canonicalCatalogReleaseSchema.safeParse(release).success;
+): release is CanonicalCatalogRelease | CatalogReleaseV3 {
+  return (
+    canonicalCatalogReleaseSchema.safeParse(release).success ||
+    catalogReleaseV3Schema.safeParse(release).success
+  );
 }
 
 function canonicalizeCatalogReleaseValue(value: unknown): unknown {
@@ -783,8 +904,10 @@ function canonicalizeCatalogReleaseValue(value: unknown): unknown {
   );
 }
 
-export function catalogReleaseDigestInput(release: CanonicalCatalogRelease): string {
-  const parsed = canonicalCatalogReleaseSchema.parse(release);
+export function catalogReleaseDigestInput(
+  release: CanonicalCatalogRelease | CatalogReleaseV3,
+): string {
+  const parsed = catalogReleaseSchema.parse(release);
   return JSON.stringify(canonicalizeCatalogReleaseValue(parsed));
 }
 

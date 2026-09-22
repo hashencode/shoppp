@@ -275,7 +275,12 @@ export async function getStorefrontExperienceBuildManifestByBuild(
   }
   const [snapshot, catalogRelease] = await Promise.all([
     getStorefrontExperienceSnapshot(context.env.DB, build.snapshot_id),
-    getCanonicalDeployedCatalogRelease(context.env.DB, build.catalog_release_id),
+    getCanonicalDeployedCatalogRelease(context.env.DB, build.catalog_release_id, {
+      allowPrivateCandidate: true,
+      environment: context.env.ENVIRONMENT,
+      principalKind: "service",
+      privateCandidateBuildId: buildId,
+    }),
   ]);
   assertStorefrontThemeLifecycleWritable(snapshot.themeId);
   const mediaOrigins = catalogMediaOrigins(catalogRelease);
@@ -301,7 +306,11 @@ export async function triggerStorefrontExperienceBuild(
   const snapshot = await getStorefrontExperienceSnapshot(context.env.DB, snapshotId);
   assertStorefrontThemeLifecycleWritable(snapshot.themeId);
   const catalogRelease = catalogReleaseId
-    ? await getCanonicalDeployedCatalogRelease(context.env.DB, catalogReleaseId)
+    ? await getCanonicalDeployedCatalogRelease(context.env.DB, catalogReleaseId, {
+        allowPrivateCandidate: true,
+        environment: context.env.ENVIRONMENT,
+        principalKind: context.get("principal").principalKind,
+      })
     : null;
   const mediaOrigins = catalogRelease ? catalogMediaOrigins(catalogRelease) : [];
   const inputToken = catalogReleaseId

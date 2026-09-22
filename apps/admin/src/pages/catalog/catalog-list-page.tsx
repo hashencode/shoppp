@@ -15,6 +15,7 @@ import {
   type ProductStatus,
 } from '../../services/catalog/api'
 import { ListRowActions } from '../../shared/components/list-row-actions'
+import { CatalogPreviewCandidatePanel } from './catalog-preview-candidate-panel'
 import { useCurrentTranslate, useI18n } from '../../shared/contexts/i18n-context'
 import { useLocalizedApiError } from '../../shared/i18n/api-error'
 import {
@@ -112,6 +113,14 @@ export const CatalogListPage = () => {
   const localizeError = useLocalizedApiError()
   const canWrite = hasPermission(role, 'catalog.write', permissions)
   const canPublish = hasPermission(role, 'catalog.publish', permissions)
+  const canBuildCandidate = ([
+    'catalog.read',
+    'catalog.publish',
+    'identity.read',
+    'policies.read',
+    'content.read',
+    'navigation.read',
+  ] as const).every((permission) => hasPermission(role, permission, permissions))
 
   const filters = useMemo<TemplateListFilterField<CatalogSearchValues>[]>(
     () => [
@@ -328,5 +337,10 @@ export const CatalogListPage = () => {
     [canPublish, canWrite, filters, fromSetupGuide, handlePreview, handlePublish, navigate, t]
   )
 
-  return <StandardListPageRecipe spec={spec} />
+  return (
+    <>
+      {canBuildCandidate ? <CatalogPreviewCandidatePanel /> : null}
+      <StandardListPageRecipe spec={spec} />
+    </>
+  )
 }

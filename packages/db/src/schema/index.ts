@@ -1017,12 +1017,60 @@ export const catalogReleases = sqliteTable(
     sourceDigest: text("source_digest"),
     attestationJson: text("attestation_json"),
     attestedAt: text("attested_at"),
+    candidateStatus: text("candidate_status", {
+      enum: ["pending", "succeeded", "failed", "abandoned", "expired"],
+    }),
+    candidateFailureJson: text("candidate_failure_json"),
+    candidateExpiresAt: text("candidate_expires_at"),
     ...timestamps,
   },
   (table) => [
     index("catalog_releases_build_correlation_idx").on(table.buildCorrelationId),
     index("catalog_releases_product_idx").on(table.productId, table.createdAt),
+    uniqueIndex("catalog_release_private_tuple_unique")
+      .on(table.environment, table.sourceDigest)
+      .where(
+        sql`${table.purpose} = 'private-preview' AND ${table.sourceDigest} IS NOT NULL AND ${table.candidateStatus} IN ('pending', 'succeeded', 'failed')`,
+      ),
   ],
+);
+
+export const catalogReleaseSources = sqliteTable(
+  "catalog_release_sources",
+  {
+    releaseId: text("release_id").notNull(),
+    sourceKind: text("source_kind", {
+      enum: ["store-identity", "policy", "product", "collection", "page", "article", "navigation"],
+    }).notNull(),
+    sourceId: text("source_id").notNull(),
+    sourceVersion: integer("source_version").notNull(),
+    sourceDigest: text("source_digest").notNull(),
+    environment: text("environment", {
+      enum: ["development", "staging", "production"],
+    }).notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.releaseId, table.sourceKind, table.sourceId] }),
+    index("catalog_release_sources_source_lookup").on(
+      table.sourceKind,
+      table.sourceId,
+      table.sourceVersion,
+    ),
+  ],
+);
+
+export const catalogReleaseMediaLedger = sqliteTable(
+  "catalog_release_media_ledger",
+  {
+    releaseId: text("release_id").notNull(),
+    sourceKey: text("source_key").notNull(),
+    frozenKey: text("frozen_key").notNull(),
+    digest: text("digest").notNull(),
+    byteSize: integer("byte_size").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.releaseId, table.sourceKey] })],
 );
 
 export const orders = sqliteTable(

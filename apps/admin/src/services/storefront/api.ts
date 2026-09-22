@@ -109,7 +109,7 @@ export type StorefrontCatalogRelease = {
   environment: 'development' | 'staging' | 'production'
   id: string
   products: Array<{ id: string; kind: 'product'; name: string; slug: string }>
-  status: 'deployed'
+  status: 'deployed' | 'private-preview'
 }
 
 export type StorefrontCatalogMedia = {
@@ -183,6 +183,43 @@ export const fetchStorefrontCatalogReleases = async (): Promise<StorefrontCatalo
     '/admin/storefront-experiences/catalog-releases'
   )
   return response.data.data
+}
+
+export const fetchStorefrontCatalogCandidate = async (
+  id: string
+): Promise<StorefrontCatalogRelease> => {
+  const response = await apiClient.get<{
+    data: {
+      manifest: {
+        collections: StorefrontCatalogRelease['collections']
+        content: Array<{
+          id: string
+          kind: 'article' | 'page' | 'policy'
+          route: string
+          title: string
+        }>
+        environment: StorefrontCatalogRelease['environment']
+        generatedAt: string
+        products: StorefrontCatalogRelease['products']
+      }
+    }
+  }>(`/admin/catalog/releases/preview-candidates/${id}`)
+  const manifest = response.data.data.manifest
+  return {
+    approvedAt: manifest.generatedAt,
+    collections: manifest.collections,
+    deployedAt: null,
+    destinations: manifest.content.map((item) => ({
+      id: item.id,
+      kind: item.kind,
+      name: item.title,
+      path: item.route,
+    })),
+    environment: manifest.environment,
+    id,
+    products: manifest.products,
+    status: 'private-preview',
+  }
 }
 
 export const fetchStorefrontCatalogResources = async (input: {

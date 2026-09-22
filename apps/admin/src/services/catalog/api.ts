@@ -2,6 +2,52 @@ import { apiClient } from '../../infrastructure/http/api-client'
 
 export type ProductStatus = 'draft' | 'scheduled' | 'published' | 'archived'
 
+export type CatalogPreviewCandidate = {
+  environment: 'development' | 'staging' | 'production'
+  id: string
+  manifestDigest: string
+  purpose: 'private-preview'
+  sourceDigest: string
+  sources: Array<{
+    digest: string
+    id: string
+    kind: 'store-identity' | 'policy' | 'product' | 'collection' | 'page' | 'article' | 'navigation'
+    version: number
+  }>
+  status: 'pending' | 'succeeded' | 'failed' | 'abandoned' | 'expired'
+}
+
+export type CatalogPreviewCandidateStatus = Omit<CatalogPreviewCandidate, 'sources'> & {
+  failures: Array<{ code: string }>
+}
+
+export const buildCatalogPreviewCandidate = async (
+  reason: string
+): Promise<CatalogPreviewCandidate> => {
+  const response = await apiClient.post<{ data: CatalogPreviewCandidate }>(
+    '/admin/catalog/releases/preview-candidates',
+    { reason },
+    { headers: { 'Idempotency-Key': `catalog-candidate-${crypto.randomUUID()}` } }
+  )
+  return response.data.data
+}
+
+export const fetchCatalogPreviewCandidate = async (id: string) => {
+  const response = await apiClient.get<{
+    data: { manifest: unknown; manifestDigest: string; sourceDigest: string }
+  }>(`/admin/catalog/releases/preview-candidates/${id}`)
+  return response.data.data
+}
+
+export const fetchCatalogPreviewCandidateStatus = async (
+  id: string
+): Promise<CatalogPreviewCandidateStatus> => {
+  const response = await apiClient.get<{ data: CatalogPreviewCandidateStatus }>(
+    `/admin/catalog/releases/preview-candidates/${id}/status`
+  )
+  return response.data.data
+}
+
 export type ProductReview = {
   body: string
   displayName: string

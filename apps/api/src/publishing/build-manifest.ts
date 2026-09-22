@@ -82,6 +82,7 @@ export interface BuildCatalogInput {
 export type StaticRouteManifest = CanonicalCatalogRelease;
 
 interface BuildManifestOptions {
+  aggregatePublishedCatalog?: boolean;
   candidateProductId: string;
   candidateRevisionId?: string;
   mediaOrigin: string;
@@ -353,24 +354,24 @@ export async function buildCatalogReleaseManifest(
     .prepare(
       `SELECT id, slug, name, description, option_definitions_json, presentation_json, status, seo_title, seo_description
          FROM products
-        WHERE status = 'published' OR id = ?
+        WHERE status = 'published' OR (? = 0 AND id = ?)
         ORDER BY slug`,
     )
-    .bind(options.candidateProductId)
+    .bind(options.aggregatePublishedCatalog ? 1 : 0, options.candidateProductId)
     .all<ProductRow>();
   if (!products.results.some((product) => product.id === options.candidateProductId)) {
     throw new ApiError(404, "product_not_found", "The product was not found.");
   }
   const productIds = products.results.map((product) => product.id);
-  const placeholders = productIds.map(() => "?").join(",");
+  const productIdsJson = JSON.stringify(productIds);
   const approvedReviews = await db
     .prepare(
       `SELECT id, product_id, rating, display_name, body, submitted_at, moderated_at
          FROM product_reviews
-        WHERE status = 'approved' AND product_id IN (${placeholders})
+        WHERE status = 'approved' AND product_id IN (SELECT value FROM json_each(?))
         ORDER BY submitted_at DESC, id DESC LIMIT 10001`,
     )
-    .bind(...productIds)
+    .bind(productIdsJson)
     .all<ApprovedReviewRow>();
   if (approvedReviews.results.length > 10_000) {
     throw new ApiError(422, "catalog_review_limit", "Too many reviews for one Catalog Release.");
@@ -378,10 +379,15 @@ export async function buildCatalogReleaseManifest(
   const revisionRows = await db
     .prepare(
       `SELECT id, product_id, status, content_json FROM product_revisions
-        WHERE product_id IN (${placeholders}) AND (status = 'published' OR id = ?)
+        WHERE product_id IN (SELECT value FROM json_each(?))
+          AND (status = 'published' OR (? = 0 AND id = ?))
         ORDER BY product_id, published_at DESC, id DESC`,
     )
-    .bind(...productIds, options.candidateRevisionId ?? "")
+    .bind(
+      productIdsJson,
+      options.aggregatePublishedCatalog ? 1 : 0,
+      options.candidateRevisionId ?? "",
+    )
     .all<{ content_json: string; id: string; product_id: string; status: string }>();
   const revisions = new Map<string, PublishedProductRevisionContent>();
   for (const row of revisionRows.results) {
@@ -407,10 +413,10 @@ export async function buildCatalogReleaseManifest(
       .prepare(
         `SELECT id, product_id, sku, title, option_values_json, weight_grams, status
            FROM product_variants
-          WHERE product_id IN (${placeholders})
+          WHERE product_id IN (SELECT value FROM json_each(?))
           ORDER BY product_id, created_at, id`,
       )
-      .bind(...productIds)
+      .bind(productIdsJson)
       .all<VariantRow>(),
     db
       .prepare(
@@ -418,19 +424,19 @@ export async function buildCatalogReleaseManifest(
            FROM prices p
            JOIN price_lists pl ON pl.id = p.price_list_id
            JOIN product_variants v ON v.id = p.variant_id
-          WHERE v.product_id IN (${placeholders}) AND pl.status = 'active'
+          WHERE v.product_id IN (SELECT value FROM json_each(?)) AND pl.status = 'active'
           ORDER BY p.variant_id, pl.currency`,
       )
-      .bind(...productIds)
+      .bind(productIdsJson)
       .all<PriceRow>(),
     db
       .prepare(
         `SELECT id, product_id, r2_key, alt_text, width, height
            FROM product_media
-          WHERE product_id IN (${placeholders})
+          WHERE product_id IN (SELECT value FROM json_each(?))
           ORDER BY product_id, position, id`,
       )
-      .bind(...productIds)
+      .bind(productIdsJson)
       .all<MediaRow>(),
     db
       .prepare(
@@ -438,27 +444,39 @@ export async function buildCatalogReleaseManifest(
            FROM collection_versions cv
            JOIN collection_memberships cm
              ON cm.collection_id = cv.collection_id AND cm.collection_version = cv.version
-          WHERE cv.version = (
+          WHERE ((? = 1 AND cv.status = 'published') OR
+                 (? = 0 AND cv.version = (
                   SELECT MAX(current.version) FROM collection_versions current
                    WHERE current.collection_id = cv.collection_id
-                )
-            AND (cv.status = 'published' OR cm.product_id = ?)
+                ) AND (cv.status = 'published' OR cm.product_id = ?)))
+            AND cm.product_id IN (SELECT value FROM json_each(?))
           ORDER BY cv.slug`,
       )
-      .bind(options.candidateProductId)
+      .bind(
+        options.aggregatePublishedCatalog ? 1 : 0,
+        options.aggregatePublishedCatalog ? 1 : 0,
+        options.candidateProductId,
+        productIdsJson,
+      )
       .all<CollectionRow>(),
     db
       .prepare(
         `SELECT cm.collection_id, cm.product_id
            FROM collection_memberships cm
-          WHERE cm.product_id IN (${placeholders})
-            AND cm.collection_version = (
+          JOIN collection_versions cv
+            ON cv.collection_id = cm.collection_id AND cv.version = cm.collection_version
+          WHERE cm.product_id IN (SELECT value FROM json_each(?))
+            AND ((? = 1 AND cv.status = 'published') OR (? = 0 AND cm.collection_version = (
               SELECT MAX(cv.version) FROM collection_versions cv
                WHERE cv.collection_id = cm.collection_id
-            )
+            )))
           ORDER BY cm.collection_id, cm.position`,
       )
-      .bind(...productIds)
+      .bind(
+        productIdsJson,
+        options.aggregatePublishedCatalog ? 1 : 0,
+        options.aggregatePublishedCatalog ? 1 : 0,
+      )
       .all<{ collection_id: string; product_id: string }>(),
   ]);
   const productSlugs = new Map(products.results.map((product) => [product.id, product.slug]));

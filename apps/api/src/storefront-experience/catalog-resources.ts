@@ -1,7 +1,12 @@
-import { canonicalCatalogReleaseSchema, type CanonicalCatalogRelease } from "@shoppp/contracts";
+import {
+  canonicalCatalogReleaseSchema,
+  catalogReleaseV3Schema,
+  type CanonicalCatalogRelease,
+} from "@shoppp/contracts";
 
 import type { ApiBindings } from "../http/context";
 import { ApiError } from "../http/errors";
+import { assertCatalogReleaseLifecycle } from "../publishing/candidate-releases";
 import { fashionStoreEditorDestinations } from "../../../storefront/app/themes/fashion-store/editor-destinations";
 
 interface ReleaseRow {
@@ -28,20 +33,71 @@ function parseCanonicalRelease(
 export async function getCanonicalDeployedCatalogRelease(
   db: D1Database,
   releaseId: string,
-  options: { allowStagingProof?: boolean } = {},
+  options: {
+    allowPrivateCandidate?: boolean;
+    privateCandidateBuildId?: string;
+    allowStagingProof?: boolean;
+    environment?: ApiBindings["ENVIRONMENT"];
+    principalKind?: "human" | "service";
+  } = {},
 ): Promise<CanonicalCatalogRelease> {
   const row = await db
     .prepare(
-      `SELECT id, manifest_json
+      `SELECT id, manifest_json, status, purpose, environment, candidate_status
          FROM catalog_releases
         WHERE id = ?
           AND (status = 'deployed' OR
+               (? = 1 AND purpose = 'private-preview' AND candidate_status = 'succeeded'
+                  AND candidate_expires_at > ?
+                  AND (? IS NULL OR EXISTS (
+                    SELECT 1 FROM storefront_preview_builds
+                     WHERE id = ? AND catalog_release_id = catalog_releases.id
+                  ))) OR
                (? = 1 AND status = 'building' AND build_correlation_id LIKE 'staging-proof:%'))`,
     )
-    .bind(releaseId, options.allowStagingProof ? 1 : 0)
-    .first<{ id: string; manifest_json: string }>();
+    .bind(
+      releaseId,
+      options.allowPrivateCandidate ? 1 : 0,
+      new Date().toISOString(),
+      options.privateCandidateBuildId ?? null,
+      options.privateCandidateBuildId ?? null,
+      options.allowStagingProof ? 1 : 0,
+    )
+    .first<{
+      candidate_status: string | null;
+      environment: ApiBindings["ENVIRONMENT"];
+      id: string;
+      manifest_json: string;
+      purpose: "private-preview" | "public";
+      status: string;
+    }>();
   if (!row) {
     throw new ApiError(422, "catalog_release_unavailable", "Select a deployed Catalog Release.");
+  }
+  if (row.purpose === "private-preview") {
+    assertCatalogReleaseLifecycle(
+      { ...row, candidateStatus: row.candidate_status },
+      {
+        environment: options.environment ?? row.environment,
+        operation: options.privateCandidateBuildId ? "private-preview-build" : "private-preview",
+        ...(options.principalKind ? { principalKind: options.principalKind } : {}),
+      },
+    );
+    const v3 = catalogReleaseV3Schema.safeParse(JSON.parse(row.manifest_json));
+    if (!v3.success) {
+      throw new ApiError(422, "catalog_release_invalid", "The private candidate is invalid.");
+    }
+    const {
+      content: _content,
+      environment: _environment,
+      identity: _identity,
+      navigation: _navigation,
+      purpose: _purpose,
+      routeOutput: _routeOutput,
+      sourceVersionVector: _sources,
+      ...core
+    } = v3.data;
+    return canonicalCatalogReleaseSchema.parse({ ...core, schemaVersion: 2 });
   }
   const release = parseCanonicalRelease(row);
   if (!release) {
@@ -67,8 +123,16 @@ export async function listStorefrontCatalogResources(
     pageSize: number;
     query: string;
   },
+  options: {
+    environment?: ApiBindings["ENVIRONMENT"];
+    principalKind?: "human" | "service";
+  } = {},
 ) {
-  const release = await getCanonicalDeployedCatalogRelease(db, releaseId);
+  const release = await getCanonicalDeployedCatalogRelease(db, releaseId, {
+    allowPrivateCandidate: true,
+    ...(options.environment ? { environment: options.environment } : {}),
+    ...(options.principalKind ? { principalKind: options.principalKind } : {}),
+  });
   const resources =
     input.kind === "product"
       ? release.products.map(({ id, name, slug }) => ({

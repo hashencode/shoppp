@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   canonicalCatalogReleaseSchema,
+  catalogReleaseV3Schema,
   catalogReleaseDigestInput,
   catalogReleaseSupportsStableReferences,
   parseCatalogRelease,
@@ -71,6 +72,73 @@ const canonicalRelease = {
 } as const;
 
 describe("catalog release contracts", () => {
+  test("accepts a private schema-v3 candidate with a normalized source vector", () => {
+    const digest = "a".repeat(64);
+    const candidate = catalogReleaseV3Schema.parse({
+      ...canonicalRelease,
+      content: [
+        {
+          digest,
+          id: "policy.shipping",
+          kind: "policy",
+          payload: { sections: [] },
+          route: "/policies/shipping",
+          slug: "shipping",
+          title: "Shipping policy",
+          version: 1,
+        },
+      ],
+      environment: "development",
+      identity: {
+        faviconAssetId: null,
+        id: "identity.primary",
+        logoAssets: [],
+        seo: {},
+        socialShareAssetId: null,
+        storefrontName: "Shoppp",
+        tagline: "",
+        version: 1,
+      },
+      navigation: [],
+      purpose: "private-preview",
+      routeOutput: canonicalRelease.routes,
+      schemaVersion: 3,
+      sourceVersionVector: [{ digest, id: "identity.primary", kind: "store-identity", version: 1 }],
+    });
+
+    expect(candidate.purpose).toBe("private-preview");
+    expect(parseCatalogRelease(candidate).compatibility).toBe("vnext");
+    expect(catalogReleaseSupportsStableReferences(candidate)).toBe(true);
+  });
+
+  test("rejects duplicate v3 sources and divergent route output", () => {
+    const digest = "a".repeat(64);
+    const candidate = {
+      ...canonicalRelease,
+      content: [],
+      environment: "development",
+      identity: {
+        faviconAssetId: null,
+        id: "identity.primary",
+        logoAssets: [],
+        seo: {},
+        socialShareAssetId: null,
+        storefrontName: "Shoppp",
+        tagline: "",
+        version: 1,
+      },
+      navigation: [],
+      purpose: "private-preview",
+      routeOutput: canonicalRelease.routes.slice(1),
+      schemaVersion: 3,
+      sourceVersionVector: [
+        { digest, id: "identity.primary", kind: "store-identity", version: 1 },
+        { digest, id: "identity.primary", kind: "store-identity", version: 1 },
+      ],
+    };
+    expect(catalogReleaseV3Schema.safeParse(candidate).success).toBe(false);
+  });
+
   test("reads an ID-less legacy release but excludes it from stable live selection", () => {
     const legacy = {
       ...canonicalRelease,

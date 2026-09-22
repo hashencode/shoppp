@@ -117,7 +117,11 @@ export async function createStorefrontPreviewGrant(
     options,
   );
   if (catalogReleaseId) {
-    await getCanonicalDeployedCatalogRelease(context.env.DB, catalogReleaseId);
+    await getCanonicalDeployedCatalogRelease(context.env.DB, catalogReleaseId, {
+      allowPrivateCandidate: true,
+      environment: context.env.ENVIRONMENT,
+      principalKind: context.get("principal").principalKind,
+    });
   }
   const build = await context.env.DB.prepare(
     `SELECT id, snapshot_id, artifact_digest, artifact_prefix, expires_at,
