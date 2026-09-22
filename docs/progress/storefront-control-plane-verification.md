@@ -106,3 +106,51 @@ candidate, or change runtime behavior.
   type errors in `apps/storefront/app/theme-engine/composer.ts` and
   `apps/storefront/app/themes/fashion-store/contracts/home-merchandising.ts`; all modified-workspace
   typechecks pass.
+
+## U1.3 permissions and evidence
+
+- Added first-class `identity.read/write`, `policies.read/write/approve/publish`,
+  `content.read/write/publish`, and `navigation.read/write/publish` keys to the canonical contract
+  registry. Migration `0033_storefront_control_permissions_evidence.sql` explicitly grants the new
+  keys only to the protected `role_admin`; an upgrade fixture proves a pre-existing custom role
+  retains exactly its prior `catalog.read` grant. Existing request-time role resolution and
+  `assertPermissionSubset` remain the grant/removal enforcement path, and the focused IAM test
+  proves a caller with `content.read` cannot grant `content.publish`.
+- Added concrete Navigation-to-Policy/Page/Article/Collection reference relations and domain-owned
+  query helpers with one `resource_referenced` diagnostic shape. Per-domain insert/archive guards
+  make both race orders fail closed: an existing reference blocks archive, and an archived target
+  blocks a later reference. Reference relation rows are immutable, so target ID/version or
+  environment changes require an atomic delete-plus-insert and cannot bypass the active-target
+  guard. No generic reference-index service or table was introduced.
+- Expanded existing `catalog_releases` persistence with purpose, environment, manifest/source
+  digest, and paired attestation fields. The upgrade fixture preserves the historical
+  `manifest_json` string byte-for-byte, maps old rows to compatible public/development lifecycle
+  defaults, leaves absent historical digest/attestation evidence null, and applies purpose,
+  environment, digest, JSON, and attestation-pair constraints to new writes. Existing public
+  Product release writers now persist the runtime environment and a SHA-256 manifest digest; no
+  candidate builder, candidate route, activation, or public-elevation behavior was added.
+- Added `apps/api/src/security/audit-reason.ts` and routed the shared audit prepare/record boundary
+  through it, so all current audit mutation paths normalize horizontal whitespace, reject newline,
+  control, and bidirectional characters with `invalid_audit_reason`, and redact credential-, token-,
+  password-, secret-, and API-key-like values in reasons and nested metadata. Audit reads apply the
+  same metadata redaction before returning diagnostics.
+- Proof-first failures observed before implementation: the contract registry omitted all 12
+  storefront authority keys; DB tests returned no matching permission definitions and no
+  `navigation_policy_references` table; the API security test could not import the missing audit
+  boundary. After the first implementation pass, the redaction test also exposed an unredacted
+  `apiKey` metadata value, and the first backlink implementation allowed an existing relation to be
+  updated to an archived target; both centralized boundaries were strengthened before the focused
+  suites passed.
+- Authoritative verification on 2026-09-23: Contracts `51/51`, DB workers `22/22`, and API workers
+  `268/268`; Contracts, DB, and API scoped TypeScript checks passed. `git diff --check` passed.
+- The broader root typecheck reaches the unchanged Storefront boundary and still reports only the
+  two pre-existing `exactOptionalPropertyTypes` failures in
+  `apps/storefront/app/theme-engine/composer.ts` and
+  `apps/storefront/app/themes/fashion-store/contracts/home-merchandising.ts`; no U1.3-owned
+  workspace typecheck fails.
+- System-wide check: the new permissions are deliberately registered before their U3/U5/U6 Admin
+  routes exist; the API route-permission inventory explicitly excludes only those reserved keys and
+  continues proving every currently registered route denies and audits a missing permission. The
+  Fashion staging reset inventory now treats the four concrete reference tables as disposable in
+  dependency-safe order, and its full API regression suite passes. No remote mutation, Preview
+  candidate, deployment, or candidate/DC/PG state was created or advanced.

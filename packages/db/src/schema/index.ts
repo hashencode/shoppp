@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   check,
+  foreignKey,
   index,
   integer,
   primaryKey,
@@ -361,6 +362,105 @@ export const navigationItems = sqliteTable(
   (table) => [primaryKey({ columns: [table.menuId, table.menuVersion, table.itemId] })],
 );
 
+export const navigationPolicyReferences = sqliteTable(
+  "navigation_policy_references",
+  {
+    menuId: text("menu_id").notNull(),
+    menuVersion: integer("menu_version").notNull(),
+    itemId: text("item_id").notNull(),
+    policyId: text("policy_id").notNull(),
+    policyVersion: integer("policy_version").notNull(),
+    environment: text("environment", {
+      enum: ["development", "staging", "production"],
+    }).notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.menuId, table.menuVersion, table.itemId] }),
+    foreignKey({
+      columns: [table.menuId, table.menuVersion, table.itemId],
+      foreignColumns: [navigationItems.menuId, navigationItems.menuVersion, navigationItems.itemId],
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.policyId, table.policyVersion],
+      foreignColumns: [policyVersions.policyId, policyVersions.version],
+    }).onDelete("restrict"),
+    index("navigation_policy_backlink_lookup").on(
+      table.policyId,
+      table.policyVersion,
+      table.environment,
+      table.menuId,
+      table.menuVersion,
+    ),
+  ],
+);
+
+export const navigationPageReferences = sqliteTable(
+  "navigation_page_references",
+  {
+    menuId: text("menu_id").notNull(),
+    menuVersion: integer("menu_version").notNull(),
+    itemId: text("item_id").notNull(),
+    pageId: text("page_id").notNull(),
+    pageVersion: integer("page_version").notNull(),
+    environment: text("environment", {
+      enum: ["development", "staging", "production"],
+    }).notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.menuId, table.menuVersion, table.itemId] }),
+    foreignKey({
+      columns: [table.menuId, table.menuVersion, table.itemId],
+      foreignColumns: [navigationItems.menuId, navigationItems.menuVersion, navigationItems.itemId],
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.pageId, table.pageVersion],
+      foreignColumns: [contentPageVersions.pageId, contentPageVersions.version],
+    }).onDelete("restrict"),
+    index("navigation_page_backlink_lookup").on(
+      table.pageId,
+      table.pageVersion,
+      table.environment,
+      table.menuId,
+      table.menuVersion,
+    ),
+  ],
+);
+
+export const navigationArticleReferences = sqliteTable(
+  "navigation_article_references",
+  {
+    menuId: text("menu_id").notNull(),
+    menuVersion: integer("menu_version").notNull(),
+    itemId: text("item_id").notNull(),
+    articleId: text("article_id").notNull(),
+    articleVersion: integer("article_version").notNull(),
+    environment: text("environment", {
+      enum: ["development", "staging", "production"],
+    }).notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.menuId, table.menuVersion, table.itemId] }),
+    foreignKey({
+      columns: [table.menuId, table.menuVersion, table.itemId],
+      foreignColumns: [navigationItems.menuId, navigationItems.menuVersion, navigationItems.itemId],
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.articleId, table.articleVersion],
+      foreignColumns: [contentArticleVersions.articleId, contentArticleVersions.version],
+    }).onDelete("restrict"),
+    index("navigation_article_backlink_lookup").on(
+      table.articleId,
+      table.articleVersion,
+      table.environment,
+      table.menuId,
+      table.menuVersion,
+    ),
+  ],
+);
+
 export const collectionVersions = sqliteTable(
   "collection_versions",
   {
@@ -405,6 +505,39 @@ export const collectionMemberships = sqliteTable(
       table.collectionId,
       table.collectionVersion,
       table.position,
+    ),
+  ],
+);
+
+export const navigationCollectionReferences = sqliteTable(
+  "navigation_collection_references",
+  {
+    menuId: text("menu_id").notNull(),
+    menuVersion: integer("menu_version").notNull(),
+    itemId: text("item_id").notNull(),
+    collectionId: text("collection_id").notNull(),
+    collectionVersion: integer("collection_version").notNull(),
+    environment: text("environment", {
+      enum: ["development", "staging", "production"],
+    }).notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.menuId, table.menuVersion, table.itemId] }),
+    foreignKey({
+      columns: [table.menuId, table.menuVersion, table.itemId],
+      foreignColumns: [navigationItems.menuId, navigationItems.menuVersion, navigationItems.itemId],
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.collectionId, table.collectionVersion],
+      foreignColumns: [collectionVersions.collectionId, collectionVersions.version],
+    }).onDelete("restrict"),
+    index("navigation_collection_backlink_lookup").on(
+      table.collectionId,
+      table.collectionVersion,
+      table.environment,
+      table.menuId,
+      table.menuVersion,
     ),
   ],
 );
@@ -872,6 +1005,18 @@ export const catalogReleases = sqliteTable(
     productRevisionId: text("product_revision_id").references(() => productRevisions.id, {
       onDelete: "restrict",
     }),
+    purpose: text("purpose", { enum: ["private-preview", "public"] })
+      .notNull()
+      .default("public"),
+    environment: text("environment", {
+      enum: ["development", "staging", "production"],
+    })
+      .notNull()
+      .default("development"),
+    manifestDigest: text("manifest_digest"),
+    sourceDigest: text("source_digest"),
+    attestationJson: text("attestation_json"),
+    attestedAt: text("attested_at"),
     ...timestamps,
   },
   (table) => [

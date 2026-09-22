@@ -1,7 +1,11 @@
 import type { AuditEvent, AuditQuery } from "@shoppp/contracts";
 
 import { ApiError } from "../http/errors";
-import { redactForLog } from "../security/redaction";
+import {
+  normalizeAuditReason,
+  sanitizeAuditMetadata,
+  sanitizeStoredAuditReason,
+} from "../security/audit-reason";
 
 export interface AuditEventInput {
   readonly action: string;
@@ -41,9 +45,9 @@ export function prepareConditionalAuditEvent(
       input.targetType,
       input.targetId ?? null,
       input.result,
-      input.reason ? String(redactForLog(input.reason)) : null,
+      input.reason ? normalizeAuditReason(input.reason) : null,
       input.requestId ?? null,
-      JSON.stringify(redactForLog(input.metadata ?? {})),
+      JSON.stringify(sanitizeAuditMetadata(input.metadata ?? {})),
       new Date().toISOString(),
       ...(condition?.bindings ?? []),
     );
@@ -135,8 +139,8 @@ export async function listAuditEvents(
       actorType: row.actor_type,
       createdAt: row.created_at,
       id: row.id,
-      metadata: redactForLog(JSON.parse(row.metadata_json)) as Record<string, unknown>,
-      reason: row.reason,
+      metadata: sanitizeAuditMetadata(JSON.parse(row.metadata_json) as Record<string, unknown>),
+      reason: row.reason === null ? null : sanitizeStoredAuditReason(row.reason),
       requestId: row.request_id,
       result: row.result,
       targetId: row.target_id,

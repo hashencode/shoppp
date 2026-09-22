@@ -329,6 +329,27 @@ describe("admin IAM contracts", () => {
     expect(ADMIN_PERMISSION_KEYS).toContain("iam.roles.write");
   });
 
+  test("keeps storefront authority permissions first-class and independently gated", () => {
+    expect(ADMIN_PERMISSION_KEYS).toEqual(
+      expect.arrayContaining([
+        "identity.read",
+        "identity.write",
+        "policies.read",
+        "policies.write",
+        "policies.approve",
+        "policies.publish",
+        "content.read",
+        "content.write",
+        "content.publish",
+        "navigation.read",
+        "navigation.write",
+        "navigation.publish",
+      ]),
+    );
+    expect(adminPermissionSchema.safeParse("policies.approve").success).toBe(true);
+    expect(adminPermissionSchema.safeParse("policies.publish").success).toBe(true);
+  });
+
   test("rejects unknown principal and invitation status values", () => {
     expect(() =>
       humanAdminSessionSchema.parse({

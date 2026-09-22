@@ -1,8 +1,10 @@
 const SENSITIVE_KEY_PARTS = [
+  "apikey",
   "address",
   "authorization",
   "card",
   "cookie",
+  "credential",
   "email",
   "password",
   "phone",
@@ -11,7 +13,7 @@ const SENSITIVE_KEY_PARTS = [
 ];
 const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
 const CREDENTIAL_PATTERN =
-  /\b(?:Bearer|CartToken)\s+\S+|\b(?:sk|rk)_(?:test|live)_\S+|\bwhsec_\S+|\border_access_[A-Za-z0-9_-]+/i;
+  /\b(?:Bearer|CartToken)\s+\S+|\b(?:sk|rk)_(?:test|live)_\S+|\b[A-Za-z][A-Za-z0-9_-]{2,20}_(?:test|live)_[A-Za-z0-9_-]{6,}|\bwhsec_\S+|\border_access_[A-Za-z0-9_-]+/i;
 const REQUEST_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 

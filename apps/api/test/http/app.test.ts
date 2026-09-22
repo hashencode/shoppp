@@ -494,9 +494,27 @@ describe("API shell", () => {
       ).toEqual({ action: route.permission, actor_type: "admin", result: "denied" });
     }
 
+    const reservedAuthorityPermissions = new Set([
+      "identity.read",
+      "identity.write",
+      "policies.read",
+      "policies.write",
+      "policies.approve",
+      "policies.publish",
+      "content.read",
+      "content.write",
+      "content.publish",
+      "navigation.read",
+      "navigation.write",
+      "navigation.publish",
+    ]);
     expect(
       [...new Set(ADMIN_ROUTE_PERMISSIONS.map(({ permission }) => permission))].sort(),
-    ).toEqual([...ADMIN_PERMISSION_KEYS].sort());
+    ).toEqual(
+      [...ADMIN_PERMISSION_KEYS]
+        .filter((permission) => !reservedAuthorityPermissions.has(permission))
+        .sort(),
+    );
   });
 
   test("rejects disabled identities, disabled roles, kind mismatches, and unknown permission drift", async () => {

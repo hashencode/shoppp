@@ -27,12 +27,12 @@ deepened: 2026-09-22
 ### Execution Checkpoint
 
 - **Classification:** Active product successor after FS-F12 completed U7 human acceptance on 2026-09-22.
-- **Current product pointer:** `FS-F14-U1.3` — add the domain permissions, backlink evidence, and normalized audit-reason boundary.
+- **Current product pointer:** `FS-F14-U2` — build Catalog Release vNext and its private candidate lifecycle.
 - **Activation condition:** Met. FS-F13 and FS-F12 are complete and FS-F12 handed execution to FS-F14.
-- **Completed units:** None. U1.1 reconciliation and U1.2 persistence/Collection cutover completed on 2026-09-22; retained evidence is in `docs/progress/storefront-control-plane-verification.md`.
-- **Current unit:** U1, child stage U1.3 permissions and evidence.
-- **Next concrete action:** Finalize the U1.2 commit boundary, then add explicit Identity, Policy, Content, and Navigation permissions, domain-owned backlink diagnostics, expanded Release lifecycle persistence, and the normalized/redacted audit-reason boundary.
-- **Blocker:** U1.2 verification is complete, but its authorized overlapping files contain Product review-consent changes that depend on additional pre-existing companion files not yet included in the approved commit scope. Resolve that commit boundary before further implementation writes. Remote mutation, deployment, and candidate/DC/PG advancement remain outside this stage.
+- **Completed units:** U1 (U1.1-U1.3) completed on 2026-09-23; retained evidence is in `docs/progress/storefront-control-plane-verification.md`.
+- **Current unit:** U2, Catalog Release vNext and private candidate lifecycle.
+- **Next concrete action:** Add proof-first Release-builder tests for source drift, unpublished references, route collisions, and candidate/public separation, then implement the schema-v3 private candidate freeze and lifecycle behind the existing release authority.
+- **Blocker:** None for local U2 implementation. Remote mutation, deployment, and candidate/DC/PG advancement remain outside this stage.
 - **Handback:** After U1-U9 and the Definition of Done pass, return to `REL-Pre-DC`. No candidate is frozen automatically.
 
 ---

@@ -159,6 +159,41 @@ describe("admin role lifecycle", () => {
     ).toEqual({ actor_type: "admin", reason: "permission_escalation_denied", result: "denied" });
   });
 
+  test("does not let a delegated role grant new storefront authority permissions", async () => {
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO admin_roles
+          (id, key, name, protected, system, enabled, version, created_at, updated_at)
+         VALUES ('custom_content_manager', 'content_manager', 'Content manager', 0, 0, 1, 1, ?, ?)`,
+      ).bind("2026-09-23T00:00:00.000Z", "2026-09-23T00:00:00.000Z"),
+      ...["iam.roles.read", "iam.roles.write", "content.read"].map((permission) =>
+        env.DB.prepare(
+          `INSERT INTO admin_role_permissions (role_id, permission_key, created_at)
+           VALUES ('custom_content_manager', ?, '2026-09-23T00:00:00.000Z')`,
+        ).bind(permission),
+      ),
+    ]);
+    await seedHumanAdmin(env.DB, {
+      email: "content-manager@example.test",
+      id: "content-manager",
+      roleId: "custom_content_manager",
+      subject: "content-manager",
+    });
+
+    const denied = await appFor("content-manager").fetch(
+      request("/admin/iam/roles", "POST", {
+        key: "content_publisher",
+        name: "Content publisher",
+        permissions: ["content.read", "content.publish"],
+      }),
+      env,
+    );
+    expect(denied.status).toBe(403);
+    expect(await denied.json()).toMatchObject({
+      error: { code: "permission_escalation_denied" },
+    });
+  });
+
   test("rejects caller-role edits while allowing metadata changes to non-protected system roles", async () => {
     const own = await appFor("role-admin").fetch(
       request(`/admin/iam/roles/${ADMIN_ROLE_IDS.admin}`, "PATCH", {

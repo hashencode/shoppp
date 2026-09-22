@@ -17,6 +17,11 @@ export interface BuildTriggerResult {
 
 const BUILD_HOOK_TIMEOUT_MS = 15_000;
 
+async function sha256(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 export type BuildTrigger = (input: {
   environment: string;
   releaseId: string;
@@ -244,12 +249,25 @@ export async function publishProduct(
       releaseId,
       storefrontOrigin: context.env.STOREFRONT_ORIGIN,
     });
+    const manifestJson = JSON.stringify(manifest);
+    const manifestDigest = await sha256(manifestJson);
     await context.env.DB.prepare(
       `INSERT INTO catalog_releases
-        (id, status, manifest_json, approved_by, approved_at, product_id, created_at, updated_at)
-       VALUES (?, 'approved', ?, ?, ?, ?, ?, ?)`,
+        (id, status, manifest_json, approved_by, approved_at, product_id, purpose, environment,
+         manifest_digest, created_at, updated_at)
+       VALUES (?, 'approved', ?, ?, ?, ?, 'public', ?, ?, ?, ?)`,
     )
-      .bind(releaseId, JSON.stringify(manifest), principal.id, now, productId, now, now)
+      .bind(
+        releaseId,
+        manifestJson,
+        principal.id,
+        now,
+        productId,
+        context.env.ENVIRONMENT,
+        manifestDigest,
+        now,
+        now,
+      )
       .run();
     const build = await trigger({
       environment: context.env.ENVIRONMENT,
@@ -382,20 +400,24 @@ export async function publishPublishedProductRevision(
       releaseId,
       storefrontOrigin: context.env.STOREFRONT_ORIGIN,
     });
+    const manifestJson = JSON.stringify(manifest);
+    const manifestDigest = await sha256(manifestJson);
     const started = await db
       .prepare(
         `INSERT INTO catalog_releases
           (id, status, manifest_json, approved_by, approved_at, product_id,
-           product_revision_id, created_at, updated_at)
-         VALUES (?, 'approved', ?, ?, ?, ?, ?, ?, ?)`,
+           product_revision_id, purpose, environment, manifest_digest, created_at, updated_at)
+         VALUES (?, 'approved', ?, ?, ?, ?, ?, 'public', ?, ?, ?, ?)`,
       )
       .bind(
         releaseId,
-        JSON.stringify(manifest),
+        manifestJson,
         context.get("principal").id,
         now,
         productId,
         input.revisionId,
+        context.env.ENVIRONMENT,
+        manifestDigest,
         now,
         now,
       )

@@ -26,12 +26,195 @@ async function applyIamMigration(db: D1Database): Promise<void> {
 }
 
 describe("D1 migrations", () => {
+  test("adds storefront permissions without expanding custom roles and constrains new releases", async () => {
+    const permissionKeys = (
+      await env.DB.prepare(
+        `SELECT permission_key FROM admin_permission_definitions
+          WHERE category IN ('identity', 'policies', 'content', 'navigation')
+          ORDER BY sort_order`,
+      ).all<{ permission_key: string }>()
+    ).results.map(({ permission_key }) => permission_key);
+    expect(permissionKeys).toEqual([
+      "identity.read",
+      "identity.write",
+      "policies.read",
+      "policies.write",
+      "policies.approve",
+      "policies.publish",
+      "content.read",
+      "content.write",
+      "content.publish",
+      "navigation.read",
+      "navigation.write",
+      "navigation.publish",
+    ]);
+    expect(
+      await env.DB.prepare(
+        `SELECT COUNT(*) AS count FROM admin_role_permissions
+          WHERE role_id = 'role_admin' AND permission_key IN
+            ('identity.read', 'identity.write', 'policies.read', 'policies.write',
+             'policies.approve', 'policies.publish', 'content.read', 'content.write',
+             'content.publish', 'navigation.read', 'navigation.write', 'navigation.publish')`,
+      ).first(),
+    ).toEqual({ count: 12 });
+
+    const columns = await env.DB.prepare("PRAGMA table_info(catalog_releases)").all<{
+      name: string;
+    }>();
+    expect(columns.results.map(({ name }) => name)).toEqual(
+      expect.arrayContaining([
+        "purpose",
+        "environment",
+        "manifest_digest",
+        "source_digest",
+        "attestation_json",
+        "attested_at",
+      ]),
+    );
+    await expect(
+      env.DB.prepare(
+        `INSERT INTO catalog_releases
+          (id, status, manifest_json, approved_at, purpose, environment, attestation_json,
+           created_at, updated_at)
+         VALUES ('release_invalid_attestation', 'approved', '{}', ?, 'private-preview',
+                 'development', '{}', ?, ?)`,
+      )
+        .bind(NOW, NOW, NOW)
+        .run(),
+    ).rejects.toThrow(/catalog_release_attestation_invalid/);
+  });
+
+  test("keeps domain-owned backlinks consistent with archive races", async () => {
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO policy_versions
+          (policy_id, version, kind, slug, title, effective_date, sections_json, status,
+           created_at, updated_at)
+         VALUES ('policy.returns', 1, 'returns', 'returns', 'Returns', '2026-09-23', '[]',
+                 'draft', ?, ?)`,
+      ).bind(NOW, NOW),
+      env.DB.prepare(
+        `INSERT INTO navigation_menu_versions
+          (menu_id, version, placement, status, created_at, updated_at)
+         VALUES ('menu.footer.backlinks', 1, 'footer', 'draft', ?, ?)`,
+      ).bind(NOW, NOW),
+      env.DB.prepare(
+        `INSERT INTO navigation_items
+          (menu_id, menu_version, item_id, parent_item_id, position, label, target_json)
+         VALUES ('menu.footer.backlinks', 1, 'item.returns', NULL, 0, 'Returns',
+                 '{"kind":"internal","reference":{"kind":"policy","id":"policy.returns"}}')`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO navigation_policy_references
+          (menu_id, menu_version, item_id, policy_id, policy_version, environment, created_at)
+         VALUES ('menu.footer.backlinks', 1, 'item.returns', 'policy.returns', 1,
+                 'development', ?)`,
+      ).bind(NOW),
+    ]);
+    await expect(
+      env.DB.prepare(
+        `UPDATE policy_versions SET status = 'archived', updated_at = ?
+          WHERE policy_id = 'policy.returns' AND version = 1`,
+      )
+        .bind(NOW)
+        .run(),
+    ).rejects.toThrow(/resource_has_backlinks/);
+    expect(
+      await env.DB.prepare(
+        `SELECT status FROM policy_versions
+          WHERE policy_id = 'policy.returns' AND version = 1`,
+      ).first(),
+    ).toEqual({ status: "draft" });
+
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO policy_versions
+          (policy_id, version, kind, slug, title, effective_date, sections_json, status,
+           created_at, updated_at)
+         VALUES ('policy.archived', 1, 'privacy', 'privacy-old', 'Old privacy', '2026-09-23',
+                 '[]', 'archived', ?, ?)`,
+      ).bind(NOW, NOW),
+      env.DB.prepare(
+        `INSERT INTO navigation_items
+          (menu_id, menu_version, item_id, parent_item_id, position, label, target_json)
+         VALUES ('menu.footer.backlinks', 1, 'item.archived', NULL, 1, 'Old privacy',
+                 '{"kind":"internal","reference":{"kind":"policy","id":"policy.archived"}}')`,
+      ),
+    ]);
+    await expect(
+      env.DB.prepare(
+        `INSERT INTO navigation_policy_references
+          (menu_id, menu_version, item_id, policy_id, policy_version, environment, created_at)
+         VALUES ('menu.footer.backlinks', 1, 'item.archived', 'policy.archived', 1,
+                 'development', ?)`,
+      )
+        .bind(NOW)
+        .run(),
+    ).rejects.toThrow(/reference_target_archived/);
+
+    await expect(
+      env.DB.prepare(
+        `UPDATE navigation_policy_references
+            SET policy_id = 'policy.archived', policy_version = 1, environment = 'staging'
+          WHERE menu_id = 'menu.footer.backlinks' AND menu_version = 1
+            AND item_id = 'item.returns'`,
+      ).run(),
+    ).rejects.toThrow(/reference_relation_immutable/);
+    expect(
+      await env.DB.prepare(
+        `SELECT policy_id, policy_version, environment
+           FROM navigation_policy_references
+          WHERE menu_id = 'menu.footer.backlinks' AND menu_version = 1
+            AND item_id = 'item.returns'`,
+      ).first(),
+    ).toEqual({
+      environment: "development",
+      policy_id: "policy.returns",
+      policy_version: 1,
+    });
+    expect(
+      (
+        await env.DB.prepare(
+          `SELECT name FROM sqlite_schema
+            WHERE type = 'trigger' AND name LIKE 'navigation_%_reference_immutable'
+            ORDER BY name`,
+        ).all<{ name: string }>()
+      ).results,
+    ).toEqual([
+      { name: "navigation_article_reference_immutable" },
+      { name: "navigation_collection_reference_immutable" },
+      { name: "navigation_page_reference_immutable" },
+      { name: "navigation_policy_reference_immutable" },
+    ]);
+  });
+
   test("creates storefront authorities and backfills ordered Collection membership", async () => {
     const db = env.STOREFRONT_CONTROL_UPGRADE_DB;
     const migrationIndex = env.TEST_MIGRATIONS.findIndex(({ name }) =>
       name.endsWith("0032_storefront_control_authorities.sql"),
     );
     await db.batch([
+      db
+        .prepare(
+          `INSERT INTO admin_roles
+          (id, key, name, protected, system, enabled, version, created_at, updated_at)
+         VALUES ('custom_pre_storefront', 'pre_storefront', 'Pre-storefront custom', 0, 0, 1, 1, ?, ?)`,
+        )
+        .bind(NOW, NOW),
+      db
+        .prepare(
+          `INSERT INTO admin_role_permissions (role_id, permission_key, created_at)
+         VALUES ('custom_pre_storefront', 'catalog.read', ?)`,
+        )
+        .bind(NOW),
+      db
+        .prepare(
+          `INSERT INTO catalog_releases
+          (id, status, manifest_json, approved_at, created_at, updated_at)
+         VALUES ('release_historical_control', 'approved',
+                 '{"schemaVersion":1,"historical":true}', ?, ?, ?)`,
+        )
+        .bind(NOW, NOW, NOW),
       db
         .prepare(
           `INSERT INTO products
@@ -67,6 +250,32 @@ describe("D1 migrations", () => {
     expect(preflight).toMatchObject({ checkedMemberships: 2, issues: [], ok: true });
     expect(preflight.membershipDigest).toMatch(/^[a-f0-9]{64}$/);
     await applyD1Migrations(db, env.TEST_MIGRATIONS.slice(migrationIndex));
+
+    expect(
+      await db
+        .prepare(
+          `SELECT manifest_json, purpose, environment, manifest_digest, source_digest,
+                  attestation_json, attested_at
+             FROM catalog_releases WHERE id = 'release_historical_control'`,
+        )
+        .first(),
+    ).toEqual({
+      attestation_json: null,
+      attested_at: null,
+      environment: "development",
+      manifest_digest: null,
+      manifest_json: '{"schemaVersion":1,"historical":true}',
+      purpose: "public",
+      source_digest: null,
+    });
+    expect(
+      await db
+        .prepare(
+          `SELECT permission_key FROM admin_role_permissions
+          WHERE role_id = 'custom_pre_storefront' ORDER BY permission_key`,
+        )
+        .all(),
+    ).toMatchObject({ results: [{ permission_key: "catalog.read" }] });
 
     const authorityTables = [
       "store_identity_versions",
