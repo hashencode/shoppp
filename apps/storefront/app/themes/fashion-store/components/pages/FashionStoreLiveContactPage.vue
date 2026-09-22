@@ -13,6 +13,26 @@ const properties = defineProps<{
 }>();
 
 const contact = computed(() => properties.presentation.publicContact);
+const weekdayLabels = {
+  monday: "Monday",
+  tuesday: "Tuesday",
+  wednesday: "Wednesday",
+  thursday: "Thursday",
+  friday: "Friday",
+  saturday: "Saturday",
+  sunday: "Sunday",
+} as const;
+const serviceHoursText = computed(() => {
+  const serviceHours = contact.value?.serviceHours;
+  if (!serviceHours) return undefined;
+  if (serviceHours.kind === "legacy") return serviceHours.text;
+  return serviceHours.ranges
+    .map(
+      (range) =>
+        `${weekdayLabels[range.startDay]}–${weekdayLabels[range.endDay]}, ${range.startTime}–${range.endTime}`,
+    )
+    .join("; ");
+});
 const mediaSource = computed(() =>
   properties.presentation.media
     ? resolveFashionStoreEditorMedia(properties.resolveAsset, properties.presentation.media)
@@ -81,8 +101,8 @@ const hasGeneralDetails = computed(() =>
               <a :href="`tel:${contact.publicPhone}`">{{ contact.publicPhone }}</a>
             </div>
           </div>
-          <p v-if="contact?.serviceHours && contact.timeZone" class="mt-25px mb-0">
-            Service hours: {{ contact.serviceHours }} ({{ contact.timeZone }})
+          <p v-if="serviceHoursText && contact?.timeZone" class="mt-25px mb-0">
+            Service hours: {{ serviceHoursText }} ({{ contact.timeZone }})
           </p>
         </div>
       </section>

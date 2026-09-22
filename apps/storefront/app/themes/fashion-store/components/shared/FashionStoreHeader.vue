@@ -190,7 +190,7 @@ defineExpose({ closeTransient });
             <div
               v-for="social in publicContact?.socials ?? []"
               :key="social.id"
-              class="widget-text icon alt-font"
+              class="widget-text icon alt-font fashion-store-header-social"
             >
               <a
                 :href="social.url"
@@ -987,10 +987,6 @@ defineExpose({ closeTransient });
     padding-left: 15px;
   }
 
-  .fashion-store-header-canonical .menu-logo > .header-icon {
-    display: none !important;
-  }
-
   .fashion-store-header-canonical .navbar-brand {
     position: static;
     display: flex;
@@ -1037,6 +1033,37 @@ defineExpose({ closeTransient });
   .fashion-store-header-canonical .navbar > .container-fluid > :last-child .header-icon {
     justify-content: flex-end;
     flex-wrap: nowrap;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1399px) {
+  .fashion-store-header-canonical .menu-logo > .header-icon {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1400px) {
+  .fashion-store-header-canonical .menu-logo > .navbar-brand {
+    order: 1;
+  }
+
+  .fashion-store-header-canonical .menu-logo > .header-icon {
+    order: 2;
+    gap: 14px;
+    min-width: 0;
+    margin-left: 24px;
+  }
+
+  .fashion-store-header-canonical .menu-logo > .header-icon .widget-text {
+    margin: 0;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 1400px) and (max-width: 1599px) {
+  .fashion-store-header-canonical .menu-logo > .header-icon .fashion-store-header-social {
+    display: none;
   }
 }
 

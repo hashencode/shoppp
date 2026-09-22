@@ -92,74 +92,182 @@ const contactTimeZoneSchema = optionalContactText(100).refine((value) => {
   }
 }, "Use a valid IANA time zone.");
 
-export const contactLocationSchema = z.object({
-  id: z.uuid(),
-  name: z.string().trim().min(1).max(120),
-  city: z.string().trim().min(1).max(120),
-  address: z.string().trim().min(1).max(500),
-  phone: contactPhoneSchema.nullable(),
-  email: z.email().nullable(),
-  mapUrl: contactHttpsUrlSchema.nullable(),
-  visible: z.boolean(),
-}).strict();
+export const contactWeekdaySchema = z.enum([
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+]);
 
-export const contactSocialSchema = z.object({
-  id: z.uuid(),
-  platform: z.string().trim().min(1).max(60),
-  label: z.string().trim().min(1).max(120),
-  url: contactHttpsUrlSchema,
-  visible: z.boolean(),
-}).strict();
+const contactWeekdayOrder = contactWeekdaySchema.options;
+const contactTimeSchema = z
+  .string()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use a 24-hour time in HH:mm format.");
 
-export const contactProfileSchema = z.object({
-  publishSupportEmail: z.boolean(),
-  publishPrivacyEmail: z.boolean(),
-  publicPhone: contactPhoneSchema.nullable(),
-  serviceHours: optionalContactText(240),
-  timeZone: contactTimeZoneSchema,
-  locations: z.array(contactLocationSchema).max(30),
-  socials: z.array(contactSocialSchema).max(30),
-}).strict().superRefine((value, context) => {
-  if ((value.serviceHours === null) !== (value.timeZone === null)) {
-    context.addIssue({ code: "custom", message: "Service hours and time zone must be provided together.", path: ["timeZone"] });
-  }
-  for (const field of ["locations", "socials"] as const) {
-    const ids = new Set<string>();
-    value[field].forEach((item, index) => {
-      if (ids.has(item.id)) context.addIssue({ code: "custom", message: "Identifiers must be unique.", path: [field, index, "id"] });
-      ids.add(item.id);
+export const contactServiceRangeSchema = z
+  .object({
+    id: z.uuid(),
+    startDay: contactWeekdaySchema,
+    endDay: contactWeekdaySchema,
+    startTime: contactTimeSchema,
+    endTime: contactTimeSchema,
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (contactWeekdayOrder.indexOf(value.endDay) < contactWeekdayOrder.indexOf(value.startDay)) {
+      context.addIssue({
+        code: "custom",
+        message: "The ending weekday must not be before the starting weekday.",
+        path: ["endDay"],
+      });
+    }
+    if (value.startTime === value.endTime) {
+      context.addIssue({
+        code: "custom",
+        message: "The start and end times must be different.",
+        path: ["endTime"],
+      });
+    }
+  });
+
+export const contactServiceHoursSchema = z.preprocess(
+  (value) => (typeof value === "string" ? { kind: "legacy", text: value } : value),
+  z.discriminatedUnion("kind", [
+    z
+      .object({
+        kind: z.literal("weekly"),
+        ranges: z.array(contactServiceRangeSchema).min(1).max(14),
+      })
+      .strict(),
+    z
+      .object({
+        kind: z.literal("legacy"),
+        text: z.string().trim().min(1).max(240),
+      })
+      .strict(),
+  ]),
+);
+
+export const contactSocialPlatformSchema = z.preprocess(
+  (value) => (typeof value === "string" ? value.trim().toLowerCase() : value),
+  z.enum(["facebook", "dribbble", "twitter", "instagram"]),
+);
+
+export const contactSocialPlatformLabels = {
+  facebook: "Facebook",
+  dribbble: "Dribbble",
+  twitter: "Twitter",
+  instagram: "Instagram",
+} as const satisfies Record<z.infer<typeof contactSocialPlatformSchema>, string>;
+
+export const contactLocationSchema = z
+  .object({
+    id: z.uuid(),
+    name: z.string().trim().min(1).max(120),
+    city: z.string().trim().min(1).max(120),
+    address: z.string().trim().min(1).max(500),
+    phone: contactPhoneSchema.nullable(),
+    email: z.email().nullable(),
+    mapUrl: contactHttpsUrlSchema.nullable(),
+    visible: z.boolean(),
+  })
+  .strict();
+
+export const contactSocialSchema = z
+  .object({
+    id: z.uuid(),
+    platform: contactSocialPlatformSchema,
+    label: z.string().trim().min(1).max(120).optional(),
+    url: contactHttpsUrlSchema,
+    visible: z.boolean(),
+  })
+  .strict()
+  .transform((value) => ({
+    ...value,
+    label: contactSocialPlatformLabels[value.platform],
+  }));
+
+export const contactProfileSchema = z
+  .object({
+    publishSupportEmail: z.boolean(),
+    publishPrivacyEmail: z.boolean(),
+    publicPhone: contactPhoneSchema.nullable(),
+    serviceHours: contactServiceHoursSchema.nullable(),
+    timeZone: contactTimeZoneSchema,
+    locations: z.array(contactLocationSchema).max(30),
+    socials: z.array(contactSocialSchema).max(30),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if ((value.serviceHours === null) !== (value.timeZone === null)) {
+      context.addIssue({
+        code: "custom",
+        message: "Service hours and time zone must be provided together.",
+        path: ["timeZone"],
+      });
+    }
+    for (const field of ["locations", "socials"] as const) {
+      const ids = new Set<string>();
+      value[field].forEach((item, index) => {
+        if (ids.has(item.id))
+          context.addIssue({
+            code: "custom",
+            message: "Identifiers must be unique.",
+            path: [field, index, "id"],
+          });
+        ids.add(item.id);
+      });
+    }
+    const socialPlatforms = new Set<string>();
+    value.socials.forEach((social, index) => {
+      if (socialPlatforms.has(social.platform)) {
+        context.addIssue({
+          code: "custom",
+          message: "Social platforms must be unique.",
+          path: ["socials", index, "platform"],
+        });
+      }
+      socialPlatforms.add(social.platform);
     });
-  }
-});
+  });
 
-export const publicContactSchema = z.object({
-  supportEmail: z.email().nullable(),
-  privacyEmail: z.email().nullable(),
-  publicPhone: contactPhoneSchema.nullable(),
-  serviceHours: optionalContactText(240),
-  timeZone: contactTimeZoneSchema,
-  locations: z.array(contactLocationSchema),
-  socials: z.array(contactSocialSchema),
-}).strict();
+export const publicContactSchema = z
+  .object({
+    supportEmail: z.email().nullable(),
+    privacyEmail: z.email().nullable(),
+    publicPhone: contactPhoneSchema.nullable(),
+    serviceHours: contactServiceHoursSchema.nullable(),
+    timeZone: contactTimeZoneSchema,
+    locations: z.array(contactLocationSchema),
+    socials: z.array(contactSocialSchema),
+  })
+  .strict();
 
-export const contactSettingsSchema = z.object({
-  profile: contactProfileSchema,
-  supportEmail: z.email(),
-  privacyContactEmail: z.email(),
-  launchVersion: z.string().nullable(),
-  profileVersion: z.uuid().nullable(),
-  updatedAt: isoDateTimeSchema.nullable(),
-  publicContact: publicContactSchema,
-}).strict();
+export const contactSettingsSchema = z
+  .object({
+    profile: contactProfileSchema,
+    supportEmail: z.email(),
+    privacyContactEmail: z.email(),
+    launchVersion: z.string().nullable(),
+    profileVersion: z.uuid().nullable(),
+    updatedAt: isoDateTimeSchema.nullable(),
+    publicContact: publicContactSchema,
+  })
+  .strict();
 
-export const updateContactSettingsRequestSchema = z.object({
-  profile: contactProfileSchema,
-  supportEmail: z.email(),
-  privacyContactEmail: z.email(),
-  expectedLaunchVersion: z.string().nullable(),
-  expectedProfileVersion: z.uuid().nullable(),
-  reason: z.string().trim().min(3).max(500),
-}).strict();
+export const updateContactSettingsRequestSchema = z
+  .object({
+    profile: contactProfileSchema,
+    supportEmail: z.email(),
+    privacyContactEmail: z.email(),
+    expectedLaunchVersion: z.string().nullable(),
+    expectedProfileVersion: z.uuid().nullable(),
+    reason: z.string().trim().min(3).max(500).optional(),
+  })
+  .strict();
 
 export const launchReadinessIssueSchema = z
   .object({

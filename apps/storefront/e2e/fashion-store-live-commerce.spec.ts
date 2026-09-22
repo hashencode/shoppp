@@ -114,19 +114,14 @@ async function expectLiveCanonicalShell(page: Page, home = false): Promise<void>
   await expect(footer).toHaveCount(1);
   await expect(footer).not.toHaveClass(/fashion-store-footer-home/);
   await expect(footer.getByText("Quick contact", { exact: true })).toBeVisible();
-  await expect(footer.getByText("Live Experience footer support").first()).toBeVisible();
+  await expect(footer.getByRole("link", { name: "support@shoppp.example" })).toBeVisible();
+  await expect(footer.getByRole("link", { name: /Instagram/ })).toBeVisible();
+  await expect(footer.getByRole("link", { name: /Facebook/ })).toBeVisible();
   await expect(footer.getByRole("link", { name: "Footer privacy", exact: true })).toHaveAttribute(
     "href",
     "/policies/privacy",
   );
-  await expect(footer.getByRole("link", { name: "Demo community" })).toHaveAttribute(
-    "href",
-    "https://example.com",
-  );
-  await expect(footer.getByRole("link", { name: "Demo community" })).toHaveAttribute(
-    "rel",
-    "noopener noreferrer",
-  );
+  await expect(footer.getByRole("link", { name: "Demo community" })).toHaveCount(0);
   await expect(footer.getByText("Become a member", { exact: true })).toBeVisible();
   await expect(footer.getByText("Newsletter sign-up is currently unavailable.")).toBeVisible();
   await expect(footer.locator("form")).toHaveCount(0);
@@ -136,6 +131,44 @@ async function expectLiveCanonicalShell(page: Page, home = false): Promise<void>
   );
   await expect(page.locator("body")).toHaveClass(home ? /fashion-store-home/ : /^$/);
 }
+
+test("live public contact reaches Contact, Header, and Footer", async ({ page }) => {
+  await page.setViewportSize({ width: 1599, height: 1000 });
+  await page.goto("/contact", { waitUntil: "networkidle" });
+  await expectLiveCanonicalShell(page);
+
+  const header = page.locator("[data-fashion-store-header]");
+  const contact = page.locator("[data-fashion-store-contact-live]");
+  const supportLink = header.locator('a[href="mailto:support@shoppp.example"]');
+  const instagramLink = header.locator('a[aria-label^="Instagram"]');
+  const facebookLink = header.locator('a[aria-label^="Facebook"]');
+  expect(
+    await supportLink.locator("..").evaluate((element) => getComputedStyle(element).display),
+  ).not.toBe("none");
+  for (const link of [instagramLink, facebookLink]) {
+    expect(await link.locator("..").evaluate((element) => getComputedStyle(element).display)).toBe(
+      "none",
+    );
+  }
+  expect(
+    await page.locator("body").evaluate((body) => body.scrollWidth - body.clientWidth),
+  ).toBeLessThanOrEqual(1);
+  await expect(contact.getByRole("link", { name: "support@shoppp.example" })).toBeVisible();
+  await expect(contact.getByText("Shoppp Demo Studio", { exact: true })).toBeVisible();
+  await expect(contact.locator("form")).toHaveCount(0);
+  await expect(contact.locator(".fashion-contact-marker")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Demo community" })).toHaveCount(0);
+
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  for (const link of [instagramLink, facebookLink]) {
+    expect(
+      await link.locator("..").evaluate((element) => getComputedStyle(element).display),
+    ).not.toBe("none");
+  }
+  expect(
+    await page.locator("body").evaluate((body) => body.scrollWidth - body.clientWidth),
+  ).toBeLessThanOrEqual(1);
+});
 
 function liveProduct(productId: string, mediaOrigin?: string) {
   const atlas = productId.endsWith("0000000001");
@@ -411,10 +444,12 @@ test("live non-Home and platform routes share Experience presentation around aut
   await expect(page.locator("[data-fashion-store-header]")).not.toContainText(
     "Live Experience announcement",
   );
-  await expect(page.locator("[data-fashion-store-header]")).toContainText(
+  await expect(page.locator("[data-fashion-store-header]")).toContainText("support@shoppp.example");
+  await expect(page.locator("[data-fashion-store-header]")).not.toContainText(
     "Live Experience header support",
   );
-  await expect(page.locator("footer")).toContainText("Live Experience footer support");
+  await expect(page.locator("footer")).toContainText("support@shoppp.example");
+  await expect(page.locator("footer")).not.toContainText("Live Experience footer support");
 
   await page.goto(`/orders/${orderAccessToken}`, { waitUntil: "networkidle" });
   await expectLiveCanonicalShell(page);
@@ -457,7 +492,7 @@ test("live Collection landing, collection detail, and Shop share the accepted ca
   const collectionGrid = page.locator("[data-fashion-store-catalog-grid]");
   await expect(page).toHaveURL(/\/collections\/travel-essentials$/);
   await expect(collectionGrid).toHaveAttribute("data-layout", "none");
-  await expect(collectionGrid.getByRole("heading", { level: 1 })).toHaveText("Shop the collection");
+  await expect(collectionGrid.getByRole("heading", { level: 1 })).toHaveText("Travel essentials");
   await expect(collectionGrid.locator("[data-fashion-store-product-card]")).toHaveCount(5);
   await expect(collectionGrid.locator(".shop-sidebar, .pagination")).toHaveCount(0);
 
@@ -781,7 +816,7 @@ test("live Product retains matched desktop and mobile composition geometry", asy
       expectedSwatches: ["#d4af37", "#5881bf", "#87a968"],
       name: "Relaxed corduroy shirt",
       relatedProductCount: 4,
-      secondaryActionCount: 3,
+      secondaryActionCount: 2,
       viewport,
     });
     await expect(page.getByRole("group", { name: "Color" })).toBeVisible();
@@ -1241,9 +1276,9 @@ test("live routes keep unsupported pages truthful and policies Catalog-bound", a
   await expect(account.getByRole("link", { name: "Return home" })).toHaveAttribute("href", "/");
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "noindex, nofollow");
   await account.getByRole("link", { name: "Return home" }).click();
-  await expect(page).toHaveURL((url) => url.pathname === "/");
+  await expect.poll(() => new URL(page.url()).pathname).toBe("/");
   await page.goBack();
-  await expect(page).toHaveURL((url) => url.pathname === "/account");
+  await expect.poll(() => new URL(page.url()).pathname).toBe("/account");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Account unavailable");
 
   await page.goto("/wishlist", { waitUntil: "networkidle" });

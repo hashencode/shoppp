@@ -94,15 +94,35 @@ async function mockCommerce(page: Page, restricted = false) {
     })
   })
   await page.route('**/api/admin/settings/contact', async (route) => {
-    await route.fulfill({ json: { data: {
-      supportEmail: configuration.supportEmail,
-      privacyContactEmail: configuration.privacyContactEmail,
-      launchVersion: 'browser-launch-version', profileVersion: null, updatedAt: null,
-      profile: { publishSupportEmail: false, publishPrivacyEmail: false,
-        publicPhone: null, serviceHours: null, timeZone: null, locations: [], socials: [] },
-      publicContact: { supportEmail: null, privacyEmail: null, publicPhone: null,
-        serviceHours: null, timeZone: null, locations: [], socials: [] },
-    } } })
+    await route.fulfill({
+      json: {
+        data: {
+          supportEmail: configuration.supportEmail,
+          privacyContactEmail: configuration.privacyContactEmail,
+          launchVersion: 'browser-launch-version',
+          profileVersion: null,
+          updatedAt: null,
+          profile: {
+            publishSupportEmail: false,
+            publishPrivacyEmail: false,
+            publicPhone: null,
+            serviceHours: null,
+            timeZone: null,
+            locations: [],
+            socials: [],
+          },
+          publicContact: {
+            supportEmail: null,
+            privacyEmail: null,
+            publicPhone: null,
+            serviceHours: null,
+            timeZone: null,
+            locations: [],
+            socials: [],
+          },
+        },
+      },
+    })
   })
   await page.route('**/api/admin/operations/health', async (route) => {
     await route.fulfill({
@@ -146,9 +166,7 @@ test('store settings navigation supports expanded and collapsed sidebar paths', 
   await expect(page.getByRole('menuitem', { name: 'Contact settings' })).toHaveClass(
     /ant-menu-item-selected/
   )
-  await expect(page.locator('.ant-breadcrumb')).toContainText(
-    'Store settings/Contact settings'
-  )
+  await expect(page.locator('.ant-breadcrumb')).toContainText('Store settings/Contact settings')
 
   const storeSettingsGroup = storeSettings.locator('xpath=ancestor::li[1]')
   await expect(storeSettingsGroup.locator(':scope > ul > li[role="menuitem"]')).toHaveText([
@@ -211,9 +229,10 @@ for (const viewport of [
       fullPage: true,
     })
     await page.getByText('2. Prepare products', { exact: true }).click()
-    await expect(
-      page.getByRole('list').filter({ hasText: 'At least one sellable SKU' })
-    ).toHaveCSS('list-style-type', 'disc')
+    await expect(page.getByRole('list').filter({ hasText: 'At least one sellable SKU' })).toHaveCSS(
+      'list-style-type',
+      'disc'
+    )
     const salesLink = page.getByRole('link', { name: 'Sales settings', exact: true })
     await expect(salesLink).toHaveClass(/ant-btn-default/)
     await expect(salesLink).not.toHaveClass(/ant-btn-(sm|lg)/)
@@ -274,7 +293,10 @@ test('settings reader has fixed restricted progress and a readonly commercial fo
   await page.getByText('1. Basics and contacts', { exact: true }).click()
   await page.getByRole('link', { name: 'Contact settings' }).click()
   await expect(page.getByLabel('Support email', { exact: true })).toBeDisabled()
-  await expect(page.getByRole('button', { name: 'Save contact settings', exact: true })).toHaveCount(0)
+  await expect(
+    page.getByRole('button', { name: 'Save contact settings', exact: true })
+  ).toHaveCount(0)
+  await expect(page.locator('.ax-fixed-toolbar')).toHaveCount(0)
   expect(fixture.saves()).toBe(0)
   await page.goto(path('/settings/launch?from=https://example.invalid'))
   await expect(page.getByLabel('Default currency', { exact: true })).toBeDisabled()
@@ -292,12 +314,29 @@ for (const variant of [
     await mockAdminSession(page)
     await mockCommerce(page)
     let contact: ContactSettings = {
-      supportEmail: 'support@example.test', privacyContactEmail: 'privacy@example.test',
-      launchVersion: 'browser-launch-version', profileVersion: null, updatedAt: null,
-      profile: { publishSupportEmail: false, publishPrivacyEmail: false,
-        publicPhone: null, serviceHours: null, timeZone: null, locations: [], socials: [] },
-      publicContact: { supportEmail: null, privacyEmail: null, publicPhone: null,
-        serviceHours: null, timeZone: null, locations: [], socials: [] },
+      supportEmail: 'support@example.test',
+      privacyContactEmail: 'privacy@example.test',
+      launchVersion: 'browser-launch-version',
+      profileVersion: null,
+      updatedAt: null,
+      profile: {
+        publishSupportEmail: false,
+        publishPrivacyEmail: false,
+        publicPhone: null,
+        serviceHours: null,
+        timeZone: null,
+        locations: [],
+        socials: [],
+      },
+      publicContact: {
+        supportEmail: null,
+        privacyEmail: null,
+        publicPhone: null,
+        serviceHours: null,
+        timeZone: null,
+        locations: [],
+        socials: [],
+      },
     }
     let saves = 0
     await page.route('**/api/admin/settings/contact', async (route) => {
@@ -324,21 +363,86 @@ for (const variant of [
       await route.fulfill({ json: { data: contact } })
     })
     const chinese = variant.locale === 'Chinese'
-    const label = (english: string, translated: string) => chinese ? translated : english
+    const label = (english: string, translated: string) => (chinese ? translated : english)
     await page.goto(path('/settings/contact'))
-    await expect(page.getByRole('heading', { name: label('Contact settings', '联系方式设置') })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: label('Contact settings', '联系方式设置') })
+    ).toBeVisible()
+    const globalCard = page
+      .locator('.ant-card')
+      .filter({
+        has: page.getByText(label('Global contact channels', '全局联系渠道'), { exact: true }),
+      })
+      .first()
+    const locationsCard = page
+      .locator('.ant-card')
+      .filter({
+        has: page.getByText(label('Physical locations', '实体地点'), { exact: true }),
+      })
+      .first()
+    await expect(page.locator('.ax-fixed-toolbar')).toBeVisible()
+
+    if (!chinese) {
+      const geometry = await globalCard.evaluate((card) => {
+        const content = card.closest('.ant-layout-content')
+        const compactBody = card.querySelector('.ant-card-body')
+        if (!content || !compactBody) throw new Error('Contact layout is incomplete')
+        const cardRect = card.getBoundingClientRect()
+        const compactRect = compactBody.getBoundingClientRect()
+        return {
+          cardWidth: cardRect.width,
+          contentWidth: content.clientWidth,
+          compactWidth: compactRect.width,
+          compactLeftInset: compactRect.left - cardRect.left,
+          compactRightInset: cardRect.right - compactRect.right,
+        }
+      })
+      const locationsWidth = await locationsCard
+        .locator('.ant-card-body')
+        .evaluate((body) => body.getBoundingClientRect().width)
+      expect(geometry.cardWidth).toBeGreaterThan(geometry.contentWidth * 0.9)
+      expect(geometry.compactWidth).toBeLessThanOrEqual(802)
+      expect(Math.abs(locationsWidth - geometry.compactWidth)).toBeLessThanOrEqual(2)
+      expect(Math.abs(geometry.compactLeftInset - geometry.compactRightInset)).toBeLessThanOrEqual(
+        2
+      )
+
+      await page.locator('header .ant-avatar').click()
+      await page.getByText('Form alignment', { exact: true }).hover()
+      await page.getByText('Left aligned', { exact: true }).click()
+      await expect(page.locator('html')).toHaveAttribute('data-form-content-align', 'left')
+      expect(
+        await globalCard.evaluate((card) => {
+          const body = card.querySelector('.ant-card-body')
+          if (!body) throw new Error('Contact card body is missing')
+          return Math.abs(body.getBoundingClientRect().left - card.getBoundingClientRect().left)
+        })
+      ).toBeLessThanOrEqual(2)
+    }
     await page.getByRole('button', { name: label('Add location', '添加地点') }).click()
     await page.getByRole('button', { name: label('Add location', '添加地点') }).click()
     const names = page.getByLabel(label('Location name', '地点名称'))
     await names.nth(0).fill('North')
     await names.nth(1).fill('South')
-    await page.getByRole('button', { name: chinese ? /上\s*移/ : 'Move up' }).nth(1).click()
+    await page
+      .getByRole('button', { name: chinese ? /上\s*移/ : 'Move up' })
+      .nth(1)
+      .click()
     await expect(names.nth(0)).toHaveValue('South')
+    await page.getByRole('button', { name: label('Add service hours', '添加服务时间') }).click()
+    await expect(page.getByRole('combobox', { name: label('Start weekday', '开始星期') })).toBeVisible()
+    const timeZone = page.getByRole('combobox', { name: label('Time zone', '时区') })
+    await timeZone.fill('Asia/Shanghai')
+    await page.locator('.ant-select-item-option-content', { hasText: 'Asia/Shanghai' }).click()
     await page.getByRole('button', { name: label('Add social link', '添加社交链接') }).click()
-    await page.getByLabel(label('Platform', '平台')).fill('Instagram')
-    await page.getByLabel(label('Link label', '链接文字')).fill('Our Instagram')
+    await page
+      .getByRole('combobox', { name: label('Platform', '平台') })
+      .locator(
+        'xpath=ancestor::div[contains(concat(" ", normalize-space(@class), " "), " ant-select ")]'
+      )
+      .click()
+    await page.locator('.ant-select-item-option-content', { hasText: 'Instagram' }).click()
     await page.getByLabel(label('Destination URL', '目标网址')).fill('https://instagram.com/shoppp')
-    await page.getByLabel(label('Change reason', '变更原因')).fill('Verified contact details')
     await page.getByRole('button', { name: label('Save contact settings', '保存联系方式') }).click()
     await expect(page.getByLabel(label('City', '城市')).nth(0)).toBeFocused()
     await page.getByLabel(label('City', '城市')).nth(0).fill('Shanghai')
@@ -348,9 +452,29 @@ for (const variant of [
     await page.getByRole('button', { name: label('Save contact settings', '保存联系方式') }).click()
     await expect.poll(() => saves).toBe(1)
     expect(contact.profile.locations.map((location) => location.name)).toEqual(['South', 'North'])
+    expect(contact.profile.serviceHours).toMatchObject({
+      kind: 'weekly',
+      ranges: [
+        {
+          startDay: 'monday',
+          endDay: 'friday',
+          startTime: '09:00',
+          endTime: '18:00',
+        },
+      ],
+    })
+    expect(contact.profile.timeZone).toBe('Asia/Shanghai')
     await page.reload()
     await expect(page.getByLabel(label('Location name', '地点名称')).nth(0)).toHaveValue('South')
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <= innerWidth &&
+          [...document.querySelectorAll('.ant-layout-content')].every(
+            (element) => element.scrollWidth <= element.clientWidth
+          )
+      )
+    ).toBe(true)
   })
 }
 

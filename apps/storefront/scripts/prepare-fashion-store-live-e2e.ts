@@ -131,6 +131,55 @@ export function fashionStoreLiveBuildInput(
     ],
     experienceId: "experience-fashion-store-live",
     id: "snapshot-fashion-store-live-1",
+    contact: {
+      publicContact: {
+        supportEmail: "support@shoppp.example",
+        privacyEmail: "privacy@shoppp.example",
+        publicPhone: "+12025550123",
+        serviceHours: {
+          kind: "weekly",
+          ranges: [
+            {
+              id: "799578d0-bfc7-4638-90ec-a791894251ee",
+              startDay: "monday",
+              endDay: "friday",
+              startTime: "09:00",
+              endTime: "18:00",
+            },
+          ],
+        },
+        timeZone: "Asia/Shanghai",
+        locations: [
+          {
+            id: "c811317f-af70-4ee6-9750-4b594c527355",
+            name: "Shoppp Demo Studio",
+            city: "Shanghai",
+            address: "100 Demo Road, Example District",
+            phone: "+12025550124",
+            email: "studio@shoppp.example",
+            mapUrl: "https://example.com/shoppp-demo-map",
+            visible: true,
+          },
+        ],
+        socials: [
+          {
+            id: "09b4b33b-4522-45ab-8541-3f25b7fffc1b",
+            platform: "instagram",
+            label: "Instagram",
+            url: "https://example.com/shoppp-instagram",
+            visible: true,
+          },
+          {
+            id: "c6590c62-30a7-4d88-8998-8cb57f7d3c9e",
+            platform: "facebook",
+            label: "Facebook",
+            url: "https://example.com/shoppp-facebook",
+            visible: true,
+          },
+        ],
+      },
+      version: "c".repeat(64),
+    },
     resolvedTemplates: fixtureInput.snapshot.resolvedTemplates.map((template) => ({
       ...template,
       sections: template.sections.map((section) => ({

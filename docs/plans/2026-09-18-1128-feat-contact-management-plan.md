@@ -7,6 +7,9 @@ artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
 execution: code
 plan_alias: FS-F13
+status: complete
+completed: 2026-09-22
+current_unit: none
 ---
 
 # Contact Management and Fashion Store Contact Page - Plan
@@ -18,18 +21,18 @@ plan_alias: FS-F13
 - **Upstream product authority:** `docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md` owns sequence. `docs/plans/2026-09-03-1445-feat-admin-store-setup-guide-plan.md` owns the current two-email guide baseline. `docs/plans/2026-09-15-1350-refactor-fashion-store-presentation-convergence-plan.md` owns fixture/live content behavior, and `docs/plans/2026-09-13-1205-refactor-fashion-store-shared-shell-plan.md` owns shared Header/Footer presentation.
 - **Inherited baseline:** `settings.launch_configuration` persists `supportEmail` and `privacyContactEmail`; the Admin commercial settings page edits them. The Fashion Store fixture Contact page shows two illustrative locations, fixed map markers, and a local-only form. The live content path shows a truthful state instead of those fixture details. Header/Footer theme settings support free-text contact copy and one social link each; live Footer hides the demo phone and email.
 - **Explicit supersession:** This plan supersedes the setup guide's first-version decision to treat two valid emails as the complete contact configuration and its commercial-settings contact anchor as the sole editing destination. It supersedes fixture-only Contact details for the new live public-contact presentation. It preserves the existing launch email fields and historical theme/release snapshots.
-- **Parallel plans:** FS-F12 Product Content and Reviews is parked at U2 while this user-prioritized Contact/Admin plan executes. This plan does not change FS-F12's current unit, evidence, or remote Catalog/R2 authority. REL-Pre-DC remains the eventual candidate owner after both implementation tails close.
+- **Parallel plans:** FS-F12 Product Content and Reviews was parked at U2 while this user-prioritized Contact/Admin plan executed. FS-F13 did not change FS-F12's Product facts, evidence, or remote Catalog/R2 authority and returned the pointer to U2 on completion. REL-Pre-DC remains the eventual candidate owner after both implementation tails close.
 - **Tail ownership:** FS-F13 owns Contact configuration, Admin editing, public contact composition, Fashion Store Contact/Header/Footer integration, and their local verification. FS-F12 owns Product content/reviews. REL owns Pre-DC, DC, and PG.
 - **Execution profile:** Implement in the primary checkout as the current bounded interlude, then return to FS-F12-U2. No worktree, PR, deployment, remote data mutation, or candidate advancement is implied by this plan.
 
 ### Execution Checkpoint
 
-- **Classification:** Active contact-management implementation following the user's 2026-09-18 instruction to execute this plan. FS-F12 remains incomplete at U2 and is parked with its Product facts unchanged.
-- **Current unit:** U5 — cross-surface verification, runbook, and execution handback. Focused Worker, contract, Admin, storefront, and browser checks pass, including the reconciled shared Footer integration. A real merchant-approved Preview is still required by the Verification Contract.
-- **Next concrete action:** Have an operator inspect the actual merchant Contact/Header/Footer Preview and record its `contact.version` and snapshot ID before closing FS-F13.
-- **Next unit:** Hand back to parked FS-F12-U2 after U5 evidence and Footer integration are resolved.
-- **Blocker:** Footer had preexisting user edits, so committing its combined diff requires the ce-work shared-file decision after review. No real merchant contact profile or approved Preview is available for the human review gate. Remote deployment and candidate gates remain separate.
-- **Tail:** On verified U1-U5 completion, reconcile FS-F12's parked Product tail and return the product pointer to FS-F12-U2 rather than claiming Product or REL completion.
+- **Classification:** Completed contact-management implementation; U1-U5 completed on 2026-09-22 and the product pointer returned to FS-F12-U2.
+- **Completed units:** U1-U5 — structured contact storage, Admin editing, immutable Experience projection, Contact/Header/Footer rendering, setup guidance, responsive Preview evidence, and focused cross-surface regression coverage are complete.
+- **Current unit:** None; FS-F13 is complete.
+- **Development acceptance:** The user confirmed on 2026-09-22 that real merchant details are not required during development. The versioned synthetic Preview `snapshot-preview-contact-u5-synthetic-20260922` and its recorded `contact.version` satisfy U5 development verification. Actual merchant values and destination approval remain a later candidate/publication operation and do not reopen FS-F13.
+- **Blocker:** None inside FS-F13. Three current-worktree Fashion Store live failures concern Collection content, Product composition, and an existing URL predicate; they are recorded as unrelated to the focused contact path and remain with the resumed product tail.
+- **Handback:** FS-F12 resumes at U2. This completion does not advance Candidate, DC, deployment, or PG state.
 
 ---
 
@@ -121,7 +124,7 @@ flowchart TB
 ### Assumptions and sequencing
 
 - The user asked for a development plan after discussing a dedicated contact page, Contact content, and social media links. This plan assumes those public-information surfaces are in scope and a working contact-message inbox is a separate feature.
-- FS-F12 remains incomplete and parked at U2. The user assigned FS-F13 the current execution slot on 2026-09-18; FS-F12 resumes before REL-Pre-DC candidate selection, so no candidate freezes illustrative merchant contact facts or an incomplete Product tail.
+- FS-F12 remained incomplete and parked at U2 while FS-F13 held the execution slot from 2026-09-18 through 2026-09-22. FS-F12 resumed before REL-Pre-DC candidate selection, so no candidate freezes illustrative merchant contact facts or an incomplete Product tail.
 - No new database table is required for a singleton profile because the existing `settings` table stores validated JSON. Reassess only if implementation reveals a genuine query or lifecycle need for normalized rows.
 
 ---
@@ -193,7 +196,7 @@ flowchart TB
 - **Requirements:** R1-R13; F1-F3; AE1-AE6.
 - **Dependencies:** U1-U4.
 - **Files:** `docs/runbooks/admin-store-setup-guide.md`; `docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md`; `docs/progress/` (focused evidence file); `apps/admin/e2e/setup-guide.spec.ts`; `apps/storefront/e2e/fashion-store-information-pages.spec.ts`; `apps/storefront/e2e/fashion-store-live-commerce.spec.ts`.
-- **Approach:** Run focused contract/API/Admin/storefront/browser coverage, inspect Contact at representative phone/tablet/desktop widths, and verify old snapshots and the launch API. Record actual tested contact version, preview identity, and limitations. Update owning checkpoints and the master pointer together only when execution status or product order changes.
+- **Approach:** Run focused contract/API/Admin/storefront/browser coverage, inspect Contact at representative phone/tablet/desktop widths, and verify old snapshots and the launch API. Record the tested development contact version, preview identity, synthetic-data boundary, and limitations. Update owning checkpoints and the master pointer together only when execution status or product order changes.
 - **Patterns to follow:** Existing Contact-page browser evidence, setup-guide runbook, and plan checkpoint rules.
 - **Test scenarios:**
   - End-to-end Admin save followed by new Preview shows the exact profile version; an earlier Preview remains unchanged.
@@ -211,7 +214,7 @@ flowchart TB
 | Admin component and setup-guide browser tests | U2 | Both locales, read-only/write roles, add/remove/reorder, default-not-confirmed, save/reload paths pass. |
 | Storefront unit and browser tests | U3-U4 | Zero/two locations, social filtering/order, immutable version, live fallback, fixture isolation, input-mode accessibility, and responsive widths pass. |
 | Existing Fashion Store and Commerce regression selection | U5 | Contact changes do not alter Product, cart, checkout, historical snapshots, or template boundaries. |
-| Human Preview review | U5 | Operator confirms public facts, optional-location layout, map-link behavior, Header/Footer placement, and absence of sample claims. |
+| Human Preview review | U5 | During development, the operator or product owner may review a clearly labeled versioned synthetic Preview to confirm optional-location layout, map-link behavior, and Header/Footer placement. Actual merchant facts and external destinations are confirmed separately before candidate publication. |
 
 ---
 

@@ -104,7 +104,7 @@ describe('ContactSettingsPage', () => {
       </AuthTestProvider>
     )
     expect(screen.getByRole('heading', { level: 4, name: 'Contact settings' })).toBeTruthy()
-    expect(screen.getByText('No permission to view contact settings.')).toBeTruthy()
+    expect(screen.getByText('Access denied')).toBeTruthy()
     noAccess.unmount()
 
     const loadingView = renderPage()
@@ -122,20 +122,66 @@ describe('ContactSettingsPage', () => {
       )
     )
     renderPage()
-    expect(await screen.findByText('Contact settings could not be loaded.')).toBeTruthy()
+    expect(await screen.findByText('Form details could not be loaded')).toBeTruthy()
     expect(screen.getByRole('heading', { level: 4, name: 'Contact settings' })).toBeTruthy()
   })
 
   it('places publication guidance inside Global contact channels', async () => {
-    renderPage()
+    const { container } = renderPage()
     await screen.findByLabelText('Support email')
     const guidance = screen.getByText(
       'Only channels you explicitly publish will appear on the storefront after a new preview or release.'
     )
     expect(guidance.closest('.ant-card')?.textContent).toContain('Global contact channels')
+
+    const pageRoot = container.querySelector('.space-y-4.pb-20')
+    expect(pageRoot?.className).not.toContain('max-w-5xl')
+    expect(pageRoot?.className).not.toContain('mx-auto')
+
+    const cardBodyClassName = (title: string) =>
+      screen.getByText(title).closest('.ant-card')?.querySelector('.ant-card-body')?.className
+
+    expect(cardBodyClassName('Global contact channels')).toContain('max-w-[800px]')
+    expect(cardBodyClassName('Global contact channels')).toContain('admin-form-content-align')
+    expect(cardBodyClassName('Physical locations')).toContain('max-w-[800px]')
+    expect(cardBodyClassName('Physical locations')).toContain('admin-form-content-align')
+    expect(cardBodyClassName('Social links')).toContain('max-w-[800px]')
+    expect(cardBodyClassName('Social links')).toContain('admin-form-content-align')
+    const cardBodies = container.querySelectorAll('.ant-card > .ant-card-body')
+    const finalCardBodyClassName = cardBodies[cardBodies.length - 1]?.className
+    expect(finalCardBodyClassName).toContain('max-w-[800px]')
+    expect(finalCardBodyClassName).toContain('admin-form-content-align')
+    expect(container.querySelectorAll('[class~="md:grid-cols-2"]')).toHaveLength(0)
+    expect(container.querySelector('.ax-fixed-toolbar')).toBeTruthy()
   })
 
-  it('saves a confirmed email and ordered optional rows with version and reason', async () => {
+  it('preserves a draft when reset is cancelled and restores saved values when confirmed', async () => {
+    renderPage()
+    const supportEmail = await screen.findByLabelText('Support email')
+    fireEvent.change(supportEmail, { target: { value: 'draft@example.com' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset changes' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
+    expect((supportEmail as HTMLInputElement).value).toBe('draft@example.com')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset changes' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }))
+    expect((supportEmail as HTMLInputElement).value).toBe('support@example.com')
+    expect(submitted).toHaveLength(0)
+  })
+
+  it('focuses the first invalid dynamic field without submitting', async () => {
+    renderPage()
+    await screen.findByLabelText('Support email')
+    fireEvent.click(screen.getByRole('button', { name: 'Add location' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save contact settings' }))
+
+    const firstInvalidField = screen.getByLabelText('Location name')
+    await waitFor(() => expect(document.activeElement).toBe(firstInvalidField))
+    expect(submitted).toHaveLength(0)
+  })
+
+  it('saves structured hours and fixed social data without an operator reason', async () => {
     renderPage()
     await screen.findByLabelText('Support email')
     fireEvent.click(screen.getByRole('switch', { name: 'Show support email publicly' }))
@@ -145,34 +191,53 @@ describe('ContactSettingsPage', () => {
     fireEvent.change(screen.getByLabelText('Postal address'), {
       target: { value: '123 Test Road' },
     })
+    fireEvent.click(screen.getByRole('button', { name: 'Add service hours' }))
+    await screen.findByLabelText('Start weekday')
+    const timeZone = screen.getByLabelText('Time zone')
+    fireEvent.mouseDown(timeZone)
+    fireEvent.change(timeZone, { target: { value: 'Asia/Shanghai' } })
+    fireEvent.click(
+      await screen.findByText('Asia/Shanghai', { selector: '.ant-select-item-option-content' })
+    )
     fireEvent.click(screen.getByRole('button', { name: 'Add social link' }))
-    fireEvent.change(screen.getByLabelText('Platform'), { target: { value: 'Instagram' } })
-    fireEvent.change(screen.getByLabelText('Link label'), { target: { value: 'Our Instagram' } })
+    fireEvent.mouseDown(screen.getByLabelText('Platform'))
+    fireEvent.click(await screen.findByText('Instagram'))
     fireEvent.change(screen.getByLabelText('Destination URL'), {
       target: { value: 'https://instagram.com/shop' },
-    })
-    fireEvent.change(screen.getByLabelText('Change reason'), {
-      target: { value: 'Confirm public contact' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Save contact settings' }))
     await waitFor(() => expect(submitted).toHaveLength(1))
     expect(submitted[0]).toMatchObject({
       expectedLaunchVersion: 'launch-v1',
       expectedProfileVersion: null,
-      reason: 'Confirm public contact',
       profile: {
         publishSupportEmail: true,
+        serviceHours: {
+          kind: 'weekly',
+          ranges: [
+            {
+              startDay: 'monday',
+              endDay: 'friday',
+              startTime: '09:00',
+              endTime: '18:00',
+            },
+          ],
+        },
+        timeZone: 'Asia/Shanghai',
         locations: [{ name: 'Studio', city: 'Shanghai', address: '123 Test Road', visible: false }],
         socials: [
           {
-            platform: 'Instagram',
-            label: 'Our Instagram',
+            platform: 'instagram',
+            label: 'Instagram',
             url: 'https://instagram.com/shop',
             visible: false,
           },
         ],
       },
     })
+    expect(submitted[0]).not.toHaveProperty('reason')
+    expect(screen.queryByLabelText('Link label')).toBeNull()
+    expect(screen.queryByLabelText('Change reason')).toBeNull()
   })
 
   it('keeps stale edits visible and offers an explicit reload; readonly users cannot save', async () => {
@@ -181,9 +246,6 @@ describe('ContactSettingsPage', () => {
     await screen.findByLabelText('Support email')
     fireEvent.change(screen.getByLabelText('Support email'), {
       target: { value: 'changed@example.com' },
-    })
-    fireEvent.change(screen.getByLabelText('Change reason'), {
-      target: { value: 'Update mailbox' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Save contact settings' }))
     expect(
@@ -220,11 +282,13 @@ describe('ContactSettingsPage', () => {
     expect((screen.getByLabelText('Location name') as HTMLInputElement).value).toBe('South')
     fireEvent.click(screen.getByRole('button', { name: 'Add social link' }))
     fireEvent.click(screen.getByRole('button', { name: 'Add social link' }))
-    const labels = screen.getAllByLabelText('Link label')
-    fireEvent.change(labels[0]!, { target: { value: 'First' } })
-    fireEvent.change(labels[1]!, { target: { value: 'Second' } })
+    const urls = screen.getAllByLabelText('Destination URL')
+    fireEvent.change(urls[0]!, { target: { value: 'https://facebook.com/shop' } })
+    fireEvent.change(urls[1]!, { target: { value: 'https://dribbble.com/shop' } })
     fireEvent.click(screen.getAllByRole('button', { name: 'Move up' })[2]!)
-    expect((screen.getAllByLabelText('Link label')[0] as HTMLInputElement).value).toBe('Second')
+    expect((screen.getAllByLabelText('Destination URL')[0] as HTMLInputElement).value).toBe(
+      'https://dribbble.com/shop'
+    )
   })
 
   it('renders a disabled bilingual read-only editor', async () => {

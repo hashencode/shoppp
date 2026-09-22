@@ -381,7 +381,7 @@ describe("storefront experience API", () => {
                   {
                     id: "09b4b33b-4522-45ab-8541-3f25b7fffc1b",
                     label: "Instagram",
-                    platform: "Instagram",
+                    platform: "instagram",
                     url: "https://instagram.com/shoppp",
                     visible: true,
                   },

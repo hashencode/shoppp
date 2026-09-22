@@ -1400,8 +1400,20 @@ describe("theme-neutral storefront composer", () => {
       timeZone: null,
       locations: [],
       socials: [
-        { id: "09b4b33b-4522-45ab-8541-3f25b7fffc1b", platform: "Instagram", label: "Instagram", url: "https://instagram.com/shoppp", visible: true },
-        { id: "c6590c62-30a7-4d88-8998-8cb57f7d3c9e", platform: "Facebook", label: "Facebook", url: "https://facebook.com/shoppp", visible: true },
+        {
+          id: "09b4b33b-4522-45ab-8541-3f25b7fffc1b",
+          platform: "instagram",
+          label: "Instagram",
+          url: "https://instagram.com/shoppp",
+          visible: true,
+        },
+        {
+          id: "c6590c62-30a7-4d88-8998-8cb57f7d3c9e",
+          platform: "facebook",
+          label: "Facebook",
+          url: "https://facebook.com/shoppp",
+          visible: true,
+        },
       ],
     };
     const experience = {
@@ -1409,31 +1421,71 @@ describe("theme-neutral storefront composer", () => {
       contact: { publicContact, version: "a".repeat(64) },
       bindings: [],
       resolvedTemplates: [
-        { id: "home-template", pageType: "home" as const, requiredCapabilities: [], sections: [
-          { blocks: [], capabilities: [], id: "home", settings: {
-            "footer-contact-copy": "Demo contact",
-            "footer-social-link": { label: "Demo", target: { kind: "external" as const, url: "https://demo.example.test" }, targetBehavior: "new-window" as const },
-            "header-social-link": { label: "Demo", target: { kind: "external" as const, url: "https://demo.example.test" }, targetBehavior: "new-window" as const },
-          }, type: "fashion-store.home", visible: true },
-        ] },
-        { id: "content-template", pageType: "content" as const, requiredCapabilities: [], sections: [
-          { blocks: [], capabilities: [], id: "contact-content", settings: {
-            "contact.heading": "Contact us",
-            "contact.message": "Choose a way to reach us.",
-          }, type: "fashion-store.content", visible: true },
-        ] },
+        {
+          id: "home-template",
+          pageType: "home" as const,
+          requiredCapabilities: [],
+          sections: [
+            {
+              blocks: [],
+              capabilities: [],
+              id: "home",
+              settings: {
+                "footer-contact-copy": "Demo contact",
+                "footer-social-link": {
+                  label: "Demo",
+                  target: { kind: "external" as const, url: "https://demo.example.test" },
+                  targetBehavior: "new-window" as const,
+                },
+                "header-social-link": {
+                  label: "Demo",
+                  target: { kind: "external" as const, url: "https://demo.example.test" },
+                  targetBehavior: "new-window" as const,
+                },
+              },
+              type: "fashion-store.home",
+              visible: true,
+            },
+          ],
+        },
+        {
+          id: "content-template",
+          pageType: "content" as const,
+          requiredCapabilities: [],
+          sections: [
+            {
+              blocks: [],
+              capabilities: [],
+              id: "contact-content",
+              settings: {
+                "contact.heading": "Contact us",
+                "contact.message": "Choose a way to reach us.",
+              },
+              type: "fashion-store.content",
+              visible: true,
+            },
+          ],
+        },
       ],
     } satisfies ExperienceSnapshot;
     const shell = composeExperienceShell({
-      adapter: fashionStoreCompositionAdapter, experience, release: canonicalRelease,
+      adapter: fashionStoreCompositionAdapter,
+      experience,
+      release: canonicalRelease,
     });
-    expect(shell?.header.publicContact?.socials.map(({ label }) => label)).toEqual(["Instagram", "Facebook"]);
+    expect(shell?.header.publicContact?.socials.map(({ label }) => label)).toEqual([
+      "Instagram",
+      "Facebook",
+    ]);
     expect(shell?.footer.publicContact).toEqual(publicContact);
     expect(shell?.header.socialLink).toBeUndefined();
     expect(shell?.footer.socialLink).toBeUndefined();
     expect(shell?.footer.contactCopy).toBeUndefined();
     const route = composeExperienceRoute({
-      experience, locale: "en-US", path: "/contact", release: canonicalRelease,
+      experience,
+      locale: "en-US",
+      path: "/contact",
+      release: canonicalRelease,
       route: testRoute("content", "/contact"),
     });
     expect(route.ok).toBe(true);
@@ -1452,7 +1504,10 @@ describe("theme-neutral storefront composer", () => {
     if (!contentSection) throw new Error("Missing Contact test section");
     contentSection.settings["contact.message"] = "Merchant contact details will appear here.";
     const placeholderRoute = composeExperienceRoute({
-      experience: placeholderExperience, locale: "en-US", path: "/contact", release: canonicalRelease,
+      experience: placeholderExperience,
+      locale: "en-US",
+      path: "/contact",
+      release: canonicalRelease,
       route: testRoute("content", "/contact"),
     });
     expect(placeholderRoute.viewModels["contact-content"]).toMatchObject({
@@ -1460,12 +1515,22 @@ describe("theme-neutral storefront composer", () => {
       state: "populated",
     });
     const emptyRoute = composeExperienceRoute({
-      experience: { ...experience, contact: { ...experience.contact, publicContact: { ...publicContact, supportEmail: null, socials: [] } } },
-      locale: "en-US", path: "/contact", release: canonicalRelease,
+      experience: {
+        ...experience,
+        contact: {
+          ...experience.contact,
+          publicContact: { ...publicContact, supportEmail: null, socials: [] },
+        },
+      },
+      locale: "en-US",
+      path: "/contact",
+      release: canonicalRelease,
       route: testRoute("content", "/contact"),
     });
     expect(emptyRoute.viewModels["contact-content"]).toMatchObject({
-      kind: "state", state: "unavailable", publicContact: { supportEmail: null, socials: [] },
+      kind: "state",
+      state: "unavailable",
+      publicContact: { supportEmail: null, socials: [] },
     });
   });
 
