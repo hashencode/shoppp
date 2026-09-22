@@ -27,12 +27,12 @@ deepened: 2026-09-22
 ### Execution Checkpoint
 
 - **Classification:** Active product successor after FS-F12 completed U7 human acceptance on 2026-09-22.
-- **Current product pointer:** `FS-F14-U1.1` — reconcile every screenshot-audited Fashion PC surface with its current runtime source and final authority.
+- **Current product pointer:** `FS-F14-U1.2` — add the typed authority persistence and complete the ordered Collection membership cutover.
 - **Activation condition:** Met. FS-F13 and FS-F12 are complete and FS-F12 handed execution to FS-F14.
-- **Completed units:** None.
-- **Current unit:** U1, child stage U1.1 reconciliation.
-- **Next concrete action:** Reinspect every Surface Control Matrix row against current code and the visual audit directory, record its observed source, source anchor, final owner, and ownership reason in `docs/progress/storefront-control-plane-verification.md`, and resolve Logo and Navigation ownership before freezing contracts or IAM.
-- **Blocker:** None for read-only reconciliation. Remote mutation, deployment, and candidate/DC/PG advancement remain outside this stage.
+- **Completed units:** None. U1.1 reconciliation completed on 2026-09-22 with all 19 Surface Control Matrix rows classified in `docs/progress/storefront-control-plane-verification.md`.
+- **Current unit:** U1, child stage U1.2 persistence and cutover.
+- **Next concrete action:** Run the read-only production-shaped preflight, then add the typed Store Identity, Policy, Page/Article, Navigation, and versioned Collection schemas; expand/backfill the ordered Collection membership authority and cut Product publication plus Fashion staging readers/writers over without dual-writing the historical table.
+- **Blocker:** The current checkout contains pre-existing uncommitted changes in several U1.2-owned contract, schema, migration-test, and Catalog-test files. Preserve them and resolve the overlap before implementation writes. Remote mutation, deployment, and candidate/DC/PG advancement remain outside this stage.
 - **Handback:** After U1-U9 and the Definition of Done pass, return to `REL-Pre-DC`. No candidate is frozen automatically.
 
 ---
