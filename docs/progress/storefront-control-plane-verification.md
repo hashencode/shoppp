@@ -81,3 +81,28 @@ candidate, or change runtime behavior.
 - `no-test exception reason`: this stage is a read-only source/authority inventory. Its completion
   signal is exact matrix coverage, allowed-category validation, stable source anchors, and the
   absence of unresolved ownership—not an application behavior assertion.
+
+## U1.2 persistence and Collection cutover evidence
+
+- Added typed Store Identity, shared Logo asset, Policy, bounded Page/Article, Navigation, and
+  Collection authority contracts. Store Identity uses the fixed singleton ID `identity.primary`.
+- Added migration `0032_storefront_control_authorities.sql` after the existing Product review
+  consent migration. It expands authority tables, backfills ordered Collection versions and
+  memberships, and makes the historical `collection_products` table read-only with a stable
+  maintenance diagnostic.
+- Added a SELECT-only storefront-control preflight with deterministic conflict codes, membership
+  digest, duplicate-position checks, invalid-position checks, and orphan anti-joins. No remote
+  production export was available or queried; the preflight was exercised against a
+  production-shaped D1 fixture before migration.
+- Product reads, publication, manifest composition, and Fashion staging use the new Collection
+  authority. Product membership changes fail closed with
+  `collection_membership_maintenance_required`; independently safe Product edits preserve the
+  existing versioned membership bytes.
+- Proof-first failures were observed for the missing authority module/tables, missing Store
+  Identity singleton enforcement, and an incorrectly accepted Product membership change.
+- Authoritative verification on 2026-09-22: Contracts `50/50`, DB workers `20/20`, API workers
+  `261/261`; Contracts, DB, and API scoped TypeScript checks passed; `git diff --check` passed.
+- The root typecheck remains outside this unit's completion signal because of existing Storefront
+  type errors in `apps/storefront/app/theme-engine/composer.ts` and
+  `apps/storefront/app/themes/fashion-store/contracts/home-merchandising.ts`; all modified-workspace
+  typechecks pass.

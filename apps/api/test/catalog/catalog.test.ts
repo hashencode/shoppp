@@ -53,6 +53,9 @@ async function resetCatalog(): Promise<void> {
     env.DB.prepare("DELETE FROM idempotency_claims"),
     env.DB.prepare("DELETE FROM audit_events"),
     env.DB.prepare("DELETE FROM catalog_releases"),
+    env.DB.prepare("DELETE FROM collection_memberships"),
+    env.DB.prepare("DELETE FROM collection_versions"),
+    env.DB.prepare("DELETE FROM collections"),
     env.DB.prepare("DELETE FROM product_reviews"),
     env.DB.prepare("DELETE FROM product_revisions"),
     env.DB.prepare("DELETE FROM product_media"),
@@ -156,6 +159,81 @@ describe("catalog management and publishing", () => {
         { name: "color", presentation: "text", values: [{ label: "Black" }] },
       ]),
     });
+    expect(
+      await env.DB.prepare(
+        "SELECT collection_id, collection_version, product_id, position FROM collection_memberships WHERE product_id = ?",
+      )
+        .bind(created.data.id)
+        .first(),
+    ).toMatchObject({ collection_version: 1, position: 0, product_id: created.data.id });
+    expect(
+      (
+        await env.DB.prepare(
+          "SELECT COUNT(*) AS count FROM collection_products WHERE product_id = ?",
+        )
+          .bind(created.data.id)
+          .first<{ count: number }>()
+      )?.count,
+    ).toBe(0);
+  });
+
+  test("fails closed on Product membership changes while preserving safe Product edits", async () => {
+    const { app } = appFor();
+    await uploadValidMedia(app);
+    const createdResponse = await app.fetch(productRequest(validProduct), env);
+    expect(createdResponse.status).toBe(201);
+    const created = await createdResponse.json<{ data: { id: string } }>();
+    const beforeMemberships = (
+      await env.DB.prepare(
+        `SELECT collection_id, collection_version, product_id, position
+           FROM collection_memberships WHERE product_id = ? ORDER BY collection_id, position`,
+      )
+        .bind(created.data.id)
+        .all()
+    ).results;
+
+    const membershipChange = await app.fetch(
+      request(`/admin/catalog/products/${created.data.id}`, {
+        body: JSON.stringify({
+          ...validProduct,
+          collections: [{ name: "Different", slug: "different" }],
+          name: "Must not persist",
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(membershipChange.status).toBe(409);
+    expect(await membershipChange.json()).toMatchObject({
+      error: { code: "collection_membership_maintenance_required" },
+    });
+    expect(
+      await env.DB.prepare("SELECT name FROM products WHERE id = ?").bind(created.data.id).first(),
+    ).toEqual({ name: validProduct.name });
+
+    const safeEdit = await app.fetch(
+      request(`/admin/catalog/products/${created.data.id}`, {
+        body: JSON.stringify({ ...validProduct, name: "Safe product edit" }),
+        headers: { "Content-Type": "application/json" },
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(safeEdit.status).toBe(200);
+    expect(
+      await env.DB.prepare("SELECT name FROM products WHERE id = ?").bind(created.data.id).first(),
+    ).toEqual({ name: "Safe product edit" });
+    expect(
+      (
+        await env.DB.prepare(
+          `SELECT collection_id, collection_version, product_id, position
+             FROM collection_memberships WHERE product_id = ? ORDER BY collection_id, position`,
+        )
+          .bind(created.data.id)
+          .all()
+      ).results,
+    ).toEqual(beforeMemberships);
   });
 
   test("creates a complete draft, previews it, and publishes one correlated build", async () => {
@@ -1007,6 +1085,7 @@ describe("catalog management and publishing", () => {
     expect(secondUpload.status).toBe(201);
     const otherProduct = {
       ...validProduct,
+      collections: [{ name: "Duffel collection", slug: "duffel-collection" }],
       media: [{ ...validProduct.media[0]!, r2Key: "catalog/products/duffel.webp" }],
       slug: "duffel",
       variants: [{ ...validProduct.variants[0]!, sku: "DUFFEL-001" }],
@@ -1633,6 +1712,11 @@ describe("catalog management and publishing", () => {
     )
       .bind(originalCollection!.id)
       .run();
+    await env.DB.prepare(
+      "UPDATE collection_versions SET slug = 'identity-collection-renamed', status = 'archived' WHERE collection_id = ?",
+    )
+      .bind(originalCollection!.id)
+      .run();
     await env.DB.prepare("UPDATE collections SET status = 'draft' WHERE id = ?")
       .bind(originalCollection!.id)
       .run();
@@ -1647,8 +1731,11 @@ describe("catalog management and publishing", () => {
       env.DB.prepare("DELETE FROM product_media_assets WHERE product_id = ?").bind(
         originalProductId,
       ),
-      env.DB.prepare("DELETE FROM collection_products WHERE product_id = ?").bind(
+      env.DB.prepare("DELETE FROM collection_memberships WHERE product_id = ?").bind(
         originalProductId,
+      ),
+      env.DB.prepare("DELETE FROM collection_versions WHERE collection_id = ?").bind(
+        originalCollection!.id,
       ),
       env.DB.prepare("DELETE FROM product_categories WHERE product_id = ?").bind(originalProductId),
       env.DB.prepare(
@@ -1692,6 +1779,11 @@ describe("catalog management and publishing", () => {
     ).toBe(200);
     await env.DB.prepare(
       "UPDATE collections SET slug = 'identity-collection-final', status = 'archived' WHERE id = ?",
+    )
+      .bind(recreatedCollection!.id)
+      .run();
+    await env.DB.prepare(
+      "UPDATE collection_versions SET slug = 'identity-collection-final', status = 'archived' WHERE collection_id = ?",
     )
       .bind(recreatedCollection!.id)
       .run();

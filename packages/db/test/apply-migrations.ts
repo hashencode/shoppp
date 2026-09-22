@@ -28,3 +28,17 @@ await applyD1Migrations(
   env.FASHION_SHIPPING_ID_UPGRADE_DB,
   env.TEST_MIGRATIONS.slice(0, fashionShippingIdMigrationIndex),
 );
+const storefrontControlMigrationIndex = env.TEST_MIGRATIONS.findIndex(({ name }) =>
+  name.endsWith("0032_storefront_control_authorities.sql"),
+);
+if (storefrontControlMigrationIndex < 1) {
+  throw new Error("0032_storefront_control_authorities.sql migration is required");
+}
+await applyD1Migrations(
+  env.STOREFRONT_CONTROL_UPGRADE_DB,
+  env.TEST_MIGRATIONS.slice(0, storefrontControlMigrationIndex),
+);
+await applyD1Migrations(
+  env.STOREFRONT_CONTROL_INVALID_DB,
+  env.TEST_MIGRATIONS.slice(0, storefrontControlMigrationIndex),
+);

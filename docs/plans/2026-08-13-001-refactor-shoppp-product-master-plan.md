@@ -6,7 +6,7 @@ topic: shoppp-product-master-plan
 execution: knowledge-work
 plan_role: product-master
 current_plan: 2026-09-22-0043-feat-storefront-control-plane-plan.md
-current_unit: FS-F14-U1.2
+current_unit: FS-F14-U1.3
 ---
 
 # Shoppp Product Master Plan
@@ -46,10 +46,10 @@ template-specific repair does not change product membership or candidate scope b
 ## Current execution pointer
 
 - **Active product plan:** `FS-F14` — [Storefront Control Plane](2026-09-22-0043-feat-storefront-control-plane-plan.md).
-- **Current unit:** `FS-F14-U1.2` — add typed authority persistence and complete the ordered Collection membership cutover.
-- **Current result:** FS-F14 U1.1 reconciled all 19 Fashion PC control surfaces against current runtime sources. Logo assets resolve to Store Identity with Theme presentation-only ownership, and Header/Footer menus resolve to the independent Navigation authority.
-- **Next action:** Run the read-only production-shaped preflight, then implement the authority schemas and expand/backfill/cut over the ordered Collection membership path without dual-writing the historical table.
-- **Blockers:** The current checkout contains pre-existing uncommitted changes in U1.2-owned contract, schema, migration-test, and Catalog-test files; preserve and resolve that overlap before implementation writes. Remote mutation, candidate selection, deployment, DC, and PG remain separately gated.
+- **Current unit:** `FS-F14-U1.3` — add domain permissions, backlink evidence, and the normalized audit-reason boundary.
+- **Current result:** FS-F14 U1.1 reconciled all 19 Fashion PC surfaces, and U1.2 added typed authorities plus the verified ordered Collection cutover with no legacy dual-write.
+- **Next action:** Finalize the U1.2 commit boundary, then implement the remaining U1 permissions, backlink, Release lifecycle, and audit-reason evidence.
+- **Blockers:** U1.2 verification is complete, but its authorized overlapping files contain Product review-consent changes that depend on additional pre-existing companion files not yet included in the approved commit scope. Resolve that commit boundary before further implementation writes. Remote mutation, candidate selection, deployment, DC, and PG remain separately gated.
 - **Handback:** Complete FS-F14 U1-U9, then return product control to `REL-Pre-DC`; no Candidate, DC, deployment, or PG state advances automatically.
 
 The active child plan is authoritative if this summary and its execution checkpoint temporarily
@@ -58,7 +58,7 @@ checkpoint here.
 
 ## Product-level sequence
 
-1. Execute active `FS-F14-U1.2` and the remaining Storefront Control Plane units to replace hardcoded or duplicate Fashion storefront controls with their canonical Admin authorities and immutable Preview path.
+1. Execute active `FS-F14-U1.3` and the remaining Storefront Control Plane units to replace hardcoded or duplicate Fashion storefront controls with their canonical Admin authorities and immutable Preview path.
 2. Return to `REL-Pre-DC` for capability reconciliation and immutable candidate selection.
 3. Run DC and PG only through their named human and production authorities.
 

@@ -8,6 +8,8 @@ declare global {
       LEGACY_DB: D1Database;
       INVALID_LEGACY_DB: D1Database;
       STOREFRONT_VALIDATION_UPGRADE_DB: D1Database;
+      STOREFRONT_CONTROL_UPGRADE_DB: D1Database;
+      STOREFRONT_CONTROL_INVALID_DB: D1Database;
       TEST_MIGRATIONS: D1Migration[];
     }
   }

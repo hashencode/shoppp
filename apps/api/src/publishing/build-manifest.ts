@@ -434,20 +434,29 @@ export async function buildCatalogReleaseManifest(
       .all<MediaRow>(),
     db
       .prepare(
-        `SELECT DISTINCT c.id, c.slug, c.name, c.description, c.status
-           FROM collections c
-           JOIN collection_products cp ON cp.collection_id = c.id
-          WHERE c.status = 'published' OR cp.product_id = ?
-          ORDER BY c.slug`,
+        `SELECT DISTINCT cv.collection_id AS id, cv.slug, cv.name, cv.description, cv.status
+           FROM collection_versions cv
+           JOIN collection_memberships cm
+             ON cm.collection_id = cv.collection_id AND cm.collection_version = cv.version
+          WHERE cv.version = (
+                  SELECT MAX(current.version) FROM collection_versions current
+                   WHERE current.collection_id = cv.collection_id
+                )
+            AND (cv.status = 'published' OR cm.product_id = ?)
+          ORDER BY cv.slug`,
       )
       .bind(options.candidateProductId)
       .all<CollectionRow>(),
     db
       .prepare(
-        `SELECT cp.collection_id, cp.product_id
-           FROM collection_products cp
-          WHERE cp.product_id IN (${placeholders})
-          ORDER BY cp.collection_id, cp.position`,
+        `SELECT cm.collection_id, cm.product_id
+           FROM collection_memberships cm
+          WHERE cm.product_id IN (${placeholders})
+            AND cm.collection_version = (
+              SELECT MAX(cv.version) FROM collection_versions cv
+               WHERE cv.collection_id = cm.collection_id
+            )
+          ORDER BY cm.collection_id, cm.position`,
       )
       .bind(...productIds)
       .all<{ collection_id: string; product_id: string }>(),

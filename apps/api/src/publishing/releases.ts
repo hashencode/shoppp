@@ -263,10 +263,18 @@ export async function publishProduct(
           WHERE id = ?`,
       ).bind(build.correlationId, new Date().toISOString(), releaseId),
       context.env.DB.prepare(
-        `UPDATE collections
-            SET status = 'published', updated_at = ?
-          WHERE id IN (SELECT collection_id FROM collection_products WHERE product_id = ?)`,
-      ).bind(now, productId),
+        `UPDATE collection_versions
+            SET status = 'published', published_at = COALESCE(published_at, ?), updated_at = ?
+          WHERE (collection_id, version) IN (
+            SELECT cm.collection_id, cm.collection_version
+              FROM collection_memberships cm
+             WHERE cm.product_id = ?
+               AND cm.collection_version = (
+                 SELECT MAX(cv.version) FROM collection_versions cv
+                  WHERE cv.collection_id = cm.collection_id
+               )
+          )`,
+      ).bind(now, now, productId),
     ]);
     await recordAuditEvent(context.env.DB, {
       action: "catalog.publish",

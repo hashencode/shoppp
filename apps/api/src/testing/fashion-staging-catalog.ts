@@ -50,7 +50,11 @@ const DISPOSABLE_TABLES = [
   "categories",
   "checkout_attempts",
   "collection_products",
+  "collection_memberships",
+  "collection_versions",
   "collections",
+  "content_article_versions",
+  "content_page_versions",
   "d1_backup_runs",
   "fashion_staging_acceptance_resources",
   "fashion_staging_acceptance_runs",
@@ -64,6 +68,8 @@ const DISPOSABLE_TABLES = [
   "inventory_reservations",
   "notification_attempts",
   "notification_jobs",
+  "navigation_items",
+  "navigation_menu_versions",
   "order_addresses",
   "order_events",
   "order_lines",
@@ -71,6 +77,7 @@ const DISPOSABLE_TABLES = [
   "payment_events",
   "price_lists",
   "prices",
+  "policy_versions",
   "privacy_request_events",
   "privacy_requests",
   "product_categories",
@@ -87,6 +94,8 @@ const DISPOSABLE_TABLES = [
   "shipping_zone_countries",
   "shipping_zones",
   "stock_ledger_entries",
+  "store_identity_logo_assets",
+  "store_identity_versions",
   "storefront_experience_drafts",
   "storefront_experience_migrations",
   "storefront_experience_snapshots",
@@ -797,6 +806,20 @@ export async function applyFashionStagingCatalog(
         at,
       ],
     ),
+    bindInsert(
+      db,
+      `INSERT INTO collection_versions
+        (collection_id, version, slug, name, description, status, created_at, updated_at, published_at)
+       VALUES (?, 1, ?, ?, '', 'published', ?, ?, ?)`,
+      [
+        input.catalog.collection.id,
+        input.catalog.collection.slug,
+        input.catalog.collection.name,
+        at,
+        at,
+        at,
+      ],
+    ),
   );
   for (const name of categoryNames) {
     const categorySlug = `fashion-store-${slug(name)}`;
@@ -831,7 +854,8 @@ export async function applyFashionStagingCatalog(
       ),
       bindInsert(
         db,
-        "INSERT INTO collection_products (collection_id, product_id, position) VALUES (?, ?, ?)",
+        `INSERT INTO collection_memberships
+          (collection_id, collection_version, product_id, position) VALUES (?, 1, ?, ?)`,
         [input.catalog.collection.id, product.id, productIndex],
       ),
     );

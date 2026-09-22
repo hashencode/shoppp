@@ -11,7 +11,8 @@
     "./checkout": "./src/checkout.ts",
     "./inventory": "./src/inventory.ts",
     "./reporting": "./src/reporting.ts",
-    "./storefront-experience": "./src/storefront-experience.ts"
+    "./storefront-experience": "./src/storefront-experience.ts",
+    "./storefront-content": "./src/storefront-content.ts"
   },
   "scripts": {
     "test": "bun test test",

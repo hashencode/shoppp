@@ -39,5 +39,19 @@
       "preview_database_id": "00000000-0000-0000-0000-000000000009",
       "migrations_dir": "migrations",
     },
+    {
+      "binding": "STOREFRONT_CONTROL_UPGRADE_DB",
+      "database_name": "shoppp-storefront-control-upgrade-test",
+      "database_id": "00000000-0000-0000-0000-000000000010",
+      "preview_database_id": "00000000-0000-0000-0000-000000000011",
+      "migrations_dir": "migrations",
+    },
+    {
+      "binding": "STOREFRONT_CONTROL_INVALID_DB",
+      "database_name": "shoppp-storefront-control-invalid-test",
+      "database_id": "00000000-0000-0000-0000-000000000012",
+      "preview_database_id": "00000000-0000-0000-0000-000000000013",
+      "migrations_dir": "migrations",
+    },
   ],
 }

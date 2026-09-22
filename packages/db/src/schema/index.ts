@@ -232,6 +232,183 @@ export const products = sqliteTable(
   (table) => [uniqueIndex("products_slug_unique").on(table.slug)],
 );
 
+export const collections = sqliteTable(
+  "collections",
+  {
+    id: text("id").primaryKey(),
+    slug: text("slug").notNull(),
+    name: text("name").notNull(),
+    description: text("description").notNull().default(""),
+    status: text("status", { enum: ["draft", "published", "archived"] }).notNull(),
+    ...timestamps,
+  },
+  (table) => [uniqueIndex("collections_slug_unique").on(table.slug)],
+);
+
+export const storeIdentityVersions = sqliteTable(
+  "store_identity_versions",
+  {
+    identityId: text("identity_id").notNull(),
+    version: integer("version").notNull(),
+    status: text("status", { enum: ["draft", "published", "archived"] }).notNull(),
+    storefrontName: text("storefront_name").notNull(),
+    tagline: text("tagline").notNull().default(""),
+    faviconAssetId: text("favicon_asset_id"),
+    socialShareAssetId: text("social_share_asset_id"),
+    seoJson: text("seo_json").notNull(),
+    publishedAt: text("published_at"),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.identityId, table.version] }),
+    check("store_identity_versions_singleton", sql`${table.identityId} = 'identity.primary'`),
+    check("store_identity_versions_version_positive", sql`${table.version} > 0`),
+  ],
+);
+
+export const storeIdentityLogoAssets = sqliteTable(
+  "store_identity_logo_assets",
+  {
+    identityId: text("identity_id").notNull(),
+    identityVersion: integer("identity_version").notNull(),
+    assetId: text("asset_id").notNull(),
+    variant: text("variant", { enum: ["primary", "light", "dark", "compact"] }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.identityId, table.identityVersion, table.assetId] }),
+    uniqueIndex("store_identity_logo_variant_unique").on(
+      table.identityId,
+      table.identityVersion,
+      table.variant,
+    ),
+  ],
+);
+
+export const policyVersions = sqliteTable(
+  "policy_versions",
+  {
+    policyId: text("policy_id").notNull(),
+    version: integer("version").notNull(),
+    kind: text("kind", { enum: ["privacy", "returns", "shipping", "terms"] }).notNull(),
+    slug: text("slug").notNull(),
+    title: text("title").notNull(),
+    effectiveDate: text("effective_date").notNull(),
+    sectionsJson: text("sections_json").notNull(),
+    status: text("status", { enum: ["draft", "approved", "published", "archived"] }).notNull(),
+    approvalDigest: text("approval_digest"),
+    approvedBy: text("approved_by").references(() => adminIdentities.id, { onDelete: "restrict" }),
+    approvedAt: text("approved_at"),
+    publishedAt: text("published_at"),
+    ...timestamps,
+  },
+  (table) => [primaryKey({ columns: [table.policyId, table.version] })],
+);
+
+function contentVersionColumns() {
+  return {
+    version: integer("version").notNull(),
+    slug: text("slug").notNull(),
+    title: text("title").notNull(),
+    summary: text("summary").notNull().default(""),
+    sectionsJson: text("sections_json").notNull(),
+    seoJson: text("seo_json").notNull(),
+    status: text("status", { enum: ["draft", "published", "archived"] }).notNull(),
+    publishedAt: text("published_at"),
+    ...timestamps,
+  };
+}
+
+export const contentPageVersions = sqliteTable(
+  "content_page_versions",
+  { pageId: text("page_id").notNull(), ...contentVersionColumns() },
+  (table) => [primaryKey({ columns: [table.pageId, table.version] })],
+);
+
+export const contentArticleVersions = sqliteTable(
+  "content_article_versions",
+  {
+    articleId: text("article_id").notNull(),
+    coverAssetId: text("cover_asset_id"),
+    ...contentVersionColumns(),
+  },
+  (table) => [primaryKey({ columns: [table.articleId, table.version] })],
+);
+
+export const navigationMenuVersions = sqliteTable(
+  "navigation_menu_versions",
+  {
+    menuId: text("menu_id").notNull(),
+    version: integer("version").notNull(),
+    placement: text("placement", { enum: ["header", "footer"] }).notNull(),
+    status: text("status", { enum: ["draft", "published", "archived"] }).notNull(),
+    publishedAt: text("published_at"),
+    ...timestamps,
+  },
+  (table) => [primaryKey({ columns: [table.menuId, table.version] })],
+);
+
+export const navigationItems = sqliteTable(
+  "navigation_items",
+  {
+    menuId: text("menu_id").notNull(),
+    menuVersion: integer("menu_version").notNull(),
+    itemId: text("item_id").notNull(),
+    parentItemId: text("parent_item_id"),
+    position: integer("position").notNull(),
+    label: text("label").notNull(),
+    targetJson: text("target_json").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.menuId, table.menuVersion, table.itemId] })],
+);
+
+export const collectionVersions = sqliteTable(
+  "collection_versions",
+  {
+    collectionId: text("collection_id")
+      .notNull()
+      .references(() => collections.id, { onDelete: "restrict" }),
+    version: integer("version").notNull(),
+    slug: text("slug").notNull(),
+    name: text("name").notNull(),
+    description: text("description").notNull().default(""),
+    coverAssetId: text("cover_asset_id"),
+    seoJson: text("seo_json").notNull().default("{}"),
+    status: text("status", { enum: ["draft", "published", "archived"] }).notNull(),
+    publishedAt: text("published_at"),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.collectionId, table.version] }),
+    check("collection_versions_version_positive", sql`${table.version} > 0`),
+  ],
+);
+
+export const collectionMemberships = sqliteTable(
+  "collection_memberships",
+  {
+    collectionId: text("collection_id").notNull(),
+    collectionVersion: integer("collection_version").notNull(),
+    productId: text("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "restrict" }),
+    position: integer("position").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.collectionId, table.collectionVersion, table.productId] }),
+    uniqueIndex("collection_memberships_position_unique").on(
+      table.collectionId,
+      table.collectionVersion,
+      table.position,
+    ),
+    index("collection_memberships_product_lookup").on(
+      table.productId,
+      table.collectionId,
+      table.collectionVersion,
+      table.position,
+    ),
+  ],
+);
+
 export const productMedia = sqliteTable(
   "product_media",
   {

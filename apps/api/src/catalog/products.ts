@@ -116,7 +116,16 @@ export async function getProduct(db: D1Database, productId: string) {
     .all<Record<string, unknown>>();
   const collections = await db
     .prepare(
-      "SELECT c.id, c.name, c.slug FROM collections c JOIN collection_products cp ON cp.collection_id = c.id WHERE cp.product_id = ? ORDER BY cp.position",
+      `SELECT cv.collection_id AS id, cv.name, cv.slug
+         FROM collection_memberships cm
+         JOIN collection_versions cv
+           ON cv.collection_id = cm.collection_id AND cv.version = cm.collection_version
+        WHERE cm.product_id = ?
+          AND cm.collection_version = (
+            SELECT MAX(current.version) FROM collection_versions current
+             WHERE current.collection_id = cm.collection_id
+          )
+        ORDER BY cm.position`,
     )
     .bind(productId)
     .all<Record<string, unknown>>();
@@ -168,6 +177,7 @@ async function appendTaxonomyStatements(
   input: ProductDraftInput,
   now: string,
   expectedVersion?: number,
+  includeCollections = true,
 ) {
   for (const category of input.categories) {
     const existing = await db
@@ -204,12 +214,32 @@ async function appendTaxonomyStatements(
             .bind(productId, categoryId, productId, expectedVersion),
     );
   }
+  if (!includeCollections) return;
   for (const [position, collection] of input.collections.entries()) {
     const existing = await db
       .prepare("SELECT id FROM collections WHERE slug = ?")
       .bind(collection.slug)
       .first<{ id: string }>();
     const collectionId = existing?.id ?? crypto.randomUUID();
+    const membershipPositions = existing
+      ? await db
+          .prepare(
+            `SELECT MAX(CASE WHEN cm.product_id = ? THEN cm.position END) AS existing_position,
+                    MAX(cm.position) AS last_position
+               FROM collection_memberships cm
+              WHERE cm.collection_id = ?
+                AND cm.collection_version = (
+                  SELECT MAX(cv.version) FROM collection_versions cv WHERE cv.collection_id = ?
+                )`,
+          )
+          .bind(productId, collectionId, collectionId)
+          .first<{ existing_position: number | null; last_position: number | null }>()
+      : null;
+    const membershipPosition =
+      membershipPositions?.existing_position ??
+      (membershipPositions?.last_position == null
+        ? position
+        : membershipPositions.last_position + 1);
     if (!existing) {
       statements.push(
         expectedVersion === undefined
@@ -233,26 +263,76 @@ async function appendTaxonomyStatements(
                 expectedVersion,
               ),
       );
+      statements.push(
+        expectedVersion === undefined
+          ? db
+              .prepare(
+                `INSERT INTO collection_versions
+                  (collection_id, version, slug, name, description, status, created_at, updated_at)
+                 VALUES (?, 1, ?, ?, '', 'draft', ?, ?)`,
+              )
+              .bind(collectionId, collection.slug, collection.name, now, now)
+          : db
+              .prepare(
+                `INSERT INTO collection_versions
+                  (collection_id, version, slug, name, description, status, created_at, updated_at)
+                 SELECT ?, 1, ?, ?, '', 'draft', ?, ?
+                  WHERE EXISTS (SELECT 1 FROM products WHERE id = ? AND version = ?)`,
+              )
+              .bind(
+                collectionId,
+                collection.slug,
+                collection.name,
+                now,
+                now,
+                productId,
+                expectedVersion,
+              ),
+      );
     }
     statements.push(
       expectedVersion === undefined
         ? db
             .prepare(
-              "INSERT INTO collection_products (collection_id, product_id, position) VALUES (?, ?, ?)",
+              `INSERT INTO collection_memberships
+                (collection_id, collection_version, product_id, position)
+               SELECT ?, MAX(version), ?, ? FROM collection_versions WHERE collection_id = ?`,
             )
-            .bind(collectionId, productId, position)
+            .bind(collectionId, productId, membershipPosition, collectionId)
         : db
             .prepare(
-              `INSERT INTO collection_products (collection_id, product_id, position)
-               SELECT ?, ?, ? WHERE EXISTS (SELECT 1 FROM products WHERE id = ? AND version = ?)`,
+              `INSERT INTO collection_memberships
+                (collection_id, collection_version, product_id, position)
+               SELECT ?, MAX(cv.version), ?, ? FROM collection_versions cv
+                WHERE cv.collection_id = ?
+                  AND EXISTS (SELECT 1 FROM products WHERE id = ? AND version = ?)`,
             )
-            .bind(collectionId, productId, position, productId, expectedVersion),
+            .bind(
+              collectionId,
+              productId,
+              membershipPosition,
+              collectionId,
+              productId,
+              expectedVersion,
+            ),
     );
   }
 }
 
 export async function createProduct(context: CatalogContext, input: ProductDraftInput) {
   await assertMediaExists(context.env.MEDIA, input);
+  for (const collection of input.collections) {
+    const existing = await context.env.DB.prepare("SELECT id FROM collections WHERE slug = ?")
+      .bind(collection.slug)
+      .first();
+    if (existing) {
+      throw new ApiError(
+        409,
+        "collection_membership_maintenance_required",
+        "Collection membership is maintained in Collection management. Save the Product without changing membership.",
+      );
+    }
+  }
   const optionDefinitions =
     input.optionDefinitions ?? deriveTextProductOptionDefinitions(input.variants);
   assertOptionDefinitions(optionDefinitions, input.variants);
@@ -401,6 +481,32 @@ export async function updateProduct(
   if (!existing) {
     throw new ApiError(404, "product_not_found", "The product was not found.");
   }
+  const currentCollections = await context.env.DB.prepare(
+    `SELECT cv.slug
+       FROM collection_memberships cm
+       JOIN collection_versions cv
+         ON cv.collection_id = cm.collection_id AND cv.version = cm.collection_version
+      WHERE cm.product_id = ?
+        AND cm.collection_version = (
+          SELECT MAX(current.version) FROM collection_versions current
+           WHERE current.collection_id = cm.collection_id
+        )
+      ORDER BY cv.slug`,
+  )
+    .bind(productId)
+    .all<{ slug: string }>();
+  const currentCollectionSlugs = currentCollections.results.map(({ slug }) => slug);
+  const requestedCollectionSlugs = input.collections.map(({ slug }) => slug).sort();
+  if (
+    currentCollectionSlugs.length !== requestedCollectionSlugs.length ||
+    currentCollectionSlugs.some((slug, index) => slug !== requestedCollectionSlugs[index])
+  ) {
+    throw new ApiError(
+      409,
+      "collection_membership_maintenance_required",
+      "Collection membership is maintained in Collection management. Save the Product without changing membership.",
+    );
+  }
   if (!["draft", "scheduled"].includes(existing.status)) {
     throw new ApiError(
       409,
@@ -471,9 +577,6 @@ export async function updateProduct(
     .filter(({ id }) => !retainedMediaIds.has(id))
     .map(({ id }) => id);
   const statements: D1PreparedStatement[] = [
-    context.env.DB.prepare(
-      `DELETE FROM collection_products WHERE product_id = ? AND ${staleGuard}`,
-    ).bind(productId, productId, expectedVersion),
     context.env.DB.prepare(
       `DELETE FROM product_categories WHERE product_id = ? AND ${staleGuard}`,
     ).bind(productId, productId, expectedVersion),
@@ -634,6 +737,7 @@ export async function updateProduct(
     input,
     now,
     expectedVersion,
+    false,
   );
   const productUpdateIndex = statements.length;
   statements.push(

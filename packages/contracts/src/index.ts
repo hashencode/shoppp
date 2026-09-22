@@ -11,3 +11,4 @@ export * from "./shipping";
 export * from "./storefront-experience";
 export * from "./storefront-interaction";
 export * from "./storefront-links";
+export * from "./storefront-content";

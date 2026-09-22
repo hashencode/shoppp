@@ -4,6 +4,7 @@ import { describe, expect, test } from "vitest";
 import { ADMIN_PERMISSION_CATALOG } from "@shoppp/contracts";
 
 import { seedLaunchFixture } from "../seed/apply";
+import { runStorefrontControlPreflight } from "../src/storefront-control-preflight";
 
 const NOW = "2026-07-30T00:00:00.000Z";
 const LEGACY_SERVICE_EMAIL_MARKER = "service-auth@cloudflare-access.invalid";
@@ -25,6 +26,215 @@ async function applyIamMigration(db: D1Database): Promise<void> {
 }
 
 describe("D1 migrations", () => {
+  test("creates storefront authorities and backfills ordered Collection membership", async () => {
+    const db = env.STOREFRONT_CONTROL_UPGRADE_DB;
+    const migrationIndex = env.TEST_MIGRATIONS.findIndex(({ name }) =>
+      name.endsWith("0032_storefront_control_authorities.sql"),
+    );
+    await db.batch([
+      db
+        .prepare(
+          `INSERT INTO products
+          (id, slug, name, description, status, seo_title, seo_description,
+           published_at, created_at, updated_at)
+         VALUES ('product_000000000000000000001', 'one', 'One', '', 'draft', '', '', NULL, ?, ?)`,
+        )
+        .bind(NOW, NOW),
+      db
+        .prepare(
+          `INSERT INTO products
+          (id, slug, name, description, status, seo_title, seo_description,
+           published_at, created_at, updated_at)
+         VALUES ('product_000000000000000000002', 'two', 'Two', '', 'draft', '', '', NULL, ?, ?)`,
+        )
+        .bind(NOW, NOW),
+      db
+        .prepare(
+          `INSERT INTO collections (id, slug, name, description, status, created_at, updated_at)
+         VALUES ('collection_00000000000000000000', 'launch', 'Launch', '', 'draft', ?, ?)`,
+        )
+        .bind(NOW, NOW),
+      db.prepare(
+        `INSERT INTO collection_products (collection_id, product_id, position)
+         VALUES ('collection_00000000000000000000', 'product_000000000000000000001', 0)`,
+      ),
+      db.prepare(
+        `INSERT INTO collection_products (collection_id, product_id, position)
+         VALUES ('collection_00000000000000000000', 'product_000000000000000000002', 1)`,
+      ),
+    ]);
+    const preflight = await runStorefrontControlPreflight(db);
+    expect(preflight).toMatchObject({ checkedMemberships: 2, issues: [], ok: true });
+    expect(preflight.membershipDigest).toMatch(/^[a-f0-9]{64}$/);
+    await applyD1Migrations(db, env.TEST_MIGRATIONS.slice(migrationIndex));
+
+    const authorityTables = [
+      "store_identity_versions",
+      "store_identity_logo_assets",
+      "policy_versions",
+      "content_page_versions",
+      "content_article_versions",
+      "navigation_menu_versions",
+      "navigation_items",
+      "collection_versions",
+      "collection_memberships",
+    ];
+    const tables = await db
+      .prepare(`SELECT name FROM sqlite_schema WHERE type = 'table' ORDER BY name`)
+      .all<{ name: string }>();
+    for (const name of authorityTables) {
+      expect(tables.results.map((row) => row.name)).toContain(name);
+    }
+
+    const legacy = await db
+      .prepare(
+        "SELECT collection_id, product_id, position FROM collection_products ORDER BY collection_id, position, product_id",
+      )
+      .all();
+    const authority = await db
+      .prepare(
+        "SELECT collection_id, product_id, position FROM collection_memberships ORDER BY collection_id, position, product_id",
+      )
+      .all();
+    expect(authority.results).toEqual(legacy.results);
+    expect(
+      await db
+        .prepare(
+          `SELECT cm.collection_id, cm.product_id
+           FROM collection_memberships cm
+           LEFT JOIN collections c ON c.id = cm.collection_id
+           LEFT JOIN products p ON p.id = cm.product_id
+          WHERE c.id IS NULL OR p.id IS NULL`,
+        )
+        .all(),
+    ).toMatchObject({ results: [] });
+  });
+
+  test("enforces version, lifecycle, and sibling-order invariants", async () => {
+    await expect(
+      env.DB.prepare(
+        `INSERT INTO store_identity_versions
+          (identity_id, version, status, storefront_name, tagline, seo_json, created_at, updated_at)
+         VALUES ('identity.secondary', 1, 'draft', 'Secondary', '', '{}', ?, ?)`,
+      )
+        .bind(NOW, NOW)
+        .run(),
+    ).rejects.toThrow();
+
+    await expect(
+      env.DB.prepare(
+        `INSERT INTO collection_versions
+          (collection_id, version, slug, name, description, status, created_at, updated_at)
+         VALUES ('collection-invalid', 0, 'invalid', 'Invalid', '', 'draft', ?, ?)`,
+      )
+        .bind(NOW, NOW)
+        .run(),
+    ).rejects.toThrow();
+
+    await env.DB.prepare(
+      `INSERT INTO navigation_menu_versions
+        (menu_id, version, placement, status, created_at, updated_at)
+       VALUES ('menu.header', 1, 'header', 'draft', ?, ?)`,
+    )
+      .bind(NOW, NOW)
+      .run();
+    await env.DB.prepare(
+      `INSERT INTO navigation_items
+        (menu_id, menu_version, item_id, parent_item_id, position, label, target_json)
+       VALUES ('menu.header', 1, 'nav.one', NULL, 0, 'One', '{"kind":"route","path":"/"}')`,
+    ).run();
+    await expect(
+      env.DB.prepare(
+        `INSERT INTO navigation_items
+          (menu_id, menu_version, item_id, parent_item_id, position, label, target_json)
+         VALUES ('menu.header', 1, 'nav.two', NULL, 0, 'Two', '{"kind":"route","path":"/two"}')`,
+      ).run(),
+    ).rejects.toThrow();
+
+    await expect(
+      env.DB.prepare(
+        `INSERT INTO collection_products (collection_id, product_id, position)
+         VALUES ('legacy-collection', 'legacy-product', 0)`,
+      ).run(),
+    ).rejects.toThrow(/collection_membership_authority_moved_maintenance/);
+  });
+
+  test("preflight reports stable conflicts and a failed cutover preserves legacy rows", async () => {
+    const db = env.STOREFRONT_CONTROL_INVALID_DB;
+    const migrationIndex = env.TEST_MIGRATIONS.findIndex(({ name }) =>
+      name.endsWith("0032_storefront_control_authorities.sql"),
+    );
+    await db.batch([
+      db
+        .prepare(
+          `INSERT INTO products
+          (id, slug, name, description, status, seo_title, seo_description,
+           published_at, created_at, updated_at)
+         VALUES ('product_000000000000000000003', 'three', 'Three', '', 'draft', '', '', NULL, ?, ?)`,
+        )
+        .bind(NOW, NOW),
+      db
+        .prepare(
+          `INSERT INTO products
+          (id, slug, name, description, status, seo_title, seo_description,
+           published_at, created_at, updated_at)
+         VALUES ('product_000000000000000000004', 'four', 'Four', '', 'draft', '', '', NULL, ?, ?)`,
+        )
+        .bind(NOW, NOW),
+      db
+        .prepare(
+          `INSERT INTO collections (id, slug, name, description, status, created_at, updated_at)
+         VALUES ('collection_00000000000000000001', 'invalid-order', 'Invalid order', '', 'draft', ?, ?)`,
+        )
+        .bind(NOW, NOW),
+      db.prepare(
+        `INSERT INTO collection_products (collection_id, product_id, position)
+         VALUES ('collection_00000000000000000001', 'product_000000000000000000003', 0)`,
+      ),
+      db.prepare(
+        `INSERT INTO collection_products (collection_id, product_id, position)
+         VALUES ('collection_00000000000000000001', 'product_000000000000000000004', 0)`,
+      ),
+    ]);
+    const before = (
+      await db
+        .prepare(
+          "SELECT collection_id, product_id, position FROM collection_products ORDER BY product_id",
+        )
+        .all()
+    ).results;
+    const preflight = await runStorefrontControlPreflight(db);
+    expect(preflight.issues.map(({ code }) => code)).toEqual(["SCP_COLLECTION_POSITION_DUPLICATE"]);
+    await expect(
+      applyD1Migrations(db, env.TEST_MIGRATIONS.slice(migrationIndex)),
+    ).rejects.toThrow();
+    expect(
+      (
+        await db
+          .prepare(
+            "SELECT collection_id, product_id, position FROM collection_products ORDER BY product_id",
+          )
+          .all()
+      ).results,
+    ).toEqual(before);
+    expect(
+      await db
+        .prepare("SELECT name FROM sqlite_schema WHERE name = 'collection_memberships'")
+        .first(),
+    ).toBeNull();
+  });
+
+  test("keeps review consent evidence private in the review row", async () => {
+    const columns = await env.DB.prepare("PRAGMA table_info(product_reviews)").all<{
+      name: string;
+      notnull: number;
+    }>();
+
+    expect(columns.results).toContainEqual(
+      expect.objectContaining({ name: "consent_accepted_at", notnull: 0 }),
+    );
+  });
+
   test("adds nullable validated Product presentation without changing existing rows", async () => {
     await seedLaunchFixture(env.DB);
     const before = (
