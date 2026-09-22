@@ -5,570 +5,100 @@ date: 2026-08-13
 topic: shoppp-product-master-plan
 execution: knowledge-work
 plan_role: product-master
-current_plan: 2026-09-18-1128-feat-contact-management-plan.md
-current_unit: FS-F13-U5
+current_plan: 2026-09-22-0043-feat-storefront-control-plane-plan.md
+current_unit: FS-F14-U1.1
 ---
 
 # Shoppp Product Master Plan
 
 ## Purpose and authority
 
-This is the product-level entry point for Shoppp. It preserves the complete plan lineage, identifies
-the authority for each product area, and gives one current execution pointer and one next action.
-It does not copy the requirement, unit, test, or evidence tables owned by its child plans.
+This file is the thin product-level entry point for Shoppp. It answers four questions:
 
-Authority is divided deliberately:
+1. What product areas and long-lived authorities exist?
+2. Which product plan and unit are active now?
+3. What is the next product-level handoff?
+4. Which cross-plan decisions still constrain future work?
 
-- This master plan owns the product map, plan relationships, global aliases, active-plan pointer,
-  product-level sequencing, and supersession history.
-- Each active child plan remains authoritative for its requirements, parent U definitions,
-  detailed unit status, blocker, focused evidence, and implementation tail.
-- `docs/progress/` retains execution evidence without owning a second implementation queue.
-- The candidate plan and candidate ledger own Pre-DC, immutable candidate identity, DC evidence,
-  and PG state only after product implementation is eligible for candidate selection.
+Detailed requirements, unit status, blockers, tests, run IDs, and completion evidence stay in their
+owning plan or `docs/progress/`. Completed and superseded plans remain in `docs/plans/` as immutable
+history; they are not copied into a central register. Independent fixes and refactors do not update
+this file unless they change the product facts above.
 
-When the active plan, current parent U or child stage, next action, product-level order, or plan
-classification changes, update this master pointer in the same change as the owning child plan.
-The child plan wins if a temporary mismatch is discovered; repairing the master pointer is then the
-next documentation action.
+## Product model and long-lived authorities
 
-## Product model
+Shoppp is one cross-border DTC commerce product.
 
-Shoppp is one cross-border DTC commerce product with these product areas:
+| Alias | Product area | Current authority |
+| --- | --- | --- |
+| `COM` | Commerce, catalog, cart, checkout, orders, fulfillment, providers, and recovery | [Cross-Border DTC Commerce Platform](2026-07-30-001-feat-cross-border-dtc-commerce-platform-plan.md) |
+| `THEME` | Versioned theme manifests, configuration, preview, and template isolation | [Versioned Storefront Theme Platform](2026-07-30-002-feat-versioned-storefront-theme-platform-plan.md) |
+| `IAM` | Admin authentication, users, roles, authorization, and environment isolation | [Multi-User Admin Access](2026-08-04-001-feat-multi-user-admin-access-plan.md) |
+| `AI` | Reviewable AI assistance in product editing | [AI-Assisted Product Form](2026-08-04-002-feat-ai-assisted-product-form-plan.md), currently deferred |
+| `FS` | `fashion-store` product template | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md) and its named successors |
+| `DS` | `decor-store` product template, currently mapped to legacy code ID `decor` | Its named Decor plans until a deliberate identity migration |
+| `REL` | Candidate proof and production-promotion policy | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) |
+| `CI` | Repository validation and GitHub-managed release delivery | [GitHub-Managed Cloud Runner Successor](2026-08-28-001-refactor-github-managed-cloud-runner-successor-plan.md) |
 
-| Alias   | Product area                                                                             | Current authority                                                                                                                                                                                                                                                                                                                                  |
-| ------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `COM`   | Commerce, catalog, cart, checkout, orders, fulfillment, provider and recovery behavior   | [Cross-Border DTC Commerce Platform](2026-07-30-001-feat-cross-border-dtc-commerce-platform-plan.md)                                                                                                                                                                                                                                               |
-| `THEME` | Versioned manifests, registries, configuration, preview lifecycle and template isolation | [Versioned Storefront Theme Platform](2026-07-30-002-feat-versioned-storefront-theme-platform-plan.md)                                                                                                                                                                                                                                             |
-| `IAM`   | Admin authentication, users, roles, authorization and environment isolation              | [Multi-User Admin Access](2026-08-04-001-feat-multi-user-admin-access-plan.md)                                                                                                                                                                                                                                                                     |
-| `AI`    | Reviewable AI assistance in product editing                                              | [AI-Assisted Product Form](2026-08-04-002-feat-ai-assisted-product-form-plan.md)                                                                                                                                                                                                                                                                   |
-| `FS`    | The `fashion-store` product template                                                     | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md)                                                                                                                                                                                                                                           |
-| `DS`    | Retired Decor runtime/reference lineage                                                  | [Decor Motion and Responsive Parity](2026-08-12-002-fix-decor-motion-responsive-parity-plan.md) and [Decor Store Remaining Page Suite](2026-08-19-1518-feat-decor-store-page-suite-plan.md) retain completed historical behavior/source evidence; FS-R3 owns retirement completion                                                                 |
-| `REL`   | Candidate proof and production-promotion policy                                          | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md)                                                                                                                                                                                                                                                 |
-| `CI`    | Repository validation plus GitHub-first release delivery                                 | [GitHub-Managed Cloud Runner Successor](2026-08-28-001-refactor-github-managed-cloud-runner-successor-plan.md); the completed [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md) and [GitHub-First CI/CD Transition](2026-08-26-1756-refactor-github-first-ci-transition-plan.md) retain history |
-
-`fashion-store` is the sole current selectable/runtime template in the product and shared theme
-platform. The older `fashion`, `decor`, and `decor-store` implementations are retired. Decor source,
-behavior, provenance, and immutable historical IDs remain reference/audit evidence rather than
-current templates.
-
-## Identifier model
-
-Child-plan U-IDs remain stable and local. This master plan qualifies them with the product-area
-alias when a cross-plan reference would otherwise be ambiguous:
-
-- `FS-U1.1` means child stage `U1.1` in the Fashion Store Functional Integration plan.
-- `DS-U1` means parent `U1` in the Decor Motion and Responsive Parity plan.
-- `COM-U4` means parent `U4` in the Cross-Border DTC Commerce plan.
-
-The alias is a navigation prefix, not a renumbering. Existing R/F/AE/KTD/U identifiers and their
-historical evidence remain unchanged inside the owning plans.
+Implementation boundaries do not create separate products. A branch, worktree, feature plan, or
+template-specific repair does not change product membership or candidate scope by itself.
 
 ## Current execution pointer
 
-- **Active product plan:** `FS-F13` — [Contact Management and Fashion Store Contact Page](2026-09-18-1128-feat-contact-management-plan.md), activated by the user's 2026-09-18 execution instruction.
-- **Current parent/child stage:** `FS-F13-U5` — local Contact/Admin/Experience and responsive browser checks pass, including the reconciled shared Footer integration; actual merchant Preview review remains before handback.
-- **Current feature scope:** Give operators one contact-management page and publish truthful Contact/Header/Footer details and social links through the Fashion Store presentation path.
-- **Next action:** Review a real merchant Contact/Header/Footer Preview and record its contact version and snapshot ID before returning to FS-F12-U2.
-- **Parked Product tail:** `FS-F12-U2` retains its 13-Product content and four-color demonstration assortment task. Its next action is the local D1 path retaining 12 historical Gold/Blue/Green Variant identities, adding four Charcoal sizes and three color-specific images, preserving old releases, and verifying the 13-Product/28-active-Variant/30-media successor. Remote Catalog/R2 changes remain separately gated. Resume FS-F12-U2 after FS-F13 closes.
-- **Blocker:** No source-rights or lead-display decision remains. Remote Catalog/R2 mutation needs separate authority. FS-F11 completed with user-approved final appearance, uninterrupted aggregate exit `0`, hash-verified frozen-Vue diagnostic, and independent review; the historical one-percent pixel limit remains explicitly unmet under its R18 exception. Candidate, DC, deployment, and PG remain unchanged; `REL-Pre-DC` remains the return pointer after FS-F12.
-- **Completed ADM-LIST handoff:** U1-U8 converged five offset lists plus the truthful Users/Invitations and Audit exceptions, resolved the review-confirmed locale refetch defect, and passed focused, browser, build, lint, type, and table-width verification. The handoff advances no candidate, DC, deployment, or PG state.
-- **Completed predecessor:** `FS-F8` completed U1-U7 on 2026-09-15 with the 13-product/24-variant D1 catalog, 18 verified R2 media objects, authoritative staging cart proof, fixture isolation, and protected-preview boundary green.
-- **Completed FS-F6 handoff:** U1-U4 closed on 2026-09-13 with focused motion and Hero behavior, combined/isolated Home, stable Lighthouse, full Fashion Store, accessibility, production/static, type, lint/format, impact-selection, human motion, review, and diff evidence green under the unchanged motion and accessibility gates. The handoff advances no candidate, DC, deployment, or PG state.
-- **Completed FS-F5 handoff:** Combined Decor Home now uses a bounded 1320px layout for featured categories, products, journal, client logos, and Footer while isolated source review and full-bleed regions retain their prior geometry. Boundary, responsive, type, lint, and production-build evidence passed; candidate, DC, deployment, and PG state are unchanged.
-- **Completed FS-F4 U1.6 handoff:** Decor ProductCard glyph and context-menu focus geometry, compact two-ended Header ordering, and the migrated-surface pattern audit are complete. Candidate, DC, deployment, and PG state are unchanged.
-- **Completed FS-F4 U1.5 handoff:** Decor now uses its configured source-shaped two-ended Header, Fashion retains the three-part `center-logo` mode, hover logo swaps stay fixed, Decor navigation typography is restored, and all three Decor ProductCard glyphs are 15px. Candidate, DC, deployment, and PG state are unchanged.
-- **Completed FS-F4 handoff:** U1.4 closed the 320-767px collection seam/height gap, restored the source transparent-Header submenu state, and found no additional visual instances in a 19-width and multi-menu sweep. Candidate, DC, deployment, and PG state are unchanged.
-- **Completed FS-R3 handoff:** Independent fresh aggregate-only gates authorized exact `decor` and `decor-store` removal; no remote data or artifact was deleted. The handoff changes product membership but does not resolve REL's blocker or advance candidate, DC, or PG state.
-- **Corrective handoff:** `FS-F3` completed U1–U3 on 2026-09-04. Its five-second Product cadence, sole semantic thumbnail marker, bounded direction-aware reveal, responsive resize handling, interrupted-transition handling, and focused regression evidence passed; the handoff does not advance DC/PG.
-- **Feature handoff:** `FS-R1` completed U1–U11 on 2026-09-04 in the existing primary worktree and `codex/fashion-store-components-dependencies` branch. Its local fixture/live, current Playwright engine, reduced-motion, no-JS, remount, performance, resource, maintenance and review evidence passed. Historical minimum-browser, real-device and embedded-host rows remain explicitly unverified under the user-approved scope; the handoff does not advance DC/PG.
-- **Localization handoff:** `ADM-I18N` completed U1–U6 implementation, local verification and audit closure on 2026-09-03. Its plan retains evidence and review/coverage limits, with no implementation tail; this handoff does not advance candidate or production gates.
-- **Feature handoff:** `ADM-SETUP` completed its authorized guide implementation, local verification and documentation on 2026-09-03. Its plan retains completed feature evidence; product execution returns to REL-Pre-DC without advancing candidate or production gates.
-- **Corrective handoff:** `FS-F2` completed its shared-style correction on 2026-09-03 and returned the pointer to `REL-Pre-DC`; it retains correction evidence and does not change candidate or production gates.
-- **Historical FS handoff baseline:** The `FS-U8.2` cleanup-only tranche is terminal. Fashion D1 has zero
-  enabled U8 identities and 23/23 sessions revoked; retry29 remains excluded v3 evidence with no
-  Snapshot. The exact runner registration is absent, protected manifests are retained, the runner
-  is recoverable in Trash under UID `501`, the dedicated account/home are removed, and the
-  run-scoped operator credential file is deleted. The remaining rootless UID `502` cache is
-  non-actionable macOS-managed metadata and must not be removed by weakening SIP. This handoff does
-  not complete or pause FS-U8 or authorize a new Fashion acceptance run.
-- **Historical U8.2 blocker and evidence record:** Recovery/ledger correction `80bb79af` and
-  post-commit `33461845421` passed. Fresh
-  preparation `33462310594`, complete named-operator browser path, operator Preview `33462932654`,
-  authenticated Preview/return-focus proof, approval Snapshot
-  `snapshot-approved-3217b1b053b6b95a0bb2e7053174c2bd`, audit
-  `audit-fashion-u8-ddd2640ad730f83e8a50f84e26e17596`, refresh `33463687204`, and successor
-  Preview `33463759777` passed. Acceptance `33464319476` plus ledger continuations `33464526468`,
-  `33464616359`, and `33464880609` failed terminally without consuming approval. Live Worker tail
-  proved U12 cleanup succeeded but Preview revoke returned HTTP 400 without an idempotency key, and
-  the probe had combined Preview authorization overhead with the inherited Commerce-only p95
-  budget. The bounded local correction adds idempotent revocation and a paired same-session
-  authenticated context control while retaining the exact 20 samples, concurrency 4, and 500/800 ms
-  thresholds. It requires exact-main integration and a fresh run-bound replay; the old approval
-  cannot cross the harness boundary. Shared post-commit/OIDC authority and the prior
-  U12/Preview baseline remain proven,
-  but the last `awaiting_operator` run expired without a Snapshot and cannot be reused. A read-only
-  audit found no enabled reusable Fashion human identity; the user has therefore authorized one
-  durable platform-level Fashion staging operator. The dedicated Fashion Admin and protected
-  password-free invitation delivery are complete. Exact main `a9b7a12a` passed post-commit run
-  `33354226588`, and protected read-only GitHub-hosted run `33354502008` verified the enabled,
-  non-expiring durable identity, protected Administrator role, accepted invitation, and matching
-  successful acceptance audit. Fresh U12 readiness run `33356725518` and complete Preview/U12 run
-  `33356841096` now pass on exact candidate `fb15848c`. Harness `5d540645` and preparation
-  `33357909651` passed, and the named operator completed reference recovery, a real v5/v6 conflict,
-  successor creation, and validation. Its pre-approval Preview Snapshot was created, but build start
-  failed because the cloud migration had left the operator path on the retired self-hosted-only
-  hook; the dedicated Admin artifact also lacked `PUBLIC_PREVIEW_ORIGIN`. Candidate `4fe21a47`
-  passed exact-main post-commit run `33360796811`. Protected run `33361171595` passed authority,
-  build, and corrected Fashion API/Admin deployment before the existing durable operator's
-  uniqueness constraint correctly refused a duplicate invitation. Fresh U12 readiness run
-  `33361259495` passed and captured artifact `9746774185`, digest `02ff2efc...d0d2f8`, Snapshot
-  `snapshot-approved-f68cd182d8cee43862e40e7d9d436ba8`, and build
-  `preview-build-d8cee43862e40e7d9d436ba8-f1bb77ee6f824f48-1`. The active plan now owns harness
-  freeze, hosted Preview/U12, exact failed-run rejection, fresh preparation, named-operator action,
-  refresh, and hosted acceptance.
-  Harness `5e72844b` and full hosted Preview/U12 run `33361735965` passed. Preparation
-  `33362817635` registered `fashion-u8-33362817635`, and the named operator completed missing
-  reference recovery, a real v8/v9 conflict, successor creation, validation, and run-bound Preview
-  allocation. Hosted Preview run `33363135756` then passed authority, OIDC, readiness, and
-  preparation checks but failed closed before deployment inside one compound jq tuple assertion;
-  its debug rerun reproduced the same non-mutating failure without a field name. The active plan
-  now owns a frozen field-specific verifier, harness refreeze, exact supersession, and replay. This
-  is not runner-capability evidence and does not authorize runner escalation.
-  Replacement preparation runs `33364501176` and `33365130421` failed before protected execution
-  because the bound harness digest omitted the manifest generator's trailing newline; neither run
-  changed staging. Correct byte hashing allowed preparation `33365265629` and the complete named
-  operator path to reach a fresh successor Snapshot/build. Hosted Preview run `33365596160` then
-  exposed the exact tuple defect: `run-manifest.json` does not self-contain its own digest, so the
-  verifier must hash the downloaded bytes rather than read an absent field. The active plan owns
-  that bounded correction, harness refreeze, supersession, and replay.
-  Exact main `b0a8b510` passed post-commit run `33365840233`; preparation `33366227014`, the complete
-  named-operator edit/conflict/successor/validation path, and protected hosted Preview run
-  `33366389096` then passed through isolated deployment plus U12/U13 restoration and cleanup. The
-  real authenticated Preview launch failed closed before approval because the Fashion Admin still
-  returned `Referrer-Policy: no-referrer`, suppressing the origin required by cross-origin grant
-  redemption. The active plan owns the bounded origin-only response-policy correction, protected
-  deployment, harness refreeze, exact supersession, and replay. No approval Snapshot/audit exists,
-  and this application/configuration failure does not authorize runner escalation.
-  Exact-main fix `5992f79c` passed post-commit run `33368095458`; protected run `33369474252`
-  deployed the corrected Fashion API/Admin before the existing operator uniqueness constraint
-  stopped duplicate provisioning, and the live Admin now returns the required origin-only policy.
-  Preparation `33369722510` failed credential-free before protected execution because `_headers`
-  and its real-browser regression were not yet frozen by the canonical manifest. The active plan
-  owns that bounded path-set correction, harness refreeze, supersession, and replay.
-  Exact-main correction `f23beb65` passed post-commit run `33369967952`; preparation
-  `33371168966`, the repeated named-operator edit/conflict/successor/validation path, protected
-  pre-approval Preview `33372206970`, real authenticated inspection and return, immutable approval,
-  and hosted refresh `33373145684` proved the exact approved successor. Automatic downstream run
-  `33373181740` was correctly rejected credential-free because `github-actions[bot]` is not an
-  authorized Fashion staging operator. The active plan owns the bounded replacement: refresh loses
-  `actions: write`, emits the exact non-secret fixed-main inputs in `preview-dispatch.json`, exits,
-  and requires a separate authorized Preview dispatch. The changed harness requires refreeze and
-  replay; neither bot authorization nor runner escalation is permitted.
-  Exact-main dispatch fix `040dfbf3` passed post-commit run `33373986699` on attempt 2; preparation
-  `33374982767` then passed authority, protected OIDC, and U12 provenance but failed before a new
-  registration because approved `fashion-u8-33371168966` cannot use the awaiting-only reject
-  transition. The active plan owns a bounded, audited supersession that retains all approved
-  evidence while releasing the old harness lineage to terminal `expired`; it then owns protected
-  API deployment, refreeze, and replay. This state-model gap does not authorize runner escalation.
-  Supersession implementation `f5f0caed` failed post-commit `33375732735` on an invalid audit actor
-  type; exact-main correction `45d6d35d` fixed both supersession and previously ignored rejection
-  audits and passed post-commit `33376115909`. Protected run `33376555667` passed authority, OIDC,
-  build, and exact Fashion API/Admin deployment before the existing durable-operator uniqueness
-  constraint stopped duplicate provisioning. The active plan now owns pointer synchronization,
-  harness refreeze, supersession, and replay.
-  Harness `d9528464`, preparation `33377459110`, the repeated named-operator conflict/successor/
-  validation path, authenticated Preview and keyboard return, approval Snapshot
-  `snapshot-approved-38ac9d6a80d1452b8e07b8244588ba25`, refresh `33379186623`, and separately
-  authorized Preview `33379296099` all passed. Acceptance `33380073344` failed credential-free
-  before protected execution because its candidate authority incorrectly depended on an
-  Environment-only variable. Fix `5526cc09` makes the candidate an explicit input and verifies it
-  again against the protected variable and refresh attestation; post-commit `33380249623` stopped
-  only at formatting. The active plan owns the formatted exact-main correction, harness refreeze,
-  evidence-preserving supersession, and fresh replay. The failure is not runner-capability evidence.
-  Initial readiness refresh run `33354897813` stopped before staging mutation because the historical
-  standing-authority baseline still traversed already-integrated non-U12 product commits; the
-  active plan owns the bounded exact-main baseline correction and retry evidence. Corrected
-  readiness run `33355358825` passed, while Preview `33355467693` restored its baseline but exposed
-  a test-settlement/session-expiry webhook race before order creation; the active plan owns the
-  bounded post-order session-close correction. Exact main `fb15848c` passed post-commit run
-  `33356423069`; the corrected readiness and Preview runs above prove the fresh baseline.
-  No run-scoped account, developer-machine fallback, self-managed runner, ordinary-staging mutation,
-  or production mutation is authorized. Detailed run and artifact evidence remains in the active
-  feature plan and progress records.
-- **Following sequence:** Active FS-F13 Contact management -> parked FS-F12 Product content/media/reviews successor -> REL-Pre-DC Home configuration/immutable-Preview successor and capability/identity reconciliation -> DC1 immutable candidate freeze -> DC2-DC4 -> PG1-PG5 under their named human and production authorities. FS-F11-U7.3 completed on 2026-09-17.
-- **Candidate state:** Pre-DC blocked. No candidate is frozen; DC/PG have not begun.
+- **Active product plan:** `FS-F14` — [Storefront Control Plane](2026-09-22-0043-feat-storefront-control-plane-plan.md).
+- **Current unit:** `FS-F14-U1.1` — reconcile audited Fashion PC surfaces with their current runtime sources and final authorities.
+- **Current result:** FS-F12 is complete after explicit U7 human acceptance. Its verified 13-Product/28-active-Variant/30-media local successor, review flow, and retained evidence are the inherited Product baseline for FS-F14.
+- **Next action:** Build the U1 reconciliation record from the current code and visual audit, resolving Logo and Navigation ownership before contracts, persistence, or IAM are frozen.
+- **Blockers:** None for U1.1 read-only reconciliation. Remote mutation, candidate selection, deployment, DC, and PG remain separately gated.
+- **Handback:** Complete FS-F14 U1-U9, then return product control to `REL-Pre-DC`; no Candidate, DC, deployment, or PG state advances automatically.
 
-The completed cloud-CI successor interlude does not replace the active Fashion status authority:
+The active child plan is authoritative if this summary and its execution checkpoint temporarily
+disagree. Repair this pointer in the same documentation change; do not copy the child plan's full
+checkpoint here.
 
-- **Successor plan:** `CI-CLOUD` — [GitHub-Managed Cloud Runner Successor](2026-08-28-001-refactor-github-managed-cloud-runner-successor-plan.md).
-- **Completion:** `CI-CLOUD-U1/U2/U3` are complete. Corrective exact-main post-commit run
-  `33234977617`, report `9709683601`, and protected U12 OIDC proof in run `33235176429` close the
-  successor and return shared-workflow ownership to `FS-U8.2`.
-- **Remaining blocker:** Cloud runner/OIDC, Cloudflare credential, acceptance-token rotation,
-  exact-build readiness, the prior candidate-scoped Preview/U12 baseline, and durable operator
-  activation are closed. The old `awaiting_operator` boundary expired without a Snapshot; fresh U12,
-  Preview, and durable operator activation are closed. The first fresh preparation reached the
-  successor Preview boundary but exposed the retired self-hosted hook and missing Admin Preview
-  origin. The fixed-main operator-Preview successor has passed post-commit, protected deployment,
-  fresh U12 readiness, run-bound evidence verification, and pre-approval Preview deployment. The
-  real browser handoff then exposed the Admin's origin-suppressing referrer policy before approval;
-  protected Admin correction is deployed; canonical manifest expansion, harness refreeze, fresh
-  preparation, named-operator Preview/approval, refresh, and hosted acceptance remain.
-  FS-U8.2 remains in progress.
+## Product-level sequence
 
-Parallel Decor execution is complete without replacing the product-level Fashion pointer:
+1. Execute active `FS-F14-U1.1` and the remaining Storefront Control Plane units to replace hardcoded or duplicate Fashion storefront controls with their canonical Admin authorities and immutable Preview path.
+2. Return to `REL-Pre-DC` for capability reconciliation and immutable candidate selection.
+3. Run DC and PG only through their named human and production authorities.
 
-- **Parallel plan:** `DS-P1` — [Decor Store Remaining Page Suite](2026-08-19-1518-feat-decor-store-page-suite-plan.md), now retained in the shared main-based integration baseline.
-- **Current parent/child stage:** `DS-P1` complete — U1-U7 are closed with all fourteen Decor
-  secondary routes source-compared, behavior-verified, readiness-gated, and browser-verified.
-- **Next action:** None in DS-P1. Any real catalog, cart, checkout, payment, authentication, order,
-  form-submission, persistence, production-integration, or candidate work requires its owning plan;
-  this completion does not change Fashion, REL, DC, or PG scope.
-- **Blocker:** None. Unavailable remote placeholder image content is governed as a deterministic
-  local-asset adaptation and is excluded from exact image-content parity claims.
-- **Integration:** The completed DS-P1 implementation, plans, evidence, source manifest, and
-  fifteen-route Decor Store suite were reconciled onto the current main-based integration baseline
-  during the bounded 2026-08-28 worktree convergence. Its temporary checkout was removed only after
-  exact manifests and ref recovery were retained. This integration does not reopen DS-P1 or change
-  Fashion, REL, DC, or PG scope.
+No candidate is currently frozen. DC and PG have not begun.
 
-CI infrastructure execution is complete after its bounded bridge and steady-state review:
+## Retained cross-plan decisions
 
-- **Completed bridge:** `CI-GH` — GitHub-First CI/CD Transition, a temporary child bridge of `CI`.
-- **Current parent/child stage:** `CI-U11.1` complete — the event-driven operating review records
-  availability, retention, staging recovery, credential lifecycle, toolchain, and action-pin
-  triggers with required checks and fail-closed decisions. CI-GH-U1–U7 and CI-U8.3 remain complete
-  without changing the 17 gates or Lighthouse thresholds. `CI-U7.3` remains incomplete historical
-  work, and its missing Intel restore is not reclassified as passing evidence.
-- **Next action:** None in CI. Future material changes re-enter through the completed CI plan's
-  documented event-driven boundary; active execution belongs to `REL-Pre-DC`.
-- **Blocker:** None. Retained post-removal run
-  `33073613728` passed all 17 gates, exact
-  same-run binding, protected staging proof, p95 budgets, exact restoration, D1 reconciliation, and
-  restored safe state with human access and production skipped. Historical U4 execution follows.
-  Controlled mismatch run `33045559474` was safely
-  refused before quality or Cloudflare staging jobs. Exact-source rehearsal run `33045612910` passed
-  both source preflights and exposed the missing Catalog-token declaration, which `bd53945a` fixed.
-  Commit `5b2e9d73` aligned the governance test. Exact-source run `33046259704` passed all 17 gates and
-  same-run input verification, captured exact Worker/D1 baseline artifacts and a D1 export, then
-  correctly refused rollback rehearsal because staging has pending migrations `0018`–`0022`. Its
-  recovery job restored all three Workers, reconciled D1, and verified safe state; no new Worker or
-  production version was deployed. The pending migrations at that point required the named standard
-  staging-only forward-alignment recipe before another rollback rehearsal. Forward-alignment run
-  `33048142888` for exact source `9928ae85` subsequently passed both preflights, all 17 gates,
-  same-run input verification, the D1 backup, migrations `0018`–`0022`, integrity and protected-admin
-  checks, and deployment of the three validated staging Workers. Its proof failed when the first
-  cart-line mutation correctly rejected the legacy `representative-release-2026-07-30` manifest as
-  noncanonical. The blocker at that point was integration of fail-closed build-time manifest validation and
-  creation of a new immutable canonical ordinary-staging successor; the legacy release is not to be
-  rewritten. Source validation `ea1f065e` and protected preparation `750b25cb` are integrated, but
-  preparation run `33051564144` failed before insertion because the legacy staging product and
-  collection primary keys do not satisfy the canonical public-ID schema. It retained the D1 backup
-  and created no successor row or production mutation. The tested correction deterministically
-  projects canonical manifest IDs while retaining the actual legacy product ID only for the D1
-  foreign key. Corrected protected run `33051894271` then passed backup, collision refusal, canonical
-  generation, immutable insertion, endpoint read-back, D1 state verification, and receipt retention
-  for successor `staging-canonical-2026-08-27-ci-gh-u4`. Exact-source rehearsal run `33052078852`
-  then passed both credential-free preflights but failed in the existing `representative-catalog`
-  quality gate before any staging credential or mutation: its scale generator violated canonical v2
-  identity, reciprocal-link, redirect-status, and route requirements. The successful failure callback
-  transitioned that immutable successor to terminal `failed`, and every staging, restoration, and
-  production job was skipped. The current dependency is integration of the scale-fixture correction,
-  protected preparation of a new immutable successor, and its exact-source hosted/staging rollback
-  rehearsal. Correction commit `88528d05` is integrated, and protected preparation run
-  `33053063337` passed its staging D1 backup, collision refusal, canonical generation, immutable
-  insertion, endpoint read-back, exact D1 state verification, and receipt retention for successor
-  `staging-canonical-2026-08-27-ci-gh-u4-b`. Exact-source rehearsal run `33053216917` then passed both
-  preflights, all 17 gates, exact deployment-input binding, staging baseline/backup/migration safety,
-  protected administrator checks, and all three Worker deployments. The public journey failed
-  because later browser gates had rebuilt and overwritten the successor storefront with the default
-  legacy release, so its cart-line request was correctly rejected as noncanonical. Worker
-  restoration, D1 reconciliation, and restored safe-state verification all passed; production was
-  skipped and the successor is terminal failed. Exact-artifact reuse correction `7730951f` is
-  integrated without widening Catalog credential exposure. Protected preparation run `33055956466`
-  passed its staging D1 backup, collision refusal, canonical projection, immutable insertion,
-  protected endpoint read-back, exact D1 state verification, and receipt retention for successor
-  `staging-canonical-2026-08-27-ci-gh-u4-c`. The current dependency is only its exact-source
-  hosted/staging rollback rehearsal and retained evidence. Exact-source run `33056208460` then
-  passed both preflights and the first 14 unchanged gates, including the successor production build
-  and static verification. `browser-journeys` exercised the preserved successor artifact correctly,
-  but its cart test still hard-coded the predecessor release ID and rejected the correct successor
-  request. The failure callback passed; all staging, restoration, human, and production jobs were
-  skipped, and the successor is terminal failed. The current dependency is integration of the
-  release-aware journey assertion, protected preparation of a new immutable successor, and its
-  exact-source rehearsal. Release-aware assertion commit `91202e94` is integrated. Protected
-  preparation run `33058031666` passed its staging D1 backup, collision refusal, canonical
-  projection, immutable insertion, protected endpoint read-back, exact D1 state verification, and
-  receipt retention for successor `staging-canonical-2026-08-27-ci-gh-u4-d`. The current dependency
-  is only its exact-source hosted/staging rollback rehearsal and retained evidence. Exact-source run
-  `33058180318` then passed both preflights, all 17 unchanged gates, same-run deployment-input
-  binding, staging baseline/backup/migration safety, protected administrator checks, and all three
-  staging Worker deployments. Public proof reached the correct successor storefront but the API
-  correctly refused its still-building Catalog Release; the workflow had deferred `deployed` until
-  after proof, creating a lifecycle cycle. Exact Worker restoration, D1 reconciliation, and restored
-  safe-state verification passed; human and production jobs were skipped, and the successor is
-  terminal failed. The current dependency is integration of a staging-only correlation marker that
-  preserves `building`, is removed before the existing terminal callback during rehearsal, and is
-  never accepted by production, protected preparation of a new immutable successor, and its
-  exact-source rehearsal. Proof-marker correction `91f1b838` is integrated without a migration or
-  lifecycle-state change. Protected preparation run `33061325008` passed its staging D1 backup,
-  collision refusal, canonical projection, immutable insertion, protected endpoint read-back, exact
-  D1 state verification, and receipt retention for successor
-  `staging-canonical-2026-08-27-ci-gh-u4-e`. The current dependency is only its exact-source
-  hosted/staging rollback rehearsal and retained evidence. Exact-source run `33061506493` passed
-  both preflights and the first eight unchanged gates. Worker integration proved the staging
-  proof-marked cart path returns 200, but the new default-deny test forced the complete staging
-  binding set to `production`, producing an unrelated configuration 500 instead of the expected
-  Catalog 422. The validation failure callback passed; all staging, restoration, human, and
-  production jobs were skipped, and the successor is terminal failed. The current dependency is
-  integration of a direct helper-level default-deny assertion, protected preparation of a new
-  immutable successor, and its exact-source rehearsal. Default-deny correction `41992c03` is
-  integrated. Protected preparation run `33062008517` passed its staging D1 backup, collision
-  refusal, canonical generation, immutable insertion, protected endpoint read-back, exact D1 state
-  verification, and receipt retention for successor `staging-canonical-2026-08-27-ci-gh-u4-f`.
-  The current dependency is only its exact-checkpoint hosted/staging rollback rehearsal and retained
-  evidence. Dispatch run `33062287746` then supplied a nonexistent source SHA instead of actual
-  checkpoint `4054e6219c79ee844f0e4a0fca6608335b50b057`. The trusted-source preflight refused it
-  before quality or staging; the failure callback passed, all mutation jobs were skipped, and
-  successor `f` is terminal failed. The current dependency is protected preparation of new
-  immutable successor `g` from a source read directly from Git and its complete rehearsal.
-  Protected preparation run `33062452797` passed its staging D1 backup, collision refusal,
-  canonical generation, immutable insertion, protected endpoint read-back, exact D1 state
-  verification, and receipt retention for successor `staging-canonical-2026-08-27-ci-gh-u4-g`.
-  The current dependency is only its exact-checkpoint hosted/staging rollback rehearsal and retained
-  evidence. Exact-source run `33062635406` passed both preflights, all 17 unchanged gates,
-  same-run deployment-input binding, staging baseline/backup/migration safety, protected
-  administrator checks, and all three staging Worker deployments. Public proof completed Stripe
-  hosted payment and rendered `Payment confirmed`, an order reference, and `View order`, but its
-  final assertion still expected removed copy matching `order … is confirmed`. Exact Worker and
-  proof-marker restoration, D1 reconciliation, and restored safe-state verification passed;
-  production and human access were skipped, and successor `g` is terminal failed. The current
-  dependency is integration of the order-reference assertion, protected preparation of new
-  immutable successor `h`, and its exact-source rehearsal. Order-reference correction `56c43d48`
-  is integrated. Protected preparation run `33064643874` passed its staging D1 backup, collision
-  refusal, canonical generation, immutable insertion, protected endpoint read-back, exact D1 state
-  verification, and receipt retention for successor `staging-canonical-2026-08-27-ci-gh-u4-h`.
-  The current dependency is only its exact-checkpoint hosted/staging rollback rehearsal and retained
-  evidence. Exact-source run `33064849074` passed both preflights, all 17 unchanged gates,
-  same-run deployment-input binding, staging baseline/backup/migration safety, protected
-  administrator checks, all three staging Worker deployments, and the corrected Stripe purchase.
-  Public proof then found two later stale assertions: forged-return expected removed copy rather
-  than the current fail-closed heading/announcement, and failed-publication compared the live staged
-  successor against the historical rollback ID rather than `RELEASE_ID`. Exact Worker and
-  proof-marker restoration, D1 reconciliation, and restored safe-state verification passed;
-  production and human access were skipped, and successor `h` is terminal failed. The current
-  dependency is integration of both assertion/identity corrections, protected preparation of new
-  immutable successor `i`, and its exact-source rehearsal. Identity correction `0f9d7654` is
-  integrated. Protected preparation run `33067448314` passed its staging D1 backup, collision
-  refusal, canonical generation, immutable insertion, protected endpoint read-back, exact D1 state
-  verification, and receipt retention for successor `staging-canonical-2026-08-27-ci-gh-u4-i`.
-  Exact-source run `33067627981` then passed both preflights, all 17 unchanged gates, same-run
-  deployment-input binding, staging baseline/backup/migration safety, protected administrator
-  checks, all three staging Worker deployments, and every public proof before the p95 step. That
-  step still invoked the historical direct latency CLI after FS-U8 had converted it into an
-  authenticated-orchestrator-only library, so it failed at the authority guard without measuring
-  p95. Exact Worker/proof-marker restoration, D1 reconciliation, and restored safe-state
-  verification passed; production and human access were skipped, and successor `i` is terminal
-  failed. The current dependency is integration of the separate, fail-closed CI-GH release-staging
-  p95 entry without altering FS-U8, followed by protected successor `j` preparation and its
-  exact-source rehearsal. Release-staging latency correction `300122f6` is integrated without
-  changing FS-U8. Protected preparation run `33070208055` passed its staging D1 backup, collision
-  refusal, canonical generation, immutable insertion, protected endpoint read-back, exact D1 state
-  verification, and receipt retention for successor
-  `staging-canonical-2026-08-27-ci-gh-u4-j`. The current dependency is only its exact-checkpoint
-  hosted/staging rollback rehearsal and retained evidence. Exact-source run `33070432378` then
-  passed both preflights, all 17 unchanged gates and Lighthouse budgets, exact same-run binding,
-  protected staging deploy/proof, preserved p95 thresholds, exact Worker/proof-marker restoration,
-  D1 reconciliation, and restored safe-state verification. Human access and production were
-  skipped. CI-GH-U4 is complete and authorized U5. Hosted validation run `33041884429` passed all 17
-  gates for exact source `b1ea32e33335e964f1578af057e87a008ab27df0`, but it did not provide the
-  missing pre-mutation Worker capture or restored staging state. That earlier run alone did not
-  satisfy U4; retained run `33070432378` later supplied the required rollback-capable exact-source
-  proof. Local, historical Intel, and Codex Cloud output remain non-substitutes.
-- **Tail:** Closed after CI-U8.3 and CI-U11.1. The completed transition and operating review
-  preserve all 17 release gates, Lighthouse thresholds, exact-SHA binding, protected deployment,
-  rollback, and REL/DC/PG authority while removing future Docker/Intel/provider-independent release
-  obligations.
+- Candidate membership is decided by the frozen Candidate Template Matrix, not by code existence,
+  branch names, historical templates, or a passing focused test.
+- DC and PG gate production promotion of an immutable candidate; they do not block ordinary local
+  implementation or non-production development proof.
+- GitHub-managed runners are the default release path. Developer machines, self-hosted runners, and
+  local shared accounts are not release fallbacks.
+- `fashion-store` and `decor-store` are the current product template names. The older `fashion`
+  implementation is retired; `decor-store` continues to map to code ID `decor` until a deliberate
+  migration changes that contract.
+- Stable identifiers in historical plans remain valid references. A newer plan supersedes only the
+  behavior and authority it names explicitly.
 
-The 2026-08-17 activation reverified exactly one registered Shoppp worktree at `8a3723d4` and a
-separately reachable Decor branch. The product master explicitly accepts that observable topology
-as satisfying FRT's operational one-worktree dependency. This does not mark WTC-U1 or WTC-U2
-complete, reconstruct their missing historical raw evidence, merge Decor code, or change candidate
-scope.
+## Small-plan policy
 
-## Product-plan register
-
-Status terms in this table are intentionally conservative. `Implemented/evidenced, not audited`
-means useful code or evidence exists but no current authority proves the entire original contract
-complete. It must not be promoted to `Complete` from a branch name, commit subject, or passing
-focused test alone.
-
-| Alias       | Plan                                                                                                                                   | Product role                                                                                                                            | Current classification                                                                                                                                                                                 | Tail authority                                                                                                                                                                  |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `COM`       | [Cross-Border DTC Commerce Platform](2026-07-30-001-feat-cross-border-dtc-commerce-platform-plan.md)                                   | Root product and Commerce contract                                                                                                      | Product authority; repository contains substantial implementation, but full-plan completion is not asserted here                                                                                       | Its own contract until a named Commerce successor supersedes it                                                                                                                 |
-| `THEME`     | [Versioned Storefront Theme Platform](2026-07-30-002-feat-versioned-storefront-theme-platform-plan.md)                                 | Shared template-platform contract                                                                                                       | Inherited platform authority; completion not re-audited                                                                                                                                                | Later template plans extend only their named behavior                                                                                                                           |
-| `THEME-H1`  | [Fashion and Decor Theme Fidelity](2026-07-30-003-fix-fashion-decor-theme-fidelity-plan.md)                                            | Early visual-correction plan                                                                                                            | Historical; its looser resemblance standard is superseded                                                                                                                                              | Source-equivalent plans own later fidelity requirements                                                                                                                         |
-| `THEME-H2`  | [Source-Equivalent Fashion and Decor](2026-07-31-001-refactor-source-equivalent-fashion-decor-plan.md)                                 | Source-equivalent home strategy                                                                                                         | Historical implemented baseline; current template identities and later plans supersede named details                                                                                                   | `FS` and `DS` own their current template tails                                                                                                                                  |
-| `IAM`       | [Multi-User Admin Access](2026-08-04-001-feat-multi-user-admin-access-plan.md)                                                         | Admin identity and authorization                                                                                                        | Implemented/evidenced, not audited against the complete plan                                                                                                                                           | This plan until a named IAM successor is created                                                                                                                                |
-| `AI`        | [AI-Assisted Product Form](2026-08-04-002-feat-ai-assisted-product-form-plan.md)                                                       | AI product-editing contract                                                                                                             | Requirements-only and deferred until the product form stabilizes                                                                                                                                       | This requirements contract; implementation planning has not started                                                                                                             |
-| `INT-H1`    | [Safe Local Branch and Worktree Integration](2026-08-05-001-refactor-safe-local-integration-plan.md)                                   | Historical branch/worktree integration                                                                                                  | Historical integration baseline; its observed 2026-08-05 topology is stale                                                                                                                             | A new bounded worktree-convergence plan must own future cleanup                                                                                                                 |
-| `FS-H1`     | [Fashion Store Source-Parity Home](2026-08-06-001-feat-fashion-store-source-parity-plan.md)                                            | Fashion Store home baseline                                                                                                             | Complete and inherited; its former only-template decision is superseded                                                                                                                                | `FS` owns current Fashion Store work                                                                                                                                            |
-| `THEME-H3`  | [HTML Reconstruction Acceptance Automation](2026-08-07-001-feat-html-reconstruction-acceptance-automation-plan.md)                     | Shared reconstruction acceptance tooling                                                                                                | Complete and inherited                                                                                                                                                                                 | Feature plans own their own acceptance outcomes                                                                                                                                 |
-| `FS-H2`     | [Fashion Store Complete Page Suite](2026-08-07-002-feat-fashion-store-page-suite-plan.md)                                              | Fifteen-page presentation and route baseline                                                                                            | Implemented/evidenced, not audited as complete functional behavior                                                                                                                                     | `FS` reconciles the inherited implementation                                                                                                                                    |
-| `DS-H1`     | [Decor Store Source Parity](2026-08-10-001-feat-decor-store-source-parity-plan.md)                                                     | Decor Store source-equivalent home baseline                                                                                             | Complete and inherited; U1-U8 closed the home implementation and acceptance baseline                                                                                                                   | `DS` owns later home correction; `DS-P1` owns the completed secondary-page tail                                                                                                 |
-| `FS`        | [Fashion Store Functional Integration](2026-08-11-001-feat-fashion-store-functional-integration-plan.md)                               | Current Fashion Store implementation                                                                                                    | **Complete — U1-U13 are closed within their declared boundaries; U8.2 terminal cloud acceptance and U8.3 complete verification passed on 2026-09-01**                                                  | Completed Fashion Store implementation authority; `REL` owns candidate and production gates                                                                                     |
-| `FS-F1`     | [Fashion Store Integration Remediation](2026-08-12-001-fix-fashion-store-integration-remediation-plan.md)                              | Corrective child of `FS`                                                                                                                | Named fixes and narrow U13 evidence are inherited; no broader parent completion claim                                                                                                                  | `FS` owns remaining integration and final completion                                                                                                                            |
-| `FS-F2`     | [Fashion Store Shared Style Ownership](2026-09-03-1417-fix-fashion-store-shared-styles-plan.md)                                        | Bounded corrective follow-up to `FS`                                                                                                    | Complete — U1-U4 closed on 2026-09-03; shared-style correction and local verification complete                                                                                                         | Retains completed correction evidence; `REL` owns candidate and production gates                                                                                                |
-| `FS-R1`     | [Fashion Store Shared Components and Dependency Consolidation](2026-09-03-1750-refactor-fashion-store-components-dependencies-plan.md) | Bounded successor over FS and completed FS-F2                                                                                           | **Complete — U1-U11 closed on 2026-09-04 under the user-approved current-engine scope, with minimum-version targets and explicit unverified device rows retained**                                     | Retains component, dependency, compatibility and local-verification evidence; `REL` owns candidate and production gates                                                         |
-| `FS-F3`     | [Fashion Store Product Gallery Carousel Correction](2026-09-04-1336-fix-fashion-store-product-gallery-carousel-plan.md)                | Corrective successor to completed FS-R1-U6                                                                                              | Complete — U1-U3 closed on 2026-09-04; Product gallery correction and focused local verification complete; candidate and production state unchanged                                                    | Retains completed correction evidence with no implementation tail; `REL` owns candidate and production gates                                                                    |
-| `FS-R2`     | [Fashion Store Decor Hero Migration](2026-09-05-1414-refactor-fashion-store-decor-hero-plan.md)                                        | Bounded Fashion Home Hero and dependency successor over completed FS-R1/FS-F3                                                           | **Complete — U1-U6 closed on 2026-09-07; immediate initialization, full Home/live regression, behavior evidence, and focused Decor compatibility pass**                                                | Retains completed Hero/startup evidence with no implementation tail; `REL` owns candidate and production gates                                                                  |
-| `FS-R3`     | [Fashion Store and Decor Unification](2026-09-06-1346-refactor-fashion-decor-unification-plan.md)                                      | Bounded successor that makes Fashion the sole functional storefront package and absorbs only approved Decor-specific presentation value | **Complete — U1-U8 closed on 2026-09-07 after independent guarded retirement of both exact Decor identities and full local verification**                                                              | Retains unified-composition, capability-disposition, retirement, reference, and recovery evidence; REL owns the implementation tail, candidate, DC, and PG authority            |
-| `FS-F4`     | [Fashion Store Decor Home Visual Recovery](2026-09-08-1204-fix-decor-home-visuals-plan.md)                                             | Corrective successor to completed FS-R3 Home presentation consolidation                                                                 | **Complete — U1-U7 and direct-review stages U1.1-U1.6 are closed with source-grounded visual, interaction, responsive, and audit evidence**                                                            | Retains completed correction evidence with no implementation tail; REL owns candidate and production gates                                                                      |
-| `FS-F5`     | [Fashion Store Decor Wide Layout](2026-09-10-001-refactor-decor-wide-layout-plan.md)                                                   | User-approved width-policy successor to completed FS-F4                                                                                 | **Complete — U1-U3 closed on 2026-09-10 with boundary geometry, responsive regression, type, lint, review, and production-build evidence**                                                             | Retains completed width-policy evidence with no implementation tail; REL owns candidate and production gates                                                                    |
-| `FS-F6`     | [Fashion Store Home Animation Smoothness](2026-09-11-0010-perf-home-animation-smoothness-plan.md)                                      | Bounded animation-performance correction over completed FS-R2/FS-F4/FS-F5                                                               | **Completed — U1-U4 passed the fixed motion budgets, scoped/full regression, production/static, repository-quality, human-motion, and final review gates on 2026-09-13**                               | Retains completed animation-performance evidence with no implementation tail; REL-Pre-DC owns the current product action                                                       |
-| `FS-R4`     | [Fashion Store Shared Shell Consistency](2026-09-13-1205-refactor-fashion-store-shared-shell-plan.md)                                  | Bounded successor that promotes the accepted Home Header/Footer presentation into one site-wide Fashion Store shell                     | **Completed — U1-U5 established the canonical shell, passed the complete Fashion Store and direct shared Header/Footer verification, and handed authority to FS-F6-U4**                               | Retains completed shared-shell evidence with no implementation tail; FS-F6 completed its final handback and REL-Pre-DC owns the current product action                          |
-| `FS-F7`     | [Fashion Store Merchandising Contract Reconciliation](2026-09-13-1357-fix-fashion-merchandising-contracts-plan.md)                     | Bounded successor for the six product-merchandising contracts that blocked FS-R4-U5 and FS-F6-U4                                       | **Completed — U1-U5 reconciled all six contracts and passed focused, accessibility, motion, complete Fashion Store, production/static, type/lint, impact-selection, formatting, and diff gates**        | Returned the pointer through FS-R4-U5 and FS-F6-U4; both completed, and REL-Pre-DC owns the current product action                                                              |
-| `FS-F8`     | [Fashion Store Development Catalog Reset](2026-09-13-1513-feat-fashion-store-live-catalog-plan.md)                                      | Completed development-only successor for D1/R2 catalog replacement, compare-at prices, and IAM-safe reset                               | **Completed — U1-U7 closed on 2026-09-15 with the deployed 13-product/24-variant catalog, 18 R2 objects, live commerce proof, IAM/Auth preservation, and protected Preview boundary green**            | Retains completed reset and live-catalog evidence; handed authority through REL-Pre-DC to FS-R5 without advancing candidate, DC, deployment, or PG state                       |
-| `FS-R5`     | [Fashion Store Fixture and Live Presentation Convergence](2026-09-15-1350-refactor-fashion-store-presentation-convergence-plan.md)       | Completed visual-ownership successor over the Fashion integration and FS-F8 catalog baseline                                            | **Complete — U1-U8 converged fixture/live routes and Home sections onto shared presentation owners and passed the complete governed verification matrix on 2026-09-15**                                  | Retains completed convergence evidence with no implementation tail; `REL-Pre-DC` owns the preserved Fashion return pointer                                                     |
-| `FS-F9`     | [Fashion Store Product Visual Regression Correction](2026-09-15-2053-fix-fashion-store-product-visual-regression-plan.md)                | Corrective predecessor for the Product presentation regression introduced during FS-R5 convergence                                    | **Superseded incomplete — U1-U3 are retained; U4 automated gates passed but human review rejected the sparse right rail, detail content, and text-only colors**                                            | `FS-F10` owns the corrective tail; FS-F9 cannot return authority to `REL-Pre-DC`                                                                                                |
-| `FS-F10`    | [Fashion Store Product Fidelity and Option Swatch Authority](2026-09-16-0936-feat-fashion-store-product-fidelity-plan.md)                 | Superseded corrective predecessor that added option swatches and attempted Product fidelity                                              | **Superseded incomplete — U1-U6 implementation evidence is retained; U7 visual evidence was explicitly rejected by the user**                                                                              | `FS-F11` owns the Product convergence, visual correction, verification, and human-approval tail                                                                              |
-| `FS-F11`    | [Fashion Store Single Live Product Path](2026-09-16-1337-refactor-fashion-store-live-product-plan.md)                                    | Completed successor that restored the Product implementation and converged all Product entry points onto one release-backed model | **Completed — U1-U7.3 closed on 2026-09-17 with user-approved R21-R23 appearance, green uninterrupted aggregate, and hash-verified unmasked Vue donor evidence under the explicit R18 pixel-limit exception** | Handed the Product content/media/review tail to FS-F12 without advancing candidate, DC, deployment, or PG state                       |
-| `FS-F12`    | [Fashion Store Product Content and Reviews](2026-09-17-0940-feat-fashion-store-product-content-reviews-plan.md)                         | Product content, product-specific media, persisted reviews, moderation, and review presentation; temporarily parked during FS-F13        | **Incomplete at U2 — U1/U8/U4/U5/U6 completed locally; local D1/media round trip remains**                                                                                                                                                 | Retains its Product tail and resumes at U2 after FS-F13; no candidate, DC, or PG inference                                                                                   |
-| `FS-F13`    | [Contact Management and Fashion Store Contact Page](2026-09-18-1128-feat-contact-management-plan.md)                                    | Active bounded contact-management successor over Admin and Fashion Store presentation                                                     | **Active at U5 — U1-U4 focused checks passed; verification and Footer reconciliation remain**                                                                                                                                               | Owns contact configuration, public presentation, and local verification; returns pointer to parked FS-F12-U2 on completion                                                  |
-| `DS`        | [Decor Motion and Responsive Parity](2026-08-12-002-fix-decor-motion-responsive-parity-plan.md)                                        | Parallel `decor-store` correction                                                                                                       | Parallel implementation plan; completion is not asserted here                                                                                                                                          | This plan or a named `decor-store` successor                                                                                                                                    |
-| `DS-P1`     | [Decor Store Remaining Page Suite](2026-08-19-1518-feat-decor-store-page-suite-plan.md)                                                | Parallel remaining-page source-parity successor                                                                                         | **Complete and integrated — DS-P1-U1-U7 closed 2026-08-19 with fourteen-route source, behavior, browser, build, performance, and repository evidence; reconciled into the shared baseline 2026-08-28** | Completed authority for secondary-page replicas and focused evidence; inherited Decor plans continue to own home behavior, and future business integration requires a successor |
-| `REL`       | [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md)                                     | Pre-DC/DC/PG policy and execution                                                                                                       | **Active at blocked `REL-Pre-DC`; FS-R3 and inherited implementation plans are complete; capability-scope audit and full candidate-identity enforcement remain before DC1**                            | Owns Pre-DC reconciliation, immutable candidate identity, DC evidence, and PG state                                                                                             |
-| `FRT`       | [Retired Fashion Runtime Decommission](2026-08-13-002-refactor-retired-fashion-runtime-plan.md)                                        | Old runtime-template retirement                                                                                                         | **Complete — FRT-U1-U4 closed 2026-08-17 with zero-data, removal, retained-template, repository, and fresh-static evidence**                                                                           | Completed authority for runtime `fashion` deletion, actual-data inventory, and the `fashion-store-source` comparison-label migration                                            |
-| `WTC`       | [Shoppp Worktree Convergence](2026-08-13-003-refactor-worktree-convergence-plan.md)                                                    | Local worktree simplification                                                                                                           | Incomplete after re-audit — current one-worktree topology is verified, but WTC-U1/U2 lack reconstructible pre-removal evidence; WTC-U3 remains complete                                                | Historical evidence and the 2026-08-14 re-execution audit are in `docs/progress/worktree-convergence.md`; future temporary checkout lifecycle follows `AGENTS.md`               |
-| `CI`        | [Long-Term CI Resilience and GitHub-First Delivery](2026-08-19-1737-refactor-local-first-ci-plan.md)                                   | Historical and post-bridge CI authority                                                                                                 | **Complete for its governed baseline; the 2026-08-28 cloud-only decision supersedes future self-hosted execution and requires a named successor before the next U8 freeze**                            | Retains historical CI evidence; the successor owns shared/post-commit cloud migration and returns control to `FS-U8.2`                                                          |
-| `CI-GH`     | [GitHub-First CI/CD Transition](2026-08-26-1756-refactor-github-first-ci-transition-plan.md)                                           | Temporary CI route-switch bridge                                                                                                        | **Complete — CI-GH-U1–U7 closed after retained pre-removal and post-removal exact hosted/staging/recovery proofs**                                                                                     | Completed transition and hand-back authority only; no product, candidate, DC/PG, or production-promotion authority                                                              |
-| `CI-CLOUD`  | [GitHub-Managed Cloud Runner Successor](2026-08-28-001-refactor-github-managed-cloud-runner-successor-plan.md)                         | Shared/post-commit and current-workflow cloud-runner successor                                                                          | **Complete — corrected post-commit run `33234977617` and protected OIDC proof in U12 run `33235176429` passed**                                                                                        | Verified baseline returned to `FS-U8.2`; the later invalid Cloudflare credential is a Fashion environment blocker                                                               |
-| `MASTER`    | This plan                                                                                                                              | Whole-product navigation, lineage and active pointer                                                                                    | Active product authority                                                                                                                                                                               | Updated with every product-level pointer or classification change                                                                                                               |
-| `ADM-SETUP` | [Admin Store Setup Guide](2026-09-03-1445-feat-admin-store-setup-guide-plan.md)                                                        | Bounded Admin onboarding feature over COM/THEME/IAM                                                                                     | Complete — U1–U5 closed on 2026-09-03; guide implementation, local verification and maintenance documentation delivered                                                                                | Retains completed guide evidence with no implementation tail; existing product contracts and REL retain their authority                                                         |
-| `ADM-I18N`  | [Admin Internationalization Completion](2026-09-03-1553-fix-admin-i18n-completion-plan.md)                                             | Bounded Admin localization correction over COM/THEME/IAM                                                                                | Complete on 2026-09-03; U1–U6 closed                                                                                                                                                                   | Retains remediation/local-verification evidence and explicit review limits; no implementation tail. REL retains candidate and production authority.                             |
-| `ADM-LIST`  | [Admin Query List Convergence](2026-09-15-1723-refactor-admin-query-list-convergence-plan.md)                                           | Completed Admin-wide convergence for query-oriented lists over Commerce/IAM and the approved Standard List Page baseline                | **Complete — U1-U8 standardized five direct Recipe pages and two truthful exceptions, resolved the review-confirmed locale refetch defect, and retained final verification evidence**                     | Retains completed Admin query-list evidence with no implementation tail; `REL-Pre-DC` owns the current product action                                                         |
-
-## Decision hierarchy and supersessions
-
-1. The Commerce Product Contract governs Commerce, administration, provider, recovery, and
-   production behavior unless a named successor explicitly supersedes a requirement.
-2. The Theme Platform plan governs manifests, registries, configuration, preview lifecycle, and
-   selected-template isolation where no later plan explicitly revises a detail.
-3. Source-equivalent and template plans own their named visual, page, interaction, and functional
-   additions without redefining Shoppp as separate products.
-4. The Fashion Store Integration Remediation plan supersedes its source plans only for the explicit
-   defects and narrow U13 boundary it names.
-5. The Fashion Store Functional Integration plan is the current implementation-status authority
-   for Fashion Store.
-6. The Decor Store Remaining Page Suite supersedes only the home plan's deferral of secondary
-   pages. It does not supersede accepted home behavior, the parallel home motion/correction plan,
-   future product-framework integration ownership, candidate scope, or production-promotion policy.
-7. DC/PG are mandatory production-promotion policy for an immutable candidate. They do not gate
-   ordinary U implementation, local preview, or a non-production development proof.
-8. The Long-Term CI plan preserves repository-owned fast/post-commit commands and completed
-   self-hosted/capsule/evidence history, but its future execution authority is GitHub-managed-cloud
-   only through the named GitHub-Managed Cloud Runner Successor. Standard GitHub-hosted runners are the default; a GitHub-hosted larger or OS-specific
-   runner requires a recorded infrastructure need. No workflow may fall back to a developer machine,
-   OrbStack, a self-hosted runner, or a new local shared/test account. GitHub unavailability pauses
-   release execution. PR automation remains optional and deferred. This rule does not supersede
-   feature checkpoints, candidate selection, DC/PG gates, credential and approval boundaries,
-   rollback, or production-promotion authority.
-9. The GitHub-First CI/CD Transition plan temporarily owns the route switch and explicitly
-   supersedes the future Docker, Intel, provider-independent evidence, alternate-CD, and
-   GitHub-independent release obligations it names. It preserves completed CI history and all
-   release-quality, exact-source, protected-deployment, rollback, credential, REL, DC, PG, and
-   production-approval boundaries. On closure it returns tail ownership to `CI-U8.3`, followed by
-   `CI-U11.1`, rather than becoming a second permanent CI plan.
-10. The completed Admin Store Setup Guide replaces the default root landing for settings readers,
-    the welcome content and the location of setup-check presentation. Existing commercial rules,
-    audited saves, launch API semantics, theme workflows and REL/DC/PG authority remain inherited.
-11. The 2026-09-04 ADM-SETUP product correction removes its whole-guide collapse control and
-    dashboard shortcut, and presents permitted destinations as default Button-styled links. It
-    preserves step-level expansion, authorization and fixed-check semantics; the observed
-    fashion-staging 404 is an undeployed API-version mismatch and does not alter release authority.
-
-The completed FS-R3 decision supersedes the earlier two-current-template wording:
-
-- retain `fashion-store` as the current Fashion Store product template;
-- retire the old `fashion` runtime implementation and rename the still-used Crafto comparison label
-  to `fashion-store-source` so no product, runtime, or reference identity remains named `fashion`;
-- retire exact runtime identities `decor` and `decor-store` after their independent data gates while
-  retaining their immutable historical IDs and reference evidence; and
-- keep retained Decor evidence outside the Candidate Template Matrix unless a later implementation
-  plan deliberately introduces a new selectable runtime.
-
-No plan may add or remove candidate support merely from product membership or code existence. The
-frozen Candidate Template Matrix and Activation Target own candidate scope.
-
-## Product-level follow-up plans
-
-### 1. Completed Retired Fashion runtime decommission
-
-[Retired Fashion Runtime Decommission](2026-08-13-002-refactor-retired-fashion-runtime-plan.md)
-completed authorized aggregate inventory for possible `theme_id=fashion` data, the
-`fashion-store-source` comparison-label migration, registry and catalog removal, old implementation
-deletion, and retained-template verification. Its zero-row result removed speculative compatibility
-work; the completed plan remains the inherited retirement authority.
-
-### 2. Worktree convergence
-
-[Shoppp Worktree Convergence](2026-08-13-003-refactor-worktree-convergence-plan.md) treats the
-former worktrees as implementation containers, not product boundaries. Four redundant local
-checkouts are absent and the Decor branch and commits remain independently resumable, but the
-required pre-removal raw manifests and removal commands were not retained. WTC-U1 and WTC-U2 are
-therefore not complete; the 2026-08-14 rerun verifies only the current one-worktree state. Future
-short-lived task worktrees are allowed only when concurrent work requires them and must carry a
-cleanup condition and retained pre-removal evidence.
-
-### 3. Decor Store identity migration
-
-[Fashion Store and Decor Unification](2026-09-06-1346-refactor-fashion-decor-unification-plan.md)
-superseded the previously anticipated standalone `decor` to `decor-store` migration. It treated
-`decor` and `decor-store` as separate technical identities, inventoried both, and retired both
-selectable runtimes after independent exact zero/unresolved-state gates. The completed work returned
-authority to REL-Pre-DC without independently selecting or advancing a `fashion-store` candidate.
-
-### 4. Decor Store remaining page suite
-
-The integrated Decor Store Remaining Page Suite continues from the accepted home-only
-`decor-store` baseline and owns exactly the fourteen non-home Crafto Decor source entries. It ran in
-parallel with Fashion execution from a temporary worktree that was later removed under the retained
-2026-08-28 convergence record. The completed implementation preserves the home runtime boundary and
-keeps Product, Wishlist, Cart, Checkout, and Account replicas fixture-backed and presentation-only.
-It does not connect the replica pages to current catalog, cart, checkout, authentication, payment,
-provider, or order capabilities. FS-R3 is the planned successor for that product-framework tail,
-but it migrates only approved Decor-specific presentation value into Fashion-owned capabilities;
-it does not turn the fourteen replicas into a second functional route suite.
-Its reconstruction process reuses the existing shared source-equivalence policy, inventory/capture
-tools, behavior verifier, orchestrator, and home-era Decor runner unchanged by default. Shared
-implementation changes require a concrete failing Decor source case and remain the smallest
-regression-covered adaptation; unrelated Fashion live/business workflow is omitted. No second
-workflow is created. Order and policy surfaces have no dedicated Decor source entry and remain
-outside this page-replication scope.
+- Create one independent plan for each bounded feature, fix, or refactor.
+- Keep its requirements, implementation units, progress, blockers, and verification in that plan.
+- On completion, mark or evidence the outcome once and freeze the plan. Do not continue using it as
+  a general status log.
+- Create a successor when new work has a new goal or boundary. Link the predecessor only when the
+  new work inherits or supersedes its authority.
+- Update this master file only when the active product pointer, product-level order, product
+  membership, candidate policy, or cross-plan tail ownership changes.
 
 ## Update contract
 
-Update this master plan when any of the following changes:
+Update this file in the same change only when one of these facts changes:
 
-- the active child plan;
-- the current parent U or decimal child stage;
-- the next concrete action or dependency order;
-- a plan becomes complete, blocked, deferred, superseded, or reactivated;
-- a new successor plan takes tail ownership; or
-- product membership, candidate-policy scope, or an authority relationship changes.
+- active product plan, its classification, or current parent/child unit;
+- next product-level action or sequence;
+- product-area authority, membership, or template identity;
+- candidate, DC, PG, or production-promotion authority; or
+- a supersession that transfers work between product plans.
 
-Do not copy per-test results, unit-by-unit evidence, or the entire child execution table here.
-Those remain in the owning plan or `docs/progress/`. This keeps the master pointer useful without
-creating competing detailed ledgers.
-
-## Definition of done for this master-plan revision
-
-- All existing Shoppp plans appear in the register and retain their historical documents.
-- Commerce, IAM, AI, Theme Platform, Fashion Store, Decor Store, integration, and release work are
-  visible from one product entry point.
-- `FS-R5-U1` through `FS-R5-U8`, `ADM-LIST-U1` through `ADM-LIST-U8`, and `FS-F9-U1` through `FS-F9-U3` are complete. FS-F9-U4, FS-F10-U7, and the first FS-F11-U7 capture set were human-rejected despite green automated gates. The corrected FS-F11 Product was accepted on 2026-09-17 and closed after its complete aggregate and frozen-Vue evidence; the original one-percent screenshot limit remains recorded as unmet under the explicit R18 exception. FS-F13 now owns the bounded Contact interlude while FS-F12 remains incomplete at U2 after local U1/U8/U4/U5/U6 completion; both tails must close before authority returns to `REL-Pre-DC`, with no candidate, DC, deployment, or PG state advanced.
-- The retired `fashion`, `decor`, and `decor-store` implementations, retained reference naming, DC/PG scope, and worktree policy are stated
-  without changing product behavior in code.
-- No historical plan is marked complete without an owning completion statement.
-- Future product-level status changes have an explicit same-change update rule.
+Do not add independent plan registrations, completed-plan summaries, per-unit tables, test output,
+run IDs, deployment evidence, or historical retry narratives. Those belong to the plan or progress
+record that produced them.

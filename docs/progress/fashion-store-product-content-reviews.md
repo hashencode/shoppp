@@ -347,3 +347,41 @@ demonstration snapshot`. Its aggregate count cannot be reconstructed from its th
   passed afterward. The live-Commerce retry test passed with a mocked API recovery. Focused
   shell/Product/theme unit tests and storefront typecheck passed after the change; local preview
   generation and Wrangler dry run passed.
+
+## 2026-09-22 — U2/U3 migration closeout and U7 technical acceptance
+
+- The local successor remains exactly 13 Products, 28 active Variants, and 30 Product-owned media
+  records. The additive migration retains the exact 13 Product ID/slug/status tuples and 24
+  historical Variant ID/Product/SKU/status tuples, adds only the four Charcoal Variants, and
+  rejects stale identities, missing reference prices, the wrong warehouse, late collisions, and
+  rewritten surviving-media metadata. Price copies are limited to the expected active/effective
+  USD authority and inventory copies to `warehouse_fashion_staging`.
+- Application now exposes one ordered prepared-statement list and submits it through one D1
+  `batch()` boundary. A transaction-backed SQLite rehearsal proves a late failure leaves Variant,
+  price, inventory, and success-audit counts unchanged. The reviewable SQL remains local
+  preparation evidence; it is not remote apply authority. The generated bundle is published by
+  atomic directory rename only after plan and SQL are complete, and its receipt hashes both.
+- Focused catalog/contract/migration checks passed 28/28; the real API worker staging-catalog
+  suite passed 14/14; storefront typecheck, focused ESLint/Prettier, and `git diff --check` passed.
+  The expected repository-wide tools typecheck still reports the two pre-existing optional-field
+  errors in `composer.ts` and `home-merchandising.ts`; neither is introduced by this work.
+- The full live Fashion browser suite previously passed 18/18 and the Product-content suite passed
+  20/20. The Header transition was additionally checked at the exact 1599/1600px boundary and
+  passed without horizontal overflow. All 13 Product routes, distinct content, Product-owned
+  gallery/Description images, review states, color-image switching, and seven acceptance widths
+  are covered.
+- Fresh U7 captures live outside the repository at
+  `/Users/studio/.codex/visualizations/2026/09/21/01a0c3a5-e335-7ac2-a4bf-776202bd9919/fs-f12-u7-final/`.
+  They include Product widths 320/390/768/992/1024/1100/1440 and populated Reviews at 390/1440.
+  U2/U3 were technically complete; at this checkpoint U7 remained open only for the plan-required
+  explicit human content/media acceptance. No remote D1/R2 write, release activation, deployment,
+  Candidate, DC, or PG action occurred.
+
+## 2026-09-22 — U7 human acceptance and FS-F12 handback
+
+- The user explicitly accepted the fresh desktop/mobile Product and Reviews captures without
+  requesting corrections. This satisfies U7's remaining human content/media acceptance gate.
+- FS-F12 U1-U8 and its Definition of Done are complete. The completed plan is frozen as historical
+  evidence, and the product pointer moved in the same change to active FS-F14-U1.1.
+- The handback changes planning authority only. It performs no remote D1/R2 write, Catalog Release
+  activation, deployment, Candidate selection, DC, or PG action.

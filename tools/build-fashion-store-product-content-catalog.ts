@@ -6,6 +6,7 @@ import {
   validateFashionStoreLiveCatalog,
   verifyFashionStoreLiveCatalogMedia,
   type FashionStoreLiveCatalog,
+  type FashionStoreLiveCatalogVariant,
 } from "./prepare-fashion-store-live-catalog";
 
 const repositoryRoot = resolve(import.meta.dir, "..");
@@ -184,16 +185,18 @@ async function main() {
       ];
       const historicalVariants = product.variants;
       const samplePrice = historicalVariants[0]!.price;
-      const charcoalVariants = product.taxonomy.sizes.map((size) => ({
-        id: `var_01JF12CHARCOALSHIRT${size.padEnd(5, "0")}`,
-        sku: `DEMO-CHARCOAL-SHIRT-${size}`,
-        title: `Charcoal / ${size}`,
-        optionValues: { color: "Charcoal", size },
-        price: samplePrice,
-        inventory: { onHand: 20, oversellLimit: 0 },
-        status: "active",
-        weightGrams: null,
-      }));
+      const charcoalVariants = product.taxonomy.sizes.map<FashionStoreLiveCatalogVariant>(
+        (size) => ({
+          id: `var_01JF12CHARCOALSHIRT${size.padEnd(5, "0")}`,
+          sku: `DEMO-CHARCOAL-SHIRT-${size}`,
+          title: `Charcoal / ${size}`,
+          optionValues: { color: "Charcoal", size },
+          price: samplePrice,
+          inventory: { onHand: 20, oversellLimit: 0 },
+          status: "active",
+          weightGrams: null,
+        }),
+      );
       product.variants = [
         ...charcoalVariants,
         ...historicalVariants.map((variant) => {

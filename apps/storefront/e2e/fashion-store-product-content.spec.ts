@@ -113,6 +113,9 @@ test("all 13 Product routes show their own content, approved demo review state, 
       "utf8",
     ),
   ) as { products: CatalogProduct[] };
+  await page.addInitScript(() =>
+    localStorage.setItem("shoppp.fashion-store.cookie-notice-dismissed", "true"),
+  );
   await page.setViewportSize({ width: 390, height: 844 });
 
   for (const product of catalog.products) {
@@ -121,8 +124,10 @@ test("all 13 Product routes show their own content, approved demo review state, 
     await expect(page.locator(".product-info h4").first()).toHaveText(product.name);
     await expect(page.locator(".product-info")).toContainText(product.description);
     await expect(page.locator(".fashion-product-gallery img").first()).toBeVisible();
+    await page.getByRole("tab", { name: "Description" }).click();
     const descriptionImage = page.locator("#product-panel-description img");
     await expect(descriptionImage).toHaveCount(1);
+    await descriptionImage.scrollIntoViewIfNeeded();
     await expect
       .poll(() =>
         descriptionImage.evaluate(

@@ -2,16 +2,19 @@
 
 These rules apply to work in this repository.
 
-- Before plan-scoped implementation, identify the active feature plan and read its execution
-  checkpoint.
-- A successor plan must name its upstream product authority, inherited baseline, explicit
+- Before product-sequenced implementation, identify the active feature plan and read its execution
+  checkpoint. An independent bounded plan reads and owns its own scope without becoming the active
+  product plan.
+- A product successor plan must name its upstream product authority, inherited baseline, explicit
   supersessions, parallel plans, and tail ownership. Preserve stable R/F/AE/KTD/U identifiers where
-  their governed behavior still exists.
+  their governed behavior still exists. A bounded fix or refactor that does not change product
+  sequence, product membership, candidate scope, or cross-plan authority remains independent.
 - A stable U may use decimal execution child stages such as `U1.1` reconciliation, `U1.2` gap
   implementation, and `U1.3` verification. Child stages clarify the next action but never replace
   the parent U or become candidate completion authority.
-- The active feature plan is the only authority for its current unit, per-unit status, blocker,
-  next concrete action, and implementation tail.
+- The active product feature plan is the only authority for its current unit, per-unit status,
+  blocker, next concrete action, and implementation tail. Each independent small plan owns only its
+  own units and evidence.
 - Update that checkpoint in the same change that moves a unit between statuses, changes the current
   or next unit, changes execution order because of a blocker, or completes/reopens the plan.
 - Do not update volatile status for an internal fix that leaves those facts unchanged. Add focused
@@ -19,12 +22,20 @@ These rules apply to work in this repository.
   useful.
 - Progress/evidence files must not maintain a second current-unit queue. Candidate-readiness files
   track only Pre-DC eligibility, frozen candidate identity, DC evidence, and PG state.
-- `docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md` is the product master plan. It
-  owns the product map, complete plan register, global aliases, active-plan pointer, product-level
-  sequence, and supersession history. Child plans still own detailed U status and evidence.
+- `docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md` is a thin product navigation
+  and authority document. It owns the product map, global aliases, active-product-plan pointer,
+  product-level sequence, and cross-plan supersession boundaries. It is not a complete register of
+  every feature, fix, refactor, test run, or historical plan. Child and independent plans own their
+  detailed U status and evidence.
 - Update the master pointer in the same change that changes the active plan, current parent U or
-  decimal child stage, next concrete action, product-level order, plan classification, or tail
-  owner. Do not copy full child unit tables or per-test evidence into the master plan.
+  decimal child stage, next concrete action, product-level order, active product-plan
+  classification, or tail owner. Do not update it for a bounded independent plan that leaves those
+  facts unchanged. Do not copy full child unit tables, completed handoffs, run IDs, or per-test
+  evidence into the master plan.
+- Default to one small plan per bounded feature, fix, or refactor. Completing a plan freezes its
+  execution body: retain the file as historical evidence, mark it completed or superseded in that
+  file when needed, and do not keep appending current status. Reopen it only when the same governed
+  work is explicitly resumed; otherwise create a new small successor plan.
 - Commit subjects, branches, worktrees, and narrow probes are supporting trace, not completion
   authority.
 - Shoppp is one product. Current product template names are `fashion-store` and `decor-store`; the
