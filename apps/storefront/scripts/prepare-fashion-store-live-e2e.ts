@@ -566,7 +566,12 @@ async function main(): Promise<void> {
   }
   const liveReleaseFixture = {
     ...preparedReleaseFixture,
-    policies: [...releaseFixture.policies, selectedReleasePolicyProof],
+    policies: [
+      ...releaseFixture.policies.filter(
+        ({ slug }) => !emptyProduct || (slug !== "shipping" && slug !== "returns"),
+      ),
+      selectedReleasePolicyProof,
+    ],
     site: {
       ...(preparedReleaseFixture.site as Record<string, unknown>),
       name: "Shoppp live preview",
