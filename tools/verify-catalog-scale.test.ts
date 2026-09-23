@@ -11,6 +11,7 @@ import {
 describe("representative catalog fixture", () => {
   test("contains the release-contract scale with unique routes and identifiers", () => {
     const release = representativeCatalog();
+    const validatedRelease = canonicalCatalogReleaseSchema.parse(release);
     const variants = release.products.flatMap((product) => product.variants);
     expect(release.products).toHaveLength(1_000);
     expect(variants).toHaveLength(5_000);
@@ -19,13 +20,12 @@ describe("representative catalog fixture", () => {
     expect(
       release.collections.reduce((count, collection) => count + collection.productSlugs.length, 0),
     ).toBe(1_000);
-    expect(canonicalCatalogReleaseSchema.safeParse(release).success).toBe(true);
     expect(
       composeProductPageModel({
         locale: "en-US",
-        productId: release.products[0]!.id,
-        release,
-        slug: release.products[0]!.slug,
+        productId: validatedRelease.products[0]!.id,
+        release: validatedRelease,
+        slug: validatedRelease.products[0]!.slug,
       }).publishedRoutes,
     ).toHaveLength(release.routes.length);
   });
