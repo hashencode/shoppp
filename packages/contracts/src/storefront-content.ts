@@ -24,7 +24,17 @@ const safeTextSchema = z
   .string()
   .max(10_000)
   .refine(
-    (value) => !/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(value),
+    (value) =>
+      [...value].every((character) => {
+        const code = character.charCodeAt(0);
+        return !(
+          code <= 0x08 ||
+          code === 0x0b ||
+          code === 0x0c ||
+          (code >= 0x0e && code <= 0x1f) ||
+          code === 0x7f
+        );
+      }),
     "Control characters are not allowed.",
   )
   .refine(
@@ -271,7 +281,7 @@ export const contentListQuerySchema = z
   })
   .strict();
 
-const navigationTargetSchema = z.discriminatedUnion("kind", [
+export const navigationTargetSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("internal"), reference: storefrontResourceReferenceSchema }).strict(),
   z.object({ kind: z.literal("route"), path: storefrontRoutePathSchema }).strict(),
   z.object({ kind: z.literal("external"), url: credentialFreeHttpsUrlSchema }).strict(),
@@ -327,6 +337,48 @@ export const navigationMenuSchema = z
       }
     }
   });
+
+export const navigationMenuItemInputSchema = z
+  .object({
+    id: stableAuthorityIdSchema,
+    label: z.string().trim().min(1).max(120),
+    parentId: stableAuthorityIdSchema.nullable(),
+    position: z.int().nonnegative(),
+    target: navigationTargetSchema,
+  })
+  .strict();
+
+export const navigationMenuWriteRequestSchema = z
+  .object({
+    expectedVersion: z.int().positive().optional(),
+    items: z.array(navigationMenuItemInputSchema).max(100),
+    reason: z.string().trim().min(3).max(500),
+  })
+  .strict()
+  .superRefine((input, context) => {
+    const parsed = navigationMenuSchema.safeParse({
+      createdAt: "2000-01-01T00:00:00.000Z",
+      id: "menu.validation",
+      items: input.items,
+      placement: "header",
+      status: "draft",
+      updatedAt: "2000-01-01T00:00:00.000Z",
+      version: 1,
+    });
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        context.addIssue({ code: "custom", message: issue.message, path: issue.path.slice(1) });
+      }
+    }
+  });
+
+export const navigationTransitionRequestSchema = z
+  .object({
+    confirm: z.literal(true),
+    expectedVersion: z.int().positive(),
+    reason: z.string().trim().min(3).max(500),
+  })
+  .strict();
 
 export const collectionAuthoritySchema = z
   .object({
@@ -413,6 +465,9 @@ export const policyTransitionRequestSchema = z
 
 export type CollectionAuthority = z.infer<typeof collectionAuthoritySchema>;
 export type NavigationMenu = z.infer<typeof navigationMenuSchema>;
+export type NavigationMenuItemInput = z.infer<typeof navigationMenuItemInputSchema>;
+export type NavigationMenuWriteRequest = z.infer<typeof navigationMenuWriteRequestSchema>;
+export type NavigationTransitionRequest = z.infer<typeof navigationTransitionRequestSchema>;
 export type PolicyAuthority = z.infer<typeof policyAuthoritySchema>;
 export type StoreIdentity = z.infer<typeof storeIdentitySchema>;
 export type StorefrontContentSection = z.infer<typeof storefrontContentSectionSchema>;

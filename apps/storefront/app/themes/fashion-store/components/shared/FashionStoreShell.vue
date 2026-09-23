@@ -47,6 +47,14 @@ const announcementLink = computed(
 );
 const footer = computed(() => properties.footer ?? experienceShell?.value?.footer);
 const header = computed(() => properties.header ?? experienceShell?.value?.header);
+const resolvedPublishedRoutes = computed(
+  () => properties.publishedRoutes ?? experienceShell?.value?.publishedRoutes,
+);
+const renderedPublishedRoutes = computed(() =>
+  header.value?.legacyNavigation || footer.value?.legacyNavigation
+    ? resolvedPublishedRoutes.value
+    : properties.publishedRoutes,
+);
 const stickySocials = computed(
   () => footer.value?.publicContact?.socials ?? header.value?.publicContact?.socials ?? [],
 );
@@ -180,14 +188,14 @@ onMounted(() => {
     :configuration="header"
     :background="variant === 'home' ? 'transparent-overlay' : 'solid'"
     :resolve-asset="resolveAsset"
-    :published-routes="publishedRoutes"
+    :published-routes="renderedPublishedRoutes"
     @search-open-change="searchOpen = $event"
   />
   <slot />
   <FashionStoreFooter
     :brand-name="brandName"
     :configuration="footer"
-    :published-routes="publishedRoutes"
+    :published-routes="renderedPublishedRoutes"
     :resolve-asset="resolveAsset"
     :source-asset="sourceAsset"
   />

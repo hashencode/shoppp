@@ -76,6 +76,7 @@ const DISPOSABLE_TABLES = [
   "navigation_collection_references",
   "navigation_page_references",
   "navigation_policy_references",
+  "navigation_product_references",
   "navigation_items",
   "navigation_menu_versions",
   "order_addresses",

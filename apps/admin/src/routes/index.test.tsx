@@ -36,6 +36,7 @@ describe('first-level menu route contract', () => {
     'catalog-reviews': { title: 'Reviews', headingOwner: 'custom' },
     'content-pages': { title: 'Pages', headingOwner: 'standard-list' },
     'content-articles': { title: 'Articles', headingOwner: 'standard-list' },
+    'storefront-navigation': { title: 'Navigation', headingOwner: 'custom' },
     'storefront-themes': { title: 'Storefront themes', headingOwner: 'custom' },
     inventory: { title: 'Inventory', headingOwner: 'standard-list' },
     orders: { title: 'Orders', headingOwner: 'standard-list' },

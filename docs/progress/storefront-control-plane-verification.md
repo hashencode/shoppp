@@ -301,3 +301,42 @@ candidate, or change runtime behavior.
   browser scenarios passed.
 - No remote candidate, deployment, DC, or PG state was created or advanced. U5 completes local
   Content control capability only; product execution advances to U6.
+
+## U6 reusable Navigation and shared shell evidence
+
+- Characterized the pre-cutover Fashion Header, Shop mega menu, Collection cards, Pages menu, and
+  Footer link groups before replacing their current-schema source. The complete historical tree,
+  route availability, disabled placeholders, and Wishlist/Account capability branches remain an
+  explicit schema-v2-only contract so rollback tuples keep their frozen behavior.
+- Added independent versioned Header and Footer menu authorities with server-owned stable item IDs,
+  two-level ordering, typed route/resource/safe-external targets, optimistic writes, audit-coupled
+  publish/archive transitions, candidate/live/stale diagnostics, and exact-version Release capture.
+- Candidate construction validates every target against the exact published route/resource graph;
+  candidate source locks use the stable retryable conflict. Raw backlinks always block unsafe
+  transitions while permission filtering applies only to returned details, and predecessor/archive
+  mutations remain atomic under concurrent operators.
+- Admin provides Header/Footer tabs, permission-filtered resource choices, move up/down,
+  indent/outdent, remove, retry, conflict, and confirmation flows. Mounted L4 interaction tests
+  prove ordering, stale-request suppression, sole-item focus fallback, deterministic focus after
+  movement, and publisher/read-only behavior.
+- Fashion Header and Footer consume the released schema-v3 menus in exact saved order. Native
+  submenu controls share one keyboard/hover expanded state and truthful ARIA, safe external links
+  retain their required attributes, optional Footer Navigation disappears when empty, and
+  system-owned account/cart/checkout routes remain available.
+- Historical compatibility is explicit rather than a current-authority fallback: deep golden and
+  mobile DOM tests preserve the full schema-v2 Header/Mega Menu/Footer tree, route-unavailable
+  behavior, disabled placeholders, capability gating, and v2-to-v3-to-v2 rollback stability.
+- A full structured code review confirmed 13 findings across lifecycle safety, route eligibility,
+  historical rollback, keyboard focus, component semantics, picker races, permission filtering,
+  Footer targets, and real-render proof. All findings were repaired and independently reverified
+  Ready. Retained artifacts are
+  `/tmp/compound-engineering-501/ce-code-review/20260923-132046-3a6cdab9/report.md` and
+  `/tmp/compound-engineering-501/ce-code-review/20260923-132046-3a6cdab9/final-repair-verification.md`.
+- Authoritative verification on 2026-09-23: Admin full `595/595`, API workers `339/339`, DB workers
+  `18/18`, Contracts targeted `10/10`, Navigation unit/golden `4/4`, schema-v3 desktop/mobile
+  browser `2/2`, and focused legacy desktop/mobile browser `2/2` passed. API, Admin, DB, and
+  Storefront scoped TypeScript checks, root lint/boundaries, affected-file formatting, and
+  `git diff --check` passed. The Storefront full run's six failures were isolated to unchanged
+  baseline architecture/generation expectations; all U6 unit and browser paths passed.
+- No remote candidate, deployment, DC, or PG state was created or advanced. U6 completes local
+  Navigation control capability only; product execution advances to U7.

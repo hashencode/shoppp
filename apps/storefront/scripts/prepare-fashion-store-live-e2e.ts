@@ -98,7 +98,7 @@ export function fashionStoreLiveBuildInput(
   fixtureInput: FashionStoreFixtureInput,
   releaseFixture: FashionStoreReleaseFixture,
   expectedOrigin = fixtureInput.expectedOrigin,
-  options: { zeroArticles?: boolean } = {},
+  options: { navigationCandidate?: boolean; zeroArticles?: boolean } = {},
 ) {
   const productIds = new Map(
     releaseFixture.products.map((product, index) => [
@@ -235,6 +235,52 @@ export function fashionStoreLiveBuildInput(
     },
   ].filter(({ kind }) => !options.zeroArticles || kind !== "article");
   const routes = [...canonicalRelease.routes, ...releasedContent.map(({ route }) => route)];
+  const navigation = options.navigationCandidate
+    ? [
+        {
+          digest: "9".repeat(64),
+          id: "menu.header",
+          items: [
+            {
+              id: "navigation.catalog",
+              label: "Catalog",
+              parentId: null,
+              position: 0,
+              target: { kind: "route" as const, path: "/" },
+            },
+            {
+              id: "navigation.travel",
+              label: "Travel essentials",
+              parentId: "navigation.catalog",
+              position: 0,
+              target: {
+                kind: "internal" as const,
+                reference: {
+                  id: canonicalRelease.collections[0]!.id,
+                  kind: "collection" as const,
+                },
+              },
+            },
+            {
+              id: "navigation.guide",
+              label: "External guide",
+              parentId: "navigation.catalog",
+              position: 1,
+              target: { kind: "external" as const, url: "https://example.com/fashion-guide" },
+            },
+            {
+              id: "navigation.community",
+              label: "Community",
+              parentId: null,
+              position: 1,
+              target: { kind: "external" as const, url: "https://example.com/community" },
+            },
+          ],
+          placement: "header" as const,
+          version: 3,
+        },
+      ]
+    : [];
   const catalogRelease = catalogReleaseV3Schema.parse({
     ...canonicalRelease,
     content: releasedContent,
@@ -249,7 +295,7 @@ export function fashionStoreLiveBuildInput(
       tagline: "",
       version: 1,
     },
-    navigation: [],
+    navigation,
     purpose: "private-preview",
     routeOutput: routes,
     routes,
@@ -257,6 +303,16 @@ export function fashionStoreLiveBuildInput(
     sourceVersionVector: [
       { digest: "a".repeat(64), id: "identity.primary", kind: "store-identity", version: 1 },
       ...releasedContent.map(({ digest, id, kind, version }) => ({ digest, id, kind, version })),
+      ...(options.navigationCandidate
+        ? [
+            {
+              digest: "9".repeat(64),
+              id: "menu.header",
+              kind: "navigation" as const,
+              version: 3,
+            },
+          ]
+        : []),
     ],
   });
   const collection = catalogRelease.collections.find(({ status }) => status === "published");
@@ -425,8 +481,12 @@ async function main(): Promise<void> {
   const emptyHome = process.argv.includes("--empty-home");
   const emptyProduct = process.argv.includes("--empty-product");
   const zeroArticles = process.argv.includes("--zero-articles");
+  const navigationCandidate = process.argv.includes("--navigation-v3");
   const unifiedHome = process.argv.includes("--unified-home");
-  if ([emptyHome, emptyProduct, unifiedHome, zeroArticles].filter(Boolean).length > 1) {
+  if (
+    [emptyHome, emptyProduct, navigationCandidate, unifiedHome, zeroArticles].filter(Boolean)
+      .length > 1
+  ) {
     throw new Error("Choose one Fashion Store live fixture profile.");
   }
   const preparedReleaseFixture = structuredClone(releaseFixture);
@@ -537,7 +597,7 @@ async function main(): Promise<void> {
     productFixtureInput,
     liveReleaseFixture,
     productFixtureInput.expectedOrigin,
-    { zeroArticles },
+    { navigationCandidate, zeroArticles },
   );
   if (unifiedHome) {
     const profile = parseFashionStoreHomeDevelopmentProfile(
@@ -552,13 +612,15 @@ async function main(): Promise<void> {
       fixtureRoot,
       unifiedHome
         ? "fashion-store-live-unified-home-e2e-input.json"
-        : zeroArticles
-          ? "fashion-store-live-zero-articles-e2e-input.json"
-          : emptyHome
-            ? "fashion-store-live-empty-e2e-input.json"
-            : emptyProduct
-              ? "fashion-store-live-empty-product-e2e-input.json"
-              : "fashion-store-live-e2e-input.json",
+        : navigationCandidate
+          ? "fashion-store-navigation-v3-e2e-input.json"
+          : zeroArticles
+            ? "fashion-store-live-zero-articles-e2e-input.json"
+            : emptyHome
+              ? "fashion-store-live-empty-e2e-input.json"
+              : emptyProduct
+                ? "fashion-store-live-empty-product-e2e-input.json"
+                : "fashion-store-live-e2e-input.json",
     ),
     `${JSON.stringify(input, null, 2)}\n`,
   );

@@ -5,6 +5,7 @@ import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 import { useI18n } from '../../shared/contexts/i18n-context'
 import { renderInLocale } from '../../test/render-in-locale'
+import type { StorefrontCatalogResource } from '../../services/storefront/api'
 import { StorefrontResourcePicker } from './storefront-resource-picker'
 
 void React
@@ -82,6 +83,79 @@ afterEach(() => {
 afterAll(() => server.close())
 
 describe('StorefrontResourcePicker', () => {
+  it('ignores a slower response for the previously selected resource kind', async () => {
+    const resolvers = new Map<
+      string,
+      (result: {
+        data: Array<{ id: string; kind: 'article' | 'product'; name: string; path: string }>
+        page: number
+        pageSize: number
+        total: number
+      }) => void
+    >()
+    const loadResources = ({
+      kind: requestedKind,
+    }: {
+      kind: 'article' | 'collection' | 'page' | 'policy' | 'product'
+      page: number
+      pageSize: number
+      query: string
+    }) =>
+      new Promise<{
+        data: StorefrontCatalogResource[]
+        page: number
+        pageSize: number
+        total: number
+      }>((resolve) => {
+        resolvers.set(requestedKind, resolve as never)
+      })
+    const RaceHarness = () => {
+      const [kind, setKind] = useState<'article' | 'product'>('product')
+      return (
+        <>
+          <button onClick={() => setKind('article')}>Use articles</button>
+          <StorefrontResourcePicker
+            disabled={false}
+            kind={kind}
+            label="Race resource"
+            loadResources={loadResources}
+            missing={false}
+            onChange={() => undefined}
+          />
+        </>
+      )
+    }
+    renderInLocale(<RaceHarness />, 'en-US')
+    await waitFor(() => expect(resolvers.has('product')).toBe(true))
+    fireEvent.click(screen.getByRole('button', { name: 'Use articles' }))
+    await waitFor(() => expect(resolvers.has('article')).toBe(true))
+    await act(async () => {
+      resolvers.get('article')?.({
+        data: [{ id: 'article-new', kind: 'article', name: 'Article new', path: '/magazine/new' }],
+        page: 1,
+        pageSize: 12,
+        total: 1,
+      })
+    })
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Race resource' }).hasAttribute('disabled')).toBe(
+        false
+      )
+    )
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Race resource' }))
+    expect(await screen.findByText('Article new · /magazine/new')).toBeTruthy()
+    await act(async () => {
+      resolvers.get('product')?.({
+        data: [{ id: 'product-old', kind: 'product', name: 'Product old', path: '/products/old' }],
+        page: 1,
+        pageSize: 12,
+        total: 1,
+      })
+    })
+    expect(screen.queryByText('Product old · /products/old')).toBeNull()
+    expect(screen.getByText('Article new · /magazine/new')).toBeTruthy()
+  })
+
   it('should retain an off-page selection, search and pagination through language changes and clear selection', async () => {
     renderInLocale(<Harness />, 'zh-CN')
     await waitFor(() =>

@@ -63,17 +63,14 @@ const fixturePresentationProvider = createFixturePresentationProvider({
   fixtures: activeFixtureRegistry,
 });
 const pageContract = computed(() =>
-  resolveThemeRoute(
-    currentRoute.value.path,
-    activeThemeRoutes,
-    releaseInput,
-    routeMode,
-  ),
+  resolveThemeRoute(currentRoute.value.path, activeThemeRoutes, releaseInput, routeMode),
 );
 const presentationProvider = computed(() => {
   const productUsesRelease = pageContract.value?.pageType === "product" && releaseInput;
   const liveInput =
-    releaseInput && activeExperienceSnapshot && pageContract.value &&
+    releaseInput &&
+    activeExperienceSnapshot &&
+    pageContract.value &&
     (activeExperienceProviderInput.mode === "live" || productUsesRelease)
       ? {
           adapter: themeRegistry.composition,
@@ -185,7 +182,7 @@ const rendersPlatformRoute = computed(() => {
 });
 const liveRelease = releaseInput;
 const experienceShell = computed(() =>
-  activeExperienceProviderInput.mode === "live" && activeExperienceSnapshot && liveRelease
+  activeExperienceSnapshot && liveRelease
     ? composeExperienceShell({
         adapter: themeRegistry.composition,
         experience: activeExperienceSnapshot,

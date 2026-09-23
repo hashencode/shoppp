@@ -71,6 +71,12 @@ const API_ERROR_MESSAGE: Record<ApiErrorCode, string> = {
   content_redirect_required: 'Confirm a redirect from the previous storefront route.',
   content_route_conflict: 'That storefront route is already in use.',
   content_transition_invalid: 'This Content lifecycle action is no longer available.',
+  navigation_conflict: 'This Navigation menu changed. Reload it before continuing.',
+  navigation_referenced: 'Remove the current storefront references before archiving.',
+  navigation_target_unpublished: 'Choose a currently published Navigation target.',
+  navigation_transition_invalid: 'This Navigation lifecycle action is no longer available.',
+  catalog_candidate_sources_locked:
+    'Catalog sources are frozen while a Preview candidate is building. Retry shortly.',
   protected_admin_password_reset_denied: 'Online reset is disabled for protected administrators.',
   QUERY_TIMEOUT: 'The request timed out. Please try again.',
   QUERY_SERVER_ERROR: 'Request failed. Please try again later.',

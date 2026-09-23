@@ -23,6 +23,7 @@ export default defineConfig({
     "fashion-store-live-home-empty.spec.ts",
     "fashion-store-live-product-empty.spec.ts",
     "fashion-store-live-unified-home.spec.ts",
+    "fashion-store-navigation-v3.spec.ts",
     ...(!compatibilityBaseline ? ["fashion-store-compatibility-baseline.spec.ts"] : []),
   ],
   outputDir: compatibilityBaseline

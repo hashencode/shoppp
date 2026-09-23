@@ -1,46 +1,44 @@
 <script setup lang="ts">
-import FashionStoreIcon from "./FashionStoreIcon.vue";
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import { liveCommerceModeKey } from "../../../../theme-engine/runtime-commerce";
 import { fashionStoreLiveCapabilities } from "../../capability-matrix";
-import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId, resolveFashionStoreEditorMedia } from "../../resources";
+import FashionStoreIcon from "./FashionStoreIcon.vue";
+import FashionStoreLegacyHeaderNavigation from "./FashionStoreLegacyHeaderNavigation.vue";
 import FashionStoreMiniCart from "./FashionStoreMiniCart.vue";
 import FashionStoreSearchOverlay from "./FashionStoreSearchOverlay.vue";
 
 type MiniCartHandle = { closeCart(): void };
-type SearchOverlayHandle = {
-  closeSearch(restoreFocus?: boolean): Promise<void>;
-};
+type SearchOverlayHandle = { closeSearch(restoreFocus?: boolean): Promise<void> };
+type LegacyNavigationHandle = { close(): void };
 type HomeViewModel = Extract<PresentationViewModel, { kind: "home" }>;
 
 const properties = defineProps<{
-  background?: "solid" | "transparent-overlay";
   announcement?: string;
   announcementLink?: HomeViewModel["announcementLink"];
+  background?: "solid" | "transparent-overlay";
   brandName?: string;
   configuration?: HomeViewModel["shell"]["header"];
   publishedRoutes?: readonly string[];
   resolveAsset: ThemeAssetResolver;
 }>();
-const emit = defineEmits<{
-  searchOpenChange: [open: boolean];
-}>();
+const emit = defineEmits<{ searchOpenChange: [open: boolean] }>();
 
+const highDensity = ref(false);
+const liveMode = inject(liveCommerceModeKey, false);
 const menuOpen = ref(false);
 const menuToggle = ref<HTMLButtonElement>();
+const legacyNavigation = ref<LegacyNavigationHandle>();
 const miniCart = ref<MiniCartHandle>();
 const searchOpen = ref(false);
 const searchOverlay = ref<SearchOverlayHandle>();
-const highDensity = ref(false);
-const liveMode = inject(liveCommerceModeKey, false);
 const publicContact = computed(() =>
   liveMode ? properties.configuration?.publicContact : undefined,
 );
 const accountVisible = computed(() => !liveMode || fashionStoreLiveCapabilities.account);
-const searchVisible = computed(() => !liveMode || fashionStoreLiveCapabilities.catalogSearch);
 const wishlistVisible = computed(() => !liveMode || fashionStoreLiveCapabilities.wishlist);
+const searchVisible = computed(() => !liveMode || fashionStoreLiveCapabilities.catalogSearch);
 const unavailableHref = undefined;
 
 function sourceAsset(sourcePath: string): string {
@@ -77,14 +75,6 @@ function fallbackLogoAt2x(): string {
   return sourceAsset("images/demo-fashion-store-logo-black@2x.png");
 }
 
-function compactFallbackLogo(): string {
-  return fallbackLogo();
-}
-
-function compactFallbackLogoAt2x(): string {
-  return fallbackLogoAt2x();
-}
-
 onMounted(() => {
   highDensity.value = window.devicePixelRatio > 1;
 });
@@ -94,52 +84,54 @@ watch(searchOpen, (open) => {
   emit("searchOpenChange", open);
 });
 
-function toggleCompactDropdown(toggle: HTMLElement): void {
-  const dropdown = toggle.closest<HTMLElement>(".nav-item.dropdown");
-  if (!dropdown) return;
-  const menu = dropdown.querySelector<HTMLElement>(".dropdown-menu");
-  const expanded = !menu?.classList.contains("show");
-  menu?.classList.toggle("show", expanded);
-  toggle.classList.toggle("show", expanded);
-  toggle.setAttribute("aria-expanded", String(expanded));
+const expandedMenuId = ref<string>();
+
+function setExpanded(menuId: string, expanded: boolean): void {
+  if (expanded) expandedMenuId.value = menuId;
+  else if (expandedMenuId.value === menuId) expandedMenuId.value = undefined;
 }
 
-function handleDropdownToggle(event: Event): void {
-  if (innerWidth >= 992) return;
-  const toggle = event.currentTarget;
-  if (!(toggle instanceof HTMLElement)) return;
+function setHovered(menuId: string, expanded: boolean): void {
+  if (window.matchMedia("(min-width: 992px)").matches) setExpanded(menuId, expanded);
+}
+
+function handleDropdownToggle(event: Event, menuId: string): void {
   event.preventDefault();
-  toggleCompactDropdown(toggle);
+  setExpanded(menuId, expandedMenuId.value !== menuId);
 }
 
 function handleHeaderNavigation(event: MouseEvent): void {
   const target = event.target;
-  if (!(target instanceof Element)) return;
-  if (!target.closest("a[data-fashion-store-route]")) return;
-  void closeTransient(true);
+  const link =
+    target instanceof Element
+      ? target.closest<HTMLAnchorElement>("a[data-fashion-store-route]")
+      : null;
+  if (link) {
+    if (new URL(link.href, window.location.href).pathname === window.location.pathname) {
+      event.preventDefault();
+    }
+    void closeTransient(true);
+  }
 }
 
 async function closeTransient(restoreMenuFocus = false): Promise<void> {
-  const shouldRestoreMenuFocus = restoreMenuFocus && menuOpen.value;
+  const restore = restoreMenuFocus && menuOpen.value;
+  if (restore) menuToggle.value?.focus();
   menuOpen.value = false;
+  expandedMenuId.value = undefined;
+  legacyNavigation.value?.close();
   miniCart.value?.closeCart();
   await searchOverlay.value?.closeSearch(false);
-  document.querySelectorAll(".navbar-left .nav-item.open").forEach((element) => {
-    element.classList.remove("open");
-    element.querySelector(".dropdown-toggle")?.setAttribute("aria-expanded", "false");
-  });
-  document.querySelectorAll(".navbar-left .dropdown-menu.show").forEach((element) => {
-    element.classList.remove("show");
-    const dropdown = element.closest(".nav-item.dropdown");
-    dropdown?.querySelector(".dropdown-toggle")?.classList.remove("show");
-    dropdown?.querySelector(".dropdown-toggle")?.setAttribute("aria-expanded", "false");
-  });
   document
-    .querySelectorAll(
-      "[data-fashion-store-header] .navbar.submenu-light, [data-fashion-store-header] .navbar.submenu-dark",
-    )
-    .forEach((element) => element.classList.remove("submenu-light", "submenu-dark"));
-  if (shouldRestoreMenuFocus) {
+    .querySelectorAll("[data-fashion-store-header] .dropdown-menu.show")
+    .forEach((element) => {
+      element.classList.remove("show");
+      element
+        .closest(".nav-item.dropdown")
+        ?.querySelector(".dropdown-toggle")
+        ?.setAttribute("aria-expanded", "false");
+    });
+  if (restore) {
     await nextTick();
     menuToggle.value?.focus();
   }
@@ -178,14 +170,14 @@ defineExpose({ closeTransient });
               <span>{{ configuration.contactCopy }}</span>
             </div>
             <div v-if="configuration?.highlightLink" class="widget-text icon alt-font">
-              <a :href="configuration.highlightLink.href" data-fashion-store-route>{{
-                configuration.highlightLink.label
-              }}</a>
+              <a :href="configuration.highlightLink.href" data-fashion-store-route>
+                {{ configuration.highlightLink.label }}
+              </a>
             </div>
             <div v-if="configuration?.legalLink" class="widget-text icon alt-font">
-              <a :href="configuration.legalLink.href" data-fashion-store-route>{{
-                configuration.legalLink.label
-              }}</a>
+              <a :href="configuration.legalLink.href" data-fashion-store-route>
+                {{ configuration.legalLink.label }}
+              </a>
             </div>
             <div
               v-for="social in publicContact?.socials ?? []"
@@ -247,551 +239,102 @@ defineExpose({ closeTransient });
             <img
               :alt="configuration?.logo?.alt ?? ''"
               class="default-logo"
-              v-bind:src="configuredLogo() ?? fallbackLogo()"
+              :src="configuredLogo() ?? fallbackLogo()"
               v-bind:data-at2x="configuredLogo() ?? fallbackLogoAt2x()"
             />
             <img
               :alt="configuration?.logo?.alt ?? ''"
               class="alt-logo"
-              v-bind:src="configuredLogo() ?? fallbackLogo()"
+              :src="configuredLogo() ?? fallbackLogo()"
               v-bind:data-at2x="configuredLogo() ?? fallbackLogoAt2x()"
             />
             <img
               :alt="configuration?.logo?.alt ?? ''"
               class="mobile-logo"
-              v-bind:src="configuredLogo() ?? compactFallbackLogo()"
-              v-bind:data-at2x="configuredLogo() ?? compactFallbackLogoAt2x()"
+              :src="configuredLogo() ?? fallbackLogo()"
+              v-bind:data-at2x="configuredLogo() ?? fallbackLogoAt2x()"
             />
           </a>
         </div>
-        <div class="col-auto col-xxl-6 col-lg-8 menu-order">
+        <div class="col-auto col-xxl-6 col-lg-8 menu-order position-static">
           <button
             ref="menuToggle"
             class="navbar-toggler float-end"
             type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#navbarNav"
             aria-controls="navbarNav"
             aria-label="Toggle navigation"
-            v-bind:aria-expanded="menuOpen"
-            v-on:click="menuOpen = !menuOpen"
+            :aria-expanded="menuOpen"
+            @click="menuOpen = !menuOpen"
           >
-            <span class="navbar-toggler-line"></span>
-            <span class="navbar-toggler-line"></span>
-            <span class="navbar-toggler-line"></span>
-            <span class="navbar-toggler-line"></span>
+            <span class="navbar-toggler-line"></span><span class="navbar-toggler-line"></span
+            ><span class="navbar-toggler-line"></span><span class="navbar-toggler-line"></span>
           </button>
           <div
-            class="collapse navbar-collapse justify-content-between"
             id="navbarNav"
-            v-bind:class="{ show: menuOpen }"
+            class="collapse navbar-collapse justify-content-between"
+            :class="{ show: menuOpen }"
           >
-            <ul class="navbar-nav alt-font navbar-left justify-content-end">
-              <li class="nav-item">
-                <NuxtLink to="/" data-fashion-store-route class="nav-link">Home</NuxtLink>
-              </li>
-              <li class="nav-item dropdown submenu">
+            <FashionStoreLegacyHeaderNavigation
+              v-if="configuration?.legacyNavigation"
+              ref="legacyNavigation"
+              :account-visible="accountVisible"
+              :navigation="configuration.legacyNavigation"
+              :published-routes="publishedRoutes"
+              :source-asset="sourceAsset"
+              :wishlist-visible="wishlistVisible"
+            />
+            <ul v-else class="navbar-nav alt-font navbar-left" data-released-header-navigation>
+              <li
+                v-for="item in configuration?.navigation?.items ?? []"
+                :key="item.id"
+                class="nav-item"
+                :class="{
+                  dropdown: item.children.length,
+                  submenu: item.children.length,
+                  open: expandedMenuId === item.id,
+                }"
+                @mouseenter="item.children.length && setHovered(item.id, true)"
+                @mouseleave="item.children.length && setHovered(item.id, false)"
+              >
                 <a
-                  :href="routeHref(fashionStoreRoutePaths['shop-left'])"
-                  :aria-disabled="!routeHref(fashionStoreRoutePaths['shop-left'])"
+                  :href="item.href"
                   data-fashion-store-route
                   class="nav-link"
-                  >Shop</a
+                  :target="item.targetBehavior === 'new-window' ? '_blank' : undefined"
+                  :rel="item.targetBehavior === 'new-window' ? 'noopener noreferrer' : undefined"
+                  >{{ item.label }}</a
                 >
-                <FashionStoreIcon
-                  name="chevron-down"
-                  class="dropdown-toggle"
-                  id="navbarDropdownMenuLink1"
-                  aria-hidden="false"
-                  aria-label="Toggle Shop menu"
-                  role="button"
-                  tabindex="0"
-                  @click="handleDropdownToggle"
-                  @keydown.enter="handleDropdownToggle"
-                  @keydown.space="handleDropdownToggle"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                />
-                <div
-                  class="dropdown-menu submenu-content"
-                  aria-labelledby="navbarDropdownMenuLink1"
-                >
-                  <div class="d-lg-flex mega-menu m-auto flex-column">
-                    <div
-                      class="row row-cols-1 row-cols-lg-5 row-cols-md-3 row-cols-sm-3 mb-50px md-mb-25px xs-mb-15px"
-                    >
-                      <div class="col">
-                        <ul>
-                          <li class="sub-title">Men</li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Jeans</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Trousers</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Swimwear</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Casual shirts</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Rain jackets</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Loungewear</a
-                            >
-                          </li>
-                        </ul>
-                      </div>
-                      <div class="col">
-                        <ul>
-                          <li class="sub-title">Women</li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Dupattas</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Leggings</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Ethnic wear</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Kurtas &amp; suits</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Western wear</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Dress materials</a
-                            >
-                          </li>
-                        </ul>
-                      </div>
-                      <div class="col">
-                        <ul>
-                          <li class="sub-title">Kids</li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Dresses</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Jumpsuits</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Track pants</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Ethnic wear</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Value packs</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Loungewear</a
-                            >
-                          </li>
-                        </ul>
-                      </div>
-                      <div class="col">
-                        <ul>
-                          <li class="sub-title">Divided</li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Tops</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Dresses</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Shorts</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Swimwear</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Jeans</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Jackets</a
-                            >
-                          </li>
-                        </ul>
-                      </div>
-                      <div class="col">
-                        <ul>
-                          <li class="sub-title">Accessories</li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Shoes</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Scarves</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Watches</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Wristwear</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Backpacks</a
-                            >
-                          </li>
-                          <li>
-                            <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                              >Sunglasses</a
-                            >
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                    <div class="row row-cols-1 row-cols-sm-2">
-                      <div class="col">
-                        <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                          ><img
-                            alt=""
-                            v-bind:src="
-                              sourceAsset('images/demo-fashion-store-menu-banner-01.jpg')
-                            "
-                        /></a>
-                      </div>
-                      <div class="col">
-                        <a :href="unavailableHref" data-fashion-store-route aria-disabled="true"
-                          ><img
-                            alt=""
-                            v-bind:src="
-                              sourceAsset('images/demo-fashion-store-menu-banner-02.jpg')
-                            "
-                        /></a>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </li>
-              <li class="nav-item dropdown submenu">
-                <a
-                  :href="routeHref(fashionStoreRoutePaths.collection)"
-                  data-fashion-store-route
-                  class="nav-link"
-                  >Collection</a
-                >
-                <FashionStoreIcon
-                  name="chevron-down"
-                  class="dropdown-toggle"
-                  id="navbarDropdownMenuLink2"
-                  aria-hidden="false"
-                  aria-label="Toggle Collection menu"
-                  role="button"
-                  tabindex="0"
-                  @click="handleDropdownToggle"
-                  @keydown.enter="handleDropdownToggle"
-                  @keydown.space="handleDropdownToggle"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                />
-                <div
-                  class="dropdown-menu submenu-content"
-                  aria-labelledby="navbarDropdownMenuLink2"
-                >
-                  <div class="d-lg-flex mega-menu m-auto flex-column">
-                    <div
-                      class="row row-cols-2 row-cols-lg-6 row-cols-md-3 row-cols-sm-2 md-mx-0 align-items-center justify-content-center"
-                    >
-                      <div class="col md-mb-25px">
-                        <a
-                          :href="unavailableHref"
-                          data-fashion-store-route
-                          aria-disabled="true"
-                          class="justify-content-center mb-10px"
-                        >
-                          <img
-                            class="border-radius-4px w-100"
-                            alt=""
-                            v-bind:src="
-                              sourceAsset('images/demo-fashion-store-menu-category-01.jpg')
-                            "
-                          />
-                        </a>
-                        <a
-                          :href="unavailableHref"
-                          data-fashion-store-route
-                          aria-disabled="true"
-                          class="btn btn-hover-animation fw-500 text-uppercase-inherit justify-content-center pt-0 pb-0"
-                        >
-                          <span>
-                            <span class="btn-text text-dark-gray fs-17">Polo t-shirts</span>
-                            <span class="btn-icon"
-                              ><FashionStoreIcon name="arrow-right" class="icon-very-small w-auto"
-                            /></span>
-                          </span>
-                        </a>
-                      </div>
-                      <div class="col md-mb-25px">
-                        <a
-                          :href="unavailableHref"
-                          data-fashion-store-route
-                          aria-disabled="true"
-                          class="justify-content-center mb-10px"
-                        >
-                          <img
-                            class="border-radius-4px w-100"
-                            alt=""
-                            v-bind:src="
-                              sourceAsset('images/demo-fashion-store-menu-category-02.jpg')
-                            "
-                          />
-                        </a>
-                        <a
-                          :href="unavailableHref"
-                          data-fashion-store-route
-                          aria-disabled="true"
-                          class="btn btn-hover-animation fw-500 text-uppercase-inherit justify-content-center pt-0 pb-0"
-                        >
-                          <span>
-                            <span class="btn-text text-dark-gray fs-17">Sunglasses</span>
-                            <span class="btn-icon"
-                              ><FashionStoreIcon name="arrow-right" class="icon-very-small w-auto"
-                            /></span>
-                          </span>
-                        </a>
-                      </div>
-                      <div class="col md-mb-25px">
-                        <a
-                          :href="unavailableHref"
-                          data-fashion-store-route
-                          aria-disabled="true"
-                          class="justify-content-center mb-10px"
-                        >
-                          <img
-                            class="border-radius-4px w-100"
-                            alt=""
-                            v-bind:src="
-                              sourceAsset('images/demo-fashion-store-menu-category-03.jpg')
-                            "
-                          />
-                        </a>
-                        <a
-                          :href="unavailableHref"
-                          data-fashion-store-route
-                          aria-disabled="true"
-                          class="btn btn-hover-animation fw-500 text-uppercase-inherit justify-content-center pt-0 pb-0"
-                        >
-                          <span>
-                            <span class="btn-text text-dark-gray fs-17">Skinny blazer</span>
-                            <span class="btn-icon"
-                              ><FashionStoreIcon name="arrow-right" class="icon-very-small w-auto"
-                            /></span>
-                          </span>
-                        </a>
-                      </div>
-                      <div class="col sm-mb-25px">
-                        <a
-                          :href="unavailableHref"
-                          data-fashion-store-route
-                          aria-disabled="true"
-                          class="justify-content-center mb-10px"
-                        >
-                          <img
-                            class="border-radius-4px w-100"
-                            alt=""
-                            v-bind:src="
-                              sourceAsset('images/demo-fashion-store-menu-category-04.jpg')
-                            "
-                          />
-                        </a>
-                        <a
-                          :href="unavailableHref"
-                          data-fashion-store-route
-                          aria-disabled="true"
-                          class="btn btn-hover-animation fw-500 text-uppercase-inherit justify-content-center pt-0 pb-0"
-                        >
-                          <span>
-                            <span class="btn-text text-dark-gray fs-17">Casual shoes</span>
-                            <span class="btn-icon"
-                              ><FashionStoreIcon name="arrow-right" class="icon-very-small w-auto"
-                            /></span>
-                          </span>
-                        </a>
-                      </div>
-                      <div class="col">
-                        <a
-                          :href="unavailableHref"
-                          data-fashion-store-route
-                          aria-disabled="true"
-                          class="justify-content-center mb-10px"
-                        >
-                          <img
-                            class="border-radius-4px w-100"
-                            alt=""
-                            v-bind:src="
-                              sourceAsset('images/demo-fashion-store-menu-category-05.jpg')
-                            "
-                          />
-                        </a>
-                        <a
-                          :href="unavailableHref"
-                          data-fashion-store-route
-                          aria-disabled="true"
-                          class="btn btn-hover-animation fw-500 text-uppercase-inherit justify-content-center pt-0 pb-0"
-                        >
-                          <span>
-                            <span class="btn-text text-dark-gray fs-17">Winter jackets</span>
-                            <span class="btn-icon"
-                              ><FashionStoreIcon name="arrow-right" class="icon-very-small w-auto"
-                            /></span>
-                          </span>
-                        </a>
-                      </div>
-                      <div class="col">
-                        <a
-                          :href="unavailableHref"
-                          data-fashion-store-route
-                          aria-disabled="true"
-                          class="justify-content-center mb-10px"
-                        >
-                          <img
-                            class="border-radius-4px w-100"
-                            alt=""
-                            v-bind:src="
-                              sourceAsset('images/demo-fashion-store-menu-category-06.jpg')
-                            "
-                          />
-                        </a>
-                        <a
-                          :href="unavailableHref"
-                          data-fashion-store-route
-                          aria-disabled="true"
-                          class="btn btn-hover-animation fw-500 text-uppercase-inherit justify-content-center pt-0 pb-0"
-                        >
-                          <span>
-                            <span class="btn-text text-dark-gray fs-17">Men's shorts</span>
-                            <span class="btn-icon"
-                              ><FashionStoreIcon name="arrow-right" class="icon-very-small w-auto"
-                            /></span>
-                          </span>
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </li>
-            </ul>
-            <ul class="navbar-nav alt-font navbar-right justify-content-start">
-              <li class="nav-item">
-                <a
-                  :href="routeHref(fashionStoreRoutePaths.magazine)"
-                  data-fashion-store-route
-                  class="nav-link"
-                  >Magazine</a
-                >
-              </li>
-              <li class="nav-item dropdown simple-dropdown">
-                <button type="button" class="nav-link fashion-store-source-action">Pages</button>
-                <FashionStoreIcon
-                  name="chevron-down"
-                  class="dropdown-toggle"
-                  id="navbarDropdownMenuLink3"
-                  aria-hidden="false"
-                  aria-label="Toggle Pages menu"
-                  role="button"
-                  tabindex="0"
-                  @click="handleDropdownToggle"
-                  @keydown.enter="handleDropdownToggle"
-                  @keydown.space="handleDropdownToggle"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                />
-                <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink3">
-                  <li>
-                    <a :href="routeHref(fashionStoreRoutePaths.about)" data-fashion-store-route
-                      >About</a
-                    >
-                  </li>
-                  <li>
-                    <a :href="routeHref(fashionStoreRoutePaths.faq)" data-fashion-store-route
-                      >Faq</a
-                    >
-                  </li>
-                  <li v-if="wishlistVisible">
-                    <a :href="routeHref(fashionStoreRoutePaths.wishlist)" data-fashion-store-route
-                      >Wishlist</a
-                    >
-                  </li>
-                  <li v-if="accountVisible">
-                    <a :href="routeHref(fashionStoreRoutePaths.account)" data-fashion-store-route
-                      >Account</a
-                    >
-                  </li>
-                  <li>
-                    <a :href="routeHref(fashionStoreRoutePaths.cart)" data-fashion-store-route
-                      >Cart</a
-                    >
-                  </li>
-                  <li>
-                    <a :href="routeHref(fashionStoreRoutePaths.checkout)" data-fashion-store-route
-                      >Checkout</a
-                    >
-                  </li>
-                </ul>
-              </li>
-              <li class="nav-item">
-                <a
-                  :href="routeHref(fashionStoreRoutePaths.contact)"
-                  data-fashion-store-route
-                  class="nav-link"
-                  >Contact</a
-                >
+                <template v-if="item.children.length">
+                  <button
+                    :id="`navigation-toggle-${item.id}`"
+                    type="button"
+                    class="dropdown-toggle"
+                    :aria-controls="`navigation-menu-${item.id}`"
+                    :aria-label="`Toggle ${item.label} menu`"
+                    :aria-expanded="expandedMenuId === item.id"
+                    @click="handleDropdownToggle($event, item.id)"
+                  >
+                    <FashionStoreIcon name="chevron-down" aria-hidden="true" />
+                  </button>
+                  <ul
+                    :id="`navigation-menu-${item.id}`"
+                    class="dropdown-menu"
+                    :class="{ show: expandedMenuId === item.id }"
+                    :aria-labelledby="`navigation-toggle-${item.id}`"
+                  >
+                    <li v-for="child in item.children" :key="child.id">
+                      <a
+                        :href="child.href"
+                        data-fashion-store-route
+                        :target="child.targetBehavior === 'new-window' ? '_blank' : undefined"
+                        :rel="
+                          child.targetBehavior === 'new-window' ? 'noopener noreferrer' : undefined
+                        "
+                        >{{ child.label }}</a
+                      >
+                    </li>
+                  </ul>
+                </template>
               </li>
             </ul>
           </div>
@@ -805,7 +348,8 @@ defineExpose({ closeTransient });
             />
             <div v-if="accountVisible" class="widget-text icon alt-font">
               <a
-                :href="routeHref(fashionStoreRoutePaths.account)"
+                :href="routeHref('/account')"
+                :aria-disabled="routeHref('/account') ? undefined : 'true'"
                 class="fashion-store-header-labeled-action"
                 data-fashion-store-route
                 aria-label="Account"
@@ -829,248 +373,79 @@ defineExpose({ closeTransient });
   inset: 0 0 auto;
   z-index: 20;
 }
-
 .fashion-store-header-surface-transparent-overlay .navbar {
   background: transparent !important;
-  transition:
-    background-color 0.2s ease,
-    box-shadow 0.2s ease;
 }
-
+.fashion-store-header-surface-solid .navbar,
 .fashion-store-header-surface-transparent-overlay .navbar.submenu-light {
   background: #fff !important;
-  box-shadow: 0 0 50px rgb(0 0 0 / 10%);
 }
-
-.fashion-store-header-surface-solid .navbar {
-  background: #fff !important;
-}
-
 .fashion-store-header-canonical {
   --alt-font: "Plus Jakarta Sans", sans-serif;
   --primary-font: "Plus Jakarta Sans", sans-serif;
 }
-
 .fashion-store-header-canonical :deep(.fashion-store-header-labeled-action) {
   font-weight: 600;
 }
-
-.fashion-store-source-action {
-  appearance: none;
-  background: transparent;
-  border: 0;
-  color: inherit;
-  font: inherit;
-  padding: 0;
-}
-
-:where(.fashion-store-header-canonical) .container,
-:where(.fashion-store-header-canonical) .container-fluid,
-:where(.fashion-store-header-canonical) .container-lg,
-:where(.fashion-store-header-canonical) .container-md,
-:where(.fashion-store-header-canonical) .container-sm,
-:where(.fashion-store-header-canonical) .container-xl,
-:where(.fashion-store-header-canonical) .container-xxl {
-  padding-right: 15px;
-  padding-left: 15px;
-}
-
-:where(.fashion-store-header-canonical) .row {
-  margin-right: -15px;
-  margin-left: -15px;
-}
-
-:where(.fashion-store-header-canonical) .row > * {
-  padding-right: 15px;
-  padding-left: 15px;
-}
-
-:where(.fashion-store-header-canonical) .navbar {
+.fashion-store-header-canonical .navbar {
   line-height: 32px;
   padding: 0;
 }
-
-/* Preserve Crafto's breakpoint-specific navigation gutters after the scoped
-   Bootstrap gutter normalization above. */
 .fashion-store-header-canonical .navbar > .container-fluid {
+  min-height: 96px;
   padding-right: 45px;
   padding-left: 45px;
 }
-
+.fashion-store-header-canonical .menu-logo {
+  display: flex;
+  align-items: center;
+}
+.fashion-store-header-canonical .navbar-brand {
+  display: flex;
+  max-width: 167px;
+  margin: 0;
+}
+.fashion-store-header-canonical .navbar-brand img {
+  max-width: 100%;
+  max-height: 36px;
+  object-fit: contain;
+}
+.fashion-store-header-canonical .navbar-nav .nav-link {
+  padding-right: 20px;
+  padding-left: 20px;
+  font-size: 17px;
+  font-weight: 600;
+}
 @media (max-width: 1199px) {
   .fashion-store-header-canonical .navbar > .container-fluid {
     padding-right: 35px;
     padding-left: 35px;
   }
 }
-
-@media (min-width: 768px) and (max-width: 991px) {
-  .fashion-store-header-canonical .navbar {
-    padding-right: 15px;
-    padding-left: 15px;
-  }
-}
-
 @media (max-width: 991px) {
   .fashion-store-header-canonical .navbar {
     min-height: 80px;
   }
-
-  .fashion-store-header-canonical.fashion-store-header-surface-transparent-overlay .navbar {
+  .fashion-store-header-surface-transparent-overlay .navbar {
     background: #fff !important;
   }
-
   .fashion-store-header-canonical .navbar > .container-fluid {
+    min-height: 80px;
     padding-right: 15px;
     padding-left: 15px;
     flex-wrap: nowrap;
-    justify-content: flex-start;
   }
-
-  .fashion-store-header-canonical .menu-logo,
-  .fashion-store-header-canonical .menu-order,
-  .fashion-store-header-canonical .navbar > .container-fluid > :last-child {
-    width: auto;
-    max-width: none;
-    padding-right: 0;
-    padding-left: 0;
-  }
-
-  .fashion-store-header-canonical .menu-logo {
-    order: 1;
-    min-width: 0;
-    margin-right: auto;
-  }
-
-  .fashion-store-header-canonical .navbar > .container-fluid > :last-child {
-    order: 2;
-  }
-
   .fashion-store-header-canonical .menu-order {
     order: 3;
     margin-left: 12px;
   }
-}
-
-.fashion-store-header-canonical .navbar.disable-fixed {
-  top: 0 !important;
-}
-
-.fashion-store-header-canonical .menu-logo {
-  display: flex;
-  align-items: center;
-}
-
-.fashion-store-header-canonical .navbar-brand {
-  align-items: center;
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
-@media (min-width: 992px) {
-  .fashion-store-header-canonical .navbar {
-    padding: 0;
-  }
-
-  .fashion-store-header-canonical .navbar > .container-fluid {
-    display: flex;
-    align-items: center;
-    min-height: 96px;
-  }
-
-  .fashion-store-header-canonical .menu-logo,
-  .fashion-store-header-canonical .menu-order,
-  .fashion-store-header-canonical .navbar > .container-fluid > :last-child {
-    width: auto;
-    max-width: none;
-    padding-right: 15px;
-    padding-left: 15px;
-  }
-
-  .fashion-store-header-canonical .navbar-brand {
-    position: static;
-    display: flex;
-    max-width: 167px;
-    margin: 0;
-    transform: none;
-  }
-
-  .fashion-store-header-canonical .navbar-brand img {
-    max-width: 100%;
-    max-height: 36px;
-    object-fit: contain;
-    object-position: left center;
-  }
-
-  .fashion-store-header-canonical .navbar-collapse,
-  .fashion-store-header-canonical .navbar-nav {
-    width: auto;
-  }
-
   .fashion-store-header-canonical .navbar-collapse {
-    flex: 0 0 auto;
-    display: flex !important;
-    gap: 0;
-  }
-
-  .fashion-store-header-canonical .navbar-left,
-  .fashion-store-header-canonical .navbar-right {
-    flex: 0 1 auto;
-    width: auto;
-  }
-
-  .fashion-store-header-canonical .navbar-nav .nav-link {
-    padding-right: 20px;
-    padding-left: 20px;
-    font-size: 17px;
-    font-weight: 600;
-  }
-
-  .fashion-store-header-canonical .navbar > .container-fluid > :last-child {
-    margin-left: auto;
-  }
-
-  .fashion-store-header-canonical .navbar > .container-fluid > :last-child .header-icon {
-    justify-content: flex-end;
-    flex-wrap: nowrap;
-  }
-}
-
-@media (min-width: 992px) and (max-width: 1399px) {
-  .fashion-store-header-canonical .menu-logo > .header-icon {
-    display: none !important;
-  }
-}
-
-@media (min-width: 1400px) {
-  .fashion-store-header-canonical .menu-logo > .navbar-brand {
-    order: 1;
-  }
-
-  .fashion-store-header-canonical .menu-logo > .header-icon {
-    order: 2;
-    gap: 14px;
-    min-width: 0;
-    margin-left: 24px;
-  }
-
-  .fashion-store-header-canonical .menu-logo > .header-icon .widget-text {
-    margin: 0;
-    font-size: 13px;
-    white-space: nowrap;
-  }
-}
-
-@media (min-width: 1400px) and (max-width: 1599px) {
-  .fashion-store-header-canonical .menu-logo > .header-icon .fashion-store-header-social {
-    display: none;
-  }
-}
-
-@media (min-width: 992px) and (max-width: 1199px) {
-  .fashion-store-header-canonical .navbar-nav .nav-link {
-    padding-right: 15px;
-    padding-left: 15px;
+    position: absolute;
+    top: 80px;
+    right: 0;
+    left: 0;
+    background: #fff;
+    padding: 12px 20px;
   }
 }
 </style>

@@ -220,6 +220,22 @@ const commerceRoutes: TemplateRoute[] = [
       ),
   },
   {
+    key: 'storefront-navigation',
+    path: '/storefront/navigation',
+    title: 'Navigation',
+    icon: createElement(GlobalOutlined),
+    permission: 'navigation.read',
+    inMenu: true,
+    menuMode: 'standalone',
+    breadcrumb: ['Storefront', 'Navigation'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/storefront/navigation-page').then((m) => ({
+          default: m.NavigationPage,
+        }))
+      ),
+  },
+  {
     key: 'storefront-themes',
     path: '/storefront/themes',
     title: 'Storefront themes',

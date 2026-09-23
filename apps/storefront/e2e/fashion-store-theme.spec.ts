@@ -1055,6 +1055,31 @@ test("header search works and the preview cart starts empty", async ({ page }, t
   await expect(cart.locator(".cart-item-list")).toBeHidden();
 });
 
+test("desktop submenu controls expand from keyboard and retain hover behavior", async ({
+  page,
+}, testInfo) => {
+  test.skip(!isFashionStoreViewport(testInfo, "desktop"));
+  await ready(page, "/");
+
+  const shop = page.locator(".navbar-left .nav-item.dropdown").first();
+  const toggle = shop.getByRole("button", { name: "Toggle Shop menu" });
+  const menu = shop.locator(".dropdown-menu");
+  await toggle.focus();
+  await page.keyboard.press("Enter");
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect(menu).toBeVisible();
+  await page.keyboard.press("Space");
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(menu).toBeHidden();
+
+  await shop.hover();
+  await expect(menu).toBeVisible();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await page.mouse.move(0, page.viewportSize()!.height - 1);
+  await expect(menu).toBeHidden();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+});
+
 test("mobile menu closes through Nuxt handling and restores toggle focus", async ({
   page,
 }, testInfo) => {
@@ -1065,14 +1090,104 @@ test("mobile menu closes through Nuxt handling and restores toggle focus", async
   await page.keyboard.press("Enter");
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
   await expect(page.locator("#navbarNav")).toHaveClass(/show/);
+  await expect(page.locator("#navbarNav > .navbar-nav > .nav-item > .nav-link")).toHaveText([
+    "Home",
+    "Shop",
+    "Collection",
+    "Magazine",
+    "Pages",
+    "Contact",
+  ]);
+  const unavailableHeaderRoots = page.locator(
+    '[data-legacy-navigation-id="legacy.header.shop"] > .nav-link, [data-legacy-navigation-id="legacy.header.collection"] > .nav-link, [data-legacy-navigation-id="legacy.header.magazine"] > .nav-link, [data-legacy-navigation-id="legacy.header.contact"] > .nav-link',
+  );
+  expect(
+    await unavailableHeaderRoots.evaluateAll((links) =>
+      links.map((link) => ({
+        disabled: link.getAttribute("aria-disabled"),
+        href: link.getAttribute("href"),
+      })),
+    ),
+  ).toEqual(Array.from({ length: 4 }, () => ({ disabled: "true", href: null })));
   expect(
     await page.locator("body").evaluate((element) => getComputedStyle(element).overflowY),
   ).not.toBe("hidden");
 
   const shop = page.locator(".navbar-left .nav-item.dropdown").first();
   await shop.locator(".dropdown-toggle").click();
+  await expect(shop.locator(".dropdown-toggle")).toHaveAttribute("type", "button");
+  await expect(shop.locator(".dropdown-toggle")).toHaveAttribute("aria-label", "Toggle Shop menu");
   await expect(shop.locator(".dropdown-toggle")).toHaveClass(/\bshow\b/);
   await expect(shop.locator(".dropdown-menu")).toBeVisible();
+  await expect(shop.locator(".sub-title")).toHaveText([
+    "Men",
+    "Women",
+    "Kids",
+    "Divided",
+    "Accessories",
+  ]);
+  await expect(shop.locator(".sub-title ~ li > a")).toHaveText([
+    "Jeans",
+    "Trousers",
+    "Swimwear",
+    "Casual shirts",
+    "Rain jackets",
+    "Loungewear",
+    "Dupattas",
+    "Leggings",
+    "Ethnic wear",
+    "Kurtas & suits",
+    "Western wear",
+    "Dress materials",
+    "Dresses",
+    "Jumpsuits",
+    "Track pants",
+    "Ethnic wear",
+    "Value packs",
+    "Loungewear",
+    "Tops",
+    "Dresses",
+    "Shorts",
+    "Swimwear",
+    "Jeans",
+    "Jackets",
+    "Shoes",
+    "Scarves",
+    "Watches",
+    "Wristwear",
+    "Backpacks",
+    "Sunglasses",
+  ]);
+  const collection = page.locator('[data-legacy-navigation-id="legacy.header.collection"]');
+  await expect(collection.locator(".btn-text")).toHaveText([
+    "Polo t-shirts",
+    "Sunglasses",
+    "Skinny blazer",
+    "Casual shoes",
+    "Winter jackets",
+    "Men's shorts",
+  ]);
+  await expect(
+    page.locator('[data-legacy-navigation-id="legacy.header.pages"] .dropdown-menu a'),
+  ).toHaveText(["About", "Faq", "Wishlist", "Account", "Cart", "Checkout"]);
+  const unavailablePageLinks = page.locator(
+    '[data-legacy-navigation-id="legacy.header.pages"] .dropdown-menu a',
+  );
+  expect(
+    await unavailablePageLinks.evaluateAll((links) =>
+      links.map((link) => ({
+        disabled: link.getAttribute("aria-disabled"),
+        href: link.getAttribute("href"),
+      })),
+    ),
+  ).toEqual([
+    { disabled: "true", href: null },
+    { disabled: "true", href: null },
+    { disabled: "true", href: null },
+    { disabled: "true", href: null },
+    { disabled: "true", href: null },
+    { disabled: "true", href: null },
+  ]);
 
   const home = page.locator("#navbarNav .nav-link", { hasText: "Home" });
   await home.focus();
@@ -1081,6 +1196,71 @@ test("mobile menu closes through Nuxt handling and restores toggle focus", async
   await expect(page.locator("#navbarNav")).not.toHaveClass(/show/);
   await expect(toggle).toBeFocused();
   await expect(page.locator(".modal-backdrop, .offcanvas-backdrop")).toHaveCount(0);
+  await expect(page.locator("[data-legacy-footer-primary] .nav-link")).toHaveText([
+    "Home",
+    "Shop",
+    "Collection",
+    "Magazine",
+    "About",
+    "Contact",
+  ]);
+  expect(
+    await page.locator("[data-legacy-footer-primary] .nav-link").evaluateAll((links) =>
+      links.map((link) => ({
+        disabled: link.getAttribute("aria-disabled"),
+        href: link.getAttribute("href"),
+      })),
+    ),
+  ).toEqual([
+    { disabled: null, href: "/" },
+    { disabled: "true", href: null },
+    { disabled: "true", href: null },
+    { disabled: "true", href: null },
+    { disabled: "true", href: null },
+    { disabled: "true", href: null },
+  ]);
+  await expect(page.locator("[data-legacy-footer-column] > span")).toHaveText([
+    "Categories",
+    "Information",
+    "Quick links",
+  ]);
+  const categories = page.locator(
+    '[data-legacy-footer-column="legacy.footer.categories"] [data-legacy-navigation-id]',
+  );
+  await expect(categories).toHaveText(["Men", "Women", "Accessories", "Shoes", "Dresses"]);
+  expect(
+    await categories.evaluateAll((links) =>
+      links.map((link) => ({
+        disabled: link.getAttribute("aria-disabled"),
+        href: link.getAttribute("href"),
+      })),
+    ),
+  ).toEqual(Array.from({ length: 5 }, () => ({ disabled: "true", href: null })));
+  const quickLinks = page.locator(
+    '[data-legacy-footer-column="legacy.footer.quick-links"] [data-legacy-navigation-id]',
+  );
+  await expect(quickLinks).toHaveText([
+    "My account",
+    "Orders tracking",
+    "Our store",
+    "Size guide",
+    "FAQs",
+  ]);
+  expect(
+    await quickLinks.evaluateAll((links) =>
+      links.map((link) => ({
+        disabled: link.getAttribute("aria-disabled"),
+        href: link.getAttribute("href"),
+      })),
+    ),
+  ).toEqual([
+    { disabled: "true", href: null },
+    { disabled: "true", href: null },
+    { disabled: "true", href: null },
+    { disabled: "true", href: null },
+    { disabled: "true", href: null },
+  ]);
+  await expect(page.locator("[data-footer-utility-navigation]")).toHaveCount(0);
 
   const cart = page.locator(".header-cart");
   const cartTrigger = cart.getByRole("button", { name: "Open cart" });

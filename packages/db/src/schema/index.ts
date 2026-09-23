@@ -596,6 +596,39 @@ export const navigationCollectionReferences = sqliteTable(
   ],
 );
 
+export const navigationProductReferences = sqliteTable(
+  "navigation_product_references",
+  {
+    menuId: text("menu_id").notNull(),
+    menuVersion: integer("menu_version").notNull(),
+    itemId: text("item_id").notNull(),
+    productId: text("product_id").notNull(),
+    productVersion: integer("product_version").notNull(),
+    environment: text("environment", {
+      enum: ["development", "staging", "production"],
+    }).notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.menuId, table.menuVersion, table.itemId] }),
+    foreignKey({
+      columns: [table.menuId, table.menuVersion, table.itemId],
+      foreignColumns: [navigationItems.menuId, navigationItems.menuVersion, navigationItems.itemId],
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.productId],
+      foreignColumns: [products.id],
+    }).onDelete("restrict"),
+    index("navigation_product_backlink_lookup").on(
+      table.productId,
+      table.productVersion,
+      table.environment,
+      table.menuId,
+      table.menuVersion,
+    ),
+  ],
+);
+
 export const productMedia = sqliteTable(
   "product_media",
   {

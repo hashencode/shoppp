@@ -313,6 +313,8 @@ describe("private candidate builder integration", () => {
       env.DB.prepare("DELETE FROM navigation_policy_references"),
       env.DB.prepare("DELETE FROM navigation_page_references"),
       env.DB.prepare("DELETE FROM navigation_article_references"),
+      env.DB.prepare("DELETE FROM navigation_collection_references"),
+      env.DB.prepare("DELETE FROM navigation_product_references"),
       env.DB.prepare("DELETE FROM navigation_items"),
       env.DB.prepare("DELETE FROM navigation_menu_versions"),
       env.DB.prepare("DELETE FROM collection_route_redirects"),
@@ -354,6 +356,8 @@ describe("private candidate builder integration", () => {
       env.DB.prepare("DELETE FROM navigation_policy_references"),
       env.DB.prepare("DELETE FROM navigation_page_references"),
       env.DB.prepare("DELETE FROM navigation_article_references"),
+      env.DB.prepare("DELETE FROM navigation_collection_references"),
+      env.DB.prepare("DELETE FROM navigation_product_references"),
       env.DB.prepare("DELETE FROM navigation_items"),
       env.DB.prepare("DELETE FROM navigation_menu_versions"),
       env.DB.prepare("DELETE FROM policy_versions"),
@@ -800,6 +804,130 @@ describe("private candidate builder integration", () => {
         .bind(candidate.data.id)
         .first(),
     ).toEqual({ candidate_status: "succeeded", status: "approved" });
+  });
+
+  test("freezes the exact published Navigation version and item order in each candidate", async () => {
+    const app = appFor();
+    const write = async (items: unknown[], expectedVersion?: number) => {
+      const response = await app.fetch(
+        adminRequest("/admin/storefront/navigation/header", {
+          body: JSON.stringify({
+            ...(expectedVersion ? { expectedVersion } : {}),
+            items,
+            reason: "Freeze Navigation version",
+          }),
+          method: "PUT",
+        }),
+        env,
+      );
+      expect(response.status).toBe(200);
+      return response.json<{ data: { items: Array<Record<string, unknown>>; version: number } }>();
+    };
+    const publish = async (version: number) => {
+      const response = await app.fetch(
+        adminRequest("/admin/storefront/navigation/header/publish", {
+          body: JSON.stringify({
+            confirm: true,
+            expectedVersion: version,
+            reason: "Publish Navigation version",
+          }),
+          method: "POST",
+        }),
+        env,
+      );
+      expect(response.status).toBe(200);
+    };
+    const build = async () => {
+      const response = await app.fetch(
+        adminRequest("/admin/catalog/releases/preview-candidates", {
+          body: JSON.stringify({ reason: "Freeze exact Navigation" }),
+          method: "POST",
+        }),
+        env,
+      );
+      expect(response.status).toBe(201);
+      return (await response.json<{ data: { id: string } }>()).data.id;
+    };
+    const inspect = async (id: string) => {
+      const response = await app.fetch(
+        adminRequest(`/admin/catalog/releases/preview-candidates/${id}`),
+        env,
+      );
+      expect(response.status).toBe(200);
+      return (
+        await response.json<{
+          data: {
+            manifest: { navigation: Array<{ items: Array<{ label: string }>; version: number }> };
+          };
+        }>()
+      ).data.manifest.navigation[0];
+    };
+
+    const v1 = await write([
+      {
+        id: "draft.first",
+        label: "First",
+        parentId: null,
+        position: 0,
+        target: { kind: "route", path: "/cart" },
+      },
+      {
+        id: "draft.second",
+        label: "Second",
+        parentId: null,
+        position: 1,
+        target: { kind: "route", path: "/checkout" },
+      },
+    ]);
+    await publish(v1.data.version);
+    const firstCandidate = await build();
+    const v2 = await write(
+      [
+        { ...v1.data.items[1], position: 0 },
+        { ...v1.data.items[0], position: 1 },
+      ],
+      v1.data.version,
+    );
+    await publish(v2.data.version);
+    const secondCandidate = await build();
+
+    expect(await inspect(firstCandidate)).toMatchObject({
+      items: [{ label: "First" }, { label: "Second" }],
+      version: 1,
+    });
+    expect(await inspect(secondCandidate)).toMatchObject({
+      items: [{ label: "Second" }, { label: "First" }],
+      version: 2,
+    });
+  });
+
+  test("rejects a Navigation route absent from the exact candidate route output", async () => {
+    const now = "2026-09-23T00:00:00.000Z";
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO navigation_menu_versions
+          (menu_id, version, placement, status, created_at, updated_at, published_at)
+         VALUES ('menu.header', 1, 'header', 'published', ?, ?, ?)`,
+      ).bind(now, now, now),
+      env.DB.prepare(
+        `INSERT INTO navigation_items
+          (menu_id, menu_version, item_id, parent_item_id, position, label, target_json)
+         VALUES ('menu.header', 1, 'item.missing', NULL, 0, 'Missing', ?)`,
+      ).bind(JSON.stringify({ kind: "route", path: "/missing" })),
+    ]);
+
+    const response = await appFor().fetch(
+      adminRequest("/admin/catalog/releases/preview-candidates", {
+        body: JSON.stringify({ reason: "Reject unavailable Navigation route" }),
+        method: "POST",
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      error: { code: "catalog_navigation_route_unavailable" },
+    });
   });
 
   test("freezes exact Content versions across real successor candidates and rejects unpublished references", async () => {

@@ -308,6 +308,7 @@ describe("D1 migrations", () => {
       { name: "navigation_collection_reference_immutable" },
       { name: "navigation_page_reference_immutable" },
       { name: "navigation_policy_reference_immutable" },
+      { name: "navigation_product_reference_immutable" },
     ]);
   });
 
@@ -375,10 +376,7 @@ describe("D1 migrations", () => {
     const preflight = await runStorefrontControlPreflight(db);
     expect(preflight).toMatchObject({ checkedMemberships: 2, issues: [], ok: true });
     expect(preflight.membershipDigest).toMatch(/^[a-f0-9]{64}$/);
-    await applyD1Migrations(
-      db,
-      env.TEST_MIGRATIONS.slice(migrationIndex, collectionFixIndex),
-    );
+    await applyD1Migrations(db, env.TEST_MIGRATIONS.slice(migrationIndex, collectionFixIndex));
     expect(
       await db
         .prepare(

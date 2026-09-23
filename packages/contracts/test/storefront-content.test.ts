@@ -3,6 +3,8 @@ import { describe, expect, test } from "bun:test";
 import {
   collectionAuthoritySchema,
   navigationMenuSchema,
+  navigationMenuWriteRequestSchema,
+  navigationTransitionRequestSchema,
   policyAuthoritySchema,
   storeIdentitySchema,
   storefrontContentDocumentSchema,
@@ -155,6 +157,33 @@ describe("storefront content authority contracts", () => {
       updatedAt: at,
     };
     expect(navigationMenuSchema.safeParse(menu).success).toBe(false);
+  });
+
+  test("keeps Navigation item identity and lifecycle fields server-owned", () => {
+    const input = {
+      expectedVersion: 2,
+      items: [
+        {
+          id: "nav.shop",
+          label: "Shop",
+          parentId: null,
+          position: 0,
+          target: { kind: "route", path: "/collections/new-arrivals" },
+        },
+      ],
+      reason: "Revise the Header menu",
+    };
+    expect(navigationMenuWriteRequestSchema.safeParse(input).success).toBe(true);
+    expect(
+      navigationMenuWriteRequestSchema.safeParse({ ...input, placement: "header" }).success,
+    ).toBe(false);
+    expect(
+      navigationTransitionRequestSchema.safeParse({
+        confirm: true,
+        expectedVersion: 2,
+        reason: "Publish the reviewed Header menu",
+      }).success,
+    ).toBe(true);
   });
 
   test("requires ordered unique Collection membership and optimistic versions", () => {

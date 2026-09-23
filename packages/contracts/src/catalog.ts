@@ -1,7 +1,7 @@
 import * as z from "zod";
 
 import { moneySchema, publicIdSchema } from "./common";
-import { storefrontContentDocumentSchema } from "./storefront-content";
+import { navigationMenuSchema, storefrontContentDocumentSchema } from "./storefront-content";
 
 export const catalogPriceSchema = moneySchema
   .extend({ compareAtAmount: z.int().nonnegative().optional() })
@@ -819,7 +819,7 @@ export const catalogReleaseNavigationRecordSchema = z
   .object({
     digest: z.string().regex(/^[a-f0-9]{64}$/),
     id: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{2,159}$/),
-    items: z.array(z.unknown()).max(500),
+    items: navigationMenuSchema.shape.items,
     placement: z.enum(["header", "footer"]),
     version: z.int().positive(),
   })

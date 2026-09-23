@@ -53,6 +53,110 @@ const presentationLinkSchema = z
     targetBehavior: storefrontLinkTargetBehaviorSchema,
   })
   .strict();
+const shellNavigationChildSchema = z
+  .object({
+    children: z.array(z.never()).max(0).default([]),
+    href: z.string().min(1).max(2_000),
+    id: storefrontIdentifierSchema,
+    label: z.string().trim().min(1).max(120),
+    targetBehavior: storefrontLinkTargetBehaviorSchema,
+  })
+  .strict();
+const shellNavigationItemSchema = shellNavigationChildSchema.extend({
+  children: z.array(shellNavigationChildSchema).max(100).default([]),
+});
+const shellNavigationSchema = z
+  .object({
+    id: storefrontIdentifierSchema,
+    items: z.array(shellNavigationItemSchema).max(100),
+    version: z.int().positive(),
+  })
+  .strict();
+const legacyNavigationLinkSchema = z
+  .object({
+    href: z.string().min(1).max(2_000),
+    id: storefrontIdentifierSchema,
+    label: z.string().trim().min(1).max(120),
+  })
+  .strict();
+const legacyNavigationPlaceholderSchema = z
+  .object({
+    disabled: z.literal(true),
+    id: storefrontIdentifierSchema,
+    label: z.string().trim().min(1).max(120),
+  })
+  .strict();
+const legacyNavigationEntrySchema = z.union([
+  legacyNavigationLinkSchema,
+  legacyNavigationPlaceholderSchema,
+]);
+const legacyHeaderLinkSchema = legacyNavigationLinkSchema.extend({ kind: z.literal("link") });
+const legacyHeaderGroupedMenuSchema = legacyNavigationLinkSchema.extend({
+  banners: z.array(
+    z.object({ assetPath: z.string().min(1), id: storefrontIdentifierSchema }).strict(),
+  ),
+  groups: z.array(
+    z
+      .object({
+        id: storefrontIdentifierSchema,
+        items: z.array(legacyNavigationPlaceholderSchema),
+        label: z.string().trim().min(1).max(120),
+      })
+      .strict(),
+  ),
+  kind: z.literal("grouped-menu"),
+});
+const legacyHeaderCardMenuSchema = legacyNavigationLinkSchema.extend({
+  cards: z.array(
+    z
+      .object({
+        assetPath: z.string().min(1),
+        disabled: z.literal(true),
+        id: storefrontIdentifierSchema,
+        label: z.string().trim().min(1).max(120),
+      })
+      .strict(),
+  ),
+  kind: z.literal("card-menu"),
+});
+const legacyHeaderMenuSchema = z
+  .object({
+    id: storefrontIdentifierSchema,
+    items: z.array(legacyNavigationLinkSchema),
+    kind: z.literal("menu"),
+    label: z.string().trim().min(1).max(120),
+  })
+  .strict();
+const legacyHeaderNavigationSchema = z
+  .object({
+    id: storefrontIdentifierSchema,
+    left: z.array(
+      z.discriminatedUnion("kind", [
+        legacyHeaderLinkSchema,
+        legacyHeaderGroupedMenuSchema,
+        legacyHeaderCardMenuSchema,
+      ]),
+    ),
+    right: z.array(z.discriminatedUnion("kind", [legacyHeaderLinkSchema, legacyHeaderMenuSchema])),
+    version: z.literal(1),
+  })
+  .strict();
+const legacyFooterNavigationSchema = z
+  .object({
+    columns: z.array(
+      z
+        .object({
+          id: storefrontIdentifierSchema,
+          items: z.array(legacyNavigationEntrySchema),
+          label: z.string().trim().min(1).max(120),
+        })
+        .strict(),
+    ),
+    id: storefrontIdentifierSchema,
+    primary: z.array(legacyNavigationLinkSchema),
+    version: z.literal(1),
+  })
+  .strict();
 const shellContactSchema = z
   .object({
     contactVersion: z
@@ -62,6 +166,8 @@ const shellContactSchema = z
     contactCopy: copySchema.optional(),
     legalLink: presentationLinkSchema.optional(),
     logo: editorMediaSchema.optional(),
+    legacyNavigation: legacyFooterNavigationSchema.optional(),
+    navigation: shellNavigationSchema.optional(),
     publicContact: publicContactSchema.optional(),
     socialLink: presentationLinkSchema.optional(),
   })
@@ -73,7 +179,9 @@ export const presentationShellViewModelSchema = z
     footer: shellContactSchema,
     header: shellContactSchema.extend({
       highlightLink: presentationLinkSchema.optional(),
+      legacyNavigation: legacyHeaderNavigationSchema.optional(),
     }),
+    publishedRoutes: z.array(z.string().startsWith("/")).max(1_000).optional(),
   })
   .strict();
 export const presentationShellRenderViewModelSchema = presentationShellViewModelSchema.partial();

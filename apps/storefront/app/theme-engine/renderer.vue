@@ -48,10 +48,17 @@ const rendererShellViewModel = computed(() => {
   if (!source || !properties.provider.resolveShell) {
     throw new Error("Renderer-owned shell input is unavailable for the selected template.");
   }
-  return properties.provider.resolveShell({
+  const resolved = properties.provider.resolveShell({
     instanceId: source.id,
     resource: shell.fixtureResource,
   });
+  const inherited = inheritedShellViewModel?.value;
+  return {
+    ...inherited,
+    ...resolved,
+    footer: inherited?.footer ?? resolved.footer,
+    header: inherited?.header ?? resolved.header,
+  };
 });
 provide(storefrontPresentationShellKey, rendererShellViewModel);
 </script>

@@ -1,7 +1,7 @@
 import { Alert, Button, Input, Select, Space, Spin, Typography } from 'antd'
 import { CloseCircleFilled } from '@ant-design/icons'
 import type { GetRef } from 'antd'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { normalizeApiError } from '../../infrastructure/http/api-client'
 import { useI18n } from '../../shared/contexts/i18n-context'
 import { localizeApiError } from '../../shared/i18n/api-error'
@@ -20,6 +20,7 @@ export const StorefrontResourcePicker = ({
   kind,
   label,
   missing,
+  loadResources,
   onChange,
   releaseId,
   selected,
@@ -29,6 +30,17 @@ export const StorefrontResourcePicker = ({
   kind: StorefrontCatalogResource['kind']
   label: string
   missing: boolean
+  loadResources?: (input: {
+    kind: StorefrontCatalogResource['kind']
+    page: number
+    pageSize: number
+    query: string
+  }) => Promise<{
+    data: StorefrontCatalogResource[]
+    page: number
+    pageSize: number
+    total: number
+  }>
   onChange: (id?: string) => void
   releaseId?: string
   selected?: StorefrontCatalogResource
@@ -37,15 +49,18 @@ export const StorefrontResourcePicker = ({
   const { t } = useI18n()
   const kindLabel = Object.hasOwn(resourceKindMessages, kind) ? t(resourceKindMessages[kind]) : kind
   const selectRef = React.useRef<GetRef<typeof Select>>(null)
+  const requestGeneration = useRef(0)
   const [items, setItems] = useState<StorefrontCatalogResource[]>([])
   const [page, setPage] = useState(1)
   const [query, setQuery] = useState('')
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+  const available = Boolean(releaseId || loadResources)
 
   const load = useCallback(async () => {
-    if (!releaseId) {
+    const generation = ++requestGeneration.current
+    if (!available) {
       setItems([])
       setTotal(0)
       return
@@ -53,25 +68,32 @@ export const StorefrontResourcePicker = ({
     setLoading(true)
     setError(null)
     try {
-      const result = await fetchStorefrontCatalogResources({
-        kind,
-        page,
-        pageSize: PAGE_SIZE,
-        query,
-        releaseId,
-      })
+      const result = loadResources
+        ? await loadResources({ kind, page, pageSize: PAGE_SIZE, query })
+        : await fetchStorefrontCatalogResources({
+            kind,
+            page,
+            pageSize: PAGE_SIZE,
+            query,
+            releaseId: releaseId!,
+          })
+      if (generation !== requestGeneration.current) return
       setItems(result.data)
       setTotal(result.total)
     } catch (cause) {
+      if (generation !== requestGeneration.current) return
       setError(normalizeApiError(cause))
     } finally {
-      setLoading(false)
+      if (generation === requestGeneration.current) setLoading(false)
     }
-  }, [kind, page, query, releaseId])
+  }, [available, kind, loadResources, page, query, releaseId])
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0)
-    return () => window.clearTimeout(timer)
+    return () => {
+      window.clearTimeout(timer)
+      requestGeneration.current += 1
+    }
   }, [load])
 
   const options = [...items]
@@ -85,7 +107,7 @@ export const StorefrontResourcePicker = ({
         <Input.Search
           aria-label={t('{label} Search', { label })}
           allowClear={{ clearIcon: <CloseCircleFilled aria-label={t('Clear search')} /> }}
-          disabled={disabled || !releaseId}
+          disabled={disabled || !available}
           onSearch={(next) => {
             setPage(1)
             setQuery(next.trim())
@@ -98,7 +120,7 @@ export const StorefrontResourcePicker = ({
           aria-label={label}
           allowClear={{ clearIcon: <CloseCircleFilled aria-label={t('Clear selection')} /> }}
           className="w-full"
-          disabled={disabled || !releaseId || loading}
+          disabled={disabled || !available || loading}
           loading={loading}
           status={missing ? 'error' : undefined}
           value={missing ? undefined : value}

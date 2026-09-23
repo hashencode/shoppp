@@ -344,6 +344,18 @@ async function validatePublishedNavigationReferences(
         AND item.item_id = reference.item_id
        JOIN collection_versions target
          ON target.collection_id = reference.collection_id AND target.version = reference.collection_version
+      WHERE menu.status = 'published'
+     UNION ALL
+     SELECT 'product', reference.product_id, reference.environment, target.status, item.target_json,
+            reference.menu_id, reference.menu_version, reference.item_id
+       FROM navigation_product_references reference
+       JOIN navigation_menu_versions menu
+         ON menu.menu_id = reference.menu_id AND menu.version = reference.menu_version
+       JOIN navigation_items item
+         ON item.menu_id = reference.menu_id AND item.menu_version = reference.menu_version
+        AND item.item_id = reference.item_id
+       JOIN products target
+         ON target.id = reference.product_id AND target.version = reference.product_version
       WHERE menu.status = 'published'`,
     )
     .all<{
@@ -382,7 +394,7 @@ async function validatePublishedNavigationReferences(
     }
     if (
       target.reference?.kind &&
-      ["policy", "page", "article", "collection"].includes(target.reference.kind) &&
+      ["policy", "page", "article", "collection", "product"].includes(target.reference.kind) &&
       !relationKeys.has(`${item.menu_id}@${item.menu_version}/${item.item_id}`)
     ) {
       lifecycleError(
@@ -648,6 +660,7 @@ async function assembleCandidateManifest(
           id,
           items: items.results.map((item) => ({
             ...item,
+            id: String(item.id),
             target: JSON.parse(String(item.target)),
           })),
           placement: String(row.placement) as "header" | "footer",
@@ -679,9 +692,26 @@ async function assembleCandidateManifest(
     tagline: String(identityAuthority.row.tagline),
     version: identityAuthority.version,
   };
-  const routes = [...new Set([...v2.routes, ...records.map(({ route }) => route)])].sort(
-    (left, right) => (left === "/" ? -1 : right === "/" ? 1 : left.localeCompare(right)),
-  );
+  const routes = [
+    ...new Set([
+      ...v2.routes,
+      ...records.map(({ route }) => route),
+      "/account",
+      "/cart",
+      "/checkout",
+    ]),
+  ].sort((left, right) => (left === "/" ? -1 : right === "/" ? 1 : left.localeCompare(right)));
+  const availableRoutes = new Set(routes);
+  for (const menu of navigation) {
+    for (const item of menu.items) {
+      if (item.target.kind === "route" && !availableRoutes.has(item.target.path)) {
+        lifecycleError(
+          "catalog_navigation_route_unavailable",
+          `${menu.id}@${menu.version}/${String(item.id)} targets unavailable route ${item.target.path}.`,
+        );
+      }
+    }
+  }
   const contentRedirects = await db
     .prepare(
       `SELECT from_path AS "from", to_path AS "to" FROM content_route_redirects

@@ -134,6 +134,16 @@ describe('auth-route-guards', () => {
     })
   })
 
+  it('registers reusable Navigation behind its independent read permission', () => {
+    expect(templateRoutes.find(({ key }) => key === 'storefront-navigation')).toMatchObject({
+      breadcrumb: ['Storefront', 'Navigation'],
+      inMenu: true,
+      menuMode: 'standalone',
+      path: '/storefront/navigation',
+      permission: 'navigation.read',
+    })
+  })
+
   it('uses the API permission set as the authority for theme routes', () => {
     const renderPermission = (permissions: readonly 'themes.read'[]) =>
       renderInLocale(

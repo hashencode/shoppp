@@ -66,6 +66,8 @@ import {
   contentListQuerySchema,
   contentPageWriteRequestSchema,
   contentTransitionRequestSchema,
+  navigationMenuWriteRequestSchema,
+  navigationTransitionRequestSchema,
 } from "@shoppp/contracts";
 
 import {
@@ -151,6 +153,13 @@ import {
   publishArticle,
   updateArticle,
 } from "../content/articles";
+import {
+  getNavigationMenu,
+  listNavigationResources,
+  saveNavigationMenu,
+  transitionNavigationMenu,
+  type NavigationPlacement,
+} from "../storefront/navigation";
 import {
   activateAdminAccount,
   changePassword,
@@ -302,6 +311,7 @@ export interface CreateAppOptions {
   readonly experienceBuildTrigger?: ExperienceBuildTrigger;
   readonly fashionCatalogResetReviewedPayloadDigest?: string;
   readonly fashionTestSettlementProvider?: StripeTestSettlementProvider;
+  readonly navigationTransitionBeforeCommit?: () => Promise<void>;
   readonly storefrontExperienceServiceOptions?: StorefrontExperienceServiceOptions;
   readonly previewTokenSecret?: string;
   readonly paymentProvider?: PaymentProvider;
@@ -2413,6 +2423,80 @@ export function createApp(options: CreateAppOptions = {}) {
     },
     contentPageWriteRequestSchema,
   );
+
+  app.get("/admin/storefront/navigation/resources", async (context) => {
+    await requirePermission(context, "navigation.read", { type: "navigation-resource" });
+    const input = validatedQuery(
+      context,
+      z
+        .object({
+          kind: storefrontResourceKindSchema,
+          page: z.coerce.number().int().positive().default(1),
+          pageSize: z.coerce.number().int().min(1).max(100).default(12),
+          query: z.string().trim().max(120).default(""),
+        })
+        .strict(),
+    );
+    const permission =
+      input.kind === "collection" || input.kind === "product"
+        ? "catalog.read"
+        : input.kind === "policy"
+          ? "policies.read"
+          : "content.read";
+    await requirePermission(context, permission, { type: `navigation-${input.kind}-resource` });
+    return context.json(await listNavigationResources(context.env.DB, input));
+  });
+
+  for (const placement of ["header", "footer"] as const satisfies readonly NavigationPlacement[]) {
+    const base = `/admin/storefront/navigation/${placement}`;
+    app.get(base, async (context) => {
+      await requirePermission(context, "navigation.read", {
+        id: `menu.${placement}`,
+        type: "navigation-menu",
+      });
+      return context.json({ data: await getNavigationMenu(context.env.DB, placement) });
+    });
+    app.put(
+      base,
+      async (context, next) => {
+        await requirePermission(context, "navigation.write", {
+          id: `menu.${placement}`,
+          type: "navigation-menu",
+        });
+        await next();
+      },
+      idempotency(`navigation.${placement}.save`),
+      async (context) => {
+        const input = await parseJson(context, navigationMenuWriteRequestSchema);
+        return context.json({ data: await saveNavigationMenu(context, placement, input) });
+      },
+    );
+    for (const action of ["publish", "archive"] as const) {
+      app.post(
+        `${base}/${action}`,
+        async (context, next) => {
+          await requirePermission(context, "navigation.publish", {
+            id: `menu.${placement}`,
+            type: "navigation-menu",
+          });
+          await next();
+        },
+        idempotency(`navigation.${placement}.${action}`),
+        async (context) => {
+          const input = await parseJson(context, navigationTransitionRequestSchema);
+          return context.json({
+            data: await transitionNavigationMenu(
+              context,
+              placement,
+              input,
+              action,
+              options.navigationTransitionBeforeCommit,
+            ),
+          });
+        },
+      );
+    }
+  }
   contentRoutes(
     "articles",
     {

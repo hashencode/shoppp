@@ -18,6 +18,7 @@ import {
 } from "@shoppp/contracts";
 
 import type { ThemeCompositionAdapter } from "./composition";
+import { legacyFashionStoreReleasedNavigation } from "../themes/fashion-store/contracts/navigation-characterization";
 import { normalizeThemeRoutePath, type ResolvedThemeRouteContract } from "./routes";
 import { formatCommerceMoney } from "./runtime-commerce";
 import {
@@ -610,6 +611,85 @@ function editorMedia(
   };
 }
 
+export function resolveReleasedNavigation(
+  release: StorefrontCatalogRelease,
+  placement: "footer" | "header",
+): PresentationShellViewModel["footer"]["navigation"] {
+  if (release.schemaVersion === 2) return undefined;
+  const navigation = "navigation" in release ? release.navigation : [];
+  const resolveNavigationHref = (
+    target: CatalogReleaseV3["navigation"][number]["items"][number]["target"],
+  ): { href: string; targetBehavior: "new-window" | "same-window" } | undefined => {
+    if (target.kind === "route") return { href: target.path, targetBehavior: "same-window" };
+    if (target.kind === "external") return { href: target.url, targetBehavior: "new-window" };
+    const reference = target.reference;
+    if (reference.kind === "collection") {
+      const resource = release.collections.find(({ id }) => id === reference.id);
+      return resource
+        ? { href: `/collections/${resource.slug}`, targetBehavior: "same-window" }
+        : undefined;
+    }
+    if (reference.kind === "product") {
+      const resource = release.products.find(({ id }) => id === reference.id);
+      return resource
+        ? { href: `/products/${resource.slug}`, targetBehavior: "same-window" }
+        : undefined;
+    }
+    const resource =
+      "content" in release
+        ? release.content.find(({ id, kind }) => id === reference.id && kind === reference.kind)
+        : undefined;
+    return resource ? { href: resource.route, targetBehavior: "same-window" } : undefined;
+  };
+  const record = navigation.find((candidate) => candidate.placement === placement);
+  if (!record) return undefined;
+  const roots = record.items
+    .filter(({ parentId }) => parentId === null)
+    .sort((a, b) => a.position - b.position);
+  const item = (source: (typeof record.items)[number]) => {
+    const resolved = resolveNavigationHref(source.target);
+    if (!resolved) return undefined;
+    return {
+      ...resolved,
+      children: record.items
+        .filter(({ parentId }) => parentId === source.id)
+        .sort((a, b) => a.position - b.position)
+        .flatMap((child) => {
+          const target = resolveNavigationHref(child.target);
+          return target ? [{ ...target, children: [], id: child.id, label: child.label }] : [];
+        }),
+      id: source.id,
+      label: source.label,
+    };
+  };
+  return {
+    id: record.id,
+    items: roots.flatMap((root) => item(root) ?? []),
+    version: record.version,
+  };
+}
+
+export function resolveLegacyReleasedNavigation(
+  release: StorefrontCatalogRelease,
+  placement: "footer",
+): PresentationShellViewModel["footer"]["legacyNavigation"];
+export function resolveLegacyReleasedNavigation(
+  release: StorefrontCatalogRelease,
+  placement: "header",
+): PresentationShellViewModel["header"]["legacyNavigation"];
+export function resolveLegacyReleasedNavigation(
+  release: StorefrontCatalogRelease,
+  placement: "footer" | "header",
+):
+  | PresentationShellViewModel["footer"]["legacyNavigation"]
+  | PresentationShellViewModel["header"]["legacyNavigation"] {
+  return release.schemaVersion === 2
+    ? (structuredClone(legacyFashionStoreReleasedNavigation[placement]) as unknown as
+        | PresentationShellViewModel["footer"]["legacyNavigation"]
+        | PresentationShellViewModel["header"]["legacyNavigation"])
+    : undefined;
+}
+
 function shellViewModel(
   adapter: ThemeCompositionAdapter | undefined,
   release: StorefrontCatalogRelease,
@@ -628,7 +708,9 @@ function shellViewModel(
         ? { contactVersion: contact.version, publicContact: contact.publicContact }
         : { contactCopy: optionalTextSetting(settings, "footer-contact-copy") }),
       legalLink: editorLink(adapter, release, settings["footer-legal-link"]),
+      legacyNavigation: resolveLegacyReleasedNavigation(release, "footer"),
       logo: editorMedia(release, settings["footer-logo"], mediaOrigin),
+      navigation: resolveReleasedNavigation(release, "footer"),
       ...(!contact
         ? { socialLink: editorLink(adapter, release, settings["footer-social-link"]) }
         : {}),
@@ -639,11 +721,14 @@ function shellViewModel(
         : { contactCopy: optionalTextSetting(settings, "header-contact-copy") }),
       highlightLink: referenceLink(adapter, release, settings["header-highlight-page"]),
       legalLink: editorLink(adapter, release, settings["header-legal-link"]),
+      legacyNavigation: resolveLegacyReleasedNavigation(release, "header"),
       logo: editorMedia(release, settings["header-logo"], mediaOrigin),
+      navigation: resolveReleasedNavigation(release, "header"),
       ...(!contact
         ? { socialLink: editorLink(adapter, release, settings["header-social-link"]) }
         : {}),
     },
+    publishedRoutes: release.routes,
   });
 }
 
