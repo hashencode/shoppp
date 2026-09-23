@@ -24,13 +24,16 @@ const legacyRelease = {
 describe("ordinary staging canonical Catalog Release successor", () => {
   test("projects deterministic canonical identities without changing its legacy predecessor", () => {
     const successor = createStagingCatalogSuccessor({
-      collectionIdentities: [{ id: "collection-travel", slug: "travel-essentials" }],
+      collectionIdentities: releaseFixture.collections.map(({ slug }) => ({
+        id: `collection-${slug}`,
+        slug,
+      })),
       generatedAt: "2026-08-27T12:00:00.000Z",
       legacyRelease,
-      productIdentities: [
-        { id: "product-atlas", slug: "atlas-carry-on" },
-        { id: "product-shirt", slug: "relaxed-corduroy-shirt" },
-      ],
+      productIdentities: releaseFixture.products.map(({ slug }) => ({
+        id: `product-${slug}`,
+        slug,
+      })),
       releaseId: "staging-canonical-2026-08-27",
     });
 
@@ -39,12 +42,15 @@ describe("ordinary staging canonical Catalog Release successor", () => {
       releaseId: "staging-canonical-2026-08-27",
       schemaVersion: 2,
     });
-    expect(successor.products.map(({ id }) => id)).toEqual([
-      expect.stringMatching(/^prod_[A-F0-9]{26}$/),
-      expect.stringMatching(/^prod_[A-F0-9]{26}$/),
-    ]);
+    expect(successor.products.map(({ id }) => id)).toEqual(
+      releaseFixture.products.map(() => expect.stringMatching(/^prod_[A-F0-9]{26}$/)),
+    );
     expect(successor.collections[0]?.id).toMatch(/^col_[A-F0-9]{26}$/);
-    expect(successor.collections[0]?.productIds).toEqual(successor.products.map(({ id }) => id));
+    expect(successor.collections[0]?.productIds).toEqual(
+      successor.products
+        .filter(({ collectionIds }) => collectionIds.length > 0)
+        .map(({ id }) => id),
+    );
     expect(successor.redirects).toEqual([
       { from: "/products/carry-on", status: 301, to: "/products/atlas-carry-on" },
     ]);
@@ -52,13 +58,16 @@ describe("ordinary staging canonical Catalog Release successor", () => {
 
   test("builds a collision-refusing insert instead of updating an existing release", () => {
     const successor = createStagingCatalogSuccessor({
-      collectionIdentities: [{ id: "collection-travel", slug: "travel-essentials" }],
+      collectionIdentities: releaseFixture.collections.map(({ slug }) => ({
+        id: `collection-${slug}`,
+        slug,
+      })),
       generatedAt: "2026-08-27T12:00:00.000Z",
       legacyRelease,
-      productIdentities: [
-        { id: "product-atlas", slug: "atlas-carry-on" },
-        { id: "product-shirt", slug: "relaxed-corduroy-shirt" },
-      ],
+      productIdentities: releaseFixture.products.map(({ slug }) => ({
+        id: `product-${slug}`,
+        slug,
+      })),
       releaseId: "staging-canonical-2026-08-27",
     });
     const sql = buildStagingCatalogSuccessorSql(successor, {

@@ -37,6 +37,8 @@ const ADMIN_ROUTE_PERMISSIONS: readonly AdminRoutePermission[] = [
   { method: "PATCH", path: "/admin/iam/roles/:id", permission: "iam.roles.write" },
   { method: "GET", path: "/admin/iam/roles/:id", permission: "iam.roles.read" },
   { method: "GET", path: "/admin/settings/setup-guide", permission: "settings.read" },
+  { method: "GET", path: "/admin/settings/contact", permission: "settings.read" },
+  { method: "PUT", path: "/admin/settings/contact", permission: "settings.write" },
   { method: "GET", path: "/admin/settings/launch", permission: "settings.read" },
   { method: "GET", path: "/admin/settings/store-identity", permission: "identity.read" },
   { method: "PUT", path: "/admin/settings/store-identity", permission: "identity.write" },
@@ -138,6 +140,11 @@ const ADMIN_ROUTE_PERMISSIONS: readonly AdminRoutePermission[] = [
     permission: "catalog.publish",
   },
   {
+    method: "POST",
+    path: "/admin/catalog/releases/preview-candidates/:id/abandon",
+    permission: "catalog.publish",
+  },
+  {
     method: "GET",
     path: "/admin/catalog/releases/preview-candidates/:id",
     permission: "catalog.read",
@@ -146,6 +153,16 @@ const ADMIN_ROUTE_PERMISSIONS: readonly AdminRoutePermission[] = [
     method: "GET",
     path: "/admin/catalog/releases/preview-candidates/:id/status",
     permission: "catalog.read",
+  },
+  { method: "GET", path: "/admin/catalog/collections", permission: "catalog.read" },
+  { method: "GET", path: "/admin/catalog/collections/:id", permission: "catalog.read" },
+  { method: "POST", path: "/admin/catalog/collections", permission: "catalog.write" },
+  { method: "PUT", path: "/admin/catalog/collections/:id", permission: "catalog.write" },
+  { method: "GET", path: "/admin/content/media", permission: "content.read" },
+  {
+    method: "GET",
+    path: "/admin/storefront/navigation/resources",
+    permission: "navigation.read",
   },
   { method: "GET", path: "/admin/inventory", permission: "inventory.read" },
   {
@@ -253,6 +270,11 @@ const ADMIN_ROUTE_PERMISSIONS: readonly AdminRoutePermission[] = [
     method: "POST",
     path: "/admin/storefront-experiences/drafts/:id/preview",
     permission: "themes.preview",
+  },
+  {
+    method: "POST",
+    path: "/admin/storefront-experiences/drafts/:id/block-commands",
+    permission: "themes.write",
   },
   {
     method: "GET",

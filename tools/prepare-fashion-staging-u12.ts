@@ -34,9 +34,10 @@ function sql(value: string): string {
 }
 
 function catalogRelease(): CanonicalCatalogRelease {
-  const baseProducts = releaseFixture.products.map((product, index) => ({
+  const baseProducts = releaseFixture.products.slice(0, 2).map((product, index) => ({
     ...product,
     collectionIds: [COLLECTION_ID],
+    collectionSlugs: ["travel-essentials"],
     id: index === 0 ? PRODUCT_IDS.single : PRODUCT_IDS.multi,
     media: product.media.map((media) => ({ ...media, src: "/media/atlas-carry-on.svg" })),
   }));

@@ -21,7 +21,11 @@ describe("admin route permission matrix", () => {
         /\{\s*method:\s*"(GET|PATCH|POST|PUT)",\s*path:\s*"(\/admin\/[^"]+)",\s*permission:/g,
       ),
     ].map(([, method, path]) => `${method} ${path}`);
-    const authenticationOnly = ["GET /admin/session", "POST /admin/auth/password/change"];
+    const authenticationOnly = [
+      "GET /admin/session",
+      "GET /admin/settings/setup-guide/destinations",
+      "POST /admin/auth/password/change",
+    ];
     const publicAuthentication = [
       "POST /admin/auth/activate",
       "POST /admin/auth/login",

@@ -23,6 +23,10 @@ const fashionPlan = readFile(
   ),
   "utf8",
 );
+const storefrontControlPlane = readFile(
+  resolve(import.meta.dir, "../docs/plans/2026-09-22-0043-feat-storefront-control-plane-plan.md"),
+  "utf8",
+);
 const ciU11Evidence = readFile(
   resolve(import.meta.dir, "../docs/progress/ci-u11-github-first-steady-state-review.md"),
   "utf8",
@@ -245,46 +249,32 @@ describe("GitHub-managed cloud CI operations contract", () => {
     expect(recoveryText).toContain("production mutation remains disabled");
   });
 
-  test("tracks the active Fashion successor while preserving the REL-Pre-DC return pointer", async () => {
-    const [contents, fashionContents] = await Promise.all([productMasterPlan, fashionPlan]);
+  test("tracks the completed Fashion successor and active REL-Pre-DC return pointer", async () => {
+    const [contents, fashionContents, controlPlaneContents] = await Promise.all([
+      productMasterPlan,
+      fashionPlan,
+      storefrontControlPlane,
+    ]);
     const frontmatter = contents.slice(0, contents.indexOf("\n---", 4) + 4);
     const pointer = markdownSection(contents, "Current execution pointer");
-    const register = markdownSection(contents, "Product-plan register");
     const fashionCheckpoint = markdownSection(fashionContents, "Execution Checkpoint");
 
     expect(frontmatter).toContain(
-      "current_plan: 2026-09-16-1337-refactor-fashion-store-live-product-plan.md",
+      "current_plan: 2026-08-12-003-refactor-development-candidate-readiness-plan.md",
     );
-    expect(frontmatter).toContain("current_unit: FS-F11-U7.2");
-    expect(pointer).toContain("**Current parent/child stage:** `FS-F11-U7.2`");
-    expect(pointer).toContain("`REL-Pre-DC` is the preserved return pointer");
+    expect(frontmatter).toContain("current_unit: REL-Pre-DC");
+    expect(pointer).toContain("**Active product plan:** `REL`");
+    expect(pointer).toContain("**Current unit:** `REL-Pre-DC`");
+    expect(pointer).toContain("FS-F14 completed U1-U9");
+    expect(pointer).toContain("REL now owns the product sequence");
 
-    const activeRows = markdownTableRows(register).filter((row) =>
-      row.some((cell) => cell.includes("**Active at blocked `REL-Pre-DC`")),
-    );
-    expect(activeRows).toHaveLength(1);
-    expect(activeRows[0]![0]).toBe("`REL`");
-
-    const productFidelity = tableRow(register, "`FS-F10`");
-    expect(productFidelity[3]).toContain("**Superseded incomplete");
-    expect(productFidelity[4]).toContain("`FS-F11` owns the Product convergence");
-
-    const singleLiveProduct = tableRow(register, "`FS-F11`");
-    expect(singleLiveProduct[3]).toContain("**Active at U7");
-    expect(singleLiveProduct[4]).toContain("authority return to `REL-Pre-DC`");
-
-    const fashion = tableRow(register, "`FS`");
-    expect(fashion[3]).toContain("**Complete");
-    expect(fashion[3]).toContain("U8.3 complete verification passed");
-
-    const ci = tableRow(register, "`CI`");
-    expect(ci[3]).toContain("**Complete");
-    expect(ci[3]).toContain("Complete for its governed baseline");
     expect(fashionCheckpoint).toContain("**Current sub-stage:** None");
     expect(fashionCheckpoint).toContain("terminal acceptance run `33468537473`");
     expect(fashionCheckpoint).toContain(
       "**Blocker:** None. The Fashion Store functional-integration tail is closed.",
     );
+    expect(controlPlaneContents).toContain("**Classification:** Completed product successor");
+    expect(controlPlaneContents).toContain("**Handback:** Completed to `REL-Pre-DC`");
   });
 
   test("keeps CI-U11.1 proportional to a single-maintainer project", async () => {
@@ -311,8 +301,8 @@ describe("GitHub-managed cloud CI operations contract", () => {
       expect(checkpoint).toContain(provenance);
     }
 
-    expect(pointer).toContain("`CI-U11.1` complete");
-    expect(pointer).toContain("documented event-driven boundary");
+    expect(pointer).toContain("**Active product plan:** `REL`");
+    expect(pointer).toContain("**Current unit:** `REL-Pre-DC`");
     expect(pointer).not.toMatch(/record (?:operating )?owners/i);
   });
 
