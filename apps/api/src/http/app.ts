@@ -349,6 +349,7 @@ async function requireCatalogReleaseRead(
     "policies.read",
     "content.read",
     "navigation.read",
+    "settings.read",
   ] as const) {
     await requirePermission(context, permission, {
       id: catalogReleaseId,
@@ -1550,6 +1551,7 @@ export function createApp(options: CreateAppOptions = {}) {
         "policies.read",
         "content.read",
         "navigation.read",
+        "settings.read",
       ] as const) {
         await requirePermission(context, permission, { type: "catalog_release_candidate" });
       }
@@ -1576,6 +1578,7 @@ export function createApp(options: CreateAppOptions = {}) {
       "policies.read",
       "content.read",
       "navigation.read",
+      "settings.read",
     ] as const) {
       await requirePermission(context, permission, {
         id: context.req.param("id"),
@@ -1604,6 +1607,7 @@ export function createApp(options: CreateAppOptions = {}) {
       "policies.read",
       "content.read",
       "navigation.read",
+      "settings.read",
     ] as const) {
       await requirePermission(context, permission, {
         id: context.req.param("id"),
@@ -1639,6 +1643,7 @@ export function createApp(options: CreateAppOptions = {}) {
         "policies.read",
         "content.read",
         "navigation.read",
+        "settings.read",
       ] as const) {
         await requirePermission(context, permission, {
           id: context.req.param("id"),
@@ -2042,6 +2047,9 @@ export function createApp(options: CreateAppOptions = {}) {
     idempotency("storefront.experience.migration.dry-run"),
     async (context) => {
       const input = await parseJson(context, storefrontExperienceMigrationDryRunRequestSchema);
+      if (input.catalogReleaseId) {
+        await requireCatalogReleaseRead(context, input.catalogReleaseId);
+      }
       return context.json({
         data: await dryRunStorefrontExperienceMigration(
           context,

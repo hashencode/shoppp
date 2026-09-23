@@ -1525,6 +1525,9 @@ export const storefrontExperienceMigrations = sqliteTable(
       .notNull()
       .references(() => storefrontExperienceDrafts.id, { onDelete: "restrict" }),
     draftVersion: integer("draft_version").notNull(),
+    catalogReleaseId: text("catalog_release_id").references(() => catalogReleases.id, {
+      onDelete: "restrict",
+    }),
     sourceThemeVersion: text("source_theme_version").notNull(),
     sourceConfigurationSchemaVersion: integer("source_configuration_schema_version").notNull(),
     targetThemeVersion: text("target_theme_version").notNull(),
@@ -1543,7 +1546,16 @@ export const storefrontExperienceMigrations = sqliteTable(
       table.draftVersion,
       table.targetThemeVersion,
       table.targetConfigurationSchemaVersion,
-    ),
+    ).where(sql`${table.catalogReleaseId} IS NULL`),
+    uniqueIndex("storefront_experience_migrations_target_catalog_unique")
+      .on(
+        table.draftId,
+        table.draftVersion,
+        table.targetThemeVersion,
+        table.targetConfigurationSchemaVersion,
+        table.catalogReleaseId,
+      )
+      .where(sql`${table.catalogReleaseId} IS NOT NULL`),
   ],
 );
 

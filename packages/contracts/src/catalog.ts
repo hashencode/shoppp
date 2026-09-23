@@ -511,6 +511,7 @@ const catalogReleasePolicySchema = z
   .object({
     description: z.string().trim().min(1).max(2_000),
     effectiveDate: z.iso.date(),
+    kind: z.enum(["privacy", "returns", "shipping", "terms"]).optional(),
     sections: z
       .array(
         z
@@ -825,10 +826,65 @@ export const catalogReleaseNavigationRecordSchema = z
   })
   .strict();
 
+export const catalogPaymentBrandSchema = z.enum([
+  "visa",
+  "mastercard",
+  "american-express",
+  "discover",
+  "diners-club",
+  "union-pay",
+]);
+
+export const catalogPaymentCapabilitiesSchema = z
+  .object({
+    brands: z.array(catalogPaymentBrandSchema).max(6),
+    enabled: z.boolean(),
+    provider: z.literal("stripe"),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (!value.enabled && value.brands.length > 0) {
+      context.addIssue({
+        code: "custom",
+        message: "Disabled payment capabilities cannot advertise brands.",
+        path: ["brands"],
+      });
+    }
+    if (new Set(value.brands).size !== value.brands.length) {
+      context.addIssue({
+        code: "custom",
+        message: "Payment brands must be unique.",
+        path: ["brands"],
+      });
+    }
+  });
+
+export const catalogReleaseCommerceSchema = z
+  .object({
+    payment: catalogPaymentCapabilitiesSchema,
+    shippingMethods: z
+      .array(
+        z
+          .object({
+            amount: z.int().nonnegative(),
+            currency: z.string().length(3).toUpperCase(),
+            id: publicIdSchema,
+            name: z.string().trim().min(1).max(160),
+            countryCodes: z.array(z.string().length(2).toUpperCase()).min(1).max(250),
+          })
+          .strict(),
+      )
+      .max(100),
+  })
+  .strict();
+
 export const catalogReleaseV3Schema = z
   .object({
     ...catalogReleaseDocumentBase,
     collections: z.array(canonicalCatalogReleaseCollectionSchema),
+    // Early schema-v3 candidates predate frozen Commerce capabilities. Keep
+    // those immutable bytes readable; every new candidate builder emits this.
+    commerce: catalogReleaseCommerceSchema.optional(),
     content: z.array(catalogReleaseContentRecordSchema).max(5_000),
     environment: catalogReleaseEnvironmentSchema,
     generatedAt: z.iso.datetime(),

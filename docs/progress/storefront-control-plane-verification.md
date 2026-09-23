@@ -378,3 +378,46 @@ candidate, or change runtime behavior.
   checks plus `git diff --check` passed.
 - No remote candidate, deployment, DC, or PG state was created or advanced. U7 completes local
   Theme Block control capability only; product execution advances to U8.
+
+## U8 canonical claim migration and compatibility evidence
+
+- Published Fashion package `1.2.0` with configuration schema `3` and froze the exact reader
+  matrix: Release 2 / Config 1 / package 1.0 and Release 2 / Config 2 / package 1.1 use the legacy
+  reader; Release 3 / Config 2 / package 1.1 preserves historical behavior; Release 3 / Config 3 /
+  package 1.2 uses canonical authorities. The remaining 14 combinations fail closed, with all 18
+  tuples covered explicitly.
+- Release loaders preserve schema-v3 Commerce bytes for canonical composition and project to schema
+  v2 only for an exact legacy tuple. Config3 Header, Footer, Product, Contact, Logo, payment,
+  shipping, return, and Policy output has no legacy Theme-field fallback.
+- Migration dry-run binds one selected Release and frozen Contact/provider authority. Matching
+  legacy sets and effective-default resets are stripped, contradictions and unverifiable claims
+  remain reviewable conflicts, the source draft is immutable, and approval accepts only the same
+  Release-bound validation. Private Release reads enforce Catalog plus every included source-domain
+  permission, including `settings.read`.
+- Fashion package 1.1 retains a dedicated immutable manifest and preset pair protected by a golden
+  SHA-256 digest. Old → new → old → new selection preserves mutable authorities and historical
+  rendering identity.
+- Commerce claims now freeze only explicitly validated public provider capabilities. Shipping
+  methods must intersect the enabled launch countries, carry their country coverage, and render
+  destination-qualified checkout guidance. Policy meaning is retained by `kind` independently of
+  route slug.
+- Pending candidate guards cover Shipping zones, zone countries, and methods for insert, update,
+  and delete. Both post-pending and pre-success race probes fail with the stable candidate-source
+  lock response, and Shipping HTTP mutations translate that lock to the same retryable 409.
+- Cleanup reachability pins approved and rollback-eligible Release/build artifacts; FS-F14 performs
+  no retirement deletion. Current Decor contract parsing and bounded build/reference smoke remain
+  green without adding Decor to the product candidate scope.
+- The first full review found nine contract/concurrency defects; all were repaired. A second review
+  found reset-default reconciliation and migration Release-read authorization gaps; both were
+  repaired and independently reverified Ready. Retained review artifacts are
+  `/tmp/compound-engineering-501/ce-code-review/20260923-212201-be0d3ae8/report.md` and
+  `/tmp/compound-engineering-501/ce-code-review/20260923-212201-be0d3ae8/repair-verification.md`.
+- Authoritative verification on 2026-09-23: candidate Release `28/28`, Experience API `37/37`,
+  Shipping settings `6/6`, focused Product browser `1/1`, bounded Decor `4/4` with 134 assertions,
+  and Theme-impact unit `73/73` passed. API and Storefront TypeScript checks, Theme verification,
+  and `git diff --check` passed. The official Theme-impact browser stage passed U8's Product path
+  and retained five unchanged Footer `My account` expectation failures; package registry passed the
+  reader matrix and 18-tuple cross-product while retaining one unchanged checked-in active-theme
+  fixture-import assertion. Diff evidence isolates both baseline contracts from U8.
+- No remote candidate, deployment, DC, or PG state was created or advanced. U8 completes local
+  canonical-claim migration and compatibility only; product execution advances to U9.

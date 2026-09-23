@@ -6,7 +6,10 @@ import { ApiError } from "../http/errors";
 import { sha256Hex } from "../orders/tokens";
 import { toPreviewInputIdentity, type PreviewInputIdentityRow } from "./input-identity";
 import { getStorefrontExperienceSnapshot } from "./service";
-import { getCanonicalDeployedCatalogRelease } from "./catalog-resources";
+import {
+  getCanonicalDeployedCatalogRelease,
+  projectCatalogReleaseForExperience,
+} from "./catalog-resources";
 import { catalogMediaOrigins, parsePersistedMediaOrigins } from "./media-origins";
 import { assertStorefrontThemeLifecycleWritable } from "./retirement-policy";
 
@@ -273,15 +276,18 @@ export async function getStorefrontExperienceBuildManifestByBuild(
   if (!build.catalog_release_id) {
     return getStorefrontExperienceBuildManifest(context, build.snapshot_id);
   }
-  const [snapshot, catalogRelease] = await Promise.all([
-    getStorefrontExperienceSnapshot(context.env.DB, build.snapshot_id),
-    getCanonicalDeployedCatalogRelease(context.env.DB, build.catalog_release_id, {
+  const snapshot = await getStorefrontExperienceSnapshot(context.env.DB, build.snapshot_id);
+  const loadedRelease = await getCanonicalDeployedCatalogRelease(
+    context.env.DB,
+    build.catalog_release_id,
+    {
       allowPrivateCandidate: true,
       environment: context.env.ENVIRONMENT,
       principalKind: "service",
       privateCandidateBuildId: buildId,
-    }),
-  ]);
+    },
+  );
+  const catalogRelease = projectCatalogReleaseForExperience(loadedRelease, snapshot.snapshot);
   assertStorefrontThemeLifecycleWritable(snapshot.themeId);
   const mediaOrigins = catalogMediaOrigins(catalogRelease);
   assertBuildMediaOrigins(build, mediaOrigins);

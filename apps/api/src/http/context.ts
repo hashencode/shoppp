@@ -44,6 +44,7 @@ export interface ApiBindings {
   PAYMENT_CANCEL_URL?: string;
   PAYMENT_SUCCESS_URL?: string;
   STRIPE_SECRET_KEY?: string;
+  STRIPE_PUBLIC_CAPABILITIES_JSON?: string;
   STRIPE_WEBHOOK_SECRET?: string;
   EMAIL?: SendEmail;
   TURNSTILE_HOSTNAMES?: string;

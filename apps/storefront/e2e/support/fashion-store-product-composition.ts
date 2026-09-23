@@ -3,7 +3,7 @@ import { expect, type Page } from "@playwright/test";
 const geometryTolerancePx = 2;
 
 interface FashionStoreProductCompositionExpectation {
-  assurance: "populated" | "source-shaped-empty";
+  assurance: "canonical-partial" | "populated" | "source-shaped-empty";
   expectedSwatches: readonly string[];
   name: string;
   relatedProductCount: number;
@@ -82,6 +82,17 @@ export async function expectFashionStoreProductComposition(
     );
     await expect(product.locator("[data-product-assurance]")).not.toContainText(
       "Guarantee safe and secure checkout",
+    );
+    await expect(product.locator(".fashion-product-payments")).toContainText(
+      "Payment methods are not available.",
+    );
+    await expect(product.locator(".fashion-product-payments img")).toHaveCount(0);
+  } else if (expectation.assurance === "canonical-partial") {
+    await expect(product.locator("[data-product-assurance]")).toContainText(
+      "Delivery timing: Not available",
+    );
+    await expect(product.locator("[data-product-assurance]")).toContainText(
+      "Shipping & returns: See Shipping policy and Returns policy.",
     );
     await expect(product.locator(".fashion-product-payments")).toContainText(
       "Payment methods are not available.",

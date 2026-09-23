@@ -27,12 +27,12 @@ deepened: 2026-09-22
 ### Execution Checkpoint
 
 - **Classification:** Active product successor after FS-F12 completed U7 human acceptance on 2026-09-22.
-- **Current product pointer:** `FS-F14-U8` — migrate canonical claims while preserving historical compatibility.
+- **Current product pointer:** `FS-F14-U9` — prove the integrated Fashion Preview path and hand product execution back to `REL-Pre-DC`.
 - **Activation condition:** Met. FS-F13 and FS-F12 are complete and FS-F12 handed execution to FS-F14.
-- **Completed units:** U1 (U1.1-U1.3), U2, U3, U4, U5, U6, and U7 completed on 2026-09-23; retained evidence is in `docs/progress/storefront-control-plane-verification.md`.
-- **Current unit:** U8, canonical claim migration and compatibility.
-- **Next concrete action:** Characterize historical Snapshot rendering and freeze the supported Release × Experience × Fashion package reader matrix, then add proof-first migration conflict fixtures for legacy contact, policy, shipping, return, payment, and Logo claims before changing the composer.
-- **Blocker:** None for local U8 implementation. Remote mutation, deployment, and candidate/DC/PG advancement remain outside this stage.
+- **Completed units:** U1 (U1.1-U1.3), U2, U3, U4, U5, U6, U7, and U8 completed on 2026-09-23; retained evidence is in `docs/progress/storefront-control-plane-verification.md`.
+- **Current unit:** U9, integrated Fashion Preview, acceptance, and product handback.
+- **Next concrete action:** Run one deterministic sparse authority set through Admin save, private candidate Release, successor Theme draft, exact Preview, approval, and generated Fashion output; reconcile every Surface Control Matrix row and retain the exact tuple evidence before handback.
+- **Blocker:** None for local U9 implementation. Remote mutation, deployment, and candidate/DC/PG advancement remain outside this stage.
 - **Handback:** After U1-U9 and the Definition of Done pass, return to `REL-Pre-DC`. No candidate is frozen automatically.
 
 ---

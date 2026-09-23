@@ -1,4 +1,4 @@
-import type { CanonicalCatalogRelease } from "@shoppp/contracts";
+import type { CanonicalCatalogRelease, CatalogReleaseV3 } from "@shoppp/contracts";
 
 import { ApiError } from "../http/errors";
 
@@ -19,7 +19,9 @@ function exactCredentialFreeHttpsOrigin(value: unknown): value is string {
   }
 }
 
-export function catalogMediaOrigins(release: CanonicalCatalogRelease): string[] {
+export function catalogMediaOrigins(
+  release: CanonicalCatalogRelease | CatalogReleaseV3,
+): string[] {
   const origins = new Set<string>();
   for (const product of release.products) {
     for (const media of product.media) {

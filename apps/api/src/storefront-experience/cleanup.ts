@@ -30,6 +30,7 @@ export async function cleanupExpiredStorefrontPreviews(
        FROM storefront_preview_builds b
        JOIN storefront_experience_snapshots s ON s.id = b.snapshot_id
       WHERE b.status = 'deployed' AND b.cleaned_at IS NULL AND b.expires_at <= ?
+        AND s.kind <> 'approved'
         AND s.theme_id NOT IN (?, ?)
       ORDER BY b.expires_at, b.id
       LIMIT 100`,
@@ -97,7 +98,7 @@ export async function cleanupExpiredStorefrontPreviews(
         AND NOT EXISTS (
           SELECT 1 FROM storefront_experience_snapshots s
            WHERE s.id = storefront_preview_sessions.snapshot_id
-             AND s.theme_id IN (?, ?)
+             AND (s.kind = 'approved' OR s.theme_id IN (?, ?))
         )`,
   )
     .bind(timestamp, ...RETIRED_STOREFRONT_THEME_IDS)
@@ -109,7 +110,7 @@ export async function cleanupExpiredStorefrontPreviews(
         AND NOT EXISTS (
           SELECT 1 FROM storefront_experience_snapshots s
            WHERE s.id = storefront_preview_grants.snapshot_id
-             AND s.theme_id IN (?, ?)
+             AND (s.kind = 'approved' OR s.theme_id IN (?, ?))
         )`,
   )
     .bind(timestamp, ...RETIRED_STOREFRONT_THEME_IDS)

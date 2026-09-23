@@ -2,12 +2,17 @@ import {
   canonicalCatalogReleaseSchema,
   catalogReleaseV3Schema,
   type CanonicalCatalogRelease,
+  type CatalogReleaseV3,
+  type ExperienceSnapshot,
 } from "@shoppp/contracts";
 
 import type { ApiBindings } from "../http/context";
 import { ApiError } from "../http/errors";
 import { assertCatalogReleaseLifecycle } from "../publishing/candidate-releases";
 import { fashionStoreEditorDestinations } from "../../../storefront/app/themes/fashion-store/editor-destinations";
+import { resolveFashionStoreReader } from "../../../storefront/app/themes/fashion-store/package-registry";
+
+export type StorefrontCatalogRelease = CanonicalCatalogRelease | CatalogReleaseV3;
 
 interface ReleaseRow {
   approved_at: string;
@@ -19,14 +24,14 @@ interface ReleaseRow {
 
 function parseCanonicalRelease(
   row: Pick<ReleaseRow, "id" | "manifest_json">,
-): CanonicalCatalogRelease | null {
+): StorefrontCatalogRelease | null {
   let manifest: unknown;
   try {
     manifest = JSON.parse(row.manifest_json);
   } catch {
     return null;
   }
-  const parsed = canonicalCatalogReleaseSchema.safeParse(manifest);
+  const parsed = catalogReleaseV3Schema.or(canonicalCatalogReleaseSchema).safeParse(manifest);
   return parsed.success && parsed.data.releaseId === row.id ? parsed.data : null;
 }
 
@@ -40,7 +45,7 @@ export async function getCanonicalDeployedCatalogRelease(
     environment?: ApiBindings["ENVIRONMENT"];
     principalKind?: "human" | "service";
   } = {},
-): Promise<CanonicalCatalogRelease> {
+): Promise<StorefrontCatalogRelease> {
   const row = await db
     .prepare(
       `SELECT id, manifest_json, status, purpose, environment, candidate_status
@@ -87,17 +92,7 @@ export async function getCanonicalDeployedCatalogRelease(
     if (!v3.success) {
       throw new ApiError(422, "catalog_release_invalid", "The private candidate is invalid.");
     }
-    const {
-      content: _content,
-      environment: _environment,
-      identity: _identity,
-      navigation: _navigation,
-      purpose: _purpose,
-      routeOutput: _routeOutput,
-      sourceVersionVector: _sources,
-      ...core
-    } = v3.data;
-    return canonicalCatalogReleaseSchema.parse({ ...core, schemaVersion: 2 });
+    return v3.data;
   }
   const release = parseCanonicalRelease(row);
   if (!release) {
@@ -110,7 +105,42 @@ export async function getCanonicalDeployedCatalogRelease(
   return release;
 }
 
-export function storefrontDestinationsForRelease(release: CanonicalCatalogRelease) {
+export function projectCatalogReleaseForExperience(
+  release: StorefrontCatalogRelease,
+  experience: Pick<ExperienceSnapshot, "configurationSchemaVersion" | "themeId" | "themeVersion">,
+): StorefrontCatalogRelease {
+  if (experience.themeId !== "fashion-store") return release;
+  const reader = resolveFashionStoreReader({
+    experienceSchemaVersion: experience.configurationSchemaVersion,
+    packageVersion: experience.themeVersion,
+    releaseSchemaVersion: release.schemaVersion,
+  });
+  if (!reader) {
+    throw new ApiError(
+      422,
+      "storefront_reader_tuple_unsupported",
+      "The selected Catalog Release and Experience package do not have a supported reader.",
+    );
+  }
+  if (reader === "canonical") return release;
+  if (release.schemaVersion === 3) {
+    const {
+      commerce: _commerce,
+      content: _content,
+      environment: _environment,
+      identity: _identity,
+      navigation: _navigation,
+      purpose: _purpose,
+      routeOutput: _routeOutput,
+      sourceVersionVector: _sources,
+      ...core
+    } = release;
+    return canonicalCatalogReleaseSchema.parse({ ...core, schemaVersion: 2 });
+  }
+  return release;
+}
+
+export function storefrontDestinationsForRelease(release: StorefrontCatalogRelease) {
   return fashionStoreEditorDestinations(release);
 }
 

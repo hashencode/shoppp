@@ -1,5 +1,7 @@
 import {
   catalogReleaseV3Schema,
+  catalogPaymentCapabilitiesSchema,
+  launchConfigurationSchema,
   type CatalogReleaseEnvironment,
   type CatalogReleaseSource,
   type CatalogReleaseV3,
@@ -535,6 +537,7 @@ async function assembleCandidateManifest(
   mediaOrigin: string,
   storefrontOrigin: string,
   releaseId: string,
+  paymentCapabilitiesJson: string | undefined,
 ): Promise<{
   manifest: CatalogReleaseV3;
   sources: Awaited<ReturnType<typeof sourceVector>>;
@@ -559,6 +562,7 @@ async function assembleCandidateManifest(
           .join(" ")
           .slice(0, 2_000) || title,
       effectiveDate: String(row.effective_date),
+      kind: String(row.kind) as "privacy" | "returns" | "shipping" | "terms",
       sections: sections.map((section) => ({
         body: section.text ?? section.items?.join("\n") ?? section.caption ?? section.alt ?? title,
         heading: section.kind === "heading" && section.text ? section.text : title,
@@ -683,7 +687,9 @@ async function assembleCandidateManifest(
         : null,
     id: "identity.primary" as const,
     logoAssets: identityLogos.results.map((logo) => {
-      const media = v2.products.flatMap((product) => product.media).find(({ id }) => id === logo.assetId);
+      const media = v2.products
+        .flatMap((product) => product.media)
+        .find(({ id }) => id === logo.assetId);
       if (!media) {
         lifecycleError(
           "catalog_identity_logo_media_missing",
@@ -733,6 +739,82 @@ async function assembleCandidateManifest(
     ...v2.redirects,
     ...contentRedirects.results.map((redirect) => ({ ...redirect, status: 301 as const })),
   ];
+  const launchSetting = await db
+    .prepare("SELECT value_json FROM settings WHERE key = 'launch_configuration'")
+    .first<{ value_json: string }>();
+  const launch = launchSetting
+    ? launchConfigurationSchema.parse(JSON.parse(launchSetting.value_json))
+    : null;
+  const shippingMethodCountries = launch
+    ? await db
+        .prepare(
+          `SELECT sm.id, sm.name, sm.price_amount AS amount, sm.currency, szc.country_code
+             FROM shipping_methods sm
+             JOIN shipping_zones sz ON sz.id = sm.zone_id
+             JOIN shipping_zone_countries szc ON szc.zone_id = sz.id
+            WHERE sm.status = 'active' AND sz.status = 'active'
+              AND sm.id IN (SELECT value FROM json_each(?))
+              AND szc.country_code IN (SELECT value FROM json_each(?))
+            ORDER BY sm.id, szc.country_code`,
+        )
+        .bind(JSON.stringify(launch.shippingMethodIds), JSON.stringify(launch.shippingCountries))
+        .all<{
+          amount: number;
+          country_code: string;
+          currency: string;
+          id: string;
+          name: string;
+        }>()
+    : {
+        results: [] as Array<{
+          amount: number;
+          country_code: string;
+          currency: string;
+          id: string;
+          name: string;
+        }>,
+      };
+  const shippingMethods = [...new Set(shippingMethodCountries.results.map(({ id }) => id))].map(
+    (id) => {
+      const rows = shippingMethodCountries.results.filter((row) => row.id === id);
+      const method = rows[0]!;
+      return {
+        amount: method.amount,
+        countryCodes: rows.map(({ country_code }) => country_code),
+        currency: method.currency,
+        id,
+        name: method.name,
+      };
+    },
+  );
+  let parsedCapabilities: ReturnType<typeof catalogPaymentCapabilitiesSchema.safeParse> | null =
+    null;
+  if (paymentCapabilitiesJson) {
+    try {
+      parsedCapabilities = catalogPaymentCapabilitiesSchema.safeParse(
+        JSON.parse(paymentCapabilitiesJson),
+      );
+    } catch {
+      lifecycleError(
+        "catalog_payment_capabilities_invalid",
+        "The configured public payment capability snapshot is invalid.",
+      );
+    }
+  }
+  if (paymentCapabilitiesJson && !parsedCapabilities?.success) {
+    lifecycleError(
+      "catalog_payment_capabilities_invalid",
+      "The configured public payment capability snapshot is invalid.",
+    );
+  }
+  const payment =
+    launch && parsedCapabilities?.success
+      ? parsedCapabilities.data
+      : { brands: [], enabled: false, provider: "stripe" as const };
+  const commerce = {
+    payment,
+    shippingMethods,
+  };
   validateCatalogCandidateSnapshot({
     environment,
     redirects,
@@ -749,6 +831,7 @@ async function assembleCandidateManifest(
   return {
     manifest: catalogReleaseV3Schema.parse({
       ...v2,
+      commerce,
       content: records,
       environment,
       identity: frozenIdentity,
@@ -829,6 +912,7 @@ export async function buildPrivateCatalogCandidate(
     context.env.MEDIA_PUBLIC_ORIGIN,
     context.env.STOREFRONT_ORIGIN,
     releaseId,
+    context.env.STRIPE_PUBLIC_CAPABILITIES_JSON,
   );
   const capturedPayload = canonicalSourcePayload(captured.manifest);
   const manifest = structuredClone(captured.manifest);
@@ -925,6 +1009,7 @@ export async function buildPrivateCatalogCandidate(
       context.env.MEDIA_PUBLIC_ORIGIN,
       context.env.STOREFRONT_ORIGIN,
       releaseId,
+      context.env.STRIPE_PUBLIC_CAPABILITIES_JSON,
     );
     if (canonicalSourcePayload(current.manifest) !== capturedPayload) {
       lifecycleError("catalog_source_drift", "A source payload changed before candidate freeze.");

@@ -11,7 +11,7 @@ import { fashionStoreHomeSectionTypes } from "./composition";
 const inheritedHome = inheritedManifest.componentRegistry.sections.find(
   ({ type }) => type === "fashion-store.home",
 )!;
-export const successorHomeSettings = [
+export const fashionStoreV11HomeSettings = [
   ...inheritedHome.settings.filter(
     ({ id }) =>
       id !== "merchandising-order" &&
@@ -77,6 +77,15 @@ export const successorHomeSettings = [
     required: true,
   },
 ] satisfies SectionDefinition["settings"];
+const canonicalClaimSettingIds = new Set([
+  "footer-contact-copy",
+  "footer-social-link",
+  "header-contact-copy",
+  "header-social-link",
+]);
+export const successorHomeSettings = fashionStoreV11HomeSettings.filter(
+  ({ id }) => !canonicalClaimSettingIds.has(id),
+);
 const presentationSetting = (
   id: string,
   label: string,
@@ -357,30 +366,61 @@ export const homeSettingsByType = {
     ),
   ],
 } satisfies Readonly<Record<string, SectionDefinition["settings"]>>;
-export const fashionStoreManifest = {
+const fashionStoreV11ComponentRegistry = {
+  ...inheritedManifest.componentRegistry,
+  blocks: [...inheritedManifest.componentRegistry.blocks, ...fashionStoreBlockDefinitions],
+  sections: [
+    ...inheritedManifest.componentRegistry.sections.filter(
+      ({ type }) => type !== "fashion-store.home",
+    ),
+    ...fashionStoreHomeSectionTypes.map((type) => ({
+      ...inheritedHome,
+      allowedBlockTypes: blockPolicyBySectionType[type]
+        ? [blockPolicyBySectionType[type]!.blockType]
+        : [],
+      blockRules: blockPolicyBySectionType[type] ? [blockPolicyBySectionType[type]!] : [],
+      settings:
+        type === "fashion-store.hero"
+          ? fashionStoreV11HomeSettings
+          : (homeSettingsByType[type as keyof typeof homeSettingsByType] ?? []),
+      type,
+    })),
+  ],
+} satisfies ThemeManifest["componentRegistry"];
+
+export const fashionStoreV11Manifest = {
   ...inheritedManifest,
+  componentRegistry: fashionStoreV11ComponentRegistry,
+} satisfies ThemeManifest;
+
+const canonicalProductClaimSettingIds = new Set([
+  "delivery-summary",
+  "shipping-returns-summary",
+  "payment-brand-visa",
+  "payment-brand-mastercard",
+  "payment-brand-american-express",
+  "payment-brand-discover",
+  "payment-brand-diners-club",
+  "payment-brand-union-pay",
+]);
+
+export const fashionStoreManifest = {
+  ...fashionStoreV11Manifest,
   componentRegistry: {
-    ...inheritedManifest.componentRegistry,
-    blocks: [...inheritedManifest.componentRegistry.blocks, ...fashionStoreBlockDefinitions],
-    sections: [
-      ...inheritedManifest.componentRegistry.sections.filter(
-        ({ type }) => type !== "fashion-store.home",
-      ),
-      ...fashionStoreHomeSectionTypes.map((type) => ({
-        ...inheritedHome,
-        allowedBlockTypes: blockPolicyBySectionType[type]
-          ? [blockPolicyBySectionType[type]!.blockType]
-          : [],
-        blockRules: blockPolicyBySectionType[type] ? [blockPolicyBySectionType[type]!] : [],
-        settings:
-          type === "fashion-store.hero"
-            ? successorHomeSettings
-            : (homeSettingsByType[type as keyof typeof homeSettingsByType] ?? []),
-        type,
-      })),
-    ],
+    ...fashionStoreV11ComponentRegistry,
+    sections: fashionStoreV11ComponentRegistry.sections.map((section) => ({
+      ...section,
+      settings:
+        section.type === "fashion-store.hero"
+          ? successorHomeSettings
+          : section.type === "fashion-store.product"
+            ? section.settings.filter(({ id }) => !canonicalProductClaimSettingIds.has(id))
+            : section.settings,
+    })),
   },
-} as const satisfies ThemeManifest;
+  configurationSchemaVersion: 3,
+  themeVersion: "1.2.0",
+} satisfies ThemeManifest;
 
 export const fashionStoreThemeDescriptor = {
   configurationSchemaVersion: fashionStoreManifest.configurationSchemaVersion,

@@ -145,7 +145,7 @@ export const activeExperienceSnapshot = {
       "state": "populated"
     }
   ],
-  "configurationSchemaVersion": 2,
+  "configurationSchemaVersion": 3,
   "experienceId": "experience-fashion-store-fixture",
   "id": "snapshot-fashion-store-fixture-1",
   "overrides": [],
@@ -294,8 +294,6 @@ export const activeExperienceSnapshot = {
           "settings": {
             "announcement-text": "",
             "announcement-visible": true,
-            "header-contact-copy": "",
-            "footer-contact-copy": "",
             "merchandising-title": "Featured edit",
             "identity-logo-variant": "primary",
             "identity-logo-width": 140,
@@ -854,7 +852,7 @@ export const activeExperienceSnapshot = {
     }
   ],
   "themeId": "fashion-store",
-  "themeVersion": "1.1.0",
+  "themeVersion": "1.2.0",
   "version": 1,
   "approvedAt": "2026-08-06T00:00:00.000Z",
   "approvedBy": "fixture-operator",

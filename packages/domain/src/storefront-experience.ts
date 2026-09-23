@@ -55,6 +55,18 @@ export type UpgradeConflict =
       instanceId: string;
       operationIndex: number;
       settingId: string;
+    }
+  | {
+      code: "canonical-claim-unverified";
+      instanceId: string;
+      operationIndex: number;
+      settingId: string;
+    }
+  | {
+      code: "canonical-claim-conflict";
+      instanceId: string;
+      operationIndex: number;
+      settingId: string;
     };
 
 type InstanceLocation =

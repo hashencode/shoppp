@@ -6,12 +6,19 @@ import { themePackageSchema } from "@shoppp/contracts";
 
 import {
   FASHION_STORE_HISTORICAL_V1_PACKAGE_SHA256,
+  FASHION_STORE_V11_PACKAGE_SHA256,
+  fashionStoreReaderCompatibilityMatrix,
   fashionStoreDirectMigrationBoundaries,
   fashionStoreHistoricalPackages,
   fashionStorePackageRegistrations,
   fashionStoreSuccessorPackage,
+  fashionStoreV11Package,
+  resolveFashionStoreReader,
 } from "../app/themes/fashion-store/package-registry";
-import { migrateFashionStoreV1Overrides } from "../app/themes/fashion-store/migrations";
+import {
+  migrateFashionStorePresentationOnlyOverrides,
+  migrateFashionStoreV1Overrides,
+} from "../app/themes/fashion-store/migrations";
 import { fixtureThemeRegistry as baseFixtureRegistry } from "../app/themes/fashion-store/fixture-registry";
 import { themeRegistry as baseLiveRegistry } from "../app/themes/fashion-store/registry";
 import { fashionStoreHomeSections } from "../app/themes/fashion-store/successor/composition";
@@ -43,14 +50,19 @@ describe("Fashion Store exact package registry", () => {
 
   test("isolates the successor package and declares every direct source boundary", () => {
     expect(fashionStoreSuccessorPackage.manifest).toMatchObject({
-      configurationSchemaVersion: 2,
+      configurationSchemaVersion: 3,
       id: "fashion-store",
-      themeVersion: "1.1.0",
+      themeVersion: "1.2.0",
     });
     expect(fashionStoreDirectMigrationBoundaries).toEqual([
       {
         source: { configurationSchemaVersion: 1, themeVersion: "1.0.0" },
         target: { configurationSchemaVersion: 2, themeVersion: "1.1.0" },
+        themeId: "fashion-store",
+      },
+      {
+        source: { configurationSchemaVersion: 2, themeVersion: "1.1.0" },
+        target: { configurationSchemaVersion: 3, themeVersion: "1.2.0" },
         themeId: "fashion-store",
       },
     ]);
@@ -71,6 +83,11 @@ describe("Fashion Store exact package registry", () => {
         schemaVersion: 2,
         themeVersion: "1.1.0",
       },
+      {
+        lifecycle: "successor",
+        schemaVersion: 3,
+        themeVersion: "1.2.0",
+      },
     ]);
     expect(Object.isFrozen(fashionStorePackageRegistrations)).toBe(true);
     expect(Object.isFrozen(fashionStoreDirectMigrationBoundaries)).toBe(true);
@@ -79,6 +96,112 @@ describe("Fashion Store exact package registry", () => {
       "source-parity",
       "unified-store",
     ]);
+  });
+
+  test("freezes the exact 1.1.0 package bytes independently from 1.2.0 defaults", () => {
+    const bytes = `${JSON.stringify(fashionStoreV11Package, null, 2)}\n`;
+    const digest = new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
+
+    expect(digest).toBe(FASHION_STORE_V11_PACKAGE_SHA256);
+    expect(fashionStoreV11Package.manifest).toMatchObject({
+      configurationSchemaVersion: 2,
+      themeVersion: "1.1.0",
+    });
+    expect(fashionStoreV11Package).not.toBe(fashionStoreSuccessorPackage);
+    expect(fashionStoreV11Package.presets).not.toBe(fashionStoreSuccessorPackage.presets);
+    expect(Object.isFrozen(fashionStoreV11Package)).toBe(true);
+  });
+
+  test("freezes the supported Release × Experience × Fashion reader matrix", () => {
+    expect(fashionStoreReaderCompatibilityMatrix).toEqual([
+      {
+        experienceSchemaVersion: 1,
+        packageVersion: "1.0.0",
+        reader: "legacy",
+        releaseSchemaVersion: 2,
+      },
+      {
+        experienceSchemaVersion: 2,
+        packageVersion: "1.1.0",
+        reader: "legacy",
+        releaseSchemaVersion: 2,
+      },
+      {
+        experienceSchemaVersion: 2,
+        packageVersion: "1.1.0",
+        reader: "legacy",
+        releaseSchemaVersion: 3,
+      },
+      {
+        experienceSchemaVersion: 3,
+        packageVersion: "1.2.0",
+        reader: "canonical",
+        releaseSchemaVersion: 3,
+      },
+    ]);
+  });
+
+  test("rejects every tuple outside the exhaustive reader cross-product", () => {
+    const supported = new Map(
+      fashionStoreReaderCompatibilityMatrix.map((entry) => [
+        `${entry.releaseSchemaVersion}/${entry.experienceSchemaVersion}/${entry.packageVersion}`,
+        entry.reader,
+      ]),
+    );
+    for (const releaseSchemaVersion of [2, 3]) {
+      for (const experienceSchemaVersion of [1, 2, 3]) {
+        for (const packageVersion of ["1.0.0", "1.1.0", "1.2.0"]) {
+          expect(
+            resolveFashionStoreReader({
+              experienceSchemaVersion,
+              packageVersion,
+              releaseSchemaVersion,
+            }),
+            `Release${releaseSchemaVersion}/Config${experienceSchemaVersion}/Package${packageVersion}`,
+          ).toBe(
+            supported.get(
+              `${releaseSchemaVersion}/${experienceSchemaVersion}/${packageVersion}`,
+            ),
+          );
+        }
+      }
+    }
+    expect(supported.size).toBe(4);
+  });
+
+  test("removes legacy claim writes while retaining presentation-only operations", () => {
+    const source = [
+      {
+        operations: [
+          {
+            instanceId: "fashion-store-home-hero",
+            kind: "set-setting" as const,
+            settingId: "footer-contact-copy",
+            value: "support@example.test",
+          },
+          {
+            instanceId: "fashion-store-product",
+            kind: "set-setting" as const,
+            settingId: "payment-brand-visa",
+            value: true,
+          },
+          {
+            instanceId: "fashion-store-home-hero",
+            kind: "set-setting" as const,
+            settingId: "identity-logo-width",
+            value: 180,
+          },
+        ],
+        presetId: "source-parity",
+        schemaVersion: 2,
+        templateId: "fashion-store-home",
+      },
+    ];
+
+    expect(migrateFashionStorePresentationOnlyOverrides(source)).toEqual([
+      { ...source[0], schemaVersion: 3, operations: [source[0]!.operations[2]] },
+    ]);
+    expect(source[0]!.schemaVersion).toBe(2);
   });
 
   test("migrates v1 overrides without changing their preset identity", () => {
@@ -122,6 +245,13 @@ describe("Fashion Store exact package registry", () => {
       instanceIds: ["fashion-store-home"],
       kind: "reorder-sections",
     });
+    const firstSuccessor = migrateFashionStorePresentationOnlyOverrides(migrated);
+    const historicalReread = structuredClone(source);
+    const secondSuccessor = migrateFashionStorePresentationOnlyOverrides(
+      migrateFashionStoreV1Overrides(historicalReread),
+    );
+    expect(secondSuccessor).toEqual(firstSuccessor);
+    expect(historicalReread).toEqual(source);
     expect(migrateFashionStoreV1Overrides([])).toEqual([]);
   });
 

@@ -956,6 +956,166 @@ describe("theme-neutral storefront composer", () => {
     ).toEqual(["visa", "mastercard"]);
   });
 
+  test("reads canonical commerce and policies without falling back to legacy Product claims", () => {
+    const release = {
+      ...canonicalRelease,
+      commerce: {
+        payment: { brands: ["visa", "american-express"], enabled: true, provider: "stripe" },
+        shippingMethods: [
+          {
+            amount: 900,
+            countryCodes: ["US"],
+            currency: "USD",
+            id: "ship_01JTHEMEENGINE00000000001",
+            name: "Standard",
+          },
+        ],
+      },
+      content: [],
+      environment: "staging",
+      identity: {
+        faviconAssetId: null,
+        id: "identity.primary",
+        logoAssets: [],
+        seo: {},
+        socialShareAssetId: null,
+        storefrontName: "Shoppp",
+        tagline: "",
+        version: 1,
+      },
+      navigation: [],
+      policies: [
+        {
+          ...canonicalRelease.policies[0]!,
+          kind: "shipping",
+          slug: "delivery-details",
+          title: "Shipping policy",
+        },
+        {
+          ...canonicalRelease.policies[0]!,
+          kind: "returns",
+          slug: "refund-rules",
+          title: "Returns policy",
+        },
+      ],
+      purpose: "private-preview",
+      routeOutput: canonicalRelease.routes,
+      schemaVersion: 3,
+      sourceVersionVector: [
+        { digest: "a".repeat(64), id: "identity.primary", kind: "store-identity", version: 1 },
+      ],
+    } satisfies CatalogReleaseV3;
+    const experience = structuredClone(liveSnapshot) as ExperienceSnapshot;
+    experience.configurationSchemaVersion = 3;
+    experience.themeId = "fashion-store";
+    experience.themeVersion = "1.2.0";
+    experience.bindings = [];
+    experience.resolvedTemplates = [
+      {
+        id: "home-template",
+        pageType: "home",
+        requiredCapabilities: [],
+        sections: [
+          {
+            blocks: [],
+            capabilities: [],
+            id: "fashion-store-home-hero",
+            settings: {
+              "footer-contact-copy": "Legacy footer contact must not render",
+              "footer-logo": {
+                alt: "Legacy footer logo",
+                height: 80,
+                kind: "theme",
+                path: "assets/legacy-footer.png",
+                width: 160,
+              },
+              "footer-social-link": {
+                label: "Legacy social",
+                target: { kind: "external", url: "https://legacy.example.test" },
+                targetBehavior: "new-window",
+              },
+              "header-contact-copy": "Legacy header contact must not render",
+              "header-logo": {
+                alt: "Legacy header logo",
+                height: 80,
+                kind: "theme",
+                path: "assets/legacy-header.png",
+                width: 160,
+              },
+            },
+            type: "fashion-store.home",
+            visible: true,
+          },
+        ],
+      },
+      {
+        id: "product-template",
+        pageType: "product",
+        requiredCapabilities: [],
+        sections: [
+          {
+            blocks: [],
+            capabilities: [],
+            id: "product",
+            settings: {
+              "delivery-summary": "Legacy delivery must not render",
+              "shipping-returns-summary": "Legacy policy must not render",
+              "payment-brand-mastercard": true,
+            },
+            type: "fashion-store.product",
+            visible: true,
+          },
+        ],
+      },
+    ];
+    const before = structuredClone(experience);
+
+    const first = composeProductPageModel({
+      experience,
+      locale: "en-US",
+      productId: release.products[0]!.id,
+      release,
+      slug: release.products[0]!.slug,
+    });
+    const second = composeProductPageModel({
+      experience,
+      locale: "en-US",
+      productId: release.products[0]!.id,
+      release,
+      slug: release.products[0]!.slug,
+    });
+
+    expect(first).toMatchObject({
+      deliverySummary: "Shipping options are confirmed for your destination at checkout.",
+      paymentBrands: ["visa", "american-express"],
+      shippingReturnsSummary: "See Shipping policy and Returns policy.",
+    });
+    expect(second).toEqual(first);
+    expect(experience).toEqual(before);
+    expect(JSON.stringify(first)).not.toContain("Legacy");
+    expect(JSON.stringify(first)).not.toContain("mastercard");
+    const shell = composeExperienceShell({
+      adapter: fashionStoreCompositionAdapter,
+      experience,
+      release,
+    });
+    expect(shell?.header.logo).toBeUndefined();
+    expect(shell?.header.contactCopy).toBeUndefined();
+    expect(shell?.footer.logo).toBeUndefined();
+    expect(shell?.footer.contactCopy).toBeUndefined();
+    expect(shell?.footer.socialLink).toBeUndefined();
+    expect(JSON.stringify(shell)).not.toContain("legacy");
+    expect(() =>
+      composeProductPageModel({
+        experience,
+        locale: "en-US",
+        productId: canonicalRelease.products[0]!.id,
+        release: canonicalRelease,
+        slug: canonicalRelease.products[0]!.slug,
+      }),
+    ).toThrow("Unsupported Fashion Store reader tuple Release2/Config3/Package1.2.0");
+  });
+
   test("uses the selected published related collection on both Product composition paths", () => {
     const release = structuredClone(canonicalRelease) as CanonicalCatalogRelease;
     const product = release.products[0]!;
@@ -1460,7 +1620,12 @@ describe("theme-neutral storefront composer", () => {
         logoAssets: [
           {
             assetId: "asset_logo_primary",
-            media: { alt: "Primary identity", height: 60, src: "/media/frozen-primary.webp", width: 180 },
+            media: {
+              alt: "Primary identity",
+              height: 60,
+              src: "/media/frozen-primary.webp",
+              width: 180,
+            },
             variant: "primary",
           },
           {

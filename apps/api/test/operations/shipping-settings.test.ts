@@ -63,6 +63,9 @@ const zoneInput = {
 describe("shipping settings", () => {
   beforeEach(async () => {
     await env.DB.batch([
+      env.DB.prepare(
+        "UPDATE catalog_releases SET candidate_status = 'abandoned' WHERE purpose = 'private-preview' AND candidate_status = 'pending'",
+      ),
       env.DB.prepare("DELETE FROM idempotency_claims"),
       env.DB.prepare("DELETE FROM audit_events"),
       env.DB.prepare("DELETE FROM shipping_methods"),
@@ -77,6 +80,70 @@ describe("shipping settings", () => {
       subject: "shipping-admin",
     });
   });
+
+  test.each(["zone", "country", "method"] as const)(
+    "returns the stable candidate lock response for a pending %s mutation",
+    async (mutation) => {
+      const app = appFor("shipping-admin");
+      const createdResponse = await app.fetch(
+        request(
+          "/admin/settings/shipping/zones",
+          zoneInput,
+          `shipping-candidate-lock-seed-${mutation}`,
+        ),
+        env,
+      );
+      const created = await createdResponse.json<{
+        data: { id: string; methods: Array<{ id: string }> };
+      }>();
+      expect(createdResponse.status).toBe(201);
+      const now = new Date().toISOString();
+      await env.DB.prepare(
+        `INSERT INTO catalog_releases
+           (id, status, manifest_json, approved_at, purpose, environment, candidate_status,
+            candidate_expires_at, created_at, updated_at)
+         VALUES (?, 'approved', '{}', ?, 'private-preview', 'staging', 'pending',
+                 '2099-09-23T00:00:00.000Z', ?, ?)`,
+      )
+        .bind(`release-shipping-lock-${mutation}`, now, now, now)
+        .run();
+
+      const response = await app.fetch(
+        request(
+          `/admin/settings/shipping/zones/${created.data.id}`,
+          {
+            ...zoneInput,
+            reason: `Attempt ${mutation} mutation during candidate freeze`,
+            zone: {
+              ...zoneInput.zone,
+              countries: mutation === "country" ? ["US"] : zoneInput.zone.countries,
+              id: created.data.id,
+              methods: zoneInput.zone.methods.map((method, index) => ({
+                ...method,
+                id: created.data.methods[index]!.id,
+                priceAmount:
+                  mutation === "method" && index === 0
+                    ? method.priceAmount + 100
+                    : method.priceAmount,
+              })),
+              name: mutation === "zone" ? "Frozen North America" : zoneInput.zone.name,
+            },
+          },
+          `shipping-candidate-lock-${mutation}`,
+        ),
+        env,
+      );
+
+      expect(response.status).toBe(409);
+      expect(await response.json()).toMatchObject({
+        error: {
+          code: "catalog_candidate_sources_locked",
+          message:
+            "Catalog sources are frozen while a Preview candidate is being built. Retry shortly.",
+        },
+      });
+    },
+  );
 
   test("creates, lists, and atomically updates a reasoned shipping zone", async () => {
     const app = appFor("shipping-admin");

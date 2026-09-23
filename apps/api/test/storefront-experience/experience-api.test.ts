@@ -16,6 +16,7 @@ import { fashionStoreManifest } from "../../../storefront/app/themes/fashion-sto
 import {
   fashionStoreHistoricalPackages,
   fashionStoreSuccessorPackage,
+  fashionStoreV11Package,
 } from "../../../storefront/app/themes/fashion-store/package-registry";
 import { fashionStoreHomeSections } from "../../../storefront/app/themes/fashion-store/successor/composition";
 import { fashionStorePreset } from "../../../storefront/app/themes/fashion-store/presets/source-parity";
@@ -27,6 +28,7 @@ import {
   getFashionStagingOperatorRun,
 } from "../../src/testing/fashion-staging-operator";
 import { cleanupExpiredStorefrontPreviews } from "../../src/storefront-experience/cleanup";
+import { projectCatalogReleaseForExperience } from "../../src/storefront-experience/catalog-resources";
 import { catalogMediaOrigins } from "../../src/storefront-experience/media-origins";
 import type { StorefrontExperienceServiceOptions } from "../../src/storefront-experience/service";
 import { ADMIN_ROLE_IDS, seedHumanAdmin, seedServiceAdmin } from "../fixtures/admin-iam";
@@ -150,6 +152,40 @@ const previewCatalogReleaseWithExternalMedia = canonicalCatalogReleaseSchema.par
       : product,
   ),
 });
+const previewCatalogReleaseV3 = catalogReleaseV3Schema.parse({
+  ...previewCatalogReleaseWithExternalMedia,
+  commerce: {
+    payment: { brands: ["visa"], enabled: true, provider: "stripe" },
+    shippingMethods: [
+      {
+        amount: 500,
+        countryCodes: ["US"],
+        currency: "USD",
+        id: "ship_01JPREVIEW000000000000001",
+        name: "US delivery",
+      },
+    ],
+  },
+  content: [],
+  environment: "staging",
+  identity: {
+    faviconAssetId: null,
+    id: "identity.primary",
+    logoAssets: [],
+    seo: {},
+    socialShareAssetId: null,
+    storefrontName: "Preview store",
+    tagline: "",
+    version: 1,
+  },
+  navigation: [],
+  purpose: "private-preview",
+  routeOutput: previewCatalogRelease.routes,
+  schemaVersion: 3,
+  sourceVersionVector: [
+    { digest: "a".repeat(64), id: "identity.primary", kind: "store-identity", version: 1 },
+  ],
+});
 const previewMediaOrigins = catalogMediaOrigins(previewCatalogReleaseWithExternalMedia);
 
 const catalogReadyDraftInput = storefrontExperienceDraftInputSchema.parse({
@@ -175,9 +211,31 @@ const catalogReadyDraftInput = storefrontExperienceDraftInputSchema.parse({
 
 async function seedPreviewCatalogRelease(
   id = previewCatalogRelease.releaseId,
-  release: typeof previewCatalogRelease = previewCatalogRelease,
+  release: typeof previewCatalogRelease | typeof previewCatalogReleaseV3 = previewCatalogRelease,
 ): Promise<void> {
   const now = "2026-08-11T00:00:00.000Z";
+  if (release.schemaVersion === 3) {
+    const manifestDigest = await sha256Hex(`manifest:${id}`);
+    const sourceDigest = await sha256Hex(`source:${id}`);
+    await env.DB.prepare(
+      `INSERT INTO catalog_releases
+         (id, status, manifest_json, approved_at, purpose, environment, manifest_digest,
+          source_digest, candidate_status, candidate_expires_at, created_at, updated_at)
+       VALUES (?, 'approved', ?, ?, 'private-preview', 'staging', ?, ?, 'succeeded',
+               '2099-08-11T00:00:00.000Z', ?, ?)`,
+    )
+      .bind(
+        id,
+        JSON.stringify({ ...release, releaseId: id }),
+        now,
+        manifestDigest,
+        sourceDigest,
+        now,
+        now,
+      )
+      .run();
+    return;
+  }
   await env.DB.prepare(
     `INSERT INTO catalog_releases
        (id, status, manifest_json, approved_at, deployed_at, created_at, updated_at)
@@ -363,6 +421,29 @@ function revokePreviewAccessAfterGrantClaim(database: D1Database, snapshotId: st
 }
 
 describe("storefront experience API", () => {
+  test("preserves canonical v3 readers and projects only exact legacy tuples", () => {
+    expect(
+      projectCatalogReleaseForExperience(previewCatalogReleaseV3, {
+        configurationSchemaVersion: 3,
+        themeId: "fashion-store",
+        themeVersion: "1.2.0",
+      }),
+    ).toBe(previewCatalogReleaseV3);
+    const legacy = projectCatalogReleaseForExperience(previewCatalogReleaseV3, {
+      configurationSchemaVersion: 2,
+      themeId: "fashion-store",
+      themeVersion: "1.1.0",
+    });
+    expect(legacy).toMatchObject({ schemaVersion: 2 });
+    expect("commerce" in legacy).toBe(false);
+    expect(() =>
+      projectCatalogReleaseForExperience(previewCatalogRelease, {
+        configurationSchemaVersion: 3,
+        themeId: "fashion-store",
+        themeVersion: "1.2.0",
+      }),
+    ).toThrow("do not have a supported reader");
+  });
   beforeEach(async () => {
     await env.DB.batch([
       env.DB.prepare("DELETE FROM fashion_staging_operator_runs"),
@@ -669,7 +750,11 @@ describe("storefront experience API", () => {
       const response = await app.fetch(
         writeRequest(
           endpoint,
-          { command: { ...command, templateId: "fashion-store-home" }, expectedVersion: version, reason: `Exercise ${key} Block command` },
+          {
+            command: { ...command, templateId: "fashion-store-home" },
+            expectedVersion: version,
+            reason: `Exercise ${key} Block command`,
+          },
           `theme-block-all-${key}`,
         ),
         env,
@@ -693,13 +778,10 @@ describe("storefront experience API", () => {
         (operation) =>
           operation.kind === "add-block" && operation.block.type === "fashion-store.category",
       );
-    if (!addedOperation || addedOperation.kind !== "add-block") throw new Error("Missing added Block");
+    if (!addedOperation || addedOperation.kind !== "add-block")
+      throw new Error("Missing added Block");
     const addedId = addedOperation.block.id;
-    const duplicated = await send(
-      { blockId: "category-1", kind: "duplicate" },
-      2,
-      "duplicate",
-    );
+    const duplicated = await send({ blockId: "category-1", kind: "duplicate" }, 2, "duplicate");
     const duplicateId = duplicated.data.overrides
       .flatMap(({ operations }) => operations)
       .filter((operation) => operation.kind === "add-block")
@@ -1023,7 +1105,7 @@ describe("storefront experience API", () => {
             expect.objectContaining({ id: "source-parity" }),
             expect.objectContaining({ id: "unified-store", label: "Unified store" }),
           ],
-          themeVersion: "1.1.0",
+          themeVersion: "1.2.0",
         },
       ],
     });
@@ -2065,6 +2147,144 @@ describe("storefront experience API", () => {
     });
   });
 
+  test("reconciles matching canonical claims and blocks contradictory migration successors", async () => {
+    const releaseId = "release-fashion-canonical-migration";
+    await seedPreviewCatalogRelease(releaseId, previewCatalogReleaseV3);
+    const app = appFor();
+    const inputFor = (brand: "visa" | "mastercard") => ({
+      ...catalogReadyDraftInput,
+      experienceId: `experience-canonical-${brand}`,
+      overrides: [
+        {
+          operations: [
+            {
+              instanceId: "fashion-store-product",
+              kind: "set-setting" as const,
+              settingId: `payment-brand-${brand}`,
+              value: true,
+            },
+            {
+              instanceId: "fashion-store-product",
+              kind: "reset-setting" as const,
+              settingId: `payment-brand-${brand}`,
+            },
+          ],
+          presetId: "source-parity",
+          schemaVersion: 2,
+          templateId: "fashion-store-product",
+        },
+      ],
+    });
+    const matching = await createDraft(app, "canonical-claim-match-create", inputFor("visa"));
+    await validateDraft(app, matching.body.data.id, 1, "canonical-claim-match-validate", releaseId);
+    expect(
+      await env.DB.prepare(
+        "SELECT status, issues_json FROM storefront_experience_validations WHERE draft_id = ? AND catalog_release_id = ?",
+      )
+        .bind(matching.body.data.id, releaseId)
+        .first(),
+    ).toEqual({ issues_json: "[]", status: "valid" });
+    const before = await env.DB.prepare("SELECT * FROM storefront_experience_drafts WHERE id = ?")
+      .bind(matching.body.data.id)
+      .first();
+    const matchingRun = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${matching.body.data.id}/migrations/dry-run`,
+        {
+          catalogReleaseId: releaseId,
+          expectedVersion: 1,
+          reason: "Reconcile matching released payment capability",
+          targetConfigurationSchemaVersion: 3,
+          targetThemeVersion: "1.2.0",
+        },
+        "canonical-claim-match-dry-run",
+      ),
+      env,
+    );
+    expect(matchingRun.status).toBe(200);
+    const matchingBody = await matchingRun.json<{
+      data: { conflicts: unknown[]; id: string };
+    }>();
+    expect(matchingBody.data.conflicts).toEqual([]);
+    const migrated = await env.DB.prepare(
+      "SELECT migrated_overrides_json FROM storefront_experience_migrations WHERE id = ?",
+    )
+      .bind(matchingBody.data.id)
+      .first<{ migrated_overrides_json: string }>();
+    expect(
+      (JSON.parse(migrated!.migrated_overrides_json) as ThemeOverride[])[0]!.operations,
+    ).toEqual([]);
+    expect(
+      await env.DB.prepare("SELECT * FROM storefront_experience_drafts WHERE id = ?")
+        .bind(matching.body.data.id)
+        .first(),
+    ).toEqual(before);
+    const approved = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${matching.body.data.id}/migrations/approve`,
+        {
+          confirm: true,
+          expectedVersion: 1,
+          migrationId: matchingBody.data.id,
+          reason: "Create reviewed canonical successor",
+        },
+        "canonical-claim-match-approve",
+      ),
+      env,
+    );
+    expect(approved.status).toBe(201);
+
+    const conflicting = await createDraft(
+      app,
+      "canonical-claim-conflict-create",
+      inputFor("mastercard"),
+    );
+    await validateDraft(
+      app,
+      conflicting.body.data.id,
+      1,
+      "canonical-claim-conflict-validate",
+      releaseId,
+    );
+    const conflictRun = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${conflicting.body.data.id}/migrations/dry-run`,
+        {
+          catalogReleaseId: releaseId,
+          expectedVersion: 1,
+          reason: "Expose contradictory released payment capability",
+          targetConfigurationSchemaVersion: 3,
+          targetThemeVersion: "1.2.0",
+        },
+        "canonical-claim-conflict-dry-run",
+      ),
+      env,
+    );
+    const conflictBody = await conflictRun.json<{
+      data: { conflicts: unknown[]; id: string };
+    }>();
+    expect(conflictBody.data.conflicts).toContainEqual(
+      expect.objectContaining({
+        code: "canonical-claim-conflict",
+        settingId: "payment-brand-mastercard",
+      }),
+    );
+    const blocked = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${conflicting.body.data.id}/migrations/approve`,
+        {
+          confirm: true,
+          expectedVersion: 1,
+          migrationId: conflictBody.data.id,
+          reason: "Must not create a contradictory successor",
+        },
+        "canonical-claim-conflict-approve",
+      ),
+      env,
+    );
+    expect(blocked.status).toBe(422);
+  });
+
   test("uses the injected exact-package registry when copying a draft", async () => {
     const injectedPackage = themePackageSchema.parse({
       ...fashionStoreSuccessorPackage,
@@ -2431,11 +2651,61 @@ describe("storefront experience API", () => {
          VALUES ('role_admin', 'identity.read', '2026-08-04T00:00:00.000Z')`,
       ).run();
     }
+    await env.DB.prepare(
+      "DELETE FROM admin_role_permissions WHERE role_id = 'role_admin' AND permission_key = 'settings.read'",
+    ).run();
+    try {
+      const migration = await app.fetch(
+        writeRequest(
+          `/admin/storefront-experiences/drafts/${created.body.data.id}/migrations/dry-run`,
+          {
+            catalogReleaseId: "release-private-permission-candidate",
+            expectedVersion: 1,
+            reason: "Reject canonical migration without Settings read access",
+            targetConfigurationSchemaVersion: 3,
+            targetThemeVersion: "1.2.0",
+          },
+          "theme-private-permission-migration-settings-read",
+        ),
+        env,
+      );
+      expect(migration.status).toBe(403);
+
+      const preview = await app.fetch(
+        writeRequest(
+          `/admin/storefront-experiences/drafts/${created.body.data.id}/preview`,
+          {
+            catalogReleaseId: "release-private-permission-candidate",
+            expectedVersion: 1,
+            reason: "Reject private build without Settings read access",
+          },
+          "theme-private-permission-preview-settings-read",
+        ),
+        env,
+      );
+      expect(preview.status).toBe(403);
+      expect(
+        (
+          await app.fetch(
+            request(
+              "/admin/storefront-experiences/catalog-releases/release-private-permission-candidate/resources?kind=product",
+            ),
+            env,
+          )
+        ).status,
+      ).toBe(403);
+    } finally {
+      await env.DB.prepare(
+        `INSERT OR IGNORE INTO admin_role_permissions (role_id, permission_key, created_at)
+         VALUES ('role_admin', 'settings.read', '2026-08-04T00:00:00.000Z')`,
+      ).run();
+    }
     for (const permission of [
       "identity.read",
       "policies.read",
       "content.read",
       "navigation.read",
+      "settings.read",
     ] as const) {
       await env.DB.prepare(
         "DELETE FROM admin_role_permissions WHERE role_id = 'role_admin' AND permission_key = ?",
@@ -3667,7 +3937,7 @@ describe("storefront experience API", () => {
   test("dry-runs an explicit schema migration, reports stable-ID conflicts, and preserves older snapshots", async () => {
     const sourcePackage = fashionStoreHistoricalPackages[0]!;
     const sourceBindings = fixtureBindingsForPackage(sourcePackage);
-    const targetPackage = fashionStoreSuccessorPackage;
+    const targetPackage = fashionStoreV11Package;
     const conflictingPackage = themePackageSchema.parse({
       manifest: {
         ...fashionStoreManifest,
@@ -3713,7 +3983,13 @@ describe("storefront experience API", () => {
           toConfigurationSchemaVersion: 2,
         },
       ],
-      packages: [sourcePackage, targetPackage, conflictingPackage, undeclaredTargetPackage],
+      packages: [
+        sourcePackage,
+        targetPackage,
+        fashionStoreSuccessorPackage,
+        conflictingPackage,
+        undeclaredTargetPackage,
+      ],
     };
     const app = createApp({
       testIdentityVerifier: async () => ({
@@ -3788,8 +4064,8 @@ describe("storefront experience API", () => {
         {
           expectedVersion: 1,
           reason: "Reject a target tuple outside the declared direct boundary registry",
-          targetConfigurationSchemaVersion: 2,
-          targetThemeVersion: "1.3.0",
+          targetConfigurationSchemaVersion: 3,
+          targetThemeVersion: "1.2.0",
         },
         "theme-migration-boundary-undeclared-0001",
       ),
@@ -4324,10 +4600,7 @@ describe("storefront experience API", () => {
   });
 
   test("binds a live preview build and manifest to the exact Catalog and Experience inputs", async () => {
-    await seedPreviewCatalogRelease(
-      previewCatalogRelease.releaseId,
-      previewCatalogReleaseWithExternalMedia,
-    );
+    await seedPreviewCatalogRelease(previewCatalogRelease.releaseId, previewCatalogReleaseV3);
     const triggerCalls: Array<Record<string, string>> = [];
     const app = createApp({
       testIdentityVerifier: async () => ({
@@ -4340,11 +4613,10 @@ describe("storefront experience API", () => {
         return { correlationId: "live-preview-correlation" };
       },
     });
-    const created = await createDraft(
-      app,
-      "theme-live-preview-create-0001",
-      catalogReadyDraftInput,
-    );
+    const created = await createDraft(app, "theme-live-preview-create-0001", {
+      ...catalogReadyDraftInput,
+      themeVersion: fashionStoreSuccessorPackage.manifest.themeVersion,
+    });
     await validateDraft(
       app,
       created.body.data.id,
@@ -4381,7 +4653,7 @@ describe("storefront experience API", () => {
       experienceVersion: 1,
       platformContractVersion: "1.0.0",
       themeId: "fashion-store",
-      themeVersion: fashionStoreManifest.themeVersion,
+      themeVersion: fashionStoreSuccessorPackage.manifest.themeVersion,
     });
     expect(value.data.build.mediaOrigins).toEqual(previewMediaOrigins);
     expect(triggerCalls).toEqual([
@@ -4400,31 +4672,18 @@ describe("storefront experience API", () => {
     );
     expect(manifest.status).toBe(200);
     expect(await manifest.json()).toMatchObject({
-      catalogRelease: { releaseId: previewCatalogRelease.releaseId, schemaVersion: 2 },
+      catalogRelease: {
+        commerce: {
+          payment: { brands: ["visa"], enabled: true },
+          shippingMethods: [expect.objectContaining({ countryCodes: ["US"] })],
+        },
+        releaseId: previewCatalogRelease.releaseId,
+        schemaVersion: 3,
+      },
       inputIdentity: value.data.build.inputIdentity,
       mediaOrigins: previewMediaOrigins,
       snapshot: { id: value.data.snapshot.id, version: 1 },
     });
-
-    await env.DB.prepare("UPDATE catalog_releases SET manifest_json = ? WHERE id = ?")
-      .bind('{"schemaVersion":2}', previewCatalogRelease.releaseId)
-      .run();
-    const corruptManifest = await app.fetch(
-      request(`/build/storefront-experiences/builds/${value.data.build.id}`, {
-        headers: { Authorization: `Bearer ${env.PREVIEW_BUILD_CALLBACK_TOKEN}` },
-      }),
-      env,
-    );
-    expect(corruptManifest.status).toBe(422);
-    expect(await corruptManifest.json()).toMatchObject({
-      error: {
-        code: "catalog_release_invalid",
-        message: "The deployed Catalog Release is not canonical.",
-      },
-    });
-    await env.DB.prepare("UPDATE catalog_releases SET manifest_json = ? WHERE id = ?")
-      .bind(JSON.stringify(previewCatalogReleaseWithExternalMedia), previewCatalogRelease.releaseId)
-      .run();
 
     const digest = "d".repeat(64);
     const substituted = await app.fetch(
@@ -4945,6 +5204,21 @@ describe("storefront experience API", () => {
       ).status,
     ).toBe(403);
 
+    const approvedArtifactPrefix = `snapshots/${approved.data.id}/${"c".repeat(64)}`;
+    await env.DB.prepare(
+      `INSERT INTO storefront_preview_builds
+         (id, snapshot_id, attempt, status, artifact_digest, artifact_prefix, expires_at,
+          completed_at, created_at, updated_at)
+       VALUES ('build-approved-retention', ?, 1, 'deployed', ?, ?,
+               '2026-07-29T00:00:00.000Z', '2026-07-29T00:00:00.000Z',
+               '2026-07-29T00:00:00.000Z', '2026-07-29T00:00:00.000Z')`,
+    )
+      .bind(approved.data.id, "c".repeat(64), approvedArtifactPrefix)
+      .run();
+    await env.PREVIEW_ARTIFACTS.put(
+      `${approvedArtifactPrefix}/index.html`,
+      "retained approved build",
+    );
     await env.PREVIEW_ARTIFACTS.put(`${prefix}/index.html`, "fixture preview");
     await env.DB.prepare("UPDATE storefront_preview_builds SET expires_at = ? WHERE id = ?")
       .bind("2026-07-29T00:00:00.000Z", previewValue.data.build.id)
@@ -4955,6 +5229,12 @@ describe("storefront experience API", () => {
     );
     expect(cleanup).toMatchObject({ artifacts: 1, grants: 4, objects: 1, sessions: 2 });
     expect(await env.PREVIEW_ARTIFACTS.get(`${prefix}/index.html`)).toBeNull();
+    expect(await env.PREVIEW_ARTIFACTS.get(`${approvedArtifactPrefix}/index.html`)).not.toBeNull();
+    expect(
+      await env.DB.prepare(
+        "SELECT status, cleaned_at FROM storefront_preview_builds WHERE id = 'build-approved-retention'",
+      ).first(),
+    ).toEqual({ cleaned_at: null, status: "deployed" });
     expect(
       await env.DB.prepare("SELECT id FROM storefront_experience_snapshots WHERE id = ?")
         .bind(previewValue.data.snapshot.id)

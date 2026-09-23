@@ -13,6 +13,23 @@ const TARGET_PRODUCT_MERCHANDISING_INSTANCE_ID = fashionStoreHomeSections.find(
   ({ fixtureResource }) => fixtureResource === "product-merchandising",
 )!.id;
 
+export const fashionStoreLegacyClaimSettingIds = new Set([
+  "header-logo",
+  "footer-logo",
+  "header-contact-copy",
+  "footer-contact-copy",
+  "footer-social-link",
+  "header-social-link",
+  "delivery-summary",
+  "shipping-returns-summary",
+  "payment-brand-visa",
+  "payment-brand-mastercard",
+  "payment-brand-american-express",
+  "payment-brand-discover",
+  "payment-brand-diners-club",
+  "payment-brand-union-pay",
+]);
+
 function isCompleteSourceHomeOrder(instanceIds: readonly string[]): boolean {
   return (
     instanceIds.length === SOURCE_HOME_INSTANCE_IDS.length &&
@@ -91,15 +108,37 @@ export function migrateFashionStoreV1Overrides(
     return {
       ...migrated,
       operations,
-      schemaVersion: fashionStoreManifest.configurationSchemaVersion,
+      schemaVersion: 2,
     };
   });
+}
+
+export function migrateFashionStorePresentationOnlyOverrides(
+  overrides: readonly ThemeOverride[],
+): ThemeOverride[] {
+  return overrides.map((override) => ({
+    ...structuredClone(override),
+    operations: override.operations.filter(
+      (operation) =>
+        !(
+          (operation.kind === "set-setting" || operation.kind === "reset-setting") &&
+          fashionStoreLegacyClaimSettingIds.has(operation.settingId)
+        ),
+    ),
+    schemaVersion: fashionStoreManifest.configurationSchemaVersion,
+  }));
 }
 
 export const fashionStoreConfigurationMigrations = [
   {
     fromConfigurationSchemaVersion: SOURCE_CONFIGURATION_SCHEMA_VERSION,
     migrate: migrateFashionStoreV1Overrides,
+    themeId: fashionStoreManifest.id,
+    toConfigurationSchemaVersion: 2,
+  },
+  {
+    fromConfigurationSchemaVersion: 2,
+    migrate: migrateFashionStorePresentationOnlyOverrides,
     themeId: fashionStoreManifest.id,
     toConfigurationSchemaVersion: fashionStoreManifest.configurationSchemaVersion,
   },

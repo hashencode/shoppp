@@ -964,7 +964,7 @@ test("live Product retains matched desktop and mobile composition geometry", asy
     await page.setViewportSize(size);
     await page.goto(liveProductCompositionIdentity.route, { waitUntil: "networkidle" });
     await expectFashionStoreProductComposition(page, {
-      assurance: "populated",
+      assurance: "canonical-partial",
       expectedSwatches: ["#d4af37", "#5881bf", "#87a968"],
       name: "Relaxed corduroy shirt",
       relatedProductCount: 4,

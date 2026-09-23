@@ -19,6 +19,7 @@ import {
 
 import type { ThemeCompositionAdapter } from "./composition";
 import { legacyFashionStoreReleasedNavigation } from "../themes/fashion-store/contracts/navigation-characterization";
+import { resolveFashionStoreReader } from "../themes/fashion-store/package-registry";
 import { normalizeThemeRoutePath, type ResolvedThemeRouteContract } from "./routes";
 import { formatCommerceMoney } from "./runtime-commerce";
 import {
@@ -190,6 +191,7 @@ function productViewModel(
   locale: string,
   relatedCollection?: CatalogCollection,
   settings: Readonly<Record<string, unknown>> = {},
+  canonicalClaims = false,
 ): ProductPageModel | undefined {
   const pricedProduct = activeVariantsWithDefaultMoney(product, release.site.defaultCurrency);
   if (!pricedProduct) return undefined;
@@ -269,8 +271,12 @@ function productViewModel(
   const productCollection = release.collections.find(
     ({ productIds, status }) => status === "published" && productIds.includes(product.id),
   );
-  const shippingPolicy = release.policies.find(({ slug }) => slug === "shipping");
-  const returnsPolicy = release.policies.find(({ slug }) => slug === "returns");
+  const shippingPolicy = release.policies.find(
+    ({ kind, slug }) => kind === "shipping" || (!kind && slug === "shipping"),
+  );
+  const returnsPolicy = release.policies.find(
+    ({ kind, slug }) => kind === "returns" || (!kind && slug === "returns"),
+  );
   return productViewModelSchema.parse({
     actions: [
       {
@@ -300,16 +306,24 @@ function productViewModel(
     colorMedia,
     optionDefinitions,
     optionGroups: renderedOptionGroups,
-    paymentBrands: publicPaymentBrands.filter(
-      (brand) => settings[`payment-brand-${brand}`] === true,
-    ),
-    deliverySummary:
-      typeof settings["delivery-summary"] === "string" && settings["delivery-summary"].trim()
+    paymentBrands: canonicalClaims
+      ? release.schemaVersion === 3 && release.commerce?.payment.enabled
+        ? release.commerce.payment.brands
+        : []
+      : publicPaymentBrands.filter((brand) => settings[`payment-brand-${brand}`] === true),
+    deliverySummary: canonicalClaims
+      ? release.schemaVersion === 3 && release.commerce?.shippingMethods.length
+        ? "Shipping options are confirmed for your destination at checkout."
+        : undefined
+      : typeof settings["delivery-summary"] === "string" && settings["delivery-summary"].trim()
         ? settings["delivery-summary"].trim()
         : undefined,
-    shippingReturnsSummary:
-      typeof settings["shipping-returns-summary"] === "string" &&
-      settings["shipping-returns-summary"].trim()
+    shippingReturnsSummary: canonicalClaims
+      ? shippingPolicy && returnsPolicy
+        ? `See ${shippingPolicy.title} and ${returnsPolicy.title}.`
+        : undefined
+      : typeof settings["shipping-returns-summary"] === "string" &&
+          settings["shipping-returns-summary"].trim()
         ? settings["shipping-returns-summary"].trim()
         : undefined,
     priceLabel: formatCommerceMoney(money.amount, money.currency, locale),
@@ -365,7 +379,7 @@ export function composeProductPageModel(input: {
   release: StorefrontCatalogRelease;
   slug: string;
 }): ProductPageModel {
-  const release = canonicalCatalogReleaseSchema.parse(input.release);
+  const release = catalogReleaseV3Schema.or(canonicalCatalogReleaseSchema).parse(input.release);
   const product = release.products.find(({ id }) => id === input.productId);
   if (!product || product.slug !== input.slug || product.status !== "published") {
     throw new Error("Product route identity does not match a published Catalog Release product.");
@@ -385,6 +399,8 @@ export function composeProductPageModel(input: {
   }
   const relatedCollection = relatedCollectionForProduct(release, product, selectedCollectionId);
   const productSettings = productSection?.settings;
+  const canonicalClaims =
+    input.experience !== undefined && exactClaimReader(input.experience, release) === "canonical";
   const model = productViewModel(
     release,
     productsById,
@@ -392,6 +408,7 @@ export function composeProductPageModel(input: {
     input.locale,
     relatedCollection,
     productSettings,
+    canonicalClaims,
   );
   if (!model) {
     throw new Error(
@@ -690,11 +707,30 @@ export function resolveLegacyReleasedNavigation(
     : undefined;
 }
 
+function exactClaimReader(
+  experience: Pick<ExperienceSnapshot, "configurationSchemaVersion" | "themeId" | "themeVersion">,
+  release: StorefrontCatalogRelease,
+): "canonical" | "legacy" {
+  if (experience.themeId !== "fashion-store") return "legacy";
+  const reader = resolveFashionStoreReader({
+    experienceSchemaVersion: experience.configurationSchemaVersion,
+    packageVersion: experience.themeVersion,
+    releaseSchemaVersion: release.schemaVersion,
+  });
+  if (!reader) {
+    throw new Error(
+      `Unsupported Fashion Store reader tuple Release${release.schemaVersion}/Config${experience.configurationSchemaVersion}/Package${experience.themeVersion}.`,
+    );
+  }
+  return reader;
+}
+
 function shellViewModel(
   adapter: ThemeCompositionAdapter | undefined,
   release: StorefrontCatalogRelease,
   settings: Readonly<Record<string, unknown>>,
   contact?: ExperienceSnapshot["contact"],
+  canonicalClaims = false,
 ): PresentationShellViewModel {
   const mediaOrigin = catalogMediaOrigin(release) ?? null;
   const logoVariant = ["primary", "light", "dark", "compact"].includes(
@@ -745,27 +781,35 @@ function shellViewModel(
     footer: {
       ...(contact
         ? { contactVersion: contact.version, publicContact: contact.publicContact }
-        : { contactCopy: optionalTextSetting(settings, "footer-contact-copy") }),
+        : canonicalClaims
+          ? {}
+          : { contactCopy: optionalTextSetting(settings, "footer-contact-copy") }),
       legalLink: editorLink(adapter, release, settings["footer-legal-link"]),
       legacyNavigation: resolveLegacyReleasedNavigation(release, "footer"),
-      logo: logo ?? editorMedia(release, settings["footer-logo"], mediaOrigin),
+      logo:
+        logo ??
+        (canonicalClaims ? undefined : editorMedia(release, settings["footer-logo"], mediaOrigin)),
       logoPresentation,
       navigation: resolveReleasedNavigation(release, "footer"),
-      ...(!contact
+      ...(!contact && !canonicalClaims
         ? { socialLink: editorLink(adapter, release, settings["footer-social-link"]) }
         : {}),
     },
     header: {
       ...(contact
         ? { contactVersion: contact.version, publicContact: contact.publicContact }
-        : { contactCopy: optionalTextSetting(settings, "header-contact-copy") }),
+        : canonicalClaims
+          ? {}
+          : { contactCopy: optionalTextSetting(settings, "header-contact-copy") }),
       highlightLink: referenceLink(adapter, release, settings["header-highlight-page"]),
       legalLink: editorLink(adapter, release, settings["header-legal-link"]),
       legacyNavigation: resolveLegacyReleasedNavigation(release, "header"),
-      logo: logo ?? editorMedia(release, settings["header-logo"], mediaOrigin),
+      logo:
+        logo ??
+        (canonicalClaims ? undefined : editorMedia(release, settings["header-logo"], mediaOrigin)),
       logoPresentation,
       navigation: resolveReleasedNavigation(release, "header"),
-      ...(!contact
+      ...(!contact && !canonicalClaims
         ? { socialLink: editorLink(adapter, release, settings["header-social-link"]) }
         : {}),
     },
@@ -783,6 +827,7 @@ function homeViewModel(
   settings: Readonly<Record<string, unknown>>,
   featuredProduct?: CatalogProduct,
   contact?: ExperienceSnapshot["contact"],
+  canonicalClaims = false,
 ): Extract<PresentationViewModel, { kind: "home" }> {
   const products: PresentationProductCard[] = [];
   for (const productId of collection.productIds) {
@@ -794,7 +839,7 @@ function homeViewModel(
   const secondaryLink = editorLink(adapter, release, settings["hero-secondary-link"]);
   const mediaOrigin = catalogMediaOrigin(release) ?? null;
   const media = editorMedia(release, settings["hero-image"], mediaOrigin);
-  const shell = shellViewModel(adapter, release, settings, contact);
+  const shell = shellViewModel(adapter, release, settings, contact, canonicalClaims);
   const [featuredProductCard] = featuredProduct
     ? productCardViewModel(featuredProduct, defaultCurrency, locale, "home")
     : [];
@@ -916,7 +961,13 @@ export function composeExperienceShell(input: {
     ({ type, visible }) => visible && type === shellSourceType,
   );
   return shellSource
-    ? shellViewModel(input.adapter, release.data, shellSource.settings, experience.data.contact)
+    ? shellViewModel(
+        input.adapter,
+        release.data,
+        shellSource.settings,
+        experience.data.contact,
+        exactClaimReader(experience.data, release.data) === "canonical",
+      )
     : undefined;
 }
 
@@ -1180,6 +1231,7 @@ function composeDeclaredSections(input: {
   productsById: ReadonlyMap<string, CatalogProduct>;
   release: StorefrontCatalogRelease;
   template: PageTemplate;
+  canonicalClaims: boolean;
 }): Pick<ComposedExperienceRoute, "diagnostics" | "shell" | "viewModels"> {
   const diagnostics: CompositionDiagnostic[] = [];
   const viewModels: Record<string, PresentationViewModel> = {};
@@ -1316,6 +1368,7 @@ function composeDeclaredSections(input: {
         input.locale,
         undefined,
         section.settings,
+        input.canonicalClaims,
       );
     } else if (contract.live.resolver === "home" && firstCollection && input.adapter) {
       const featuredProduct = firstProduct
@@ -1331,6 +1384,7 @@ function composeDeclaredSections(input: {
         section.settings,
         featuredProduct,
         input.contact,
+        input.canonicalClaims,
       );
     } else if (contract.live.resolver === "home-sections" && firstCollection && input.adapter) {
       const featuredProduct = firstProduct
@@ -1346,6 +1400,7 @@ function composeDeclaredSections(input: {
         bindingSource?.settings ?? section.settings,
         featuredProduct,
         input.contact,
+        input.canonicalClaims,
       );
       viewModel = {
         data: {
@@ -1418,7 +1473,13 @@ function composeDeclaredSections(input: {
     diagnostics,
     ...(shellSection
       ? {
-          shell: shellViewModel(input.adapter, input.release, shellSection.settings, input.contact),
+          shell: shellViewModel(
+            input.adapter,
+            input.release,
+            shellSection.settings,
+            input.contact,
+            input.canonicalClaims,
+          ),
         }
       : {}),
     viewModels,
@@ -1452,6 +1513,7 @@ export function composeExperienceRoute(
     };
   }
   const release = parsedRelease.data;
+  const canonicalClaims = exactClaimReader(experience, release) === "canonical";
   const productsById = new Map(release.products.map((product) => [product.id, product]));
   const collectionsById = new Map(
     release.collections.map((collection) => [collection.id, collection]),
@@ -1505,6 +1567,7 @@ export function composeExperienceRoute(
       productsById,
       release,
       template,
+      canonicalClaims,
     });
     return {
       diagnostics: declared.diagnostics,
@@ -1641,6 +1704,7 @@ export function composeExperienceRoute(
         input.locale,
         relatedCollection,
         instance.settings,
+        canonicalClaims,
       );
       if (!viewModel) {
         diagnostics.push({
@@ -1676,6 +1740,7 @@ export function composeExperienceRoute(
             instance.settings,
             featuredProduct,
             experience.contact,
+            canonicalClaims,
           )
         : collectionViewModel(
             collection,

@@ -38,7 +38,10 @@ import {
   fashionStoreFixtureBindingAliasesForPackage,
   fashionStorePackageRegistrations,
 } from "../../../storefront/app/themes/fashion-store/package-registry";
-import { fashionStoreConfigurationMigrations } from "../../../storefront/app/themes/fashion-store/migrations";
+import {
+  fashionStoreConfigurationMigrations,
+  fashionStoreLegacyClaimSettingIds,
+} from "../../../storefront/app/themes/fashion-store/migrations";
 import { sha256Hex } from "../orders/tokens";
 import fashionStoreFixture from "../../../storefront/fixtures/experience/fashion-store.json";
 import { storefrontThemeCatalog } from "../generated/storefront-theme-catalog";
@@ -112,6 +115,7 @@ interface ValidationRow {
 interface MigrationRow {
   approved_at: string | null;
   approved_by: string | null;
+  catalog_release_id: string | null;
   conflicts_json: string;
   created_at: string;
   created_by: string;
@@ -440,7 +444,7 @@ function resolveDraft(
   options?: StorefrontExperienceServiceOptions,
   overridePackage?: ThemePackage,
   overrideOperations?: readonly ThemeOverride[],
-  catalogRelease?: CanonicalCatalogRelease,
+  catalogRelease?: CanonicalCatalogRelease | import("@shoppp/contracts").CatalogReleaseV3,
 ): {
   issues: ExperienceValidationIssue[];
   package: ThemePackage;
@@ -985,7 +989,12 @@ function normalizeTemplateOverride(
 ): ThemeOverride | undefined {
   const operations: ThemeOverride["operations"] = [];
   const currentSectionOrder = current.sections.map(({ id }) => id);
-  if (!equalConfigurationValue(currentSectionOrder, base.sections.map(({ id }) => id))) {
+  if (
+    !equalConfigurationValue(
+      currentSectionOrder,
+      base.sections.map(({ id }) => id),
+    )
+  ) {
     operations.push({ instanceIds: currentSectionOrder, kind: "reorder-sections" });
   }
   for (const section of current.sections) {
@@ -1060,7 +1069,12 @@ function normalizeTemplateOverride(
       }
     }
     const currentBlockOrder = section.blocks.map(({ id }) => id);
-    if (!equalConfigurationValue(currentBlockOrder, baseSection.blocks.map(({ id }) => id))) {
+    if (
+      !equalConfigurationValue(
+        currentBlockOrder,
+        baseSection.blocks.map(({ id }) => id),
+      )
+    ) {
       operations.push({
         instanceIds: currentBlockOrder,
         kind: "reorder-blocks",
@@ -1204,7 +1218,9 @@ export async function applyStorefrontExperienceBlockCommand(
         const definition = current.package.manifest.componentRegistry.blocks.find(
           ({ type }) => type === block.type,
         )!;
-        const setting = definition.settings.find(({ id: settingId }) => settingId === command.settingId);
+        const setting = definition.settings.find(
+          ({ id: settingId }) => settingId === command.settingId,
+        );
         if (setting?.kind === "asset") {
           assertBoundedBlockAssets(definition, {
             ...block.settings,
@@ -1283,7 +1299,7 @@ export async function applyStorefrontExperienceBlockCommand(
   } as const;
   const [updated, audited] = await context.env.DB.batch([
     context.env.DB.prepare(
-    `UPDATE storefront_experience_drafts SET bindings_json = ?, overrides_json = ?, version = version + 1,
+      `UPDATE storefront_experience_drafts SET bindings_json = ?, overrides_json = ?, version = version + 1,
        updated_by = ?, updated_at = ? WHERE id = ? AND version = ?`,
     ).bind(
       JSON.stringify(nextBindings),
@@ -1900,6 +1916,144 @@ function migratedOverrides(
   return migration.migrate(source);
 }
 
+function canonicalClaimValues(
+  settingId: string,
+  release: CanonicalCatalogRelease | import("@shoppp/contracts").CatalogReleaseV3,
+  contact: PublicContact,
+): unknown[] | undefined {
+  if (settingId === "header-contact-copy" || settingId === "footer-contact-copy") {
+    return [
+      contact.supportEmail,
+      contact.privacyEmail,
+      contact.publicPhone,
+      contact.serviceHours?.kind === "legacy" ? contact.serviceHours.text : null,
+      ...contact.locations.flatMap(({ address, email, phone }) => [address, email, phone]),
+    ].filter((value) => value !== null);
+  }
+  if (settingId === "header-social-link" || settingId === "footer-social-link") {
+    return contact.socials.filter(({ visible }) => visible).map(({ url }) => url);
+  }
+  if (settingId === "header-logo" || settingId === "footer-logo") {
+    return release.schemaVersion === 3
+      ? release.identity.logoAssets.flatMap(({ assetId, media }) => [
+          assetId,
+          ...(media ? [media.src] : []),
+        ])
+      : undefined;
+  }
+  if (settingId === "delivery-summary") {
+    return release.schemaVersion === 3 && release.commerce?.shippingMethods.length
+      ? ["Shipping options are confirmed for your destination at checkout."]
+      : undefined;
+  }
+  if (settingId === "shipping-returns-summary") {
+    const shipping = release.policies.find(
+      ({ kind, slug }) => kind === "shipping" || (!kind && slug === "shipping"),
+    );
+    const returns = release.policies.find(
+      ({ kind, slug }) => kind === "returns" || (!kind && slug === "returns"),
+    );
+    return shipping && returns ? [`See ${shipping.title} and ${returns.title}.`] : undefined;
+  }
+  if (settingId.startsWith("payment-brand-")) {
+    if (release.schemaVersion !== 3 || !release.commerce) return undefined;
+    const brand = settingId.slice("payment-brand-".length);
+    return [
+      release.commerce.payment.enabled && release.commerce.payment.brands.includes(brand as never),
+    ];
+  }
+  return undefined;
+}
+
+function operationMatchesCanonical(value: unknown, candidates: readonly unknown[]): boolean {
+  const comparable =
+    value && typeof value === "object"
+      ? "url" in value && typeof value.url === "string"
+        ? value.url
+        : "path" in value && typeof value.path === "string"
+          ? value.path
+          : "target" in value &&
+              value.target &&
+              typeof value.target === "object" &&
+              "url" in value.target &&
+              typeof value.target.url === "string"
+            ? value.target.url
+            : value
+      : value;
+  return candidates.some((candidate) => canonicalJson(candidate) === canonicalJson(comparable));
+}
+
+function sourcePresetDefault(
+  sourcePackage: ThemePackage,
+  presetId: string,
+  templateId: string,
+  instanceId: string,
+  settingId: string,
+): unknown {
+  const template = sourcePackage.presets
+    .find(({ id }) => id === presetId)
+    ?.templates.find(({ id }) => id === templateId);
+  const instance = template?.sections
+    .flatMap((section) => [section, ...section.blocks])
+    .find(({ id }) => id === instanceId);
+  if (!instance) return undefined;
+  if (Object.prototype.hasOwnProperty.call(instance.settings, settingId)) {
+    return instance.settings[settingId];
+  }
+  const definition = [
+    ...sourcePackage.manifest.componentRegistry.sections,
+    ...sourcePackage.manifest.componentRegistry.blocks,
+  ]
+    .find(({ type }) => type === instance.type)
+    ?.settings.find(({ id }) => id === settingId);
+  return definition && "default" in definition ? definition.default : undefined;
+}
+
+function canonicalClaimConflicts(
+  row: DraftRow,
+  sourcePackage: ThemePackage,
+  release: CanonicalCatalogRelease | import("@shoppp/contracts").CatalogReleaseV3,
+  contact: PublicContact,
+): UpgradeConflict[] {
+  if (row.theme_id !== "fashion-store") return [];
+  return parseOverrides(row.overrides_json).flatMap((override) =>
+    override.operations.flatMap((operation, operationIndex) => {
+      if (
+        (operation.kind !== "set-setting" && operation.kind !== "reset-setting") ||
+        !fashionStoreLegacyClaimSettingIds.has(operation.settingId)
+      ) {
+        return [];
+      }
+      const candidates = canonicalClaimValues(operation.settingId, release, contact);
+      const effectiveValue =
+        operation.kind === "reset-setting"
+          ? sourcePresetDefault(
+              sourcePackage,
+              row.preset_id,
+              override.templateId,
+              operation.instanceId,
+              operation.settingId,
+            )
+          : operation.value;
+      const matches =
+        effectiveValue !== undefined &&
+        candidates !== undefined &&
+        operationMatchesCanonical(effectiveValue, candidates);
+      if (matches) return [];
+      return [
+        {
+          code: candidates
+            ? ("canonical-claim-conflict" as const)
+            : ("canonical-claim-unverified" as const),
+          instanceId: operation.instanceId,
+          operationIndex,
+          settingId: operation.settingId,
+        },
+      ];
+    }),
+  );
+}
+
 export async function dryRunStorefrontExperienceMigration(
   context: Context<ApiEnvironment>,
   id: string,
@@ -1951,6 +2105,31 @@ export async function dryRunStorefrontExperienceMigration(
   const sourcePreset = sourcePackage.presets.find(({ id: presetId }) => presetId === row.preset_id);
   const targetPreset = targetPackage.presets.find(({ id: presetId }) => presetId === row.preset_id);
   const conflicts: UpgradeConflict[] = [];
+  if (targetPackage.manifest.configurationSchemaVersion === 3) {
+    if (!request.catalogReleaseId) {
+      throw new ApiError(
+        422,
+        "storefront_experience_migration_release_required",
+        "Select a Catalog Release before migrating canonical claims.",
+      );
+    }
+    const [release, contact] = await Promise.all([
+      getCanonicalDeployedCatalogRelease(context.env.DB, request.catalogReleaseId, {
+        allowPrivateCandidate: true,
+        environment: context.env.ENVIRONMENT,
+        principalKind: context.get("principal").principalKind,
+      }),
+      frozenContact(context),
+    ]);
+    if (release.schemaVersion !== 3) {
+      throw new ApiError(
+        422,
+        "storefront_experience_migration_release_invalid",
+        "Canonical claim migration requires a schema-v3 Catalog Release.",
+      );
+    }
+    conflicts.push(...canonicalClaimConflicts(row, sourcePackage, release, contact.publicContact));
+  }
   if (!sourcePreset || !targetPreset) {
     conflicts.push({ code: "instance-removed", instanceId: row.preset_id, operationIndex: 0 });
   } else {
@@ -1972,22 +2151,23 @@ export async function dryRunStorefrontExperienceMigration(
       }
     }
   }
-  const key = `${id}:${row.version}:${request.targetThemeVersion}:${request.targetConfigurationSchemaVersion}`;
+  const key = `${id}:${row.version}:${request.targetThemeVersion}:${request.targetConfigurationSchemaVersion}:${request.catalogReleaseId ?? "legacy"}`;
   const migrationId = `migration-${(await sha256Hex(key)).slice(0, 32)}`;
   const principal = context.get("principal");
   const now = new Date().toISOString();
   await context.env.DB.prepare(
     `INSERT OR IGNORE INTO storefront_experience_migrations
-       (id, draft_id, draft_version, source_theme_version,
+       (id, draft_id, draft_version, catalog_release_id, source_theme_version,
         source_configuration_schema_version, target_theme_version,
         target_configuration_schema_version, migrated_overrides_json, conflicts_json,
         status, created_by, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'dry_run', ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'dry_run', ?, ?)`,
   )
     .bind(
       migrationId,
       id,
       row.version,
+      request.catalogReleaseId ?? null,
       row.theme_version,
       row.configuration_schema_version,
       request.targetThemeVersion,
@@ -2037,7 +2217,12 @@ export async function approveStorefrontExperienceMigration(
       "Resolve stable-instance migration conflicts before approval.",
     );
   }
-  const validation = await validationRow(context.env.DB, draftId, expectedVersion);
+  const validation = await validationRow(
+    context.env.DB,
+    draftId,
+    expectedVersion,
+    migration.catalog_release_id ?? undefined,
+  );
   if (!validation || validation.status !== "valid") {
     throw new ApiError(
       409,

@@ -317,6 +317,7 @@ describe("private candidate builder integration", () => {
       env.DB.prepare("DELETE FROM navigation_product_references"),
       env.DB.prepare("DELETE FROM navigation_items"),
       env.DB.prepare("DELETE FROM navigation_menu_versions"),
+      env.DB.prepare("DELETE FROM settings WHERE key = 'launch_configuration'"),
       env.DB.prepare("DELETE FROM collection_route_redirects"),
       env.DB.prepare("DELETE FROM policy_versions"),
       env.DB.prepare("DELETE FROM content_route_redirects"),
@@ -361,6 +362,7 @@ describe("private candidate builder integration", () => {
       env.DB.prepare("DELETE FROM navigation_items"),
       env.DB.prepare("DELETE FROM navigation_menu_versions"),
       env.DB.prepare("DELETE FROM policy_versions"),
+      env.DB.prepare("DELETE FROM settings WHERE key = 'launch_configuration'"),
       env.DB.prepare("DELETE FROM content_route_redirects"),
       env.DB.prepare("DELETE FROM content_page_versions"),
       env.DB.prepare("DELETE FROM content_article_versions"),
@@ -399,6 +401,35 @@ describe("private candidate builder integration", () => {
         subject: "candidate-admin",
       }),
     });
+
+  test("requires Settings read authority before starting a private candidate build", async () => {
+    await env.DB.prepare(
+      "DELETE FROM admin_role_permissions WHERE role_id = 'role_admin' AND permission_key = 'settings.read'",
+    ).run();
+    try {
+      const response = await appFor().fetch(
+        adminRequest("/admin/catalog/releases/preview-candidates", {
+          body: JSON.stringify({ reason: "Least-privilege candidate build proof" }),
+          method: "POST",
+        }),
+        env,
+      );
+      expect(response.status).toBe(403);
+      expect(await response.json()).toMatchObject({
+        error: { code: "authorization_state_invalid" },
+      });
+      expect(
+        await env.DB.prepare(
+          "SELECT COUNT(*) AS count FROM catalog_releases WHERE purpose = 'private-preview'",
+        ).first(),
+      ).toEqual({ count: 0 });
+    } finally {
+      await env.DB.prepare(
+        `INSERT OR IGNORE INTO admin_role_permissions (role_id, permission_key, created_at)
+         VALUES ('role_admin', 'settings.read', '2026-08-04T00:00:00.000Z')`,
+      ).run();
+    }
+  });
 
   test("commit-time source mutation creates no selectable candidate or ledger", async () => {
     const app = appFor(undefined, async ({ phase }) => {
@@ -446,6 +477,13 @@ describe("private candidate builder integration", () => {
       await expect(
         env.DB.prepare("UPDATE products SET name = name WHERE status = 'published'").run(),
       ).rejects.toThrow(/catalog_candidate_sources_locked/);
+      await expect(
+        env.DB.prepare(
+          "INSERT INTO shipping_methods (id, zone_id, name, calculation_type, price_amount, currency, status, created_at, updated_at) VALUES ('ship_lock_probe', 'zone_lock_probe', 'Probe', 'flat', 0, 'USD', 'active', ?, ?)",
+        )
+          .bind("2026-09-23T00:00:00.000Z", "2026-09-23T00:00:00.000Z")
+          .run(),
+      ).rejects.toThrow(/catalog_candidate_sources_locked/);
     });
     const response = await app.fetch(
       adminRequest("/admin/catalog/releases/preview-candidates", {
@@ -462,6 +500,42 @@ describe("private candidate builder integration", () => {
         .bind(pendingId)
         .first(),
     ).toEqual({ candidate_status: "succeeded" });
+  });
+
+  test("locks every Shipping authority through the terminal candidate CAS", async () => {
+    const phases: string[] = [];
+    const app = appFor(undefined, async ({ phase }) => {
+      if (phase !== "after-pending" && phase !== "before-success") return;
+      phases.push(phase);
+      await expect(
+        env.DB.prepare(
+          "INSERT INTO shipping_zones (id, name, status, created_at, updated_at) VALUES ('zone_lock_probe', 'Probe', 'active', ?, ?)",
+        )
+          .bind("2026-09-23T00:00:00.000Z", "2026-09-23T00:00:00.000Z")
+          .run(),
+      ).rejects.toThrow(/catalog_candidate_sources_locked/);
+      await expect(
+        env.DB.prepare(
+          "INSERT INTO shipping_zone_countries (zone_id, country_code) VALUES ('zone_lock_probe', 'US')",
+        ).run(),
+      ).rejects.toThrow(/catalog_candidate_sources_locked/);
+      await expect(
+        env.DB.prepare(
+          "INSERT INTO shipping_methods (id, zone_id, name, calculation_type, price_amount, currency, status, created_at, updated_at) VALUES ('ship_lock_probe', 'zone_lock_probe', 'Probe', 'flat', 0, 'USD', 'active', ?, ?)",
+        )
+          .bind("2026-09-23T00:00:00.000Z", "2026-09-23T00:00:00.000Z")
+          .run(),
+      ).rejects.toThrow(/catalog_candidate_sources_locked/);
+    });
+    const response = await app.fetch(
+      adminRequest("/admin/catalog/releases/preview-candidates", {
+        body: JSON.stringify({ reason: "Shipping freeze race proof" }),
+        method: "POST",
+      }),
+      env,
+    );
+    expect(response.status).toBe(201);
+    expect(phases).toEqual(["after-pending", "before-success"]);
   });
 
   test("freezes bytes read before a source overwrite and a retry creates a new tuple", async () => {
@@ -742,6 +816,7 @@ describe("private candidate builder integration", () => {
   });
 
   test("freezes one inspectable private candidate without exposing it to public build routes", async () => {
+    await env.DB.prepare("DELETE FROM settings WHERE key = 'launch_configuration'").run();
     const app = appFor();
     const built = await app.fetch(
       adminRequest("/admin/catalog/releases/preview-candidates", {
@@ -762,6 +837,10 @@ describe("private candidate builder integration", () => {
     const detail = await inspected.json<{
       data: {
         manifest: {
+          commerce: {
+            payment: { brands: string[]; enabled: boolean; provider: string };
+            shippingMethods: unknown[];
+          };
           products: Array<{ media: Array<{ src: string }> }>;
           purpose: string;
           schemaVersion: number;
@@ -769,6 +848,10 @@ describe("private candidate builder integration", () => {
       };
     }>();
     expect(detail.data.manifest).toMatchObject({ purpose: "private-preview", schemaVersion: 3 });
+    expect(detail.data.manifest.commerce).toEqual({
+      payment: { brands: [], enabled: false, provider: "stripe" },
+      shippingMethods: [],
+    });
     expect(detail.data.manifest.products[0]!.media[0]!.src).toContain(
       "/catalog-release-media/sha256/",
     );
@@ -804,6 +887,103 @@ describe("private candidate builder integration", () => {
         .bind(candidate.data.id)
         .first(),
     ).toEqual({ candidate_status: "succeeded", status: "approved" });
+  });
+
+  test("freezes only verified payment brands and Shipping methods eligible for launch countries", async () => {
+    const now = "2026-09-23T00:00:00.000Z";
+    const eligibleMethod = "ship_01JELIGIBLE000000000000001";
+    const ineligibleMethod = "ship_01JINELIGIBLE000000000001";
+    await env.DB.batch([
+      env.DB.prepare(
+        "INSERT OR REPLACE INTO shipping_zones (id, name, status, created_at, updated_at) VALUES ('zone_u8_us', 'US', 'active', ?, ?)",
+      ).bind(now, now),
+      env.DB.prepare(
+        "INSERT OR REPLACE INTO shipping_zones (id, name, status, created_at, updated_at) VALUES ('zone_u8_ca', 'CA', 'active', ?, ?)",
+      ).bind(now, now),
+      env.DB.prepare(
+        "INSERT OR REPLACE INTO shipping_zone_countries (zone_id, country_code) VALUES ('zone_u8_us', 'US')",
+      ),
+      env.DB.prepare(
+        "INSERT OR REPLACE INTO shipping_zone_countries (zone_id, country_code) VALUES ('zone_u8_ca', 'CA')",
+      ),
+      env.DB.prepare(
+        `INSERT OR REPLACE INTO shipping_methods
+          (id, zone_id, name, calculation_type, price_amount, currency, status, created_at, updated_at)
+         VALUES (?, 'zone_u8_us', 'Eligible delivery', 'flat', 500, 'USD', 'active', ?, ?)`,
+      ).bind(eligibleMethod, now, now),
+      env.DB.prepare(
+        `INSERT OR REPLACE INTO shipping_methods
+          (id, zone_id, name, calculation_type, price_amount, currency, status, created_at, updated_at)
+         VALUES (?, 'zone_u8_ca', 'Ineligible delivery', 'flat', 700, 'USD', 'active', ?, ?)`,
+      ).bind(ineligibleMethod, now, now),
+      env.DB.prepare(
+        `INSERT INTO settings (key, value_json, updated_at) VALUES ('launch_configuration', ?, ?)
+         ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json, updated_at = excluded.updated_at`,
+      ).bind(
+        JSON.stringify({
+          defaultCurrency: "USD",
+          legalApproved: true,
+          orderNumberPrefix: "SHOP",
+          oversellPolicy: "deny",
+          paymentMode: "test",
+          paymentProvider: "stripe",
+          policies: {
+            contact: "https://shop.example.test/contact",
+            cookies: "https://shop.example.test/cookies",
+            privacy: "https://shop.example.test/privacy",
+            returns: "https://shop.example.test/returns",
+            shipping: "https://shop.example.test/shipping",
+            terms: "https://shop.example.test/terms",
+          },
+          privacyContactEmail: "privacy@example.test",
+          providerConfigured: true,
+          reservationTtlMinutes: 15,
+          sellableCurrencies: ["USD"],
+          shippingCountries: ["US"],
+          shippingMethodIds: [eligibleMethod, ineligibleMethod],
+          supportEmail: "support@example.test",
+          taxMode: "zero",
+          webhookConfigured: true,
+        }),
+        now,
+      ),
+    ]);
+    const candidateEnvironment = {
+      ...env,
+      STRIPE_PUBLIC_CAPABILITIES_JSON: JSON.stringify({
+        brands: ["visa", "mastercard"],
+        enabled: true,
+        provider: "stripe",
+      }),
+    };
+    const app = appFor();
+    const built = await app.fetch(
+      adminRequest("/admin/catalog/releases/preview-candidates", {
+        body: JSON.stringify({ reason: "Freeze verified Commerce capability subset" }),
+        method: "POST",
+      }),
+      candidateEnvironment,
+    );
+    expect(built.status).toBe(201);
+    const candidate = await built.json<{ data: { id: string } }>();
+    const detail = await app.fetch(
+      adminRequest(`/admin/catalog/releases/preview-candidates/${candidate.data.id}`),
+      candidateEnvironment,
+    );
+    const detailBody = await detail.json();
+    expect(detailBody as unknown).toMatchObject({
+      data: {
+        manifest: {
+          commerce: {
+            payment: { brands: ["visa", "mastercard"], enabled: true, provider: "stripe" },
+            shippingMethods: [
+              expect.objectContaining({ countryCodes: ["US"], id: eligibleMethod }),
+            ],
+          },
+        },
+      },
+    });
+    expect(JSON.stringify(detailBody)).not.toContain(ineligibleMethod);
   });
 
   test("freezes the exact published Navigation version and item order in each candidate", async () => {

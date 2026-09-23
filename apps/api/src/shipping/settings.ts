@@ -62,6 +62,10 @@ function groupByZone<Row extends { zone_id: string }>(rows: readonly Row[]): Map
   return grouped;
 }
 
+function isCandidateLocked(error: unknown): boolean {
+  return error instanceof Error && /catalog_candidate_sources_locked/i.test(error.message);
+}
+
 export async function listShippingZones(db: D1Database): Promise<ShippingZoneConfiguration[]> {
   const [zones, countries, methods] = await Promise.all([
     db.prepare("SELECT id, name, status FROM shipping_zones ORDER BY name, id").all<ZoneRow>(),
@@ -206,6 +210,13 @@ export async function upsertShippingZone(
   try {
     await context.env.DB.batch(statements);
   } catch (error) {
+    if (isCandidateLocked(error)) {
+      throw new ApiError(
+        409,
+        "catalog_candidate_sources_locked",
+        "Catalog sources are frozen while a Preview candidate is being built. Retry shortly.",
+      );
+    }
     if (String(error).includes("shipping_country_zone_conflict")) {
       throw new ApiError(
         409,

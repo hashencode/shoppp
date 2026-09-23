@@ -878,6 +878,7 @@ export const createStorefrontExperienceBuildRequestSchema = z
 
 export const storefrontExperienceMigrationDryRunRequestSchema = z
   .object({
+    catalogReleaseId: storefrontIdentifierSchema.optional(),
     expectedVersion: z.int().positive(),
     reason: experienceReasonSchema,
     targetConfigurationSchemaVersion: z.int().positive(),
