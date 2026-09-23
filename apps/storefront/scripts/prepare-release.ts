@@ -5,52 +5,61 @@ import {
   canonicalCatalogReleaseSchema,
   catalogReleaseV3Schema,
   type CanonicalCatalogRelease,
+  type CatalogReleaseV3,
 } from "@shoppp/contracts";
 import { format, resolveConfig } from "prettier";
 import { composeProductPageModel } from "../app/theme-engine/composer";
 import { experienceBuildInputSchema } from "./experience-build-input";
 
-function assertCanonicalCatalogRelease(input: unknown): asserts input is CanonicalCatalogRelease {
+function assertCanonicalCatalogRelease(
+  input: unknown,
+  options: { allowPrivatePreview: boolean },
+): asserts input is CanonicalCatalogRelease | CatalogReleaseV3 {
   const v3 = catalogReleaseV3Schema.safeParse(input);
-  if (v3.success && v3.data.purpose === "private-preview") {
-    throw new Error(
-      "catalog_candidate_private: Private Preview candidates cannot be prepared for deployment.",
-    );
+  if (v3.success) {
+    if (v3.data.purpose === "private-preview" && !options.allowPrivatePreview) {
+      throw new Error(
+        "catalog_candidate_private: Private Preview candidates cannot be prepared for deployment.",
+      );
+    }
+    return;
   }
   canonicalCatalogReleaseSchema.parse(input);
 }
 
 const root = resolve(import.meta.dir, "..");
 const prettierConfig = await resolveConfig(root);
-const sourceFile = process.env.NUXT_CATALOG_RELEASE_FILE
-  ? resolve(process.env.NUXT_CATALOG_RELEASE_FILE)
-  : resolve(root, "fixtures/release.json");
-
-const releaseSource = process.env.NUXT_CATALOG_RELEASE_URL
-  ? await fetch(process.env.NUXT_CATALOG_RELEASE_URL, {
-      headers: process.env.NUXT_CATALOG_RELEASE_TOKEN
-        ? { Authorization: `Bearer ${process.env.NUXT_CATALOG_RELEASE_TOKEN}` }
-        : {},
-    }).then(async (response) => {
-      if (!response.ok) throw new Error(`Catalog release fetch failed: ${response.status}`);
-      return response.json() as Promise<unknown>;
-    })
-  : (JSON.parse(await readFile(sourceFile, "utf8")) as unknown);
-assertCanonicalCatalogRelease(releaseSource);
-const release = releaseSource;
 const experienceInput =
   process.env.STOREFRONT_BUILD_MODE === "preview" && process.env.STOREFRONT_EXPERIENCE_FILE
     ? experienceBuildInputSchema.parse(
         JSON.parse(await readFile(resolve(process.env.STOREFRONT_EXPERIENCE_FILE), "utf8")),
       )
     : undefined;
-const experience =
-  experienceInput &&
-  experienceInput.environment === "preview" &&
+const livePreviewInput =
+  experienceInput?.environment === "preview" &&
   "presentationMode" in experienceInput &&
   experienceInput.presentationMode === "live"
-    ? experienceInput.snapshot
+    ? experienceInput
     : undefined;
+const sourceFile = process.env.NUXT_CATALOG_RELEASE_FILE
+  ? resolve(process.env.NUXT_CATALOG_RELEASE_FILE)
+  : resolve(root, "fixtures/release.json");
+
+const releaseSource = livePreviewInput
+  ? livePreviewInput.catalogRelease
+  : process.env.NUXT_CATALOG_RELEASE_URL
+    ? await fetch(process.env.NUXT_CATALOG_RELEASE_URL, {
+        headers: process.env.NUXT_CATALOG_RELEASE_TOKEN
+          ? { Authorization: `Bearer ${process.env.NUXT_CATALOG_RELEASE_TOKEN}` }
+          : {},
+      }).then(async (response) => {
+        if (!response.ok) throw new Error(`Catalog release fetch failed: ${response.status}`);
+        return response.json() as Promise<unknown>;
+      })
+    : (JSON.parse(await readFile(sourceFile, "utf8")) as unknown);
+assertCanonicalCatalogRelease(releaseSource, { allowPrivatePreview: Boolean(livePreviewInput) });
+const release = releaseSource;
+const experience = livePreviewInput?.snapshot;
 
 const products = release.products.filter(
   (product) =>

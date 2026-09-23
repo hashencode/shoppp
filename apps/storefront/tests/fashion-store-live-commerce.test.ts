@@ -232,6 +232,9 @@ describe("Fashion Store live commerce boundary", () => {
       expect.objectContaining({ instanceId: "fashion-store-collection", kind: "catalog" }),
       expect.objectContaining({ instanceId: "fashion-store-product", kind: "catalog" }),
     ]);
+    expect(input.catalogRelease.routes).toEqual(
+      expect.arrayContaining(["/account", "/cart", "/checkout"]),
+    );
     const boundary = input.catalogRelease.content.find(({ id }) => id === "page.boundary-document");
     expect(boundary?.kind).toBe("page");
     expect(new TextEncoder().encode(JSON.stringify(boundary?.payload.sections)).byteLength).toBe(

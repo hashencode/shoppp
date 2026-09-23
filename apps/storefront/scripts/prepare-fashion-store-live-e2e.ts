@@ -234,7 +234,13 @@ export function fashionStoreLiveBuildInput(
       version: 1,
     },
   ].filter(({ kind }) => !options.zeroArticles || kind !== "article");
-  const routes = [...canonicalRelease.routes, ...releasedContent.map(({ route }) => route)];
+  const routes = [
+    ...canonicalRelease.routes,
+    ...releasedContent.map(({ route }) => route),
+    "/account",
+    "/cart",
+    "/checkout",
+  ];
   const navigation = options.navigationCandidate
     ? [
         {
