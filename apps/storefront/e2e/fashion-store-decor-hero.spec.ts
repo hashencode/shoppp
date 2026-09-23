@@ -99,9 +99,7 @@ test("renders the permanent furniture Hero in a complete static first state", as
     "src",
     /decor-hero-01-product/,
   );
-  await expect(hero.locator("[data-hero-slide='1'] a[href='/collections']")).toHaveText(
-    "Shop Now",
-  );
+  await expect(hero.locator("[data-hero-slide='1'] a[href='/collections']")).toHaveText("Shop Now");
   await expect(hero.locator("[data-hero-slide='1'] [data-hero-layer='thumbnail']")).toHaveCSS(
     "background-image",
     /decor-hero-02-thumb/,

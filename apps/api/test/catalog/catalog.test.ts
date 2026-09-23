@@ -378,27 +378,24 @@ describe("catalog management and publishing", () => {
     const concurrentUpdate = (productIds: string[], reason: string) =>
       app.fetch(
         request(`/admin/catalog/collections/${created.data.id}`, {
-        body: JSON.stringify({
-          description: "Travel essentials",
-          expectedVersion: created.data.version,
-          name: "Travel",
-          productIds,
-          reason,
-          seoDescription: "Travel essentials",
-          seoTitle: "Travel collection",
-          slug: "travel",
-          status: "published",
+          body: JSON.stringify({
+            description: "Travel essentials",
+            expectedVersion: created.data.version,
+            name: "Travel",
+            productIds,
+            reason,
+            seoDescription: "Travel essentials",
+            seoTitle: "Travel collection",
+            slug: "travel",
+            status: "published",
+          }),
+          headers: { "Content-Type": "application/json" },
+          method: "PUT",
         }),
-        headers: { "Content-Type": "application/json" },
-        method: "PUT",
-      }),
-      env,
-    );
+        env,
+      );
     const contenders = await Promise.all([
-      concurrentUpdate(
-        [secondProduct.data.id, firstProduct.data.id],
-        "Prioritize checked luggage",
-      ),
+      concurrentUpdate([secondProduct.data.id, firstProduct.data.id], "Prioritize checked luggage"),
       concurrentUpdate([firstProduct.data.id], "Prioritize carry-on luggage"),
     ]);
     expect(contenders.map(({ status }) => status).sort()).toEqual([200, 409]);
@@ -408,10 +405,9 @@ describe("catalog management and publishing", () => {
       error: { code: "stale_collection_version" },
     });
     const reordered = await accepted.json<{ data: { productIds: string[]; version: number } }>();
-    expect([
-      [secondProduct.data.id, firstProduct.data.id],
-      [firstProduct.data.id],
-    ]).toContainEqual(reordered.data.productIds);
+    expect([[secondProduct.data.id, firstProduct.data.id], [firstProduct.data.id]]).toContainEqual(
+      reordered.data.productIds,
+    );
 
     const current = await app.fetch(request(`/admin/catalog/collections/${created.data.id}`), env);
     expect(await current.json()).toMatchObject({
@@ -495,9 +491,7 @@ describe("catalog management and publishing", () => {
     expect(draftRename.status).toBe(200);
     const renamedDraft = await draftRename.json<{ data: { version: number } }>();
     expect(
-      await env.DB.prepare(
-        "SELECT COUNT(*) AS count FROM collection_route_redirects",
-      ).first(),
+      await env.DB.prepare("SELECT COUNT(*) AS count FROM collection_route_redirects").first(),
     ).toEqual({ count: 0 });
     expect(
       await env.DB.prepare(
@@ -774,12 +768,7 @@ describe("catalog management and publishing", () => {
           `INSERT INTO navigation_items
             (menu_id, menu_version, item_id, parent_item_id, position, label, target_json)
            VALUES ('menu.scope', 1, ?, NULL, ?, ?, ?)`,
-        ).bind(
-          itemId,
-          position,
-          itemId,
-          JSON.stringify({ id: collection.id, kind: "collection" }),
-        ),
+        ).bind(itemId, position, itemId, JSON.stringify({ id: collection.id, kind: "collection" })),
       ),
       env.DB.prepare(
         `INSERT INTO navigation_collection_references
@@ -859,7 +848,11 @@ describe("catalog management and publishing", () => {
                'pending', '2099-09-30T00:00:00.000Z', ?, ?)`,
     )
       .bind(
-        JSON.stringify({ environment: env.ENVIRONMENT, purpose: "private-preview", schemaVersion: 3 }),
+        JSON.stringify({
+          environment: env.ENVIRONMENT,
+          purpose: "private-preview",
+          schemaVersion: 3,
+        }),
         NOW,
         env.ENVIRONMENT,
         "a".repeat(64),
@@ -887,9 +880,7 @@ describe("catalog management and publishing", () => {
       error: { code: "catalog_candidate_sources_locked" },
     });
     expect(
-      await env.DB.prepare(
-        "SELECT version, name FROM collection_versions WHERE collection_id = ?",
-      )
+      await env.DB.prepare("SELECT version, name FROM collection_versions WHERE collection_id = ?")
         .bind(collection.id)
         .all(),
     ).toMatchObject({ results: [{ name: "Collection", version: 1 }] });

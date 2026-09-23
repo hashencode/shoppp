@@ -1272,7 +1272,10 @@ describe("private candidate builder integration", () => {
     )
       .bind(`audit-${approved.data.id}`)
       .first<{ metadata_json: string }>();
-    const approvalAuditMetadata = JSON.parse(approvalAudit!.metadata_json) as Record<string, unknown>;
+    const approvalAuditMetadata = JSON.parse(approvalAudit!.metadata_json) as Record<
+      string,
+      unknown
+    >;
     expect(approvalAuditMetadata).toMatchObject({
       catalogReleaseId: expect.any(String),
       previewArtifactDigest: artifactDigest,
@@ -1280,29 +1283,29 @@ describe("private candidate builder integration", () => {
       previewSnapshotId: retryPreviewBody.data.snapshot.id,
     });
     const exactTupleReceipt = {
-          artifactDigest,
-          approvalAuditArtifactDigest: approvalAuditMetadata.previewArtifactDigest,
-          callbackArtifactDigest: artifactDigest,
-          buildId: retryPreviewBody.data.build.id,
-          candidateReleaseId: candidateId,
-          contactVersion: previewBody.data.snapshot.snapshot.contact?.version,
-          environment: exactBuildInput.environment,
-          exactValues: {
-            collectionId: candidate.collections[0]!.id,
-            collectionName: candidate.collections[0]!.name,
-            collectionSlug: candidate.collections[0]!.slug,
-            productId: candidate.products[0]!.id,
-            productName: candidate.products[0]!.name,
-            productSlug: candidate.products[0]!.slug,
-            supportEmail,
-          },
-          previewSnapshotId: retryPreviewBody.data.snapshot.id,
-          successorDraftId: successor.data.id,
-          successorDraftVersion: successor.data.version,
-          approvedSnapshotId: approved.data.id,
-          themeId: manifest.id,
-          themeVersion: manifest.themeVersion,
-        };
+      artifactDigest,
+      approvalAuditArtifactDigest: approvalAuditMetadata.previewArtifactDigest,
+      callbackArtifactDigest: artifactDigest,
+      buildId: retryPreviewBody.data.build.id,
+      candidateReleaseId: candidateId,
+      contactVersion: previewBody.data.snapshot.snapshot.contact?.version,
+      environment: exactBuildInput.environment,
+      exactValues: {
+        collectionId: candidate.collections[0]!.id,
+        collectionName: candidate.collections[0]!.name,
+        collectionSlug: candidate.collections[0]!.slug,
+        productId: candidate.products[0]!.id,
+        productName: candidate.products[0]!.name,
+        productSlug: candidate.products[0]!.slug,
+        supportEmail,
+      },
+      previewSnapshotId: retryPreviewBody.data.snapshot.id,
+      successorDraftId: successor.data.id,
+      successorDraftVersion: successor.data.version,
+      approvedSnapshotId: approved.data.id,
+      themeId: manifest.id,
+      themeVersion: manifest.themeVersion,
+    };
     console.log(`U9_EXACT_TUPLE_RECEIPT=${JSON.stringify(exactTupleReceipt)}`);
     expect(buildInputs).toHaveLength(2);
     expect(buildInputs).toEqual(
@@ -2045,9 +2048,7 @@ describe("private candidate builder integration", () => {
     }
   });
 
-  test.skipIf(
-    !(env as unknown as { U9_EXACT_HANDSHAKE_URL?: string }).U9_EXACT_HANDSHAKE_URL,
-  )(
+  test.skipIf(!(env as unknown as { U9_EXACT_HANDSHAKE_URL?: string }).U9_EXACT_HANDSHAKE_URL)(
     "propagates one sparse Admin tuple through candidate, successor, private Preview, approval, and generated Fashion output",
     exerciseExactSparseTuple,
     180_000,

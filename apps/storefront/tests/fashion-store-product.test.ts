@@ -81,8 +81,8 @@ describe("Fashion Store product detail", () => {
       "Rating breakdown is unavailable for this historical review snapshot.",
     );
     expect(component).toContain("hoveredReviewRating");
-    expect(component).toContain("@mouseenter=\"hoveredReviewRating = star\"");
-    expect(component).toContain("@mouseleave=\"hoveredReviewRating = 0\"");
+    expect(component).toContain('@mouseenter="hoveredReviewRating = star"');
+    expect(component).toContain('@mouseleave="hoveredReviewRating = 0"');
     expect(integration).toMatch(
       /\.fashion-product-review-form legend\.form-label\s*\{[^}]*font-size:\s*17px;[^}]*line-height:\s*32px;/,
     );
@@ -98,9 +98,7 @@ describe("Fashion Store product detail", () => {
     expect(integration).toMatch(
       /@media \(max-width: 767px\)[\s\S]*\.fashion-product-review-rating-option\s*\{[^}]*min-width:\s*44px;[^}]*min-height:\s*44px;/,
     );
-    expect(integration).toContain(
-      ".btn.btn-switch-text:hover .btn-double-text.btn-double-text",
-    );
+    expect(integration).toContain(".btn.btn-switch-text:hover .btn-double-text.btn-double-text");
   });
 
   test("pins the product source and its deterministic presentation facts", () => {

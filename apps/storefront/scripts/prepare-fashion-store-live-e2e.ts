@@ -603,9 +603,13 @@ async function main(): Promise<void> {
   if (authoredHeroCount > 0) {
     const home = input.snapshot.resolvedTemplates.find(({ pageType }) => pageType === "home");
     const hero = home?.sections.find(({ type }) => type === "fashion-store.hero");
-    const collection = input.catalogRelease.collections.find(({ status }) => status === "published");
+    const collection = input.catalogRelease.collections.find(
+      ({ status }) => status === "published",
+    );
     if (!hero || !collection) {
-      throw new Error("Authored Hero live proof requires a Home Hero and one published Collection.");
+      throw new Error(
+        "Authored Hero live proof requires a Home Hero and one published Collection.",
+      );
     }
     for (const block of hero.blocks) {
       block.settings.destination = { id: collection.id, kind: "collection" };

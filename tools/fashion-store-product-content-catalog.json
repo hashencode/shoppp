@@ -48,15 +48,9 @@
         "fixtureId": "textured-sweater-01"
       },
       "taxonomy": {
-        "categories": [
-          "T-shirts"
-        ],
-        "colors": [
-          "Pale blue"
-        ],
-        "sizes": [
-          "M"
-        ],
+        "categories": ["T-shirts"],
+        "colors": ["Pale blue"],
+        "sizes": ["M"],
         "tags": []
       },
       "variants": [
@@ -109,11 +103,7 @@
         "defaultVariantId": "var_01JFS8SHOP00000000000001",
         "detail": {
           "body": "A softly colored everyday T-shirt with a small chest graphic visible in the product photo.",
-          "bullets": [
-            "Crew neck",
-            "Short sleeves",
-            "Small white graphic on the chest"
-          ],
+          "bullets": ["Crew neck", "Short sleeves", "Small white graphic on the chest"],
           "heading": "Pale blue graphic crew-neck T-shirt"
         },
         "specifications": [
@@ -170,15 +160,9 @@
         "fixtureId": "traveller-shirt-02"
       },
       "taxonomy": {
-        "categories": [
-          "Cardigans"
-        ],
-        "colors": [
-          "Ivory"
-        ],
-        "sizes": [
-          "XL"
-        ],
+        "categories": ["Cardigans"],
+        "colors": ["Ivory"],
+        "sizes": ["XL"],
         "tags": []
       },
       "variants": [
@@ -231,11 +215,7 @@
         "defaultVariantId": "var_01JFS8SHOP00000000000002",
         "detail": {
           "body": "A light-colored cardigan with a row of front buttons and long sleeves.",
-          "bullets": [
-            "Round neck",
-            "Long sleeves",
-            "Button front"
-          ],
+          "bullets": ["Round neck", "Long sleeves", "Button front"],
           "heading": "Ivory button-front cardigan"
         },
         "specifications": [
@@ -292,15 +272,9 @@
         "fixtureId": "crewneck-sweatshirt-03"
       },
       "taxonomy": {
-        "categories": [
-          "T-shirts"
-        ],
-        "colors": [
-          "Sage green"
-        ],
-        "sizes": [
-          "L"
-        ],
+        "categories": ["T-shirts"],
+        "colors": ["Sage green"],
+        "sizes": ["L"],
         "tags": []
       },
       "variants": [
@@ -353,11 +327,7 @@
         "defaultVariantId": "var_01JFS8SHOP00000000000003",
         "detail": {
           "body": "The muted green front is unprinted, with a classic crew neckline.",
-          "bullets": [
-            "Crew neck",
-            "Short sleeves",
-            "Plain front"
-          ],
+          "bullets": ["Crew neck", "Short sleeves", "Plain front"],
           "heading": "Sage green crew-neck T-shirt"
         },
         "specifications": [
@@ -414,15 +384,9 @@
         "fixtureId": "skinny-trousers-04"
       },
       "taxonomy": {
-        "categories": [
-          "Cardigans"
-        ],
-        "colors": [
-          "Cream"
-        ],
-        "sizes": [
-          "S"
-        ],
+        "categories": ["Cardigans"],
+        "colors": ["Cream"],
+        "sizes": ["S"],
         "tags": []
       },
       "variants": [
@@ -475,11 +439,7 @@
         "defaultVariantId": "var_01JFS8SHOP00000000000004",
         "detail": {
           "body": "The cardigan has an open front and visible texture. The cropped inner top in the photo is a separate styling piece.",
-          "bullets": [
-            "Open front",
-            "Long sleeves",
-            "Textured surface; inner top shown separately"
-          ],
+          "bullets": ["Open front", "Long sleeves", "Textured surface; inner top shown separately"],
           "heading": "Cream open-front cardigan"
         },
         "specifications": [
@@ -536,15 +496,9 @@
         "fixtureId": "sleeve-sweater-05"
       },
       "taxonomy": {
-        "categories": [
-          "Tops"
-        ],
-        "colors": [
-          "Taupe"
-        ],
-        "sizes": [
-          "XXL"
-        ],
+        "categories": ["Tops"],
+        "colors": ["Taupe"],
+        "sizes": ["XXL"],
         "tags": []
       },
       "variants": [
@@ -597,11 +551,7 @@
         "defaultVariantId": "var_01JFS8SHOP00000000000005",
         "detail": {
           "body": "A sleeveless top with a scooped neckline and narrow vertical ribbing.",
-          "bullets": [
-            "Scoop neck",
-            "Sleeveless",
-            "Visible ribbed texture"
-          ],
+          "bullets": ["Scoop neck", "Sleeveless", "Visible ribbed texture"],
           "heading": "Taupe ribbed sleeveless top"
         },
         "specifications": [
@@ -658,15 +608,9 @@
         "fixtureId": "pocket-sweatshirt-06"
       },
       "taxonomy": {
-        "categories": [
-          "T-shirts"
-        ],
-        "colors": [
-          "White"
-        ],
-        "sizes": [
-          "L"
-        ],
+        "categories": ["T-shirts"],
+        "colors": ["White"],
+        "sizes": ["L"],
         "tags": []
       },
       "variants": [
@@ -708,11 +652,7 @@
         "defaultVariantId": "var_01JFS8SHOP00000000000006",
         "detail": {
           "body": "The product photo shows black lettering across the center front.",
-          "bullets": [
-            "Crew neck",
-            "Short sleeves",
-            "Black lettering on the front"
-          ],
+          "bullets": ["Crew neck", "Short sleeves", "Black lettering on the front"],
           "heading": "White graphic crew-neck T-shirt"
         },
         "specifications": [
@@ -769,15 +709,9 @@
         "fixtureId": "cotton-sweater-07"
       },
       "taxonomy": {
-        "categories": [
-          "Blouses"
-        ],
-        "colors": [
-          "Light gray"
-        ],
-        "sizes": [
-          "M"
-        ],
+        "categories": ["Blouses"],
+        "colors": ["Light gray"],
+        "sizes": ["M"],
         "tags": []
       },
       "variants": [
@@ -830,11 +764,7 @@
         "defaultVariantId": "var_01JFS8SHOP00000000000007",
         "detail": {
           "body": "The neckline closes with a soft tie. Subtle vertical texture is visible on the front.",
-          "bullets": [
-            "Tie neck",
-            "Long sleeves",
-            "Front neck tie"
-          ],
+          "bullets": ["Tie neck", "Long sleeves", "Front neck tie"],
           "heading": "Light gray tie-neck blouse"
         },
         "specifications": [
@@ -891,15 +821,9 @@
         "fixtureId": "texture-regular-08"
       },
       "taxonomy": {
-        "categories": [
-          "T-shirts"
-        ],
-        "colors": [
-          "Black"
-        ],
-        "sizes": [
-          "L"
-        ],
+        "categories": ["T-shirts"],
+        "colors": ["Black"],
+        "sizes": ["L"],
         "tags": []
       },
       "variants": [
@@ -952,11 +876,7 @@
         "defaultVariantId": "var_01JFS8SHOP00000000000008",
         "detail": {
           "body": "A plain black crew-neck T-shirt. The crossbody bag in the photo is a separate styling piece.",
-          "bullets": [
-            "Crew neck",
-            "Short sleeves",
-            "Plain front; bag shown separately"
-          ],
+          "bullets": ["Crew neck", "Short sleeves", "Plain front; bag shown separately"],
           "heading": "Black crew-neck T-shirt"
         },
         "specifications": [
@@ -1013,15 +933,9 @@
         "fixtureId": "sequined-dress-09"
       },
       "taxonomy": {
-        "categories": [
-          "Blazers"
-        ],
-        "colors": [
-          "Navy"
-        ],
-        "sizes": [
-          "S"
-        ],
+        "categories": ["Blazers"],
+        "colors": ["Navy"],
+        "sizes": ["S"],
         "tags": []
       },
       "variants": [
@@ -1074,11 +988,7 @@
         "defaultVariantId": "var_01JFS8SHOP00000000000009",
         "detail": {
           "body": "The blazer has a single-button front and a visible chest welt pocket. The light inner top is a separate styling piece.",
-          "bullets": [
-            "Notched lapel",
-            "Long sleeves",
-            "Single front button and chest welt pocket"
-          ],
+          "bullets": ["Notched lapel", "Long sleeves", "Single front button and chest welt pocket"],
           "heading": "Navy single-button blazer"
         },
         "specifications": [
@@ -1135,15 +1045,9 @@
         "fixtureId": "bermuda-shorts-10"
       },
       "taxonomy": {
-        "categories": [
-          "Shirts"
-        ],
-        "colors": [
-          "Pale blue"
-        ],
-        "sizes": [
-          "L"
-        ],
+        "categories": ["Shirts"],
+        "colors": ["Pale blue"],
+        "sizes": ["L"],
         "tags": []
       },
       "variants": [
@@ -1196,11 +1100,7 @@
         "defaultVariantId": "var_01JFS8SHOP00000000000010",
         "detail": {
           "body": "The open collar creates a V-shaped front neckline; the sleeves are long.",
-          "bullets": [
-            "Open pointed collar",
-            "Long sleeves",
-            "Open V-shaped neckline"
-          ],
+          "bullets": ["Open pointed collar", "Long sleeves", "Open V-shaped neckline"],
           "heading": "Pale blue popover shirt"
         },
         "specifications": [
@@ -1257,15 +1157,9 @@
         "fixtureId": "traveller-shirt-11"
       },
       "taxonomy": {
-        "categories": [
-          "Sweatshirts"
-        ],
-        "colors": [
-          "Light heather gray"
-        ],
-        "sizes": [
-          "XL"
-        ],
+        "categories": ["Sweatshirts"],
+        "colors": ["Light heather gray"],
+        "sizes": ["XL"],
         "tags": []
       },
       "variants": [
@@ -1318,11 +1212,7 @@
         "defaultVariantId": "var_01JFS8SHOP00000000000011",
         "detail": {
           "body": "A plain-front sweatshirt in a light heather-gray shade.",
-          "bullets": [
-            "Crew neck",
-            "Long sleeves",
-            "Plain front"
-          ],
+          "bullets": ["Crew neck", "Long sleeves", "Plain front"],
           "heading": "Light heather-gray crew-neck sweatshirt"
         },
         "specifications": [
@@ -1379,15 +1269,9 @@
         "fixtureId": "textured-sweater-12"
       },
       "taxonomy": {
-        "categories": [
-          "Blouses"
-        ],
-        "colors": [
-          "Pale gray-green"
-        ],
-        "sizes": [
-          "XXL"
-        ],
+        "categories": ["Blouses"],
+        "colors": ["Pale gray-green"],
+        "sizes": ["XXL"],
         "tags": []
       },
       "variants": [
@@ -1440,11 +1324,7 @@
         "defaultVariantId": "var_01JFS8SHOP00000000000012",
         "detail": {
           "body": "The blouse has a pointed collar and visible front buttons.",
-          "bullets": [
-            "Pointed collar",
-            "Long sleeves",
-            "Button front"
-          ],
+          "bullets": ["Pointed collar", "Long sleeves", "Button front"],
           "heading": "Pale gray button-front blouse"
         },
         "specifications": [
@@ -1523,23 +1403,13 @@
             "media_01JFS8DETAIL000000000003",
             "media_01JFS8DETAIL000000000004"
           ],
-          "Gold": [
-            "media_01JFS12SHIRTGOLDFRONT001"
-          ],
-          "Blue": [
-            "media_01JFS12SHIRTBLUEFRONT001"
-          ],
-          "Green": [
-            "media_01JFS12SHIRTGREENFRONT001"
-          ]
+          "Gold": ["media_01JFS12SHIRTGOLDFRONT001"],
+          "Blue": ["media_01JFS12SHIRTBLUEFRONT001"],
+          "Green": ["media_01JFS12SHIRTGREENFRONT001"]
         },
         "detail": {
           "body": "The photographs show the same shirt shape in four demonstration colors, with a pointed collar, button front, long sleeves, and chest patch pocket.",
-          "bullets": [
-            "Pointed collar",
-            "Long sleeves",
-            "Front buttons and chest patch pocket"
-          ],
+          "bullets": ["Pointed collar", "Long sleeves", "Front buttons and chest patch pocket"],
           "heading": "Button-front shirt"
         },
         "specifications": [
@@ -1570,21 +1440,9 @@
         "fixtureId": "fashion-store-product"
       },
       "taxonomy": {
-        "categories": [
-          "Shirts"
-        ],
-        "colors": [
-          "Charcoal",
-          "Gold",
-          "Blue",
-          "Green"
-        ],
-        "sizes": [
-          "S",
-          "M",
-          "L",
-          "XL"
-        ],
+        "categories": ["Shirts"],
+        "colors": ["Charcoal", "Gold", "Blue", "Green"],
+        "sizes": ["S", "M", "L", "XL"],
         "tags": []
       },
       "variants": [

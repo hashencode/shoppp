@@ -11,7 +11,9 @@ import { format, resolveConfig } from "prettier";
 function assertCanonicalCatalogRelease(input: unknown): asserts input is CanonicalCatalogRelease {
   const v3 = catalogReleaseV3Schema.safeParse(input);
   if (v3.success && v3.data.purpose === "private-preview") {
-    throw new Error("catalog_candidate_private: Private Preview candidates cannot be prepared for deployment.");
+    throw new Error(
+      "catalog_candidate_private: Private Preview candidates cannot be prepared for deployment.",
+    );
   }
   canonicalCatalogReleaseSchema.parse(input);
 }

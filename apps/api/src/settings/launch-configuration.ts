@@ -284,8 +284,12 @@ export async function updateLaunchConfiguration(
        ) ELSE excluded.value_json END,
        updated_at = excluded.updated_at`,
   )
-    .bind(SETTING_KEY, JSON.stringify(input.configuration), now,
-      input.preserveContactEmails ? 1 : 0)
+    .bind(
+      SETTING_KEY,
+      JSON.stringify(input.configuration),
+      now,
+      input.preserveContactEmails ? 1 : 0,
+    )
     .run();
   await recordAuditEvent(context.env.DB, {
     action: "settings.launch.update",

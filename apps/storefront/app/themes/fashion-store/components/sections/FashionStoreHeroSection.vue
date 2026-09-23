@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import FashionStoreDecorHero from "../FashionStoreDecorHero.vue";
 import type { FashionStoreHomeSectionProperties } from "./home-section-context";
-import {
-  isLiveHomeViewModel,
-  resolveLiveHomeData,
-} from "./home-section-context";
+import { isLiveHomeViewModel, resolveLiveHomeData } from "./home-section-context";
 import { resolveFashionStoreBlockReferenceHref } from "../../contracts/block-destinations";
 import { fashionStoreAssetId } from "../../resources";
 
@@ -15,7 +12,10 @@ const slides = computed(() =>
     .map((block) => {
       const asset = (settingId: string) => {
         const value = block.settings[settingId];
-        return typeof value === "object" && value !== null && "kind" in value && value.kind === "theme"
+        return typeof value === "object" &&
+          value !== null &&
+          "kind" in value &&
+          value.kind === "theme"
           ? fashionStoreAssetId(value.path)
           : "";
       };
@@ -35,8 +35,7 @@ const slides = computed(() =>
       return {
         background: backgroundColors[String(block.settings["background-color"])] ?? "#e5eff3",
         foreground: foregroundColors[String(block.settings["foreground-color"])] ?? "#232323",
-        href:
-          resolveFashionStoreBlockReferenceHref(live, block, "destination", "collection") ?? "",
+        href: resolveFashionStoreBlockReferenceHref(live, block, "destination", "collection") ?? "",
         id: block.id,
         patternDesktop: asset("pattern-desktop"),
         patternMobile: asset("pattern-mobile"),

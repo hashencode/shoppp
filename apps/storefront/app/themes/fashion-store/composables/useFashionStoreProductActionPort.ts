@@ -33,10 +33,7 @@ export function normalizeFashionStoreRuntimeProductState(
       ...releasedVariant,
       availability: commerceVariant.availability,
       compareAtPriceLabel: commerceVariant.money.compareAtAmount
-        ? formatCommerceMoney(
-            commerceVariant.money.compareAtAmount,
-            commerceVariant.money.currency,
-          )
+        ? formatCommerceMoney(commerceVariant.money.compareAtAmount, commerceVariant.money.currency)
         : undefined,
       priceLabel: formatCommerceMoney(commerceVariant.money.amount, commerceVariant.money.currency),
     };

@@ -18,12 +18,14 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   projects: [{ name: "u9-exact-tuple-chromium", use: { ...devices["Desktop Chrome"] } }],
-  webServer: externalBaseURL ? undefined : {
-    command: prebuilt
-      ? `bun scripts/serve-static.ts ${port}`
-      : `NUXT_CATALOG_RELEASE_FILE=test-results/u9-exact-tuple-release.json STOREFRONT_BUILD_MODE=preview STOREFRONT_EXPERIENCE_FILE=test-results/u9-exact-tuple-build-input.json bun run build && STOREFRONT_BUILD_MODE=preview bun scripts/verify-static.ts && bun scripts/serve-static.ts ${port}`,
-    reuseExistingServer: false,
-    timeout: 180_000,
-    url: baseURL,
-  },
+  webServer: externalBaseURL
+    ? undefined
+    : {
+        command: prebuilt
+          ? `bun scripts/serve-static.ts ${port}`
+          : `NUXT_CATALOG_RELEASE_FILE=test-results/u9-exact-tuple-release.json STOREFRONT_BUILD_MODE=preview STOREFRONT_EXPERIENCE_FILE=test-results/u9-exact-tuple-build-input.json bun run build && STOREFRONT_BUILD_MODE=preview bun scripts/verify-static.ts && bun scripts/serve-static.ts ${port}`,
+        reuseExistingServer: false,
+        timeout: 180_000,
+        url: baseURL,
+      },
 });

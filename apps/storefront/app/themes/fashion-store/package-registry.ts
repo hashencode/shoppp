@@ -77,9 +77,7 @@ export function fashionStoreFixtureBindingAliasesForPackage(
       manifest.themeVersion === supported.themeVersion &&
       manifest.configurationSchemaVersion === supported.configurationSchemaVersion,
   );
-  return supportsSplitHomeFixtures
-    ? fashionStoreFixtureBindingAliases
-    : undefined;
+  return supportsSplitHomeFixtures ? fashionStoreFixtureBindingAliases : undefined;
 }
 
 export const fashionStoreDirectMigrationBoundaries = deepFreeze(

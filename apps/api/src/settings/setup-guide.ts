@@ -77,8 +77,10 @@ export async function getSetupGuide(context: Context<ApiEnvironment>): Promise<S
       contact.publicContact.publicPhone ||
       contact.publicContact.locations.some((location) => location.phone || location.email),
     );
-    set("contact_details", contact.profileVersion && publicChannel
-      ? [] : [{ code: "public_contact_not_confirmed" }]);
+    set(
+      "contact_details",
+      contact.profileVersion && publicChannel ? [] : [{ code: "public_contact_not_confirmed" }],
+    );
   });
   const runtime = runtimeReadiness(
     configuration,

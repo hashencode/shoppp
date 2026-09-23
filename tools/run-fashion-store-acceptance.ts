@@ -33,7 +33,10 @@ interface FashionStoreAcceptancePlan {
 type FashionStoreAcceptanceStage = "all" | "behavior" | "browser" | "integrated" | "unit";
 
 const STOREFRONT_ROOT = resolve(import.meta.dir, "../apps/storefront");
-const U9_EXACT_BUILD_INPUT = resolve(STOREFRONT_ROOT, "test-results/u9-exact-tuple-build-input.json");
+const U9_EXACT_BUILD_INPUT = resolve(
+  STOREFRONT_ROOT,
+  "test-results/u9-exact-tuple-build-input.json",
+);
 const U9_EXACT_RECEIPT = resolve(STOREFRONT_ROOT, "test-results/u9-exact-tuple-receipt.json");
 const U9_EXACT_RELEASE = resolve(STOREFRONT_ROOT, "test-results/u9-exact-tuple-release.json");
 const U9_EXACT_ARTIFACT = resolve(STOREFRONT_ROOT, "test-results/u9-exact-tuple-artifact.json");
@@ -351,7 +354,7 @@ export async function runFashionStoreAcceptancePlan(
           async fetch(request) {
             if (request.method !== "POST" || new URL(request.url).pathname !== "/phase-a")
               return new Response("Not found", { status: 404 });
-            const phase = await request.json() as {
+            const phase = (await request.json()) as {
               buildInput: Record<string, unknown>;
               candidateReleaseId: string;
               previewSnapshotId: string;
@@ -363,25 +366,31 @@ export async function runFashionStoreAcceptancePlan(
             if (
               inputIdentity.catalogReleaseId !== phase.candidateReleaseId ||
               inputIdentity.experienceSnapshotId !== phase.previewSnapshotId
-            ) return new Response("Phase A identity mismatch", { status: 409 });
+            )
+              return new Response("Phase A identity mismatch", { status: 409 });
             await mkdir(resolve(STOREFRONT_ROOT, "test-results"), { recursive: true });
             await Promise.all([
               writeFile(U9_EXACT_BUILD_INPUT, `${JSON.stringify(phase.buildInput, null, 2)}\n`),
-              writeFile(U9_EXACT_RELEASE, `${JSON.stringify({
-                collections: catalogRelease.collections,
-                generatedAt: catalogRelease.generatedAt,
-                policies: catalogRelease.policies,
-                products: catalogRelease.products,
-                redirects: catalogRelease.redirects,
-                releaseId: catalogRelease.releaseId,
-                routes: catalogRelease.routes,
-                schemaVersion: 2,
-                site: catalogRelease.site,
-              }, null, 2)}\n`),
+              writeFile(
+                U9_EXACT_RELEASE,
+                `${JSON.stringify(
+                  {
+                    collections: catalogRelease.collections,
+                    generatedAt: catalogRelease.generatedAt,
+                    policies: catalogRelease.policies,
+                    products: catalogRelease.products,
+                    redirects: catalogRelease.redirects,
+                    releaseId: catalogRelease.releaseId,
+                    routes: catalogRelease.routes,
+                    schemaVersion: 2,
+                    site: catalogRelease.site,
+                  },
+                  null,
+                  2,
+                )}\n`,
+              ),
             ]);
-            const build = Bun.spawn([
-              "bun", "run", "build",
-            ], {
+            const build = Bun.spawn(["bun", "run", "build"], {
               cwd: STOREFRONT_ROOT,
               env: {
                 ...env,
@@ -399,10 +408,13 @@ export async function runFashionStoreAcceptancePlan(
               stderr: "inherit",
               stdout: "inherit",
             });
-            if (await verify.exited) return new Response("Exact static verification failed", { status: 500 });
+            if (await verify.exited)
+              return new Response("Exact static verification failed", { status: 500 });
             const hash = createHash("sha256");
             const visit = async (directory: string, prefix = "") => {
-              for (const entry of (await readdir(directory, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
+              for (const entry of (await readdir(directory, { withFileTypes: true })).sort((a, b) =>
+                a.name.localeCompare(b.name),
+              )) {
                 const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
                 if (entry.isDirectory()) await visit(resolve(directory, entry.name), relative);
                 else {
@@ -413,15 +425,22 @@ export async function runFashionStoreAcceptancePlan(
             };
             await visit(resolve(STOREFRONT_ROOT, ".output/public"));
             const artifactDigest = hash.digest("hex");
-            await writeFile(U9_EXACT_ARTIFACT, `${JSON.stringify({
-              artifactDigest,
-              candidateReleaseId: phase.candidateReleaseId,
-              contactVersion: contact?.version,
-              environment: phase.buildInput.environment,
-              previewSnapshotId: phase.previewSnapshotId,
-              themeId: inputIdentity.themeId,
-              themeVersion: inputIdentity.themeVersion,
-            }, null, 2)}\n`);
+            await writeFile(
+              U9_EXACT_ARTIFACT,
+              `${JSON.stringify(
+                {
+                  artifactDigest,
+                  candidateReleaseId: phase.candidateReleaseId,
+                  contactVersion: contact?.version,
+                  environment: phase.buildInput.environment,
+                  previewSnapshotId: phase.previewSnapshotId,
+                  themeId: inputIdentity.themeId,
+                  themeVersion: inputIdentity.themeVersion,
+                },
+                null,
+                2,
+              )}\n`,
+            );
             env.STOREFRONT_U9_EXACT_PREBUILT = "1";
             return Response.json({ artifactDigest });
           },
@@ -450,19 +469,25 @@ export async function runFashionStoreAcceptancePlan(
           return JSON.parse(line.slice(marker.length)) as Record<string, unknown>;
         };
         const receipt = valueFor("U9_EXACT_TUPLE_RECEIPT=");
-        const buildInput = JSON.parse(await readFile(U9_EXACT_BUILD_INPUT, "utf8")) as Record<string, unknown>;
-        const artifact = JSON.parse(await readFile(U9_EXACT_ARTIFACT, "utf8")) as Record<string, unknown>;
+        const buildInput = JSON.parse(await readFile(U9_EXACT_BUILD_INPUT, "utf8")) as Record<
+          string,
+          unknown
+        >;
+        const artifact = JSON.parse(await readFile(U9_EXACT_ARTIFACT, "utf8")) as Record<
+          string,
+          unknown
+        >;
         const inputIdentity = buildInput.inputIdentity as Record<string, unknown> | undefined;
         if (
           inputIdentity?.catalogReleaseId !== receipt.candidateReleaseId ||
           inputIdentity?.experienceSnapshotId !== receipt.previewSnapshotId ||
           artifact.artifactDigest !== receipt.artifactDigest ||
           artifact.candidateReleaseId !== receipt.candidateReleaseId ||
-          artifact.previewSnapshotId !== receipt.previewSnapshotId
-          || artifact.contactVersion !== receipt.contactVersion
-          || artifact.environment !== receipt.environment
-          || artifact.themeId !== receipt.themeId
-          || artifact.themeVersion !== receipt.themeVersion
+          artifact.previewSnapshotId !== receipt.previewSnapshotId ||
+          artifact.contactVersion !== receipt.contactVersion ||
+          artifact.environment !== receipt.environment ||
+          artifact.themeId !== receipt.themeId ||
+          artifact.themeVersion !== receipt.themeVersion
         ) {
           throw new Error("exact tuple receipt does not match the emitted build input identity");
         }

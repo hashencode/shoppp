@@ -54,10 +54,7 @@ function imageWidth(image: ProductGalleryImage | string): number {
   return typeof image === "string" ? 600 : image.width;
 }
 
-function useHistoricalAssetFallback(
-  image: ProductGalleryImage | string,
-  event: Event,
-): void {
+function useHistoricalAssetFallback(image: ProductGalleryImage | string, event: Event): void {
   if (typeof image === "string") return;
   const element = event.currentTarget as HTMLImageElement;
   if (element.dataset.historicalFallback === "true") return;

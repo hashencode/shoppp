@@ -159,9 +159,7 @@ describe("Fashion Store exact package registry", () => {
             }),
             `Release${releaseSchemaVersion}/Config${experienceSchemaVersion}/Package${packageVersion}`,
           ).toBe(
-            supported.get(
-              `${releaseSchemaVersion}/${experienceSchemaVersion}/${packageVersion}`,
-            ),
+            supported.get(`${releaseSchemaVersion}/${experienceSchemaVersion}/${packageVersion}`),
           );
         }
       }

@@ -54,10 +54,7 @@ const runtimeCommercePort = coalesceRuntimeCommerceRevalidations({
 });
 const actionAdapter: StorefrontActionAdapter = async (dispatch) => {
   if (dispatch.kind === "cart.add") {
-    return addGuestCartLine(
-      { ...dispatch.input, releaseId: release.releaseId },
-      dispatch.currency,
-    );
+    return addGuestCartLine({ ...dispatch.input, releaseId: release.releaseId }, dispatch.currency);
   }
   if (dispatch.kind === "cart.remove") return removeGuestCartLine(dispatch.variantId);
   if (dispatch.kind === "cart.shipping") return quoteGuestCartShipping(dispatch.input);

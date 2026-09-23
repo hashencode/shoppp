@@ -1225,9 +1225,7 @@ watch(
                                   <span aria-hidden="true">
                                     <FashionStoreIcon
                                       name="star"
-                                      :filled="
-                                        star <= (hoveredReviewRating || (reviewRating ?? 0))
-                                      "
+                                      :filled="star <= (hoveredReviewRating || (reviewRating ?? 0))"
                                     />
                                   </span>
                                 </label>

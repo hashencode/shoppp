@@ -24,10 +24,16 @@ interface ExactTupleReceipt {
 }
 
 const receipt = JSON.parse(
-  await readFile(resolve(import.meta.dirname, "../test-results/u9-exact-tuple-receipt.json"), "utf8"),
+  await readFile(
+    resolve(import.meta.dirname, "../test-results/u9-exact-tuple-receipt.json"),
+    "utf8",
+  ),
 ) as ExactTupleReceipt;
 const artifact = JSON.parse(
-  await readFile(resolve(import.meta.dirname, "../test-results/u9-exact-tuple-artifact.json"), "utf8"),
+  await readFile(
+    resolve(import.meta.dirname, "../test-results/u9-exact-tuple-artifact.json"),
+    "utf8",
+  ),
 ) as {
   artifactDigest: string;
   candidateReleaseId: string;
@@ -38,10 +44,18 @@ const artifact = JSON.parse(
   themeVersion: string;
 };
 const buildInput = JSON.parse(
-  await readFile(resolve(import.meta.dirname, "../test-results/u9-exact-tuple-build-input.json"), "utf8"),
+  await readFile(
+    resolve(import.meta.dirname, "../test-results/u9-exact-tuple-build-input.json"),
+    "utf8",
+  ),
 ) as {
   catalogRelease: { content: Array<{ kind: string; title: string }> };
-  snapshot: { resolvedTemplates: Array<{ pageType: string; sections: Array<{ blocks: Array<{ settings: { title?: string } }> }> }> };
+  snapshot: {
+    resolvedTemplates: Array<{
+      pageType: string;
+      sections: Array<{ blocks: Array<{ settings: { title?: string } }> }>;
+    }>;
+  };
 };
 const generatedExperience = await readFile(
   resolve(import.meta.dirname, "../app/generated/active-experience.ts"),
@@ -65,10 +79,16 @@ test("renders the durable exact control-plane tuple across released Fashion surf
   expect(artifact.themeId).toBe(receipt.themeId);
   expect(artifact.themeVersion).toBe(receipt.themeVersion);
   expect(buildInput.catalogRelease.content.map(({ kind }) => kind)).toEqual([
-    "policy", "policy", "policy", "policy",
+    "policy",
+    "policy",
+    "policy",
+    "policy",
   ]);
   expect(buildInput.catalogRelease.content.map(({ title }) => title)).toEqual([
-    "Privacy policy", "Returns policy", "Shipping policy", "Terms policy",
+    "Privacy policy",
+    "Returns policy",
+    "Shipping policy",
+    "Terms policy",
   ]);
   expect(generatedExperience).toContain(receipt.candidateReleaseId);
   expect(generatedExperience).toContain(receipt.previewSnapshotId);
@@ -90,9 +110,7 @@ test("renders the durable exact control-plane tuple across released Fashion surf
       ...new Set(cards.map((card) => card.getAttribute("data-product-id"))),
     ]),
   ).toEqual([receipt.exactValues.productId]);
-  await expect(homeCards.first()).toContainText(
-    receipt.exactValues.productName,
-  );
+  await expect(homeCards.first()).toContainText(receipt.exactValues.productName);
   await expect(page.locator("[data-released-header-navigation] > li")).toHaveCount(0);
   await expect(page.locator("[data-released-footer-navigation] li")).toHaveCount(0);
   await expect(page.locator("footer")).toContainText(receipt.exactValues.supportEmail);
@@ -107,7 +125,9 @@ test("renders the durable exact control-plane tuple across released Fashion surf
   ).toEqual(["Featured lounge", "Modern comfort", "Everyday design"]);
 
   await page.goto(`/collections/${receipt.exactValues.collectionSlug}`);
-  await expect(page.getByRole("heading", { name: receipt.exactValues.collectionName })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: receipt.exactValues.collectionName }),
+  ).toBeVisible();
   await expect(page.locator("[data-fashion-store-product-card]")).toHaveCount(1);
 
   await page.goto(`/products/${receipt.exactValues.productSlug}`);
@@ -116,9 +136,9 @@ test("renders the durable exact control-plane tuple across released Fashion surf
   );
 
   await page.goto("/contact");
-  await expect(
-    page.locator('[data-contact-channel="support-email"]').getByRole("link"),
-  ).toHaveText(receipt.exactValues.supportEmail);
+  await expect(page.locator('[data-contact-channel="support-email"]').getByRole("link")).toHaveText(
+    receipt.exactValues.supportEmail,
+  );
 
   await page.goto("/policies/privacy");
   await expect(page.getByRole("heading", { level: 1, name: "Privacy policy" })).toBeVisible();

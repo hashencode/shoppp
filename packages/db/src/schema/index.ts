@@ -1541,12 +1541,14 @@ export const storefrontExperienceMigrations = sqliteTable(
     createdAt: text("created_at").notNull(),
   },
   (table) => [
-    uniqueIndex("storefront_experience_migrations_target_unique").on(
-      table.draftId,
-      table.draftVersion,
-      table.targetThemeVersion,
-      table.targetConfigurationSchemaVersion,
-    ).where(sql`${table.catalogReleaseId} IS NULL`),
+    uniqueIndex("storefront_experience_migrations_target_unique")
+      .on(
+        table.draftId,
+        table.draftVersion,
+        table.targetThemeVersion,
+        table.targetConfigurationSchemaVersion,
+      )
+      .where(sql`${table.catalogReleaseId} IS NULL`),
     uniqueIndex("storefront_experience_migrations_target_catalog_unique")
       .on(
         table.draftId,

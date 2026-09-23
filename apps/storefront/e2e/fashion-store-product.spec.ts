@@ -187,9 +187,7 @@ test("Product Reviews keeps legacy ratings honest and saves a pending review onc
   const ratingOptions = panel.locator(".fashion-product-review-rating-option");
   await ratingOptions.nth(3).hover();
   for (const option of await ratingOptions.all()) {
-    const index = await option.evaluate((node) =>
-      [...node.parentElement!.children].indexOf(node),
-    );
+    const index = await option.evaluate((node) => [...node.parentElement!.children].indexOf(node));
     await expect(option.locator("span")).toHaveCSS(
       "color",
       index <= 3 ? "rgb(189, 97, 0)" : "rgb(232, 137, 11)",

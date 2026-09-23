@@ -1135,12 +1135,8 @@ test("mobile menu closes through Nuxt handling and restores toggle focus", async
   await expect(page.locator(".modal-backdrop, .offcanvas-backdrop")).toHaveCount(0);
   const releasedFooter = page.locator("[data-released-footer-navigation]");
   await expect(releasedFooter).toHaveCount(3);
-  await expect(releasedFooter.filter({ hasText: "Categories" })).toContainText(
-    "Travel essentials",
-  );
-  await expect(releasedFooter.filter({ hasText: "Information" })).toContainText(
-    "Shipping policy",
-  );
+  await expect(releasedFooter.filter({ hasText: "Categories" })).toContainText("Travel essentials");
+  await expect(releasedFooter.filter({ hasText: "Information" })).toContainText("Shipping policy");
   await expect(page.locator("[data-footer-utility-navigation]")).toHaveCount(1);
 
   const cart = page.locator(".header-cart");

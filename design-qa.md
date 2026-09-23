@@ -43,15 +43,15 @@
 
 ## Approved follow-up state polish (D05, D06, D08, D09, D11)
 
-| State | Verified result | Status |
-| --- | --- | --- |
-| Historical review snapshot | Keeps the truthful 5.0 average and 165-review count without fabricating vote bands or exposing internal snapshot terminology | Passed |
-| `Your rating*` typography | Computes to 17px type with 32px line height on desktop and small screen | Passed |
-| Ask/Share unavailable state | Remains natively disabled and computes to `cursor: default` with 0.55 opacity | Passed |
-| Footer link hover | Enabled Terms link transitions from gray to source brand yellow `rgb(254, 227, 0)` | Passed |
-| Rating hover | Hovering the fourth star fills and darkens stars one through four; star five remains outlined | Passed |
-| 390px touch targets | Rating, color/size options, quantity controls, and secondary actions meet or exceed 44px; submit remains 48px high | Passed |
-| Approved exclusions | D07 form-focus styling and D10 Add-to-cart label animation override remain unchanged | Passed |
+| State                       | Verified result                                                                                                              | Status |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------ |
+| Historical review snapshot  | Keeps the truthful 5.0 average and 165-review count without fabricating vote bands or exposing internal snapshot terminology | Passed |
+| `Your rating*` typography   | Computes to 17px type with 32px line height on desktop and small screen                                                      | Passed |
+| Ask/Share unavailable state | Remains natively disabled and computes to `cursor: default` with 0.55 opacity                                                | Passed |
+| Footer link hover           | Enabled Terms link transitions from gray to source brand yellow `rgb(254, 227, 0)`                                           | Passed |
+| Rating hover                | Hovering the fourth star fills and darkens stars one through four; star five remains outlined                                | Passed |
+| 390px touch targets         | Rating, color/size options, quantity controls, and secondary actions meet or exceed 44px; submit remains 48px high           | Passed |
+| Approved exclusions         | D07 form-focus styling and D10 Add-to-cart label animation override remain unchanged                                         | Passed |
 
 Follow-up browser checks found no horizontal overflow and no console errors. The accepted four-row small-screen TAB composition remains unchanged.
 

@@ -44,7 +44,9 @@ function sourceAsset(sourcePath: string): string {
             >
               <img class="sm-w-100" alt="" :src="sourceAsset(category.sourceImage)" />
             </a>
-            <div v-else><img class="sm-w-100" alt="" :src="sourceAsset(category.sourceImage)" /></div>
+            <div v-else>
+              <img class="sm-w-100" alt="" :src="sourceAsset(category.sourceImage)" />
+            </div>
             <div
               v-if="category.itemCount"
               class="border-color-transparent-dark-very-light border alt-font fw-500 text-dark-gray text-uppercase ps-15px pe-15px fs-11 lh-26 border-radius-100px d-inline-block position-absolute right-20px top-20px"

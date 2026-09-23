@@ -1863,14 +1863,14 @@ export async function approveStorefrontExperienceDraft(
   const contact = operatorRun?.status === "approved" ? null : await frozenContact(context);
   const previewBuild =
     contact && (await approvalRequiresPrivatePreviewBuild(context.env.DB, catalogReleaseId))
-    ? await requiredApprovalPreviewBuild(
-        context.env.DB,
-        id,
-        expectedVersion,
-        contact.version,
-        catalogReleaseId,
-      )
-    : undefined;
+      ? await requiredApprovalPreviewBuild(
+          context.env.DB,
+          id,
+          expectedVersion,
+          contact.version,
+          catalogReleaseId,
+        )
+      : undefined;
   const deduplicationKey = contact
     ? `${id}:${expectedVersion}:${catalogReleaseId ?? "fixture-preview"}:approved:${resolution.package.manifest.themeVersion}:${resolution.package.manifest.configurationSchemaVersion}:contact:${contact.version}`
     : null;

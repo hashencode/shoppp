@@ -176,16 +176,15 @@ export async function listCollections(
   );
   const pageIds = JSON.stringify(rows.results.map(({ collection_id }) => collection_id));
   const [memberRows, releaseRows] = await Promise.all([
-    context.env.DB
-      .prepare(
-        `SELECT cm.collection_id, cm.collection_version, p.id, p.name, p.slug, cm.position
+    context.env.DB.prepare(
+      `SELECT cm.collection_id, cm.collection_version, p.id, p.name, p.slug, cm.position
            FROM json_each(?) page
            JOIN collection_memberships cm
              ON cm.collection_id = json_extract(page.value, '$.id')
             AND cm.collection_version = json_extract(page.value, '$.version')
            JOIN products p ON p.id = cm.product_id
           ORDER BY cm.collection_id, cm.position`,
-      )
+    )
       .bind(pageKeys)
       .all<{
         collection_id: string;
@@ -195,9 +194,8 @@ export async function listCollections(
         position: number;
         slug: string;
       }>(),
-    context.env.DB
-      .prepare(
-        `SELECT source.source_id, source.source_version, source.source_digest,
+    context.env.DB.prepare(
+      `SELECT source.source_id, source.source_version, source.source_digest,
                 cr.id, cr.purpose, cr.status, cr.candidate_status
            FROM catalog_release_sources source
            JOIN catalog_releases cr ON cr.id = source.release_id
@@ -205,7 +203,7 @@ export async function listCollections(
             AND source.source_id IN (SELECT CAST(value AS TEXT) FROM json_each(?))
             AND source.environment = ?
           ORDER BY cr.created_at DESC`,
-      )
+    )
       .bind(pageIds, context.env.ENVIRONMENT)
       .all<{
         id: string;
@@ -482,11 +480,10 @@ export async function updateCollection(
   if (redirectFrom && redirectTo) {
     const [legacy, normalized] = await Promise.all([
       legacyRedirects(context.env.DB),
-      context.env.DB
-        .prepare(
-          `SELECT to_path FROM collection_route_redirects
+      context.env.DB.prepare(
+        `SELECT to_path FROM collection_route_redirects
             WHERE environment = ? AND from_path = ?`,
-        )
+      )
         .bind(context.env.ENVIRONMENT, redirectFrom)
         .first<{ to_path: string }>(),
     ]);

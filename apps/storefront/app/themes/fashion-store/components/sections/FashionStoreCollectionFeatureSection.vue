@@ -100,9 +100,7 @@ function sourceAsset(sourcePath: string): string {
                         class="text-white fs-14 fw-500 opacity-7 text-uppercase ls-05px"
                         >{{ collectionSlide(index).subtitle }}</span
                       >
-                      <span class="text-white fs-13 fw-500 text-uppercase"
-                        >Explore collection</span
-                      >
+                      <span class="text-white fs-13 fw-500 text-uppercase">Explore collection</span>
                     </div>
                     <div
                       class="position-absolute left-0px top-0px w-100 h-100 bg-gradient-regal-blue-transparent opacity-9"

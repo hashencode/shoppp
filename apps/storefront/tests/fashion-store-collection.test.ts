@@ -156,24 +156,21 @@ describe("Fashion Store collection", () => {
       state: "empty",
     } as unknown as PresentationViewModel;
 
+    expect(normalizeFashionStoreCatalogPresentation(emptyReleaseViewModel, "/collections")).toEqual(
+      {
+        cards: [
+          {
+            count: "0 items",
+            destination: "/collections/empty-edit",
+            label: "Empty edit",
+          },
+        ],
+        title: "Collection",
+        variant: "landing",
+      },
+    );
     expect(
-      normalizeFashionStoreCatalogPresentation(emptyReleaseViewModel, "/collections"),
-    ).toEqual({
-      cards: [
-        {
-          count: "0 items",
-          destination: "/collections/empty-edit",
-          label: "Empty edit",
-        },
-      ],
-      title: "Collection",
-      variant: "landing",
-    });
-    expect(
-      normalizeFashionStoreCatalogPresentation(
-        emptyReleaseViewModel,
-        "/collections/empty-edit",
-      ),
+      normalizeFashionStoreCatalogPresentation(emptyReleaseViewModel, "/collections/empty-edit"),
     ).toEqual(
       expect.objectContaining({
         arrivals: [],

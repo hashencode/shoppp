@@ -32,8 +32,13 @@ test("renders five distinct authored Hero tuples in exact order", async ({ page 
   await assertAuthoredHero(page);
 });
 
-test("keeps five authored Hero tuples truthful without JavaScript", async ({ browser }, testInfo) => {
-  test.skip(testInfo.project.metadata.fashionStoreViewport !== "desktop", "One no-JS viewport is sufficient.");
+test("keeps five authored Hero tuples truthful without JavaScript", async ({
+  browser,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.metadata.fashionStoreViewport !== "desktop",
+    "One no-JS viewport is sufficient.",
+  );
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
   try {
@@ -45,7 +50,10 @@ test("keeps five authored Hero tuples truthful without JavaScript", async ({ bro
 });
 
 test("serializes all five authored Hero tuples into SSR HTML", async ({ request }, testInfo) => {
-  test.skip(testInfo.project.metadata.fashionStoreViewport !== "desktop", "SSR bytes are viewport-independent.");
+  test.skip(
+    testInfo.project.metadata.fashionStoreViewport !== "desktop",
+    "SSR bytes are viewport-independent.",
+  );
   const response = await request.get("/");
   expect(response.ok()).toBe(true);
   const html = await response.text();
