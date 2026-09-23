@@ -345,9 +345,13 @@ describe('ThemeEditorPage browser behavior', () => {
         document.querySelector<HTMLTextAreaElement>('[data-testid="change-reason"]')!,
         { target: { value: 'Duplicate browser Block' } }
       )
+      const duplicateLabel =
+        document.documentElement.lang === 'zh-CN'
+          ? translateMessage('zh-CN', 'Duplicate')
+          : 'Duplicate'
       const duplicate = await waitFor(() => {
         const target = [...document.querySelectorAll<HTMLButtonElement>('button')].find(
-          (button) => button.textContent?.trim() === 'Duplicate'
+          (button) => button.textContent?.trim() === duplicateLabel
         )
         expect(target).toBeTruthy()
         return target!
