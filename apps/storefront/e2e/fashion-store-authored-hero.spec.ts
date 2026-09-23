@@ -1,9 +1,9 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 const expectedProducts = [1, 2, 3, 1, 2];
 const expectedMobilePatterns = [2, 3, 1, 2, 3];
 
-async function assertAuthoredHero(page: import("@playwright/test").Page): Promise<void> {
+async function assertAuthoredHero(page: Page): Promise<void> {
   const hero = page.locator("#fashion-store-decor-hero");
   const slides = hero.locator("[data-hero-slide]");
   await expect(slides).toHaveCount(5);

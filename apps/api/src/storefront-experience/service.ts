@@ -9,6 +9,7 @@ import {
   themePackageSchema,
   type BlockDefinition,
   type CanonicalCatalogRelease,
+  type CatalogReleaseV3,
   type CreateStorefrontExperienceDraftRequest,
   type CreateStorefrontExperienceSuccessorRequest,
   type ExperienceResourceBinding,
@@ -454,7 +455,7 @@ function resolveDraft(
   options?: StorefrontExperienceServiceOptions,
   overridePackage?: ThemePackage,
   overrideOperations?: readonly ThemeOverride[],
-  catalogRelease?: CanonicalCatalogRelease | import("@shoppp/contracts").CatalogReleaseV3,
+  catalogRelease?: CanonicalCatalogRelease | CatalogReleaseV3,
 ): {
   issues: ExperienceValidationIssue[];
   package: ThemePackage;
@@ -2018,7 +2019,7 @@ function migratedOverrides(
 
 function canonicalClaimValues(
   settingId: string,
-  release: CanonicalCatalogRelease | import("@shoppp/contracts").CatalogReleaseV3,
+  release: CanonicalCatalogRelease | CatalogReleaseV3,
   contact: PublicContact,
 ): unknown[] | undefined {
   if (settingId === "header-contact-copy" || settingId === "footer-contact-copy") {
@@ -2112,7 +2113,7 @@ function sourcePresetDefault(
 function canonicalClaimConflicts(
   row: DraftRow,
   sourcePackage: ThemePackage,
-  release: CanonicalCatalogRelease | import("@shoppp/contracts").CatalogReleaseV3,
+  release: CanonicalCatalogRelease | CatalogReleaseV3,
   contact: PublicContact,
 ): UpgradeConflict[] {
   if (row.theme_id !== "fashion-store") return [];

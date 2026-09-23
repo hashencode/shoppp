@@ -24,7 +24,6 @@ import {
   publicRuntimeConfigurationSchema,
   SETUP_GUIDE_DESTINATION_IDS,
   setupGuideDestinationsSchema,
-  setupGuideSummarySchema,
 } from "../src/platform";
 
 const product = {
