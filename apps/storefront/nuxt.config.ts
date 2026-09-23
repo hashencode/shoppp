@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import manifest from "./app/generated/route-manifest.json";
 import { catalogRelease } from "./app/generated/catalog";
-import { experienceBuildInputSchema } from "./scripts/prepare-experience";
+import { experienceBuildInputSchema } from "./scripts/experience-build-input";
 import { resolveStorefrontPrerenderRoutes } from "./scripts/resolve-prerender-routes";
 import { parseFashionStoreHomeDevelopmentProfile } from "./app/themes/fashion-store/successor/home-development-profile";
 
@@ -142,6 +142,7 @@ export default defineNuxtConfig({
         }
       : {},
     prerender: {
+      concurrency: 8,
       crawlLinks: false,
       failOnError: true,
       routes: prerenderRoutes,
@@ -166,5 +167,5 @@ export default defineNuxtConfig({
       fashionStoreHomeProfile: fashionStoreHomeProfile.serialized,
     },
   },
-  typescript: { strict: true, typeCheck: true },
+  typescript: { strict: true, typeCheck: process.env.NUXT_TYPECHECK !== "false" },
 });

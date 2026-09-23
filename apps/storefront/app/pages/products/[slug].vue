@@ -1,12 +1,9 @@
 <script setup lang="ts">
-import FashionStoreProductPage from "~/themes/fashion-store/components/pages/FashionStoreProductPage.vue";
-import { themeAssets } from "~/themes/fashion-store/successor/registry";
+import { ActiveProductPage, activeThemeAssets, activeThemeId } from "~/generated/active-theme";
 import { useGuestCart } from "~/features/cart/use-guest-cart";
 import { storefrontActionAdapterKey, type StorefrontActionAdapter } from "~/theme-engine/actions";
 import { createThemeAssetResolver } from "~/theme-engine/assets";
 import { storefrontCartStateKey } from "~/theme-engine/cart-state";
-import { composeProductPageModel } from "~/theme-engine/composer";
-import { activeExperienceSnapshot } from "~/generated/active-theme";
 import {
   coalesceRuntimeCommerceRevalidations,
   liveCommerceModeKey,
@@ -19,22 +16,18 @@ definePageMeta({ layout: false });
 
 const route = useRoute();
 const slug = String(route.params.slug);
-const { data: page } = await useAsyncData(`catalog-product:${slug}`, async () => {
-  if (import.meta.client) return undefined;
-  const { loadProductPage } = await import("~/utils/catalog-loader.server");
-  return loadProductPage(slug);
+const { data: page, error: pageError } = await useAsyncData(`catalog-product:${slug}`, async () => {
+  if (import.meta.env.SSR) {
+    const { loadProductPage } = await import("~/utils/catalog-loader.server");
+    return loadProductPage(slug);
+  }
+  return undefined;
 });
+if (pageError.value) throw pageError.value;
 if (!page.value) throw createError({ statusCode: 404, statusMessage: "Product not found" });
 
-const { collection, product, release } = page.value;
-const viewModel = composeProductPageModel({
-  experience: activeExperienceSnapshot ?? undefined,
-  locale: "en-US",
-  productId: product.id,
-  release,
-  slug: product.slug,
-});
-const resolveThemeAsset = createThemeAssetResolver("fashion-store", themeAssets);
+const { collection, product, releaseId, siteOrigin, viewModel } = page.value;
+const resolveThemeAsset = createThemeAssetResolver(activeThemeId, activeThemeAssets);
 const commerceApi = useCommerceApi();
 const {
   add: addGuestCartLine,
@@ -54,7 +47,7 @@ const runtimeCommercePort = coalesceRuntimeCommerceRevalidations({
 });
 const actionAdapter: StorefrontActionAdapter = async (dispatch) => {
   if (dispatch.kind === "cart.add") {
-    return addGuestCartLine({ ...dispatch.input, releaseId: release.releaseId }, dispatch.currency);
+    return addGuestCartLine({ ...dispatch.input, releaseId }, dispatch.currency);
   }
   if (dispatch.kind === "cart.remove") return removeGuestCartLine(dispatch.variantId);
   if (dispatch.kind === "cart.shipping") return quoteGuestCartShipping(dispatch.input);
@@ -65,7 +58,7 @@ provide(liveCommerceModeKey, true);
 provide(storefrontActionAdapterKey, actionAdapter);
 provide(storefrontCartStateKey, readonly(guestCart));
 
-const canonical = canonicalUrl(release.site.origin, `/products/${product.slug}`);
+const canonical = canonicalUrl(siteOrigin, `/products/${product.slug}`);
 const image = product.media[0];
 useSeoMeta({
   title: product.seoTitle,
@@ -73,7 +66,7 @@ useSeoMeta({
   ogTitle: product.seoTitle,
   ogDescription: product.seoDescription,
   ogUrl: canonical,
-  ogImage: image ? canonicalUrl(release.site.origin, image.src) : undefined,
+  ogImage: image ? canonicalUrl(siteOrigin, image.src) : undefined,
   twitterCard: "summary_large_image",
 });
 useHead({
@@ -81,7 +74,7 @@ useHead({
   script: [
     {
       type: "application/ld+json",
-      innerHTML: JSON.stringify(productStructuredData(product, release.site.origin)),
+      innerHTML: JSON.stringify(productStructuredData(product, siteOrigin)),
     },
     {
       type: "application/ld+json",
@@ -94,7 +87,7 @@ useHead({
               : []),
             { name: product.name, path: `/products/${product.slug}` },
           ],
-          release.site.origin,
+          siteOrigin,
         ),
       ),
     },
@@ -103,5 +96,5 @@ useHead({
 </script>
 
 <template>
-  <FashionStoreProductPage :resolve-asset="resolveThemeAsset" :view-model="viewModel" />
+  <ActiveProductPage :resolve-asset="resolveThemeAsset" :view-model="viewModel" />
 </template>

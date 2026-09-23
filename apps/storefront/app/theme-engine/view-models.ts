@@ -193,7 +193,7 @@ export const presentationShellViewModelSchema = z
       highlightLink: presentationLinkSchema.optional(),
       legacyNavigation: legacyHeaderNavigationSchema.optional(),
     }),
-    publishedRoutes: z.array(z.string().startsWith("/")).max(1_000).optional(),
+    publishedRoutes: z.array(z.string().startsWith("/")).max(10_000).optional(),
     siteName: headingSchema,
   })
   .strict();
@@ -460,7 +460,7 @@ export const productViewModelSchema = z
     deliverySummary: z.string().trim().min(1).max(300).optional(),
     shippingReturnsSummary: z.string().trim().min(1).max(300).optional(),
     priceLabel: z.string().trim().min(1).max(80),
-    publishedRoutes: z.array(z.string().startsWith("/")).max(1_000),
+    publishedRoutes: z.array(z.string().startsWith("/")).max(10_000),
     relatedProducts: z.array(presentationProductCardSchema).max(8).default([]),
     relatedCollection: z
       .object({

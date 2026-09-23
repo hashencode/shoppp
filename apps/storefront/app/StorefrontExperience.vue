@@ -13,13 +13,13 @@ import {
   activeCatalogSearchIndex,
   activeExperienceProviderInput,
   activeFixtureRegistry,
+  composeActiveExperienceShell,
+  composeActivePlatformRoutePresentation,
+  createActiveLivePresentationProvider,
 } from "./generated/active-experience";
 import { createThemeAssetResolver } from "./theme-engine/assets";
-import {
-  createFixturePresentationProvider,
-  selectLivePort,
-  selectPresentationProvider,
-} from "./theme-engine/providers";
+import { createFixturePresentationProvider } from "./theme-engine/providers/fixture-preview";
+import { selectLivePort, selectPresentationProvider } from "./theme-engine/providers/select";
 import { resolveThemeRoute } from "./theme-engine/routes";
 import ThemeRenderer from "./theme-engine/renderer.vue";
 import { useGuestCart } from "./features/cart/use-guest-cart";
@@ -38,7 +38,6 @@ import {
 } from "./theme-engine/runtime-commerce";
 import { canonicalUrl, productStructuredData } from "./utils/seo";
 import { catalogSearchIndexKey } from "./theme-engine/search";
-import { composeExperienceShell, composePlatformRoutePresentation } from "./theme-engine/composer";
 import {
   storefrontPlatformPresentationKey,
   storefrontPresentationShellKey,
@@ -84,7 +83,7 @@ const presentationProvider = computed(() => {
       : undefined;
   return selectPresentationProvider({
     fixtureProvider: fixturePresentationProvider,
-    liveInput,
+    liveProvider: liveInput ? createActiveLivePresentationProvider(liveInput) : undefined,
     mode: productUsesRelease ? "live" : activeExperienceProviderInput.mode,
   });
 });
@@ -183,7 +182,7 @@ const rendersPlatformRoute = computed(() => {
 const liveRelease = releaseInput;
 const experienceShell = computed(() =>
   activeExperienceSnapshot && liveRelease
-    ? composeExperienceShell({
+    ? composeActiveExperienceShell({
         adapter: themeRegistry.composition,
         experience: activeExperienceSnapshot,
         release: liveRelease,
@@ -193,7 +192,7 @@ const experienceShell = computed(() =>
 );
 const platformPresentation = computed(() =>
   activeExperienceProviderInput.mode === "live" && activeExperienceSnapshot && liveRelease
-    ? composePlatformRoutePresentation({
+    ? composeActivePlatformRoutePresentation({
         adapter: themeRegistry.composition,
         experience: activeExperienceSnapshot,
         path: currentRoute.value.path,

@@ -314,6 +314,11 @@ describe("selected storefront theme generation", () => {
     });
     const providerSource = renderActiveExperienceModule(liveInput);
     const productionProviderSource = renderActiveExperienceModule({ environment: "production" });
+    const productionThemeSource = renderActiveThemeModule({
+      catalog: [],
+      input: { environment: "production" },
+      moduleAllowlist: {},
+    });
     const storefrontExperienceSource = await readFile(
       resolve(import.meta.dir, "../app/StorefrontExperience.vue"),
       "utf8",
@@ -326,6 +331,8 @@ describe("selected storefront theme generation", () => {
     expect(providerSource).toContain("activeCatalogSearchIndex");
     expect(providerSource).toContain("Selected product");
     expect(productionProviderSource).not.toContain("/themes/");
+    expect(productionThemeSource).toContain("ProductPresentationSection.vue");
+    expect(productionThemeSource).not.toContain("FashionStoreProductPage.vue");
     expect(productionProviderSource).not.toContain(canonicalRelease.releaseId);
     expect(productionProviderSource).toContain("activeCatalogSearchIndex = null");
     expect(storefrontExperienceSource).toContain("activeExperienceProviderInput.mode");

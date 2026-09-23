@@ -195,8 +195,16 @@ describe("Fashion Store product detail", () => {
     expect(fixtureProvider).not.toContain('resolved.kind === "theme-section"');
     expect(productContract).not.toContain("normalizeFashionStoreFixtureProductPresentation");
     expect(productContract).not.toContain("normalizeFashionStoreLiveProductPresentation");
-    expect(productionRoute).toContain("FashionStoreProductPage");
-    expect(productionRoute).toContain("composeProductPageModel");
+    expect(productionRoute).toContain("ActiveProductPage");
+    expect(productionRoute).not.toContain("composeProductPageModel");
+    expect(productionRoute).toContain("return loadProductPage(slug)");
+    expect(productionRoute).toContain('from "~/generated/active-theme"');
+    expect(productionRoute).not.toContain('from "~/themes/fashion-store/');
+    expect(productionRoute).toContain(
+      "const { collection, product, releaseId, siteOrigin, viewModel } = page.value",
+    );
+    expect(productionRoute).toContain("if (pageError.value) throw pageError.value");
+    expect(productionRoute).not.toContain("const { collection, product, release } = page.value");
     expect(productionRoute).toContain("definePageMeta({ layout: false })");
     expect(productionRoute).not.toContain("fixtures/");
     expect(productionRoute).not.toContain('<article class="product-page">');

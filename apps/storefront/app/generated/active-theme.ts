@@ -2,6 +2,7 @@
 // The static import below is selected before Nuxt compilation.
 
 import type { ExperienceSnapshot } from "@shoppp/contracts";
+import ActiveProductPage from "../themes/fashion-store/components/pages/FashionStoreProductPage.vue";
 import {
   themeAssets as selectedThemeAssets,
   themeRoutes as selectedThemeRoutes,
@@ -11,6 +12,7 @@ import {
   themeFixtures as selectedThemeFixtures,
 } from "../themes/fashion-store/successor/fixture-registry";
 
+export { ActiveProductPage };
 export const activeThemeId = "fashion-store";
 // Preserve deterministic JSON serialization for the signed snapshot payload.
 // prettier-ignore

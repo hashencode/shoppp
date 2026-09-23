@@ -209,7 +209,7 @@ export const fashionStoreProductPresentationSchema = z
       .strict(),
     priceLabel: z.string().trim().min(1).max(80),
     productId: productIdentifierSchema,
-    publishedRoutes: z.array(z.string().startsWith("/")).max(1_000),
+    publishedRoutes: z.array(z.string().startsWith("/")).max(10_000),
     relatedProducts: z.array(fashionStoreProductCardPresentationSchema).max(8),
     reviewSummary: z
       .object({

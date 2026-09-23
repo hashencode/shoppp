@@ -412,6 +412,8 @@ describe("Fashion Store preview registration", () => {
     const upstreamIndex = nuxtConfig.indexOf('"~/themes/fashion-store/upstream/css/style.css"');
     expect(criticalIndex).toBeGreaterThan(-1);
     expect(upstreamIndex).toBeGreaterThan(criticalIndex);
+    expect(nuxtConfig).toContain('typeCheck: process.env.NUXT_TYPECHECK !== "false"');
+    expect(nuxtConfig).toContain("concurrency: 8");
     expect(criticalStyles.match(/@font-face/g)).toHaveLength(3);
     expect(criticalStyles).toContain("font-display: swap");
     expect(criticalStyles).toContain('body[data-fashion-store-shell="true"]');

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { canonicalCatalogReleaseSchema } from "../packages/contracts/src";
+import { composeProductPageModel } from "../apps/storefront/app/theme-engine/composer";
 import {
   catalogFixtureEnvironment,
   representativeCatalog,
@@ -19,6 +20,14 @@ describe("representative catalog fixture", () => {
       release.collections.reduce((count, collection) => count + collection.productSlugs.length, 0),
     ).toBe(1_000);
     expect(canonicalCatalogReleaseSchema.safeParse(release).success).toBe(true);
+    expect(
+      composeProductPageModel({
+        locale: "en-US",
+        productId: release.products[0]!.id,
+        release,
+        slug: release.products[0]!.slug,
+      }).publishedRoutes,
+    ).toHaveLength(release.routes.length);
   });
 
   test("isolates scale builds from a selected remote catalog release", () => {

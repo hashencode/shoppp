@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -10,6 +10,19 @@ import releaseFixture from "../fixtures/release.json";
 describe("storefront catalog release source", () => {
   test("keeps the default release input compatible with the API canonical contract", () => {
     expect(canonicalCatalogReleaseSchema.safeParse(releaseFixture).success).toBe(true);
+  });
+
+  test("precomposes compact product modules without shipping the full release", async () => {
+    const [preparationSource, loaderSource] = await Promise.all([
+      readFile(resolve(import.meta.dir, "../scripts/prepare-release.ts"), "utf8"),
+      readFile(resolve(import.meta.dir, "../app/utils/catalog-loader.server.ts"), "utf8"),
+    ]);
+
+    expect(preparationSource).toContain("const viewModel = composeProductPageModel");
+    expect(preparationSource).toContain("releaseId: release.releaseId");
+    expect(preparationSource).toContain("satisfies StorefrontProductPage");
+    expect(loaderSource).not.toContain("generatedCatalogRelease");
+    expect(loaderSource).not.toContain("theme-engine/composer");
   });
 
   test("refuses a legacy release before generating storefront assets", async () => {

@@ -7,6 +7,8 @@ import {
   type CanonicalCatalogRelease,
 } from "@shoppp/contracts";
 import { format, resolveConfig } from "prettier";
+import { composeProductPageModel } from "../app/theme-engine/composer";
+import { experienceBuildInputSchema } from "./experience-build-input";
 
 function assertCanonicalCatalogRelease(input: unknown): asserts input is CanonicalCatalogRelease {
   const v3 = catalogReleaseV3Schema.safeParse(input);
@@ -36,6 +38,19 @@ const releaseSource = process.env.NUXT_CATALOG_RELEASE_URL
   : (JSON.parse(await readFile(sourceFile, "utf8")) as unknown);
 assertCanonicalCatalogRelease(releaseSource);
 const release = releaseSource;
+const experienceInput =
+  process.env.STOREFRONT_BUILD_MODE === "preview" && process.env.STOREFRONT_EXPERIENCE_FILE
+    ? experienceBuildInputSchema.parse(
+        JSON.parse(await readFile(resolve(process.env.STOREFRONT_EXPERIENCE_FILE), "utf8")),
+      )
+    : undefined;
+const experience =
+  experienceInput &&
+  experienceInput.environment === "preview" &&
+  "presentationMode" in experienceInput &&
+  experienceInput.presentationMode === "live"
+    ? experienceInput.snapshot
+    : undefined;
 
 const products = release.products.filter(
   (product) =>
@@ -134,21 +149,28 @@ await writeFile(
     2,
   )}\n`,
 );
-await Promise.all(
-  products.map(async (product) => {
-    const collection = primaryCollection(product);
-    await writeFile(
-      resolve(generatedProducts, `${product.slug}.ts`),
-      `import type { StorefrontProductPage } from "../../types/catalog-release"\n\nexport default ${JSON.stringify(
-        {
-          collection: collection ? { name: collection.name, slug: collection.slug } : null,
-          product,
-          release,
-        },
-      )} satisfies StorefrontProductPage\n`,
-    );
-  }),
-);
+for (const product of products) {
+  const collection = primaryCollection(product);
+  const viewModel = composeProductPageModel({
+    experience,
+    locale: "en-US",
+    productId: product.id,
+    release,
+    slug: product.slug,
+  });
+  await writeFile(
+    resolve(generatedProducts, `${product.slug}.ts`),
+    `import type { StorefrontProductPage } from "../../types/catalog-release"\n\nexport default ${JSON.stringify(
+      {
+        collection: collection ? { name: collection.name, slug: collection.slug } : null,
+        product,
+        releaseId: release.releaseId,
+        siteOrigin: release.site.origin,
+        viewModel,
+      },
+    )} satisfies StorefrontProductPage\n`,
+  );
+}
 const productsBySlug = new Map(products.map((product) => [product.slug, product]));
 await Promise.all(
   collections.map(async (collection) => {

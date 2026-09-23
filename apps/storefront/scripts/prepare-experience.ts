@@ -2,100 +2,14 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import {
-  canonicalCatalogReleaseSchema,
-  catalogReleaseV3Schema,
-  experienceSnapshotSchema,
-  storefrontThemeDescriptorSchema,
-  type StorefrontThemeDescriptor,
-} from "@shoppp/contracts";
-import * as z from "zod";
+import { storefrontThemeDescriptorSchema, type StorefrontThemeDescriptor } from "@shoppp/contracts";
 
 import { storefrontThemeCatalog } from "../app/generated/theme-catalog";
 import { buildCatalogSearchIndex } from "../app/theme-engine/search";
+import { experienceBuildInputSchema, type ExperienceBuildInput } from "./experience-build-input";
 
-const exactHttpsOriginSchema = z
-  .string()
-  .url()
-  .refine((value) => {
-    const url = new URL(value);
-    return (
-      url.protocol === "https:" &&
-      !url.username &&
-      !url.password &&
-      url.pathname === "/" &&
-      !url.search &&
-      !url.hash &&
-      url.origin === value
-    );
-  }, "Preview origin must be one exact credential-free HTTPS origin.");
-
-const productionExperienceBuildInputSchema = z
-  .object({ environment: z.literal("production") })
-  .strict();
-const fixturePreviewBuildInputSchema = z
-  .object({
-    catalogRelease: z.union([catalogReleaseV3Schema, canonicalCatalogReleaseSchema]).optional(),
-    environment: z.literal("preview"),
-    expectedOrigin: exactHttpsOriginSchema,
-    snapshot: experienceSnapshotSchema,
-    themeId: z.string().regex(/^[a-z][a-z0-9-]*$/),
-  })
-  .strict();
-const previewInputIdentitySchema = z
-  .object({
-    catalogReleaseId: z.string().trim().min(1).max(160),
-    experienceSnapshotId: z.string().trim().min(1).max(160),
-    experienceVersion: z.int().positive(),
-    platformContractVersion: z.string().regex(/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/),
-    themeId: z.string().regex(/^[a-z][a-z0-9-]*$/),
-    themeVersion: z.string().regex(/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/),
-  })
-  .strict();
-const livePreviewBuildInputSchema = z
-  .object({
-    catalogRelease: z.union([catalogReleaseV3Schema, canonicalCatalogReleaseSchema]),
-    environment: z.literal("preview"),
-    expectedOrigin: exactHttpsOriginSchema,
-    inputIdentity: previewInputIdentitySchema,
-    mediaOrigins: z
-      .array(exactHttpsOriginSchema)
-      .max(8)
-      .refine((origins) => new Set(origins).size === origins.length, {
-        message: "Preview media origins must be unique.",
-      }),
-    presentationMode: z.literal("live"),
-    snapshot: experienceSnapshotSchema,
-    themeId: z.string().regex(/^[a-z][a-z0-9-]*$/),
-  })
-  .strict()
-  .superRefine((input, context) => {
-    const expected = {
-      catalogReleaseId: input.catalogRelease.releaseId,
-      experienceSnapshotId: input.snapshot.id,
-      experienceVersion: input.snapshot.version,
-      platformContractVersion: input.snapshot.platformContractVersion,
-      themeId: input.snapshot.themeId,
-      themeVersion: input.snapshot.themeVersion,
-    };
-    for (const [key, value] of Object.entries(expected)) {
-      if (input.inputIdentity[key as keyof typeof input.inputIdentity] !== value) {
-        context.addIssue({
-          code: "custom",
-          message: `Live preview input identity does not match ${key}.`,
-          path: ["inputIdentity", key],
-        });
-      }
-    }
-  });
-
-export const experienceBuildInputSchema = z.union([
-  productionExperienceBuildInputSchema,
-  fixturePreviewBuildInputSchema,
-  livePreviewBuildInputSchema,
-]);
-
-export type ExperienceBuildInput = z.infer<typeof experienceBuildInputSchema>;
+export { experienceBuildInputSchema } from "./experience-build-input";
+export type { ExperienceBuildInput } from "./experience-build-input";
 
 export interface RenderActiveThemeOptions {
   catalog: readonly StorefrontThemeDescriptor[];
@@ -169,7 +83,9 @@ import type { ThemeRegistry } from "../theme-engine/registry";
 import type { ThemeAssetMap } from "../theme-engine/assets";
 import type { ExperienceFixtureRegistry } from "../theme-engine/view-models";
 import type { ThemeRouteContract } from "../theme-engine/routes";
+import ProductPresentationSection from "../components/sections/ProductPresentationSection.vue";
 
+export const ActiveProductPage = ProductPresentationSection;
 export const activeThemeId = "production-fallback";
 export const activeExperienceSnapshot: ExperienceSnapshot | null = null;
 export const activeThemeRegistry = {
@@ -200,6 +116,10 @@ function renderActiveThemeModuleFromInput({
   if (modulePath !== expectedModulePath) {
     throw new Error(`Theme ${input.themeId} has an unsafe module allowlist path.`);
   }
+  const activeProductPage =
+    input.themeId === "fashion-store"
+      ? `import ActiveProductPage from "../themes/fashion-store/components/pages/FashionStoreProductPage.vue";`
+      : `import ActiveProductPage from "../components/sections/ProductPresentationSection.vue";`;
 
   if ("presentationMode" in input && input.presentationMode === "live") {
     return `// This file is generated by apps/storefront/scripts/prepare-experience.ts.
@@ -207,12 +127,14 @@ function renderActiveThemeModuleFromInput({
 
 import type { ExperienceFixtureRegistry } from "../theme-engine/view-models";
 import type { ExperienceSnapshot } from "@shoppp/contracts";
+${activeProductPage}
 import {
   themeAssets as selectedThemeAssets,
   themeRegistry as selectedThemeRegistry,
   themeRoutes as selectedThemeRoutes,
 } from "${modulePath}";
 
+export { ActiveProductPage };
 export const activeThemeId = ${JSON.stringify(input.themeId)};
 // prettier-ignore
 export const activeExperienceSnapshot = ${JSON.stringify(input.snapshot, null, 2)} as const satisfies ExperienceSnapshot;
@@ -245,8 +167,10 @@ import {
 // The static import below is selected before Nuxt compilation.
 
 import type { ExperienceSnapshot } from "@shoppp/contracts";
+${activeProductPage}
 ${fixtureImports}
 
+export { ActiveProductPage };
 export const activeThemeId = ${JSON.stringify(input.themeId)};
 // Preserve deterministic JSON serialization for the signed snapshot payload.
 // prettier-ignore
@@ -280,6 +204,9 @@ import type { ActiveExperienceProviderInput } from "../theme-engine/providers";
 export const activeExperienceProviderInput: ActiveExperienceProviderInput = { mode: "production" };
 export const activeCatalogSearchIndex = null;
 export const activeFixtureRegistry = {} as const;
+export const composeActiveExperienceShell = (..._input: readonly unknown[]) => undefined;
+export const composeActivePlatformRoutePresentation = (..._input: readonly unknown[]) => undefined;
+export const createActiveLivePresentationProvider = (..._input: readonly unknown[]) => undefined;
 `;
   }
   if ("presentationMode" in input && input.presentationMode === "live") {
@@ -289,6 +216,17 @@ export const activeFixtureRegistry = {} as const;
 import type { CatalogRelease } from "@shoppp/contracts";
 import type { ActiveExperienceProviderInput } from "../theme-engine/providers";
 import type { CatalogSearchIndex } from "../theme-engine/search";
+import {
+  composeExperienceShell as composeActiveExperienceShell,
+  composePlatformRoutePresentation as composeActivePlatformRoutePresentation,
+} from "../theme-engine/composer";
+import { createLivePresentationProvider as createActiveLivePresentationProvider } from "../theme-engine/providers/live";
+
+export {
+  composeActiveExperienceShell,
+  composeActivePlatformRoutePresentation,
+  createActiveLivePresentationProvider,
+};
 
 export const activeExperienceProviderInput: ActiveExperienceProviderInput = {
   // prettier-ignore
@@ -309,6 +247,17 @@ import { experienceFixtureRegistry } from "../../fixtures/experience";
 import { activeThemeFixtures } from "./active-theme";
 import type { ActiveExperienceProviderInput } from "../theme-engine/providers";
 import { mergeExperienceFixtureRegistries } from "../theme-engine/assets";
+import {
+  composeExperienceShell as composeActiveExperienceShell,
+  composePlatformRoutePresentation as composeActivePlatformRoutePresentation,
+} from "../theme-engine/composer";
+import { createLivePresentationProvider as createActiveLivePresentationProvider } from "../theme-engine/providers/live";
+
+export {
+  composeActiveExperienceShell,
+  composeActivePlatformRoutePresentation,
+  createActiveLivePresentationProvider,
+};
 
 export const activeExperienceProviderInput: ActiveExperienceProviderInput = {
   mode: "fixture-preview",

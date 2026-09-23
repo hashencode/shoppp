@@ -5,6 +5,17 @@ import { experienceFixtureRegistry } from "../../fixtures/experience";
 import { activeThemeFixtures } from "./active-theme";
 import type { ActiveExperienceProviderInput } from "../theme-engine/providers";
 import { mergeExperienceFixtureRegistries } from "../theme-engine/assets";
+import {
+  composeExperienceShell as composeActiveExperienceShell,
+  composePlatformRoutePresentation as composeActivePlatformRoutePresentation,
+} from "../theme-engine/composer";
+import { createLivePresentationProvider as createActiveLivePresentationProvider } from "../theme-engine/providers/live";
+
+export {
+  composeActiveExperienceShell,
+  composeActivePlatformRoutePresentation,
+  createActiveLivePresentationProvider,
+};
 
 export const activeExperienceProviderInput: ActiveExperienceProviderInput = {
   mode: "fixture-preview",

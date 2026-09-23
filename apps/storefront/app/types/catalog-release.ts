@@ -1,10 +1,10 @@
 import type {
-  CanonicalCatalogRelease,
   CanonicalCatalogReleaseCollection,
   CanonicalCatalogReleaseProduct,
   LegacyCatalogReleaseCollection,
   LegacyCatalogReleaseProduct,
 } from "@shoppp/contracts";
+import type { ProductPageModel } from "../theme-engine/view-models";
 
 export type StorefrontProduct = CanonicalCatalogReleaseProduct | LegacyCatalogReleaseProduct;
 export type StorefrontCollection =
@@ -15,7 +15,9 @@ export type CanonicalStorefrontCollection = CanonicalCatalogReleaseCollection;
 export interface StorefrontProductPage {
   readonly collection: Pick<StorefrontCollection, "name" | "slug"> | null;
   readonly product: CanonicalStorefrontProduct;
-  readonly release: CanonicalCatalogRelease;
+  readonly releaseId: string;
+  readonly siteOrigin: string;
+  readonly viewModel: ProductPageModel;
 }
 
 export interface StorefrontCollectionPage {

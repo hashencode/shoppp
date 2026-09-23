@@ -193,7 +193,7 @@ function routeHref(path: string): string | undefined {
               class="fw-500 d-block text-white mb-5px fs-17"
               :target="column.targetBehavior === 'new-window' ? '_blank' : undefined"
               :rel="column.targetBehavior === 'new-window' ? 'noopener noreferrer' : undefined"
-              >{{ column.label }}</a
+              >{{ column.href === "/about" ? `About ${configuredBrandName}` : column.label }}</a
             >
             <ul>
               <li v-for="child in column.children" :key="child.id">
