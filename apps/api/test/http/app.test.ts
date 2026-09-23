@@ -557,10 +557,8 @@ describe("API shell", () => {
     }
 
     const reservedAuthorityPermissions = new Set([
-      "content.read",
       "content.write",
       "content.publish",
-      "navigation.read",
       "navigation.write",
       "navigation.publish",
     ]);
