@@ -232,6 +232,8 @@
 | `order-report` | Revenue report | standalone | standard list | 将报表范围说明移到筛选或结果旁 |
 | `catalog-products` | Catalog | standalone | standard list | 无本轮清理项 |
 | `catalog-reviews` | Reviews | standalone | custom / business override | 将审核后发布时间移到 moderation 决策旁 |
+| `content-pages` | Pages | grouped: Content | standard list | 发布候选与线上包含状态保留在记录行内 |
+| `content-articles` | Articles | grouped: Content | standard list | 发布候选与线上包含状态保留在记录行内 |
 | `storefront-themes` | Storefront themes | standalone | custom / business override | 将 production theme caveat 移到 draft/package 控件旁 |
 | `inventory` | Inventory | standalone | standard list | 删除仅复述用途的摘要 |
 | `orders` | Orders | standalone | standard list | 删除仅复述用途的摘要 |

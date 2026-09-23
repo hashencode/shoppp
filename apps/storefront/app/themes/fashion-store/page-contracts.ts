@@ -39,6 +39,7 @@ export interface FashionStorePageContract extends ThemeRouteContract {
 }
 
 const allPresentationModes = ["fixture-preview", "live"] as const;
+const fixturePreviewOnlyModes = ["fixture-preview"] as const;
 
 export const fashionStorePageContracts = [
   {
@@ -166,7 +167,7 @@ export const fashionStorePageContracts = [
     canonicalPath: "/magazine/marketing-tips-and-tricks",
     id: "article",
     indexing: "index",
-    modes: allPresentationModes,
+    modes: fixturePreviewOnlyModes,
     path: "/magazine/marketing-tips-and-tricks",
     pageType: "content",
     ready: true,
@@ -230,6 +231,22 @@ export const fashionStoreLiveRouteContracts = [
     pageType: "collection",
     path: "/collections/:slug",
     variant: "collection",
+  },
+  {
+    family: "released-page",
+    id: "released-page",
+    modes: ["live"],
+    pageType: "content",
+    path: "/pages/:slug",
+    variant: "about",
+  },
+  {
+    family: "released-article",
+    id: "released-article",
+    modes: ["live"],
+    pageType: "content",
+    path: "/magazine/:slug",
+    variant: "article",
   },
 ] as const satisfies readonly ThemeRouteContract[];
 

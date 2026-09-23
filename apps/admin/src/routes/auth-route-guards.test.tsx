@@ -116,6 +116,24 @@ describe('auth-route-guards', () => {
     })
   })
 
+  it('registers direct Content lists and editors behind content.read', () => {
+    expect(templateRoutes.find(({ key }) => key === 'content-pages')).toMatchObject({
+      inMenu: true,
+      path: '/content/pages',
+      permission: 'content.read',
+    })
+    expect(templateRoutes.find(({ key }) => key === 'content-page-form')).toMatchObject({
+      inMenu: false,
+      path: '/content/pages/form',
+      permission: 'content.read',
+    })
+    expect(templateRoutes.find(({ key }) => key === 'content-articles')).toMatchObject({
+      inMenu: true,
+      path: '/content/articles',
+      permission: 'content.read',
+    })
+  })
+
   it('uses the API permission set as the authority for theme routes', () => {
     const renderPermission = (permissions: readonly 'themes.read'[]) =>
       renderInLocale(

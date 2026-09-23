@@ -29,6 +29,42 @@ const baseSnapshot = {
   ],
 };
 
+function exactByteContentDocument() {
+  const body = Array.from({ length: 13 }, (_, index) => ({
+    id: `section.bytes${index}`,
+    kind: "paragraph" as const,
+    text: "x".repeat(5_000),
+  }));
+  const bytes = (value: unknown) => new TextEncoder().encode(JSON.stringify(value)).byteLength;
+  body.at(-1)!.text = "x".repeat(5_000 - (bytes(body) - 64_000));
+  expect(bytes(body)).toBe(64_000);
+  return body;
+}
+
+function exactTextContentDocument() {
+  return [{ id: "section.text", kind: "paragraph" as const, text: "x".repeat(5_000) }];
+}
+
+function exactCardinalityContentDocument(mediaId: string) {
+  return [
+    ...Array.from({ length: 20 }, (_, index) => ({
+      id: `section.link${index}`,
+      kind: "link" as const,
+      link: {
+        label: "Link",
+        target: { kind: "external" as const, url: `https://example.test/${index}` },
+        targetBehavior: "same-window" as const,
+      },
+    })),
+    ...Array.from({ length: 20 }, (_, index) => ({
+      alt: `Media ${index}`,
+      assetId: mediaId,
+      id: `section.media${index}`,
+      kind: "image" as const,
+    })),
+  ];
+}
+
 describe("private Catalog Release candidate boundary", () => {
   test("bounds ledger completion statements for large source freezes", () => {
     expect(candidateLedgerChunkCount(1_001)).toBe(3);
@@ -78,6 +114,23 @@ describe("private Catalog Release candidate boundary", () => {
         routes: ["/", "/products/carry-on", "/products/carry-on"],
       }),
     ).toThrowError(/storefront_(route_conflict|redirect_invalid)/);
+    expect(() =>
+      validateCatalogCandidateSnapshot({
+        ...baseSnapshot,
+        redirects: [
+          { from: "/old", to: "/new" },
+          { from: "/older", to: "/old" },
+        ],
+        routes: ["/", "/new"],
+      }),
+    ).toThrowError(/storefront_redirect_invalid/);
+    expect(() =>
+      validateCatalogCandidateSnapshot({
+        ...baseSnapshot,
+        redirects: [{ from: "/", to: "/new" }],
+        routes: ["/", "/new"],
+      }),
+    ).toThrowError(/storefront_route_conflict/);
   });
 
   test("allows authorized private inspection and Preview but denies public elevation", () => {
@@ -258,10 +311,15 @@ describe("private candidate builder integration", () => {
       env.DB.prepare("DELETE FROM catalog_release_sources"),
       env.DB.prepare("DELETE FROM catalog_releases"),
       env.DB.prepare("DELETE FROM navigation_policy_references"),
+      env.DB.prepare("DELETE FROM navigation_page_references"),
+      env.DB.prepare("DELETE FROM navigation_article_references"),
       env.DB.prepare("DELETE FROM navigation_items"),
       env.DB.prepare("DELETE FROM navigation_menu_versions"),
       env.DB.prepare("DELETE FROM collection_route_redirects"),
       env.DB.prepare("DELETE FROM policy_versions"),
+      env.DB.prepare("DELETE FROM content_route_redirects"),
+      env.DB.prepare("DELETE FROM content_page_versions"),
+      env.DB.prepare("DELETE FROM content_article_versions"),
       env.DB.prepare("DELETE FROM store_identity_versions"),
       env.DB.prepare("DELETE FROM collection_memberships"),
       env.DB.prepare("DELETE FROM collection_versions"),
@@ -294,9 +352,14 @@ describe("private candidate builder integration", () => {
       ),
       env.DB.prepare("DELETE FROM catalog_releases WHERE purpose = 'private-preview'"),
       env.DB.prepare("DELETE FROM navigation_policy_references"),
+      env.DB.prepare("DELETE FROM navigation_page_references"),
+      env.DB.prepare("DELETE FROM navigation_article_references"),
       env.DB.prepare("DELETE FROM navigation_items"),
       env.DB.prepare("DELETE FROM navigation_menu_versions"),
       env.DB.prepare("DELETE FROM policy_versions"),
+      env.DB.prepare("DELETE FROM content_route_redirects"),
+      env.DB.prepare("DELETE FROM content_page_versions"),
+      env.DB.prepare("DELETE FROM content_article_versions"),
       env.DB.prepare(
         "UPDATE store_identity_versions SET status = 'published' WHERE identity_id = 'identity.primary'",
       ),
@@ -737,6 +800,372 @@ describe("private candidate builder integration", () => {
         .bind(candidate.data.id)
         .first(),
     ).toEqual({ candidate_status: "succeeded", status: "approved" });
+  });
+
+  test("freezes exact Content versions across real successor candidates and rejects unpublished references", async () => {
+    const app = appFor();
+    const exactBoundaryBody = exactByteContentDocument();
+    const pageInput = {
+      body: exactBoundaryBody,
+      reason: "Create candidate Content",
+      seo: { description: "Candidate page", title: "Candidate page" },
+      slug: "candidate-page",
+      summary: "Candidate page",
+      title: "Candidate page v1",
+    };
+    const created = await app.fetch(
+      adminRequest("/admin/content/pages", { body: JSON.stringify(pageInput), method: "POST" }),
+      env,
+    );
+    expect(created.status).toBe(201);
+    const page = await created.json<{ data: { id: string } }>();
+    expect(
+      (
+        await app.fetch(
+          adminRequest(`/admin/content/pages/${page.data.id}/publish`, {
+            body: JSON.stringify({
+              confirm: true,
+              expectedVersion: 1,
+              reason: "Publish candidate Content v1",
+            }),
+            method: "POST",
+          }),
+          env,
+        )
+      ).status,
+    ).toBe(200);
+    const firstResponse = await app.fetch(
+      adminRequest("/admin/catalog/releases/preview-candidates", {
+        body: JSON.stringify({ reason: "Freeze Content v1" }),
+        method: "POST",
+      }),
+      env,
+    );
+    expect(firstResponse.status).toBe(201);
+    const first = await firstResponse.json<{ data: { id: string } }>();
+
+    expect(
+      (
+        await app.fetch(
+          adminRequest(`/admin/content/pages/${page.data.id}`, {
+            body: JSON.stringify({
+              ...pageInput,
+              body: [{ id: "section.intro", kind: "paragraph", text: "Immutable successor body" }],
+              expectedVersion: 1,
+              reason: "Create candidate Content v2",
+              title: "Candidate page v2",
+            }),
+            method: "PUT",
+          }),
+          env,
+        )
+      ).status,
+    ).toBe(200);
+    const publishedV2 = await app.fetch(
+      adminRequest(`/admin/content/pages/${page.data.id}/publish`, {
+        body: JSON.stringify({
+          confirm: true,
+          expectedVersion: 2,
+          reason: "Publish candidate Content v2",
+        }),
+        method: "POST",
+      }),
+      env,
+    );
+    expect(publishedV2.status, await publishedV2.clone().text()).toBe(200);
+    const secondResponse = await app.fetch(
+      adminRequest("/admin/catalog/releases/preview-candidates", {
+        body: JSON.stringify({ reason: "Freeze Content v2" }),
+        method: "POST",
+      }),
+      env,
+    );
+    expect(secondResponse.status).toBe(201);
+    const second = await secondResponse.json<{ data: { id: string } }>();
+    expect(second.data.id).not.toBe(first.data.id);
+
+    const readManifest = async (id: string) => {
+      const response = await app.fetch(
+        adminRequest(`/admin/catalog/releases/preview-candidates/${id}`),
+        env,
+      );
+      expect(response.status).toBe(200);
+      return (
+        await response.json<{
+          data: {
+            manifest: {
+              content: Array<{
+                kind: "article" | "page" | "policy";
+                payload: { sections: unknown };
+                title: string;
+                version: number;
+              }>;
+            };
+          };
+        }>()
+      ).data.manifest;
+    };
+    const firstManifest = await readManifest(first.data.id);
+    const secondManifest = await readManifest(second.data.id);
+    const firstArticles = firstManifest.content.filter(({ kind }) => kind === "article");
+    const firstPages = firstManifest.content.filter(({ kind }) => kind === "page");
+    const secondPages = secondManifest.content.filter(({ kind }) => kind === "page");
+    expect(firstArticles).toEqual([]);
+    expect(firstPages).toMatchObject([{ title: "Candidate page v1", version: 1 }]);
+    expect(
+      new TextEncoder().encode(JSON.stringify(firstPages[0]!.payload.sections)).byteLength,
+    ).toBe(64_000);
+    expect(secondPages).toMatchObject([{ title: "Candidate page v2", version: 2 }]);
+    expect(
+      (await readManifest(first.data.id)).content.filter(({ kind }) => kind === "page"),
+    ).toEqual(firstPages);
+    expect(
+      (
+        await env.DB.prepare(
+          `SELECT release_id, source_version FROM catalog_release_sources
+            WHERE source_kind = 'page' AND source_id = ? ORDER BY source_version`,
+        )
+          .bind(page.data.id)
+          .all()
+      ).results,
+    ).toEqual([
+      { release_id: first.data.id, source_version: 1 },
+      { release_id: second.data.id, source_version: 2 },
+    ]);
+
+    const draftTarget = await app.fetch(
+      adminRequest("/admin/content/pages", {
+        body: JSON.stringify({ ...pageInput, reason: "Create draft target", slug: "draft-target" }),
+        method: "POST",
+      }),
+      env,
+    );
+    const target = await draftTarget.json<{ data: { id: string } }>();
+    const source = await app.fetch(
+      adminRequest("/admin/content/pages", {
+        body: JSON.stringify({
+          ...pageInput,
+          body: [
+            {
+              id: "section.link",
+              kind: "link",
+              link: {
+                label: "Draft target",
+                target: { kind: "internal", reference: { id: target.data.id, kind: "page" } },
+                targetBehavior: "same-window",
+              },
+            },
+          ],
+          reason: "Create invalid published reference",
+          slug: "invalid-reference-source",
+        }),
+        method: "POST",
+      }),
+      env,
+    );
+    const sourcePage = await source.json<{ data: { id: string } }>();
+    await app.fetch(
+      adminRequest(`/admin/content/pages/${sourcePage.data.id}/publish`, {
+        body: JSON.stringify({
+          confirm: true,
+          expectedVersion: 1,
+          reason: "Publish invalid reference source",
+        }),
+        method: "POST",
+      }),
+      env,
+    );
+    const rejected = await app.fetch(
+      adminRequest("/admin/catalog/releases/preview-candidates", {
+        body: JSON.stringify({ reason: "Reject unpublished Content reference" }),
+        method: "POST",
+      }),
+      env,
+    );
+    expect(rejected.status).toBe(409);
+    expect(await rejected.json()).toMatchObject({
+      error: { code: "catalog_content_reference_unpublished" },
+    });
+  });
+
+  test("carries exact text, section, link, and media ceilings from save into a real candidate", async () => {
+    const app = appFor();
+    const media = await env.DB.prepare(
+      `SELECT media.id FROM product_media media
+        JOIN products product ON product.id = media.product_id
+       WHERE product.status = 'published' LIMIT 1`,
+    ).first<{ id: string }>();
+    expect(media).toBeTruthy();
+
+    const textBody = exactTextContentDocument();
+    const cardinalityBody = exactCardinalityContentDocument(media!.id);
+    const baseInput = {
+      reason: "Prove exact Content ceilings",
+      seo: { description: "Boundary proof", title: "Boundary proof" },
+      summary: "Boundary proof",
+      title: "Boundary proof",
+    };
+    const overflowBodies = [
+      [{ ...textBody[0]!, text: `${textBody[0]!.text}x` }],
+      Array.from({ length: 41 }, (_, index) => ({
+        id: `section.p${index}`,
+        kind: "paragraph" as const,
+        text: "x",
+      })),
+      Array.from({ length: 21 }, (_, index) => ({
+        id: `section.link${index}`,
+        kind: "link" as const,
+        link: {
+          label: "Link",
+          target: { kind: "external" as const, url: `https://example.test/${index}` },
+          targetBehavior: "same-window" as const,
+        },
+      })),
+      Array.from({ length: 21 }, (_, index) => ({
+        alt: "Media",
+        assetId: media!.id,
+        id: `section.media${index}`,
+        kind: "image" as const,
+      })),
+    ];
+    for (const [index, body] of overflowBodies.entries()) {
+      const rejected = await app.fetch(
+        adminRequest("/admin/content/pages", {
+          body: JSON.stringify({
+            ...baseInput,
+            body,
+            reason: `Reject Content max-plus-one ${index}`,
+            slug: `boundary-overflow-${index}`,
+          }),
+          method: "POST",
+        }),
+        env,
+      );
+      expect(rejected.status).toBe(422);
+    }
+
+    const exactInputs = [
+      { body: textBody, slug: "exact-text" },
+      { body: cardinalityBody, slug: "exact-cardinality" },
+    ];
+    const pageIds: string[] = [];
+    for (const input of exactInputs) {
+      const created = await app.fetch(
+        adminRequest("/admin/content/pages", {
+          body: JSON.stringify({ ...baseInput, ...input }),
+          method: "POST",
+        }),
+        env,
+      );
+      expect(created.status, await created.clone().text()).toBe(201);
+      const page = await created.json<{ data: { id: string } }>();
+      pageIds.push(page.data.id);
+      const published = await app.fetch(
+        adminRequest(`/admin/content/pages/${page.data.id}/publish`, {
+          body: JSON.stringify({
+            confirm: true,
+            expectedVersion: 1,
+            reason: "Publish exact Content ceiling",
+          }),
+          method: "POST",
+        }),
+        env,
+      );
+      expect(published.status, await published.clone().text()).toBe(200);
+    }
+
+    const response = await app.fetch(
+      adminRequest("/admin/catalog/releases/preview-candidates", {
+        body: JSON.stringify({ reason: "Freeze exact Content ceilings" }),
+        method: "POST",
+      }),
+      env,
+    );
+    expect(response.status, await response.clone().text()).toBe(201);
+    const candidate = await response.json<{ data: { id: string } }>();
+    const detail = await app.fetch(
+      adminRequest(`/admin/catalog/releases/preview-candidates/${candidate.data.id}`),
+      env,
+    );
+    expect(detail.status).toBe(200);
+    const manifest = await detail.json<{
+      data: {
+        manifest: {
+          content: Array<{ id: string; payload: { sections: Array<{ kind: string }> } }>;
+        };
+      };
+    }>();
+    const exactText = manifest.data.manifest.content.find(({ id }) => id === pageIds[0]);
+    const exactCardinality = manifest.data.manifest.content.find(({ id }) => id === pageIds[1]);
+    expect(exactText?.payload.sections).toEqual(textBody);
+    expect(exactCardinality?.payload.sections).toHaveLength(40);
+    expect(exactCardinality?.payload.sections.filter(({ kind }) => kind === "link")).toHaveLength(
+      20,
+    );
+    expect(exactCardinality?.payload.sections.filter(({ kind }) => kind === "image")).toHaveLength(
+      20,
+    );
+  });
+
+  test("uses one published-Product media eligibility rule for picker, save, and publish", async () => {
+    const app = appFor();
+    const media = await env.DB.prepare(
+      `SELECT media.id, media.product_id FROM product_media media
+        JOIN products product ON product.id = media.product_id
+       WHERE product.status = 'published' LIMIT 1`,
+    ).first<{ id: string; product_id: string }>();
+    expect(media).toBeTruthy();
+    const input = {
+      body: [{ alt: "Candidate media", assetId: media!.id, id: "section.image", kind: "image" }],
+      reason: "Create media-backed Content",
+      seo: { description: "Media page", title: "Media page" },
+      slug: "media-page",
+      summary: "Media page",
+      title: "Media page",
+    };
+    const created = await app.fetch(
+      adminRequest("/admin/content/pages", { body: JSON.stringify(input), method: "POST" }),
+      env,
+    );
+    expect(created.status).toBe(201);
+    const page = await created.json<{ data: { id: string } }>();
+    await env.DB.prepare("UPDATE products SET status = 'archived' WHERE id = ?")
+      .bind(media!.product_id)
+      .run();
+    try {
+      const picker = await app.fetch(adminRequest("/admin/content/media"), env);
+      expect(picker.status).toBe(200);
+      const pickerBody = await picker.json<{ data: Array<{ id: string }> }>();
+      expect(pickerBody.data.some(({ id }) => id === media!.id)).toBe(false);
+      const save = await app.fetch(
+        adminRequest("/admin/content/pages", {
+          body: JSON.stringify({
+            ...input,
+            reason: "Reject archived media",
+            slug: "archived-media",
+          }),
+          method: "POST",
+        }),
+        env,
+      );
+      expect(save.status).toBe(422);
+      const publish = await app.fetch(
+        adminRequest(`/admin/content/pages/${page.data.id}/publish`, {
+          body: JSON.stringify({
+            confirm: true,
+            expectedVersion: 1,
+            reason: "Reject media archived after save",
+          }),
+          method: "POST",
+        }),
+        env,
+      );
+      expect(publish.status).toBe(422);
+    } finally {
+      await env.DB.prepare("UPDATE products SET status = 'published' WHERE id = ?")
+        .bind(media!.product_id)
+        .run();
+    }
   });
 
   test("fails closed when a required approved Policy is missing instead of inserting defaults", async () => {

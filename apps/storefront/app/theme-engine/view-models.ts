@@ -55,7 +55,10 @@ const presentationLinkSchema = z
   .strict();
 const shellContactSchema = z
   .object({
-    contactVersion: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+    contactVersion: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
     contactCopy: copySchema.optional(),
     legalLink: presentationLinkSchema.optional(),
     logo: editorMediaSchema.optional(),
@@ -468,7 +471,10 @@ const stateViewModelSchema = z
   .object({
     ...stateShape,
     action: previewActionSchema.optional(),
-    contactVersion: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+    contactVersion: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
     heading: headingSchema,
     kind: z.literal("state"),
     media: editorMediaSchema.optional(),
@@ -483,6 +489,53 @@ const themeSectionViewModelSchema = z
     ...stateShape,
     data: z.record(z.string(), z.unknown()),
     kind: z.literal("theme-section"),
+  })
+  .strict();
+const releasedContentSectionSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      id: z.string(),
+      kind: z.literal("heading"),
+      level: z.literal(2).or(z.literal(3)),
+      text: z.string(),
+    })
+    .strict(),
+  z.object({ id: z.string(), kind: z.literal("paragraph"), text: z.string() }).strict(),
+  z
+    .object({
+      alt: z.string(),
+      caption: z.string().optional(),
+      id: z.string(),
+      kind: z.literal("image"),
+      media: mediaSchema,
+    })
+    .strict(),
+  z
+    .object({
+      href: z.string().min(1).max(2_000),
+      id: z.string(),
+      kind: z.literal("link"),
+      label: z.string().trim().min(1).max(120),
+      targetBehavior: storefrontLinkTargetBehaviorSchema,
+    })
+    .strict(),
+]);
+const releasedContentViewModelSchema = z
+  .object({
+    ...stateShape,
+    contentKind: z.enum(["article", "page"]),
+    contactVersion: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
+    id: z.string(),
+    kind: z.literal("released-content"),
+    publicContact: publicContactSchema.optional(),
+    route: z.string().regex(/^\/(?!\/)[^\s]*$/),
+    sections: z.array(releasedContentSectionSchema).min(1).max(40),
+    summary: z.string().max(500),
+    title: headingSchema,
+    version: z.number().int().positive(),
   })
   .strict();
 
@@ -504,6 +557,7 @@ export const presentationViewModelSchema = z.discriminatedUnion("kind", [
   policyViewModelSchema,
   stateViewModelSchema,
   themeSectionViewModelSchema,
+  releasedContentViewModelSchema,
 ]);
 
 export const experienceFixtureSchema = z

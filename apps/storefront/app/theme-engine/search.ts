@@ -1,4 +1,4 @@
-import type { CanonicalCatalogRelease } from "@shoppp/contracts";
+import type { CanonicalCatalogRelease, CatalogReleaseV3 } from "@shoppp/contracts";
 import type { InjectionKey } from "vue";
 
 interface CatalogSearchIndexedEntry {
@@ -23,7 +23,9 @@ function searchable(...parts: string[]): string {
   return parts.join(" ").normalize("NFKD").toLocaleLowerCase();
 }
 
-export function buildCatalogSearchIndex(release: CanonicalCatalogRelease): CatalogSearchIndex {
+export function buildCatalogSearchIndex(
+  release: CanonicalCatalogRelease | CatalogReleaseV3,
+): CatalogSearchIndex {
   const collections = release.collections
     .filter(({ status }) => status === "published")
     .map(

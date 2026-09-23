@@ -338,6 +338,30 @@ export const contentArticleVersions = sqliteTable(
   (table) => [primaryKey({ columns: [table.articleId, table.version] })],
 );
 
+export const contentRouteRedirects = sqliteTable(
+  "content_route_redirects",
+  {
+    environment: text("environment", {
+      enum: ["development", "staging", "production"],
+    }).notNull(),
+    fromPath: text("from_path").notNull(),
+    toPath: text("to_path").notNull(),
+    contentKind: text("content_kind", { enum: ["page", "article"] }).notNull(),
+    contentId: text("content_id").notNull(),
+    contentVersion: integer("content_version").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.environment, table.fromPath] }),
+    index("content_route_redirect_target_lookup").on(
+      table.contentKind,
+      table.contentId,
+      table.contentVersion,
+      table.environment,
+    ),
+  ],
+);
+
 export const navigationMenuVersions = sqliteTable(
   "navigation_menu_versions",
   {

@@ -62,6 +62,10 @@ import {
   storefrontExperienceBuildResultSchema,
   storefrontExperienceMigrationDryRunRequestSchema,
   storefrontResourceKindSchema,
+  contentArticleWriteRequestSchema,
+  contentListQuerySchema,
+  contentPageWriteRequestSchema,
+  contentTransitionRequestSchema,
 } from "@shoppp/contracts";
 
 import {
@@ -131,6 +135,22 @@ import {
   reviewPolicy,
   updatePolicy,
 } from "../content/policies";
+import {
+  archivePage,
+  createPage,
+  getPage,
+  listPages,
+  publishPage,
+  updatePage,
+} from "../content/pages";
+import {
+  archiveArticle,
+  createArticle,
+  getArticle,
+  listArticles,
+  publishArticle,
+  updateArticle,
+} from "../content/articles";
 import {
   activateAdminAccount,
   changePassword,
@@ -2271,6 +2291,141 @@ export function createApp(options: CreateAppOptions = {}) {
     idempotency("policies.archive"),
     policyTransition("archive", "policies.publish"),
   );
+
+  const contentRoutes = <T extends "articles" | "pages">(
+    plural: T,
+    operations: T extends "pages"
+      ? {
+          archive: typeof archivePage;
+          create: typeof createPage;
+          get: typeof getPage;
+          list: typeof listPages;
+          publish: typeof publishPage;
+          update: typeof updatePage;
+        }
+      : {
+          archive: typeof archiveArticle;
+          create: typeof createArticle;
+          get: typeof getArticle;
+          list: typeof listArticles;
+          publish: typeof publishArticle;
+          update: typeof updateArticle;
+        },
+    writeSchema: T extends "pages"
+      ? typeof contentPageWriteRequestSchema
+      : typeof contentArticleWriteRequestSchema,
+  ) => {
+    const base = `/admin/content/${plural}`;
+    const resourceType = plural === "pages" ? "page" : "article";
+    app.get(base, async (context) => {
+      await requirePermission(context, "content.read", { type: resourceType });
+      const query = contentListQuerySchema.safeParse(context.req.query());
+      if (!query.success)
+        throw new ApiError(422, "content_list_query_invalid", "Select a valid Content page.");
+      const result = await operations.list(context.env.DB, query.data);
+      return context.json({ data: result.data, meta: { total: result.total } });
+    });
+    app.get(`${base}/:id`, async (context) => {
+      await requirePermission(context, "content.read", {
+        id: context.req.param("id"),
+        type: resourceType,
+      });
+      return context.json({ data: await operations.get(context.env.DB, context.req.param("id")) });
+    });
+    app.post(
+      base,
+      async (context, next) => {
+        await requirePermission(context, "content.write", { type: resourceType });
+        await next();
+      },
+      idempotency(`content.${resourceType}.create`),
+      async (context) => {
+        const input = await parseJson(context, writeSchema);
+        return context.json({ data: await operations.create(context, input as never) }, 201);
+      },
+    );
+    app.put(
+      `${base}/:id`,
+      async (context, next) => {
+        await requirePermission(context, "content.write", {
+          id: context.req.param("id"),
+          type: resourceType,
+        });
+        await next();
+      },
+      idempotency(`content.${resourceType}.update`),
+      async (context) => {
+        const input = await parseJson(context, writeSchema);
+        return context.json({
+          data: await operations.update(context, context.req.param("id"), input as never),
+        });
+      },
+    );
+    for (const action of ["publish", "archive"] as const) {
+      app.post(
+        `${base}/:id/${action}`,
+        async (context, next) => {
+          await requirePermission(context, "content.publish", {
+            id: context.req.param("id"),
+            type: resourceType,
+          });
+          await next();
+        },
+        idempotency(`content.${resourceType}.${action}`),
+        async (context) => {
+          const input = await parseJson(context, contentTransitionRequestSchema);
+          return context.json({
+            data: await operations[action](context, context.req.param("id"), input),
+          });
+        },
+      );
+    }
+  };
+
+  app.get("/admin/content/media", async (context) => {
+    await requirePermission(context, "content.read", { type: "content_media" });
+    context.header("Cache-Control", "private, no-store");
+    const page = Math.max(Number.parseInt(context.req.query("page") ?? "1", 10) || 1, 1);
+    const pageSize = Math.min(
+      Math.max(Number.parseInt(context.req.query("pageSize") ?? "24", 10) || 24, 1),
+      100,
+    );
+    const result = await listCatalogMedia(context.env, {
+      page,
+      pageSize,
+      query: context.req.query("query") ?? "",
+    });
+    return context.json({
+      data: result.data,
+      meta: { page: result.page, pageSize: result.pageSize, total: result.total },
+    });
+  });
+
+  contentRoutes(
+    "pages",
+    {
+      archive: archivePage,
+      create: createPage,
+      get: getPage,
+      list: listPages,
+      publish: publishPage,
+      update: updatePage,
+    },
+    contentPageWriteRequestSchema,
+  );
+  contentRoutes(
+    "articles",
+    {
+      archive: archiveArticle,
+      create: createArticle,
+      get: getArticle,
+      list: listArticles,
+      publish: publishArticle,
+      update: updateArticle,
+    },
+    contentArticleWriteRequestSchema,
+  );
+
   app.get("/admin/settings/shipping", async (context) => {
     await requirePermission(context, "settings.read", { type: "shipping_zone" });
     return context.json({

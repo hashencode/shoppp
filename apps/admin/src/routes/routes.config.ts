@@ -160,6 +160,66 @@ const commerceRoutes: TemplateRoute[] = [
       ),
   },
   {
+    key: 'content-pages',
+    path: '/content/pages',
+    title: 'Pages',
+    icon: createElement(FileTextOutlined),
+    permission: 'content.read',
+    inMenu: true,
+    menuGroup: 'Content',
+    breadcrumb: ['Content', 'Pages'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/content/content-list-page').then((m) => ({
+          default: m.ContentPagesListPage,
+        }))
+      ),
+  },
+  {
+    key: 'content-page-form',
+    path: '/content/pages/form',
+    title: 'Page',
+    icon: createElement(FormOutlined),
+    permission: 'content.read',
+    inMenu: false,
+    breadcrumb: ['Content', 'Pages', 'Page'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/content/page-editor-page').then((m) => ({ default: m.PageEditorPage }))
+      ),
+  },
+  {
+    key: 'content-articles',
+    path: '/content/articles',
+    title: 'Articles',
+    icon: createElement(FileTextOutlined),
+    permission: 'content.read',
+    inMenu: true,
+    menuGroup: 'Content',
+    breadcrumb: ['Content', 'Articles'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/content/content-list-page').then((m) => ({
+          default: m.ContentArticlesListPage,
+        }))
+      ),
+  },
+  {
+    key: 'content-article-form',
+    path: '/content/articles/form',
+    title: 'Article',
+    icon: createElement(FormOutlined),
+    permission: 'content.read',
+    inMenu: false,
+    breadcrumb: ['Content', 'Articles', 'Article'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/content/article-editor-page').then((m) => ({
+          default: m.ArticleEditorPage,
+        }))
+      ),
+  },
+  {
     key: 'storefront-themes',
     path: '/storefront/themes',
     title: 'Storefront themes',

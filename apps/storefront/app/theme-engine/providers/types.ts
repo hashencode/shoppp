@@ -1,4 +1,4 @@
-import type { CanonicalCatalogRelease } from "@shoppp/contracts";
+import type { CanonicalCatalogRelease, CatalogReleaseV3 } from "@shoppp/contracts";
 
 import type { PresentationViewModelKind } from "@shoppp/contracts";
 
@@ -17,7 +17,7 @@ export type ActiveExperienceProviderInput =
         themeVersion: string;
       };
       mode: "live";
-      release: CanonicalCatalogRelease;
+      release: CanonicalCatalogRelease | CatalogReleaseV3;
     };
 
 export interface PresentationProviderResolveInput {

@@ -232,7 +232,42 @@ describe("Fashion Store live commerce boundary", () => {
       expect.objectContaining({ instanceId: "fashion-store-collection", kind: "catalog" }),
       expect.objectContaining({ instanceId: "fashion-store-product", kind: "catalog" }),
     ]);
-    for (const path of ["/", "/collections/travel-essentials", "/products/atlas-carry-on"]) {
+    const boundary = input.catalogRelease.content.find(({ id }) => id === "page.boundary-document");
+    expect(boundary?.kind).toBe("page");
+    expect(new TextEncoder().encode(JSON.stringify(boundary?.payload.sections)).byteLength).toBe(
+      64_000,
+    );
+    const textBoundary = input.catalogRelease.content.find(({ id }) => id === "page.text-boundary");
+    expect(textBoundary?.payload.sections).toEqual([
+      expect.objectContaining({ kind: "paragraph", text: "x".repeat(5_000) }),
+    ]);
+    const cardinalityBoundary = input.catalogRelease.content.find(
+      ({ id }) => id === "page.cardinality-boundary",
+    );
+    expect(cardinalityBoundary?.payload.sections).toHaveLength(40);
+    expect(
+      cardinalityBoundary?.payload.sections.filter(({ kind }) => kind === "link"),
+    ).toHaveLength(20);
+    expect(
+      cardinalityBoundary?.payload.sections.filter(({ kind }) => kind === "image"),
+    ).toHaveLength(20);
+    const zeroArticleInput = script.fashionStoreLiveBuildInput(
+      fixtureInput,
+      releaseFixture,
+      fixtureInput.expectedOrigin,
+      { zeroArticles: true },
+    );
+    expect(zeroArticleInput.catalogRelease.content.some(({ kind }) => kind === "article")).toBe(
+      false,
+    );
+    expect(zeroArticleInput.catalogRelease.routes).not.toContain("/magazine/released-notes");
+    for (const path of [
+      "/",
+      "/collections/travel-essentials",
+      "/products/atlas-carry-on",
+      "/pages/text-boundary",
+      "/pages/cardinality-boundary",
+    ]) {
       const route = resolveThemeRoute(path, fashionStoreThemeRoutes, input.catalogRelease, "live");
       expect(route).toBeDefined();
       expect(

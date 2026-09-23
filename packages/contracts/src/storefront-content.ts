@@ -3,6 +3,7 @@ import * as z from "zod";
 import { isoDateTimeSchema, publicIdSchema } from "./common";
 import {
   credentialFreeHttpsUrlSchema,
+  storefrontLinkSchema,
   storefrontResourceReferenceSchema,
   storefrontRoutePathSchema,
 } from "./storefront-links";
@@ -12,6 +13,7 @@ const stableAuthorityIdSchema = z
   .min(3)
   .max(160)
   .regex(/^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/);
+const contentMediaAssetIdSchema = z.union([stableAuthorityIdSchema, publicIdSchema]);
 const slugSchema = z
   .string()
   .min(1)
@@ -21,6 +23,14 @@ const statusSchema = z.enum(["draft", "published", "archived"]);
 const safeTextSchema = z
   .string()
   .max(10_000)
+  .refine(
+    (value) => !/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(value),
+    "Control characters are not allowed.",
+  )
+  .refine(
+    (value) => !/[\u202A-\u202E\u2066-\u2069]/.test(value),
+    "Bidirectional control characters are not allowed.",
+  )
   .refine((value) => !/<\/?[a-z][^>]*>/i.test(value), "HTML markup is not allowed.");
 const seoSchema = z
   .object({
@@ -61,10 +71,17 @@ export const storefrontContentSectionSchema = z.discriminatedUnion("kind", [
   z
     .object({
       alt: z.string().trim().min(1).max(300),
-      assetId: stableAuthorityIdSchema,
+      assetId: contentMediaAssetIdSchema,
       caption: safeTextSchema.trim().max(500).optional(),
       id: stableAuthorityIdSchema,
       kind: z.literal("image"),
+    })
+    .strict(),
+  z
+    .object({
+      id: stableAuthorityIdSchema,
+      kind: z.literal("link"),
+      link: storefrontLinkSchema,
     })
     .strict(),
 ]);
@@ -76,6 +93,36 @@ export const storefrontContentDocumentSchema = z
     const ids = sections.map(({ id }) => id);
     if (new Set(ids).size !== ids.length) {
       context.addIssue({ code: "custom", message: "Section IDs must be unique." });
+    }
+    const encodedBytes = new TextEncoder().encode(JSON.stringify(sections)).byteLength;
+    if (encodedBytes > 64_000) {
+      context.addIssue({ code: "custom", message: "Content document exceeds 64000 bytes." });
+    }
+    if (sections.filter(({ kind }) => kind === "link").length > 20) {
+      context.addIssue({ code: "custom", message: "Content document exceeds 20 links." });
+    }
+    if (sections.filter(({ kind }) => kind === "image").length > 20) {
+      context.addIssue({ code: "custom", message: "Content document exceeds 20 media sections." });
+    }
+  });
+
+export const publishableContentSectionSchema = z.discriminatedUnion("kind", [
+  storefrontContentSectionSchema.options[0],
+  storefrontContentSectionSchema.options[1],
+  storefrontContentSectionSchema.options[3],
+  storefrontContentSectionSchema.options[4],
+]);
+
+export const publishableContentDocumentSchema = z
+  .array(publishableContentSectionSchema)
+  .min(1)
+  .max(40)
+  .superRefine((sections, context) => {
+    const parsed = storefrontContentDocumentSchema.safeParse(sections);
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        context.addIssue({ code: "custom", message: issue.message, path: issue.path });
+      }
     }
   });
 
@@ -167,7 +214,7 @@ export const policyAuthoritySchema = z
 
 const contentAuthorityShape = {
   ...authorityMetadata,
-  body: storefrontContentDocumentSchema,
+  body: publishableContentDocumentSchema,
   publishedAt: isoDateTimeSchema.optional(),
   seo: seoSchema,
   slug: slugSchema,
@@ -178,7 +225,50 @@ const contentAuthorityShape = {
 
 export const contentPageSchema = z.object(contentAuthorityShape).strict();
 export const contentArticleSchema = z
-  .object({ ...contentAuthorityShape, coverAssetId: stableAuthorityIdSchema.optional() })
+  .object({ ...contentAuthorityShape, coverAssetId: contentMediaAssetIdSchema.optional() })
+  .strict();
+
+const contentEditableFields = {
+  body: publishableContentDocumentSchema,
+  seo: seoSchema,
+  slug: slugSchema,
+  summary: safeTextSchema.trim().max(500),
+  title: z.string().trim().min(1).max(160),
+};
+
+export const contentPageWriteRequestSchema = z
+  .object({
+    ...contentEditableFields,
+    expectedVersion: z.int().positive().optional(),
+    reason: z.string().trim().min(3).max(500),
+  })
+  .strict();
+
+export const contentArticleWriteRequestSchema = z
+  .object({
+    ...contentEditableFields,
+    coverAssetId: contentMediaAssetIdSchema.nullable(),
+    expectedVersion: z.int().positive().optional(),
+    reason: z.string().trim().min(3).max(500),
+  })
+  .strict();
+
+export const contentTransitionRequestSchema = z
+  .object({
+    confirm: z.literal(true),
+    expectedVersion: z.int().positive(),
+    reason: z.string().trim().min(3).max(500),
+    redirectFromOldSlug: z.boolean().optional().default(false),
+  })
+  .strict();
+
+export const contentListQuerySchema = z
+  .object({
+    page: z.coerce.number().int().positive().default(1),
+    pageSize: z.coerce.number().int().min(1).max(100).default(20),
+    query: z.string().trim().max(160).optional(),
+    status: statusSchema.optional(),
+  })
   .strict();
 
 const navigationTargetSchema = z.discriminatedUnion("kind", [
@@ -326,6 +416,12 @@ export type NavigationMenu = z.infer<typeof navigationMenuSchema>;
 export type PolicyAuthority = z.infer<typeof policyAuthoritySchema>;
 export type StoreIdentity = z.infer<typeof storeIdentitySchema>;
 export type StorefrontContentSection = z.infer<typeof storefrontContentSectionSchema>;
+export type PublishableContentSection = z.infer<typeof publishableContentSectionSchema>;
+export type ContentPage = z.infer<typeof contentPageSchema>;
+export type ContentArticle = z.infer<typeof contentArticleSchema>;
+export type ContentPageWriteRequest = z.infer<typeof contentPageWriteRequestSchema>;
+export type ContentArticleWriteRequest = z.infer<typeof contentArticleWriteRequestSchema>;
+export type ContentTransitionRequest = z.infer<typeof contentTransitionRequestSchema>;
 export type CreatePolicyRequest = z.infer<typeof createPolicyRequestSchema>;
 export type PolicyTransitionRequest = z.infer<typeof policyTransitionRequestSchema>;
 export type UpdatePolicyRequest = z.infer<typeof updatePolicyRequestSchema>;

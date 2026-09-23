@@ -34,6 +34,8 @@ describe('first-level menu route contract', () => {
     'order-report': { title: 'Revenue report', headingOwner: 'standard-list' },
     'catalog-products': { title: 'Catalog', headingOwner: 'standard-list' },
     'catalog-reviews': { title: 'Reviews', headingOwner: 'custom' },
+    'content-pages': { title: 'Pages', headingOwner: 'standard-list' },
+    'content-articles': { title: 'Articles', headingOwner: 'standard-list' },
     'storefront-themes': { title: 'Storefront themes', headingOwner: 'custom' },
     inventory: { title: 'Inventory', headingOwner: 'standard-list' },
     orders: { title: 'Orders', headingOwner: 'standard-list' },

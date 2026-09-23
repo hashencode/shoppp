@@ -66,10 +66,12 @@ describe("Catalog media library", () => {
     expect(second.data.map(({ key }) => key)).toEqual(["catalog/media-c.webp"]);
   });
 
-  test("searches alt text and product name without exposing draft media", async () => {
-    await seedProduct("summer-product", "archived");
+  test("searches alt text and product name without exposing archived or draft media", async () => {
+    await seedProduct("summer-product", "published");
+    await seedProduct("archived-product", "archived");
     await seedProduct("hidden-product", "draft");
     await seedMedia("approved-summer", "summer-product", "Lookbook cover", 0);
+    await seedMedia("archived-summer", "archived-product", "Summer archive", 0);
     await seedMedia("hidden-summer", "hidden-product", "Summer secret", 0);
 
     const byProduct = await listCatalogMedia(bindings, {

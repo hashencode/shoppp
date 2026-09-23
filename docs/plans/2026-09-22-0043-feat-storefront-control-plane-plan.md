@@ -27,12 +27,12 @@ deepened: 2026-09-22
 ### Execution Checkpoint
 
 - **Classification:** Active product successor after FS-F12 completed U7 human acceptance on 2026-09-22.
-- **Current product pointer:** `FS-F14-U5` — build versioned Content Pages and Articles.
+- **Current product pointer:** `FS-F14-U6` — build reusable Navigation and shared shell consumption.
 - **Activation condition:** Met. FS-F13 and FS-F12 are complete and FS-F12 handed execution to FS-F14.
-- **Completed units:** U1 (U1.1-U1.3), U2, U3, and U4 completed on 2026-09-23; retained evidence is in `docs/progress/storefront-control-plane-verification.md`.
-- **Current unit:** U5, versioned Content Pages and Articles.
-- **Next concrete action:** Add proof-first API and Admin coverage for permission-separated Page/Article draft and publish flows, bounded structured content, route/redirect uniqueness, and zero-Article truthfulness; then implement direct Content list/edit routes and Release-backed Fashion destinations without sample Article fallbacks.
-- **Blocker:** None for local U5 implementation. Remote mutation, deployment, and candidate/DC/PG advancement remain outside this stage.
+- **Completed units:** U1 (U1.1-U1.3), U2, U3, U4, and U5 completed on 2026-09-23; retained evidence is in `docs/progress/storefront-control-plane-verification.md`.
+- **Current unit:** U6, reusable Navigation and shared shell consumption.
+- **Next concrete action:** Characterize the current Fashion Header, Mega Menu, and Footer link trees, then add proof-first Navigation API/Admin coverage for two-level ordering, typed targets, backlink-safe archive behavior, keyboard movement, and exact Release-backed shell consumption before removing fixed trees.
+- **Blocker:** None for local U6 implementation. Remote mutation, deployment, and candidate/DC/PG advancement remain outside this stage.
 - **Handback:** After U1-U9 and the Definition of Done pass, return to `REL-Pre-DC`. No candidate is frozen automatically.
 
 ---

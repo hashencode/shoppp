@@ -1,4 +1,4 @@
-import type { CanonicalCatalogRelease } from "@shoppp/contracts";
+import type { CanonicalCatalogRelease, CatalogReleaseV3 } from "@shoppp/contracts";
 
 import { themeRoutePaths } from "../app/theme-engine/routes";
 import { fashionStoreThemeRoutes } from "../app/themes/fashion-store/page-contracts";
@@ -12,7 +12,7 @@ export const productionPlatformRoutes = [
 ] as const;
 
 export interface PrerenderExperienceInput {
-  catalogRelease?: CanonicalCatalogRelease;
+  catalogRelease?: CanonicalCatalogRelease | CatalogReleaseV3;
   environment: "preview" | "production";
   presentationMode?: "live";
   themeId?: string;

@@ -1,6 +1,7 @@
 import {
   assetReferenceSchema,
   canonicalCatalogReleaseSchema,
+  catalogReleaseV3Schema,
   catalogResourceBindingSchema,
   experienceSnapshotSchema,
   presentationCollectionSchema,
@@ -9,6 +10,7 @@ import {
   storefrontResourceReferenceSchema,
   themeCompositionDescriptorSchema,
   type CanonicalCatalogRelease,
+  type CatalogReleaseV3,
   type CatalogResourceBinding,
   type ExperienceSnapshot,
   type PageTemplate,
@@ -31,11 +33,12 @@ import {
   type ProductPageModel,
 } from "./view-models";
 
-type CatalogProduct = CanonicalCatalogRelease["products"][number];
-type CatalogCollection = CanonicalCatalogRelease["collections"][number];
+type StorefrontCatalogRelease = CanonicalCatalogRelease | CatalogReleaseV3;
+type CatalogProduct = StorefrontCatalogRelease["products"][number];
+type CatalogCollection = StorefrontCatalogRelease["collections"][number];
 
 function relatedCollectionForProduct(
-  release: CanonicalCatalogRelease,
+  release: StorefrontCatalogRelease,
   product: CatalogProduct,
   collectionId?: string,
 ): CatalogCollection | undefined {
@@ -106,7 +109,7 @@ export interface ComposeExperienceRouteInput {
   experience: ExperienceSnapshot;
   locale: string;
   path: string;
-  release: CanonicalCatalogRelease;
+  release: StorefrontCatalogRelease;
   route: ResolvedThemeRouteContract;
   sectionComposition?: ThemeCompositionDescriptor;
 }
@@ -180,7 +183,7 @@ function referenceDiagnostic(
 }
 
 function productViewModel(
-  release: CanonicalCatalogRelease,
+  release: StorefrontCatalogRelease,
   productsById: ReadonlyMap<string, CatalogProduct>,
   product: CatalogProduct,
   locale: string,
@@ -358,7 +361,7 @@ export function composeProductPageModel(input: {
   experience?: ExperienceSnapshot;
   locale: string;
   productId: string;
-  release: CanonicalCatalogRelease;
+  release: StorefrontCatalogRelease;
   slug: string;
 }): ProductPageModel {
   const release = canonicalCatalogReleaseSchema.parse(input.release);
@@ -519,7 +522,7 @@ function optionalTextSetting(settings: Readonly<Record<string, unknown>>, key: s
 
 function editorLink(
   adapter: ThemeCompositionAdapter | undefined,
-  release: CanonicalCatalogRelease,
+  release: StorefrontCatalogRelease,
   value: unknown,
 ) {
   const parsed = storefrontLinkSchema.safeParse(value);
@@ -539,7 +542,7 @@ function editorLink(
 
 function referenceLink(
   adapter: ThemeCompositionAdapter | undefined,
-  release: CanonicalCatalogRelease,
+  release: StorefrontCatalogRelease,
   value: unknown,
 ) {
   const parsed = storefrontResourceReferenceSchema.safeParse(value);
@@ -556,7 +559,7 @@ function referenceLink(
   };
 }
 
-function catalogMediaOrigin(release: CanonicalCatalogRelease): string | undefined {
+function catalogMediaOrigin(release: StorefrontCatalogRelease): string | undefined {
   for (const product of release.products) {
     for (const media of product.media) {
       try {
@@ -571,7 +574,7 @@ function catalogMediaOrigin(release: CanonicalCatalogRelease): string | undefine
 }
 
 function editorMedia(
-  release: CanonicalCatalogRelease,
+  release: StorefrontCatalogRelease,
   value: unknown,
   resolvedCatalogOrigin?: string | null,
 ) {
@@ -609,7 +612,7 @@ function editorMedia(
 
 function shellViewModel(
   adapter: ThemeCompositionAdapter | undefined,
-  release: CanonicalCatalogRelease,
+  release: StorefrontCatalogRelease,
   settings: Readonly<Record<string, unknown>>,
   contact?: ExperienceSnapshot["contact"],
 ): PresentationShellViewModel {
@@ -646,7 +649,7 @@ function shellViewModel(
 
 function homeViewModel(
   adapter: ThemeCompositionAdapter,
-  release: CanonicalCatalogRelease,
+  release: StorefrontCatalogRelease,
   collection: CatalogCollection,
   productsById: ReadonlyMap<string, CatalogProduct>,
   defaultCurrency: string,
@@ -713,7 +716,7 @@ function transactionViewModel(
   adapter: ThemeCompositionAdapter | undefined,
   pageType: "cart" | "checkout",
   settings: Readonly<Record<string, unknown>>,
-  release: CanonicalCatalogRelease,
+  release: StorefrontCatalogRelease,
 ): PresentationViewModel {
   const helpCopy = requiredTextSetting(
     settings,
@@ -756,7 +759,7 @@ function transactionViewModel(
 export function composeExperienceShell(input: {
   adapter?: ThemeCompositionAdapter;
   experience: ExperienceSnapshot;
-  release: CanonicalCatalogRelease;
+  release: StorefrontCatalogRelease;
   sectionComposition?: ThemeCompositionDescriptor;
 }): PresentationShellViewModel | undefined {
   const experience = experienceSnapshotSchema.safeParse(input.experience);
@@ -785,7 +788,7 @@ export function composePlatformRoutePresentation(input: {
   adapter?: ThemeCompositionAdapter;
   experience: ExperienceSnapshot;
   path: string;
-  release: CanonicalCatalogRelease;
+  release: StorefrontCatalogRelease;
 }): PlatformRoutePresentationViewModel | undefined {
   const experience = experienceSnapshotSchema.safeParse(input.experience);
   const release = canonicalCatalogReleaseSchema.safeParse(input.release);
@@ -833,22 +836,105 @@ function contentSettingKey(path: string): string {
   return path.slice(1).replaceAll("/", ".") || "home";
 }
 
+function releasedContentViewModel(
+  adapter: ThemeCompositionAdapter | undefined,
+  path: string,
+  release: StorefrontCatalogRelease,
+): PresentationViewModel | undefined {
+  if (release.schemaVersion !== 3) return undefined;
+  const normalizedPath = normalizeThemeRoutePath(path);
+  const record = release.content.find(
+    ({ kind, route }) => (kind === "article" || kind === "page") && route === normalizedPath,
+  );
+  if (!record || (record.kind !== "article" && record.kind !== "page")) return undefined;
+  const sections: unknown[] = [];
+  for (const section of record.payload.sections) {
+    if (section.kind === "heading" || section.kind === "paragraph") {
+      sections.push(section);
+      continue;
+    }
+    if (section.kind === "image") {
+      const media = release.products
+        .flatMap(({ media: productMedia }) => productMedia)
+        .find(({ id }) => id === section.assetId);
+      if (media) {
+        sections.push({
+          alt: section.alt,
+          ...(section.caption === undefined ? {} : { caption: section.caption }),
+          id: section.id,
+          kind: section.kind,
+          media: {
+            alt: media.alt,
+            height: media.height,
+            src: media.src,
+            width: media.width,
+          },
+        });
+      }
+      continue;
+    }
+    if (section.kind === "link") {
+      const href =
+        section.link.target.kind === "external"
+          ? section.link.target.url
+          : adapter?.referenceHref(release, section.link.target.reference);
+      if (href) {
+        sections.push({
+          href,
+          id: section.id,
+          kind: "link" as const,
+          label: section.link.label,
+          targetBehavior: section.link.targetBehavior,
+        });
+      }
+    }
+  }
+  if (sections.length === 0) return undefined;
+  return presentationViewModelSchema.parse({
+    contentKind: record.kind,
+    id: record.id,
+    kind: "released-content",
+    route: record.route,
+    sections,
+    state: "populated",
+    summary: record.payload.summary ?? "",
+    title: record.title,
+    version: record.version,
+  });
+}
+
 function contentViewModel(
   adapter: ThemeCompositionAdapter | undefined,
   path: string,
   settings: Readonly<Record<string, unknown>>,
-  release: CanonicalCatalogRelease,
+  release: StorefrontCatalogRelease,
   locale: string,
   contact?: ExperienceSnapshot["contact"],
 ): PresentationViewModel {
   const key = contentSettingKey(path);
+  const released = releasedContentViewModel(adapter, path, release);
+  if (released && key !== "contact") return released;
+  if (released && key === "contact" && contact) {
+    return presentationViewModelSchema.parse({
+      ...released,
+      contactVersion: contact.version,
+      publicContact: contact.publicContact,
+    });
+  }
   if (key === "contact" && contact) {
     const publicContact = contact.publicContact;
     const hasPublicDetails = Boolean(
-      publicContact.supportEmail || publicContact.privacyEmail || publicContact.publicPhone ||
-      publicContact.locations.length || publicContact.socials.length,
+      publicContact.supportEmail ||
+      publicContact.privacyEmail ||
+      publicContact.publicPhone ||
+      publicContact.locations.length ||
+      publicContact.socials.length,
     );
-    const contactMessage = requiredTextSetting(settings, "contact.message", "Get in touch with us.");
+    const contactMessage = requiredTextSetting(
+      settings,
+      "contact.message",
+      "Get in touch with us.",
+    );
     return presentationViewModelSchema.parse({
       contactVersion: contact.version,
       heading: hasPublicDetails
@@ -956,7 +1042,7 @@ function composeDeclaredSections(input: {
   pageId: string;
   path: string;
   productsById: ReadonlyMap<string, CatalogProduct>;
-  release: CanonicalCatalogRelease;
+  release: StorefrontCatalogRelease;
   template: PageTemplate;
 }): Pick<ComposedExperienceRoute, "diagnostics" | "shell" | "viewModels"> {
   const diagnostics: CompositionDiagnostic[] = [];
@@ -1195,7 +1281,9 @@ function composeDeclaredSections(input: {
   return {
     diagnostics,
     ...(shellSection
-      ? { shell: shellViewModel(input.adapter, input.release, shellSection.settings, input.contact) }
+      ? {
+          shell: shellViewModel(input.adapter, input.release, shellSection.settings, input.contact),
+        }
       : {}),
     viewModels,
   };
@@ -1205,7 +1293,9 @@ export function composeExperienceRoute(
   input: ComposeExperienceRouteInput,
 ): ComposedExperienceRoute {
   const experience = experienceSnapshotSchema.parse(input.experience);
-  const parsedRelease = canonicalCatalogReleaseSchema.safeParse(input.release);
+  const parsedRelease = catalogReleaseV3Schema
+    .or(canonicalCatalogReleaseSchema)
+    .safeParse(input.release);
   const path = normalizeThemeRoutePath(input.path);
   if (!parsedRelease.success) {
     return {

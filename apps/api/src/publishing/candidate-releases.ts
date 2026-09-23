@@ -9,6 +9,7 @@ import type { Context } from "hono";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
+import { contentRoute } from "../content/resources";
 import { buildCatalogReleaseManifest } from "./build-manifest";
 import { candidateLedgerChunks, stableCandidateJson } from "./candidate-ledger";
 
@@ -41,9 +42,29 @@ export function validateCatalogCandidateSnapshot(snapshot: CatalogCandidateSnaps
     }
     routes.add(route);
   }
+  const redirectSources = new Set<string>();
   for (const redirect of snapshot.redirects) {
     if (!redirect.from.startsWith("/") || !redirect.to.startsWith("/")) {
       lifecycleError("storefront_redirect_invalid", "Redirects must remain storefront-local.");
+    }
+    if (
+      redirect.from === redirect.to ||
+      routes.has(redirect.from) ||
+      redirectSources.has(redirect.from)
+    ) {
+      lifecycleError(
+        "storefront_route_conflict",
+        `Redirect source ${redirect.from} must be unique and cannot also be a live route.`,
+      );
+    }
+    redirectSources.add(redirect.from);
+  }
+  for (const redirect of snapshot.redirects) {
+    if (!routes.has(redirect.to) || redirectSources.has(redirect.to)) {
+      lifecycleError(
+        "storefront_redirect_invalid",
+        `Redirect target ${redirect.to} must resolve directly to a live route.`,
+      );
     }
   }
   for (const source of snapshot.sources) {
@@ -555,17 +576,62 @@ async function assembleCandidateManifest(
           sections: JSON.parse(String(row.sections_json)),
           ...(kind === "page" || kind === "article"
             ? {
+                ...(kind === "article" && row.cover_asset_id
+                  ? { coverAssetId: String(row.cover_asset_id) }
+                  : {}),
                 seo: JSON.parse(String(row.seo_json)),
                 summary: String(row.summary),
               }
             : {}),
         },
-        route: `/${kind === "policy" ? "policies" : kind === "page" ? "pages" : "articles"}/${String(row.slug)}`,
+        route:
+          kind === "policy"
+            ? `/policies/${String(row.slug)}`
+            : contentRoute(kind as "page" | "article", String(row.slug)),
         slug: String(row.slug),
         title: String(row.title),
         version,
       })),
   );
+  const releasedMediaIds = new Set(
+    v2.products.flatMap(({ media }) => media.flatMap(({ id }) => (id ? [id] : []))),
+  );
+  const publishedReferences = new Set(sources.sources.map(({ id, kind }) => `${kind}:${id}`));
+  for (const record of records) {
+    if (record.kind !== "page" && record.kind !== "article") continue;
+    const sections = record.payload.sections as Array<{
+      assetId?: string;
+      kind?: string;
+      link?: { target?: { kind?: string; reference?: { id?: string; kind?: string } } };
+    }>;
+    const mediaIds = [
+      ...(record.payload.coverAssetId ? [record.payload.coverAssetId] : []),
+      ...sections.flatMap(({ assetId, kind }) => (kind === "image" && assetId ? [assetId] : [])),
+    ];
+    for (const assetId of mediaIds) {
+      if (!releasedMediaIds.has(assetId)) {
+        lifecycleError(
+          "catalog_content_media_unpublished",
+          `${record.kind}:${record.id} references media ${assetId} outside the published catalog.`,
+        );
+      }
+    }
+    for (const section of sections) {
+      const reference = section.link?.target?.reference;
+      if (
+        section.kind === "link" &&
+        section.link?.target?.kind === "internal" &&
+        reference?.id &&
+        reference.kind &&
+        !publishedReferences.has(`${reference.kind}:${reference.id}`)
+      ) {
+        lifecycleError(
+          "catalog_content_reference_unpublished",
+          `${record.kind}:${record.id} links to unpublished ${reference.kind}:${reference.id}.`,
+        );
+      }
+    }
+  }
   const navigation = await Promise.all(
     sources.authorities
       .filter(({ kind }) => kind === "navigation")
@@ -616,6 +682,30 @@ async function assembleCandidateManifest(
   const routes = [...new Set([...v2.routes, ...records.map(({ route }) => route)])].sort(
     (left, right) => (left === "/" ? -1 : right === "/" ? 1 : left.localeCompare(right)),
   );
+  const contentRedirects = await db
+    .prepare(
+      `SELECT from_path AS "from", to_path AS "to" FROM content_route_redirects
+       WHERE environment = ? ORDER BY from_path`,
+    )
+    .bind(environment)
+    .all<{ from: string; to: string }>();
+  const redirects = [
+    ...v2.redirects,
+    ...contentRedirects.results.map((redirect) => ({ ...redirect, status: 301 as const })),
+  ];
+  validateCatalogCandidateSnapshot({
+    environment,
+    redirects,
+    routes,
+    sources: sources.sources.map((source) => ({
+      ...source,
+      currentDigest: source.digest,
+      currentKind: source.kind,
+      currentStatus: "published" as const,
+      currentVersion: source.version,
+      environment,
+    })),
+  });
   return {
     manifest: catalogReleaseV3Schema.parse({
       ...v2,
@@ -624,6 +714,7 @@ async function assembleCandidateManifest(
       identity: frozenIdentity,
       navigation,
       purpose: "private-preview",
+      redirects,
       routeOutput: routes,
       routes,
       schemaVersion: 3,

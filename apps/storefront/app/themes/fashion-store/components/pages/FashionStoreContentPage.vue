@@ -7,6 +7,7 @@ import type { PresentationViewModel } from "../../../../theme-engine/view-models
 import {
   resolveFashionStoreContentPresentation,
   resolveFashionStoreLiveContactPresentation,
+  resolveFashionStoreReleasedContentPresentation,
   type FashionStoreContentRouteKey,
 } from "../../contracts/content-presentation";
 import FashionStoreAccountPage from "./FashionStoreAccountPage.vue";
@@ -17,6 +18,7 @@ import FashionStoreLiveContactPage from "./FashionStoreLiveContactPage.vue";
 import FashionStoreFaqPage from "./FashionStoreFaqPage.vue";
 import FashionStoreMagazinePage from "./FashionStoreMagazinePage.vue";
 import FashionStoreWishlistPage from "./FashionStoreWishlistPage.vue";
+import FashionStoreReleasedContentPage from "./FashionStoreReleasedContentPage.vue";
 import FashionStoreContentState from "./FashionStoreContentState.vue";
 import FashionStoreShell from "../shared/FashionStoreShell.vue";
 
@@ -41,10 +43,22 @@ const contentPages = {
 } as const;
 const routePresentation = computed(() => {
   const path = normalizeThemeRoutePath(router.currentRoute.value.path);
+  const releasedContent = resolveFashionStoreReleasedContentPresentation(properties.viewModel);
+  if (releasedContent) {
+    const releasedRoute = releasedContent.route === "/contact" ? "contact" : "article";
+    return {
+      component: undefined,
+      content: undefined,
+      liveContact: resolveFashionStoreLiveContactPresentation(properties.viewModel, releasedRoute),
+      releasedContent: releasedRoute === "contact" ? undefined : releasedContent,
+      route: releasedRoute,
+    };
+  }
   const resolved = contentPages[path as keyof typeof contentPages];
   if (!resolved) throw new Error(`Unknown Fashion Store content route: ${path}`);
   return {
     component: resolved.component as Component,
+    releasedContent: undefined,
     content: resolveFashionStoreContentPresentation(
       properties.viewModel,
       resolved.route as FashionStoreContentRouteKey,
@@ -56,14 +70,19 @@ const routePresentation = computed(() => {
 </script>
 
 <template>
+  <FashionStoreReleasedContentPage
+    v-if="routePresentation.releasedContent"
+    :presentation="routePresentation.releasedContent"
+    :resolve-asset="resolveAsset"
+  />
   <FashionStoreLiveContactPage
-    v-if="routePresentation.liveContact"
+    v-else-if="routePresentation.liveContact"
     :presentation="routePresentation.liveContact"
     :resolve-asset="resolveAsset"
   />
   <component
     :is="routePresentation.component"
-    v-else-if="routePresentation.content.detail"
+    v-else-if="routePresentation.content?.detail"
     :data="routePresentation.content.detail"
     :resolve-asset="resolveAsset"
   />
@@ -74,7 +93,7 @@ const routePresentation = computed(() => {
       :data-fashion-store-content-route="routePresentation.route"
     >
       <FashionStoreContentState
-        :presentation="routePresentation.content.state"
+        :presentation="routePresentation.content!.state"
         :resolve-asset="resolveAsset"
       />
     </main>

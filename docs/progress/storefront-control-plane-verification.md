@@ -260,3 +260,44 @@ candidate, or change runtime behavior.
   TypeScript checks, scoped ESLint, and `git diff --check` passed.
 - No remote candidate, deployment, DC, or PG state was created or advanced. U4 completes local
   Collection control capability only; product execution advances to U5.
+
+## U5 Content Pages and Articles evidence
+
+- Added separate versioned Page and Article authorities with stable identity, optimistic draft
+  writes, permission-separated publish/archive transitions, audit-coupled D1 mutation claims, and
+  resource-level archive semantics that retain historical bytes without leaving a live predecessor.
+- The shared Content contract admits only bounded title, lead, paragraph, approved media, and typed
+  internal or safe external link sections. Save and Release parsing enforce document bytes, text,
+  section, link, and media ceilings; arbitrary HTML, unsafe URL forms, control characters, and
+  unsupported nesting fail closed before rendering.
+- Content routes and redirects preserve stable identity across repeated renames: all aliases point
+  directly to the newest live route, archive removes resource redirects atomically, and
+  permission-filtered Navigation, Content, and Theme backlinks block unsafe transitions.
+- Admin now provides independent Pages and Articles lists and editors, read-only publisher
+  lifecycle controls, approved-media selection, localized status and errors, new-window list
+  navigation, unsaved-input protection, retryable media loading, and stable list filters across
+  locale changes. Browser interaction proves paste and keyboard validation preserve the document
+  through validation and optimistic-conflict recovery.
+- Catalog Release schema v3 freezes exact Page and Article versions, media, typed references,
+  redirects, and route identities. Fashion resolves merchant content and Article destinations from
+  the Release, safely maps only parsed presentation fields, preserves canonical Contact channels,
+  and exposes no fixed sample Article when the Release contains zero Articles.
+- Boundary proof covers exact and max-plus-one values for 64,000 document bytes, 40 sections,
+  5,000-character text, 20 links, and 20 media references. Exact documents survive API save, real
+  candidate construction, build, hydration, and JavaScript-disabled SSR; every max-plus-one input
+  is rejected by the shared save or Release parser boundary and cannot enter the renderer.
+- A full structured code review confirmed 20 findings across editor integrity, permissions,
+  concurrency, lifecycle, redirects, backlinks, Release eligibility, zero-content truthfulness,
+  localization, recovery, and list query growth. All findings and the remaining acceptance gaps
+  were repaired and independently reverified Ready. Retained artifacts are
+  `/tmp/compound-engineering-501/ce-code-review/20260923-085953-267ab0a5/report.md` and
+  `/tmp/compound-engineering-501/ce-code-review/20260923-085953-267ab0a5/final-repair-verification.md`.
+- Authoritative verification on 2026-09-23: Contracts `59/59`, DB workers `22/22`, API workers
+  `329/329`, Admin U5 focused `14/14`, Admin Browser Mode `1/1`, Storefront focused `17/17`, and
+  released Content browser boundary/safe-link proof passed. API, Admin, Contracts, DB, and
+  Storefront scoped TypeScript checks, changed Admin ESLint, Prettier, and `git diff --check`
+  passed. The Admin full run's sole parallel Theme Editor timeout passed alone; four full live
+  browser failures were isolated to the pre-existing footer-contact fixture mismatch, while all U5
+  browser scenarios passed.
+- No remote candidate, deployment, DC, or PG state was created or advanced. U5 completes local
+  Content control capability only; product execution advances to U6.

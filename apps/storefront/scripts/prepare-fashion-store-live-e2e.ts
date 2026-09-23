@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 
 import {
   canonicalCatalogReleaseSchema,
+  catalogReleaseV3Schema,
   experienceSnapshotSchema,
   type ExperienceSnapshot,
 } from "@shoppp/contracts";
@@ -57,10 +58,47 @@ const selectedReleasePolicyProof = {
   title: "Live preview policy proof",
 };
 
+export function exactContentBoundaryDocument() {
+  const body = Array.from({ length: 13 }, (_, index) => ({
+    id: `section.bytes${index}`,
+    kind: "paragraph" as const,
+    text: "x".repeat(5_000),
+  }));
+  const bytes = (value: unknown) => new TextEncoder().encode(JSON.stringify(value)).byteLength;
+  body.at(-1)!.text = "x".repeat(5_000 - (bytes(body) - 64_000));
+  if (bytes(body) !== 64_000) throw new Error("Exact Content boundary fixture is not 64000 bytes.");
+  return body;
+}
+
+export function exactTextBoundaryDocument() {
+  return [{ id: "section.text", kind: "paragraph" as const, text: "x".repeat(5_000) }];
+}
+
+export function exactCardinalityBoundaryDocument(mediaId: string) {
+  return [
+    ...Array.from({ length: 20 }, (_, index) => ({
+      id: `section.link${index}`,
+      kind: "link" as const,
+      link: {
+        label: `Boundary link ${index + 1}`,
+        target: { kind: "external" as const, url: `https://example.com/boundary/${index}` },
+        targetBehavior: "same-window" as const,
+      },
+    })),
+    ...Array.from({ length: 20 }, (_, index) => ({
+      alt: `Boundary media ${index + 1}`,
+      assetId: mediaId,
+      id: `section.media${index}`,
+      kind: "image" as const,
+    })),
+  ];
+}
+
 export function fashionStoreLiveBuildInput(
   fixtureInput: FashionStoreFixtureInput,
   releaseFixture: FashionStoreReleaseFixture,
   expectedOrigin = fixtureInput.expectedOrigin,
+  options: { zeroArticles?: boolean } = {},
 ) {
   const productIds = new Map(
     releaseFixture.products.map((product, index) => [
@@ -74,7 +112,7 @@ export function fashionStoreLiveBuildInput(
       `col_01JFASHIONLIVE${String(index + 1).padStart(11, "0")}`,
     ]),
   );
-  const catalogRelease = canonicalCatalogReleaseSchema.parse({
+  const canonicalRelease = canonicalCatalogReleaseSchema.parse({
     ...releaseFixture,
     collections: releaseFixture.collections.map((collection) => ({
       ...collection,
@@ -95,6 +133,131 @@ export function fashionStoreLiveBuildInput(
       ...releaseFixture.products.map(({ slug }) => `/products/${slug}`),
     ],
     schemaVersion: 2,
+  });
+  const boundaryMedia = canonicalRelease.products
+    .flatMap(({ media }) => media)
+    .find(({ id, src }) => Boolean(id) && src.startsWith("/"));
+  if (!boundaryMedia?.id) {
+    throw new Error("Fashion live preview requires one stable same-origin Product media asset.");
+  }
+  const releasedContent = [
+    {
+      digest: "b".repeat(64),
+      id: "page.released-story",
+      kind: "page" as const,
+      payload: {
+        sections: [
+          { id: "section.heading", kind: "heading" as const, level: 2, text: "Released story" },
+          {
+            id: "section.body",
+            kind: "paragraph" as const,
+            text: "Server-rendered released Page content.",
+          },
+          {
+            id: "section.safe-link",
+            kind: "link" as const,
+            link: {
+              label: "Safe external reference",
+              target: { kind: "external" as const, url: "https://example.com/released-story" },
+              targetBehavior: "new-window" as const,
+            },
+          },
+        ],
+        seo: { title: "Released story" },
+        summary: "A Release-backed Fashion Page.",
+      },
+      route: "/pages/released-story",
+      slug: "released-story",
+      title: "Released story",
+      version: 1,
+    },
+    {
+      digest: "d".repeat(64),
+      id: "page.boundary-document",
+      kind: "page" as const,
+      payload: {
+        sections: exactContentBoundaryDocument(),
+        seo: { title: "Boundary document" },
+        summary: "An exact 64000-byte released Content document.",
+      },
+      route: "/pages/boundary-document",
+      slug: "boundary-document",
+      title: "Boundary document",
+      version: 1,
+    },
+    {
+      digest: "e".repeat(64),
+      id: "page.text-boundary",
+      kind: "page" as const,
+      payload: {
+        sections: exactTextBoundaryDocument(),
+        seo: { title: "Text boundary" },
+        summary: "An exact 5000-character released Content paragraph.",
+      },
+      route: "/pages/text-boundary",
+      slug: "text-boundary",
+      title: "Text boundary",
+      version: 1,
+    },
+    {
+      digest: "f".repeat(64),
+      id: "page.cardinality-boundary",
+      kind: "page" as const,
+      payload: {
+        sections: exactCardinalityBoundaryDocument(boundaryMedia.id),
+        seo: { title: "Cardinality boundary" },
+        summary: "Exact 40-section, 20-link, and 20-media released Content.",
+      },
+      route: "/pages/cardinality-boundary",
+      slug: "cardinality-boundary",
+      title: "Cardinality boundary",
+      version: 1,
+    },
+    {
+      digest: "c".repeat(64),
+      id: "article.released-notes",
+      kind: "article" as const,
+      payload: {
+        sections: [
+          {
+            id: "section.body",
+            kind: "paragraph" as const,
+            text: "Server-rendered released Article content.",
+          },
+        ],
+        seo: { title: "Released notes" },
+        summary: "A Release-backed Fashion Article.",
+      },
+      route: "/magazine/released-notes",
+      slug: "released-notes",
+      title: "Released notes",
+      version: 1,
+    },
+  ].filter(({ kind }) => !options.zeroArticles || kind !== "article");
+  const routes = [...canonicalRelease.routes, ...releasedContent.map(({ route }) => route)];
+  const catalogRelease = catalogReleaseV3Schema.parse({
+    ...canonicalRelease,
+    content: releasedContent,
+    environment: "development",
+    identity: {
+      faviconAssetId: null,
+      id: "identity.primary",
+      logoAssets: [],
+      seo: {},
+      socialShareAssetId: null,
+      storefrontName: canonicalRelease.site.name,
+      tagline: "",
+      version: 1,
+    },
+    navigation: [],
+    purpose: "private-preview",
+    routeOutput: routes,
+    routes,
+    schemaVersion: 3,
+    sourceVersionVector: [
+      { digest: "a".repeat(64), id: "identity.primary", kind: "store-identity", version: 1 },
+      ...releasedContent.map(({ digest, id, kind, version }) => ({ digest, id, kind, version })),
+    ],
   });
   const collection = catalogRelease.collections.find(({ status }) => status === "published");
   const product = catalogRelease.products.find(
@@ -261,8 +424,9 @@ async function main(): Promise<void> {
   ) as FashionStoreReleaseFixture;
   const emptyHome = process.argv.includes("--empty-home");
   const emptyProduct = process.argv.includes("--empty-product");
+  const zeroArticles = process.argv.includes("--zero-articles");
   const unifiedHome = process.argv.includes("--unified-home");
-  if ([emptyHome, emptyProduct, unifiedHome].filter(Boolean).length > 1) {
+  if ([emptyHome, emptyProduct, unifiedHome, zeroArticles].filter(Boolean).length > 1) {
     throw new Error("Choose one Fashion Store live fixture profile.");
   }
   const preparedReleaseFixture = structuredClone(releaseFixture);
@@ -369,7 +533,12 @@ async function main(): Promise<void> {
         },
       }
     : fixtureInput;
-  const input = fashionStoreLiveBuildInput(productFixtureInput, liveReleaseFixture);
+  const input = fashionStoreLiveBuildInput(
+    productFixtureInput,
+    liveReleaseFixture,
+    productFixtureInput.expectedOrigin,
+    { zeroArticles },
+  );
   if (unifiedHome) {
     const profile = parseFashionStoreHomeDevelopmentProfile(
       process.env.STOREFRONT_FASHION_HOME_PROFILE,
@@ -383,11 +552,13 @@ async function main(): Promise<void> {
       fixtureRoot,
       unifiedHome
         ? "fashion-store-live-unified-home-e2e-input.json"
-        : emptyHome
-          ? "fashion-store-live-empty-e2e-input.json"
-          : emptyProduct
-            ? "fashion-store-live-empty-product-e2e-input.json"
-            : "fashion-store-live-e2e-input.json",
+        : zeroArticles
+          ? "fashion-store-live-zero-articles-e2e-input.json"
+          : emptyHome
+            ? "fashion-store-live-empty-e2e-input.json"
+            : emptyProduct
+              ? "fashion-store-live-empty-product-e2e-input.json"
+              : "fashion-store-live-e2e-input.json",
     ),
     `${JSON.stringify(input, null, 2)}\n`,
   );

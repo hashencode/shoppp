@@ -182,7 +182,7 @@ describe("Fashion Store route readiness", () => {
         canonicalPath: "/magazine/marketing-tips-and-tricks",
         id: "article",
         indexing: "index",
-        modes: ["fixture-preview", "live"],
+        modes: ["fixture-preview"],
       },
       {
         canonicalPath: "/about",
@@ -201,6 +201,8 @@ describe("Fashion Store route readiness", () => {
     expect(fashionStoreLiveRouteContracts.map(({ path }) => path)).toEqual([
       "/products/:slug",
       "/collections/:slug",
+      "/pages/:slug",
+      "/magazine/:slug",
     ]);
   });
 

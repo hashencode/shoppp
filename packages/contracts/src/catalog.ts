@@ -802,6 +802,7 @@ export const catalogReleaseContentRecordSchema = z
     kind: z.enum(["article", "page", "policy"]),
     payload: z
       .object({
+        coverAssetId: z.string().optional(),
         effectiveDate: z.iso.date().optional(),
         sections: storefrontContentDocumentSchema,
         seo: z.record(z.string(), z.unknown()).optional(),

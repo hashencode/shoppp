@@ -7,6 +7,143 @@ import { expectFashionStoreProductComposition } from "./support/fashion-store-pr
 
 test.setTimeout(60_000);
 
+test("Release-backed Page and Article preserve SSR output through hydration and safe links", async ({
+  page,
+}) => {
+  const hydrationErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" && /hydration|mismatch/i.test(message.text())) {
+      hydrationErrors.push(message.text());
+    }
+  });
+  const response = await page.goto("/pages/released-story", { waitUntil: "networkidle" });
+  expect(response?.status()).toBe(200);
+  const released = page.locator("[data-fashion-store-released-content]");
+  await expect(released.getByRole("heading", { level: 1, name: "Released story" })).toBeVisible();
+  await expect(released.getByText("Server-rendered released Page content.")).toBeVisible();
+  await expect(released.getByRole("link", { name: "Safe external reference" })).toHaveAttribute(
+    "href",
+    "https://example.com/released-story",
+  );
+  await expect(released.getByRole("link", { name: "Safe external reference" })).toHaveAttribute(
+    "rel",
+    "noopener noreferrer",
+  );
+  await expect(released.getByRole("link", { name: "Safe external reference" })).toHaveAttribute(
+    "target",
+    "_blank",
+  );
+  expect(hydrationErrors).toEqual([]);
+
+  await page.goto("/magazine/released-notes", { waitUntil: "networkidle" });
+  await expect(page.getByRole("heading", { level: 1, name: "Released notes" })).toBeVisible();
+  await expect(page.getByText("Server-rendered released Article content.")).toBeVisible();
+  await expect(page.getByText("Article", { exact: true })).toBeVisible();
+  expect(hydrationErrors).toEqual([]);
+});
+
+test("Release-backed Content remains meaningful in static no-JavaScript HTML", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  try {
+    const response = await page.goto("/pages/released-story", { waitUntil: "domcontentloaded" });
+    expect(response?.status()).toBe(200);
+    expect(await response!.text()).toContain("Server-rendered released Page content.");
+    await expect(page.locator("[data-fashion-store-released-content]")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Released story" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Safe external reference" })).toHaveAttribute(
+      "href",
+      "https://example.com/released-story",
+    );
+  } finally {
+    await context.close();
+  }
+});
+
+test("exact-limit released Content survives build, SSR, and hydration without truncation", async ({
+  browser,
+  page,
+}) => {
+  const assertExactDocument = async (target: Page) => {
+    const paragraphs = await target
+      .locator("[data-fashion-store-released-content] .released-content__body > p")
+      .allTextContents();
+    expect(paragraphs).toHaveLength(13);
+    const reconstructed = paragraphs.map((text, index) => ({
+      id: `section.bytes${index}`,
+      kind: "paragraph",
+      text,
+    }));
+    expect(new TextEncoder().encode(JSON.stringify(reconstructed)).byteLength).toBe(64_000);
+  };
+
+  const hydrated = await page.goto("/pages/boundary-document", { waitUntil: "networkidle" });
+  expect(hydrated?.status()).toBe(200);
+  await expect(page.getByRole("heading", { level: 1, name: "Boundary document" })).toBeVisible();
+  await assertExactDocument(page);
+
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const staticPage = await context.newPage();
+  try {
+    const response = await staticPage.goto("/pages/boundary-document", {
+      waitUntil: "domcontentloaded",
+    });
+    expect(response?.status()).toBe(200);
+    await assertExactDocument(staticPage);
+  } finally {
+    await context.close();
+  }
+});
+
+test("exact text, section, link, and media ceilings survive SSR, no-JS, and hydration", async ({
+  browser,
+  page,
+}) => {
+  const assertTextBoundary = async (target: Page) => {
+    const paragraph = target.locator(
+      "[data-fashion-store-released-content] .released-content__body > p",
+    );
+    await expect(paragraph).toHaveCount(1);
+    expect(await paragraph.textContent()).toBe("x".repeat(5_000));
+  };
+  const assertCardinalityBoundary = async (target: Page) => {
+    const body = target.locator("[data-fashion-store-released-content] .released-content__body");
+    await expect(body.locator(":scope > *")).toHaveCount(40);
+    await expect(body.locator(":scope > p > a")).toHaveCount(20);
+    await expect(body.locator(":scope > figure > img")).toHaveCount(20);
+    await expect(body.locator(":scope > figure > img").first()).toHaveAttribute(
+      "alt",
+      "Boundary media 1",
+    );
+  };
+
+  for (const [path, assertion] of [
+    ["/pages/text-boundary", assertTextBoundary],
+    ["/pages/cardinality-boundary", assertCardinalityBoundary],
+  ] as const) {
+    const hydrated = await page.goto(path, { waitUntil: "networkidle" });
+    expect(hydrated?.status()).toBe(200);
+    await assertion(page);
+  }
+
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const staticPage = await context.newPage();
+  try {
+    for (const [path, assertion] of [
+      ["/pages/text-boundary", assertTextBoundary],
+      ["/pages/cardinality-boundary", assertCardinalityBoundary],
+    ] as const) {
+      const response = await staticPage.goto(path, { waitUntil: "domcontentloaded" });
+      expect(response?.status()).toBe(200);
+      await assertion(staticPage);
+    }
+  } finally {
+    await context.close();
+  }
+});
+
 const cartToken = "fashion_live_cart_token_12345678901234567890";
 const shippingMethodId = "ship_01J00000000000000000000000";
 const variantId = "var_01JFSHIRTGREENXL000000001";

@@ -58,6 +58,7 @@ const DISPOSABLE_TABLES = [
   "collections",
   "content_article_versions",
   "content_page_versions",
+  "content_route_redirects",
   "d1_backup_runs",
   "fashion_staging_acceptance_resources",
   "fashion_staging_acceptance_runs",

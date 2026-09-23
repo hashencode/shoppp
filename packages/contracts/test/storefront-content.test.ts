@@ -6,6 +6,9 @@ import {
   policyAuthoritySchema,
   storeIdentitySchema,
   storefrontContentDocumentSchema,
+  contentPageWriteRequestSchema,
+  contentTransitionRequestSchema,
+  publishableContentDocumentSchema,
   createPolicyRequestSchema,
   policyTransitionRequestSchema,
   updateStoreIdentityRequestSchema,
@@ -179,5 +182,142 @@ describe("storefront content authority contracts", () => {
       }).success,
     ).toBe(false);
     expect(collectionAuthoritySchema.safeParse({ ...collection, version: 0 }).success).toBe(false);
+  });
+
+  test("accepts only the bounded Page and Article v1 section set", () => {
+    const document = [
+      { id: "section.lead", kind: "paragraph", text: "A quiet introduction." },
+      {
+        id: "section.link",
+        kind: "link",
+        link: {
+          label: "Read the returns policy",
+          target: { kind: "internal", reference: { id: "policy.returns", kind: "policy" } },
+          targetBehavior: "same-window",
+        },
+      },
+    ];
+    expect(publishableContentDocumentSchema.safeParse(document).success).toBe(true);
+    expect(
+      publishableContentDocumentSchema.safeParse([
+        { id: "section.list", kind: "list", items: ["unsupported"] },
+      ]).success,
+    ).toBe(false);
+    expect(
+      publishableContentDocumentSchema.safeParse([
+        {
+          id: "section.external",
+          kind: "link",
+          link: {
+            label: "Unsafe",
+            target: { kind: "external", url: "https://user:secret@example.test/path" },
+            targetBehavior: "new-window",
+          },
+        },
+      ]).success,
+    ).toBe(false);
+  });
+
+  test("keeps content lifecycle fields server-owned and optimistic", () => {
+    const input = {
+      body: [{ id: "section.intro", kind: "paragraph", text: "About our studio." }],
+      expectedVersion: 3,
+      reason: "Revise the About page",
+      seo: { description: "About our studio", title: "About" },
+      slug: "about",
+      summary: "Our story",
+      title: "About",
+    };
+    expect(contentPageWriteRequestSchema.safeParse(input).success).toBe(true);
+    expect(contentPageWriteRequestSchema.safeParse({ ...input, status: "published" }).success).toBe(
+      false,
+    );
+    expect(
+      contentTransitionRequestSchema.safeParse({
+        confirm: true,
+        expectedVersion: 3,
+        reason: "Publish the reviewed About page",
+        redirectFromOldSlug: true,
+      }).success,
+    ).toBe(true);
+  });
+
+  test("accepts exact Content ceilings and rejects each max-plus-one boundary", () => {
+    const input = {
+      body: [{ id: "section.intro", kind: "paragraph" as const, text: "x".repeat(5_000) }],
+      reason: "Verify exact boundaries",
+      seo: { description: "d".repeat(320), title: "s".repeat(160) },
+      slug: "s".repeat(160),
+      summary: "u".repeat(500),
+      title: "t".repeat(160),
+    };
+    expect(contentPageWriteRequestSchema.safeParse(input).success).toBe(true);
+    for (const overflow of [
+      { ...input, title: `${input.title}x` },
+      { ...input, summary: `${input.summary}x` },
+      { ...input, slug: `${input.slug}x` },
+      { ...input, seo: { ...input.seo, title: `${input.seo.title}x` } },
+      { ...input, seo: { ...input.seo, description: `${input.seo.description}x` } },
+      { ...input, body: [{ ...input.body[0]!, text: `${input.body[0]!.text}x` }] },
+    ]) {
+      expect(contentPageWriteRequestSchema.safeParse(overflow).success).toBe(false);
+    }
+
+    const fortySections = Array.from({ length: 40 }, (_, index) => ({
+      id: `section.p${index}`,
+      kind: "paragraph" as const,
+      text: "x",
+    }));
+    expect(publishableContentDocumentSchema.safeParse(fortySections).success).toBe(true);
+    expect(
+      publishableContentDocumentSchema.safeParse([
+        ...fortySections,
+        { id: "section.overflow", kind: "paragraph", text: "x" },
+      ]).success,
+    ).toBe(false);
+
+    const links = Array.from({ length: 20 }, (_, index) => ({
+      id: `section.link${index}`,
+      kind: "link" as const,
+      link: {
+        label: "Link",
+        target: { kind: "external" as const, url: `https://example.test/${index}` },
+        targetBehavior: "same-window" as const,
+      },
+    }));
+    expect(publishableContentDocumentSchema.safeParse(links).success).toBe(true);
+    expect(
+      publishableContentDocumentSchema.safeParse([
+        ...links,
+        { ...links[0]!, id: "section.link-overflow" },
+      ]).success,
+    ).toBe(false);
+
+    const media = Array.from({ length: 20 }, (_, index) => ({
+      alt: "Media",
+      assetId: "media_01J00000000000000000000000",
+      id: `section.media${index}`,
+      kind: "image" as const,
+    }));
+    expect(publishableContentDocumentSchema.safeParse(media).success).toBe(true);
+    expect(
+      publishableContentDocumentSchema.safeParse([
+        ...media,
+        { ...media[0]!, id: "section.media-overflow" },
+      ]).success,
+    ).toBe(false);
+
+    const byteLimited = Array.from({ length: 13 }, (_, index) => ({
+      id: `section.bytes${index}`,
+      kind: "paragraph" as const,
+      text: "x".repeat(5_000),
+    }));
+    const encoder = new TextEncoder();
+    const excess = encoder.encode(JSON.stringify(byteLimited)).byteLength - 64_000;
+    byteLimited[byteLimited.length - 1]!.text = "x".repeat(5_000 - excess);
+    expect(encoder.encode(JSON.stringify(byteLimited)).byteLength).toBe(64_000);
+    expect(publishableContentDocumentSchema.safeParse(byteLimited).success).toBe(true);
+    byteLimited[byteLimited.length - 1]!.text += "x";
+    expect(publishableContentDocumentSchema.safeParse(byteLimited).success).toBe(false);
   });
 });

@@ -2,17 +2,34 @@ import type { StorefrontContentSection } from '@shoppp/contracts'
 import { Button, Card, Input, Select, Space } from 'antd'
 import React from 'react'
 
+import { useI18n } from '../contexts/i18n-context'
+import { ContentMediaSelect } from './content-media-select'
+
 void React
 
 type Props = {
+  contentMode?: 'policy' | 'publishable'
   disabled?: boolean
-  onChange: (value: StorefrontContentSection[]) => void
-  value: StorefrontContentSection[]
+  onChange?: (value: StorefrontContentSection[]) => void
+  value?: StorefrontContentSection[]
 }
 
 const sectionId = () => `section.${crypto.randomUUID()}`
+const sectionKindLabel: Record<StorefrontContentSection['kind'], string> = {
+  heading: 'Heading',
+  image: 'Image',
+  link: 'Link',
+  list: 'List',
+  paragraph: 'Paragraph',
+}
 
-export const StructuredContentEditor = ({ disabled = false, onChange, value = [] }: Props) => {
+export const StructuredContentEditor = ({
+  contentMode = 'policy',
+  disabled = false,
+  onChange = () => undefined,
+  value = [],
+}: Props) => {
+  const { t } = useI18n()
   const replace = (index: number, section: StorefrontContentSection) =>
     onChange(value.map((item, itemIndex) => (itemIndex === index ? section : item)))
   const append = (kind: StorefrontContentSection['kind']) => {
@@ -24,15 +41,28 @@ export const StructuredContentEditor = ({ disabled = false, onChange, value = []
           ? { id, kind, text: '' }
           : kind === 'list'
             ? { id, kind, items: [''] }
-            : { alt: '', assetId: '', id, kind }
+            : kind === 'image'
+              ? { alt: '', assetId: '', id, kind }
+              : {
+                  id,
+                  kind,
+                  link: {
+                    label: '',
+                    target: { kind: 'external', url: '' },
+                    targetBehavior: 'same-window',
+                  },
+                }
     onChange([...value, section])
   }
   return (
-    <Space direction="vertical" className="w-full" size="middle">
+    <Space orientation="vertical" className="w-full" size="middle">
       <Space wrap>
-        {(['heading', 'paragraph', 'list', 'image'] as const).map((kind) => (
+        {(contentMode === 'publishable'
+          ? (['heading', 'paragraph', 'image', 'link'] as const)
+          : (['heading', 'paragraph', 'list', 'image', 'link'] as const)
+        ).map((kind) => (
           <Button key={kind} disabled={disabled || value.length >= 40} onClick={() => append(kind)}>
-            Add {kind}
+            {t('Add {kind}', { kind: t(sectionKindLabel[kind]) })}
           </Button>
         ))}
       </Space>
@@ -40,28 +70,28 @@ export const StructuredContentEditor = ({ disabled = false, onChange, value = []
         <Card
           key={section.id}
           size="small"
-          title={`${index + 1}. ${section.kind}`}
+          title={`${index + 1}. ${t(sectionKindLabel[section.kind])}`}
           extra={
             <Button
               danger
               disabled={disabled}
               onClick={() => onChange(value.filter((_, itemIndex) => itemIndex !== index))}
             >
-              Remove
+              {t('Remove')}
             </Button>
           }
         >
           {section.kind === 'heading' ? (
-            <Space direction="vertical" className="w-full">
+            <Space orientation="vertical" className="w-full">
               <Select
-                aria-label={`Heading level ${index + 1}`}
+                aria-label={t('Heading level {index}', { index: index + 1 })}
                 disabled={disabled}
                 value={section.level}
                 options={[2, 3].map((level) => ({ label: `H${level}`, value: level }))}
                 onChange={(level) => replace(index, { ...section, level })}
               />
               <Input
-                aria-label={`Heading text ${index + 1}`}
+                aria-label={t('Heading text {index}', { index: index + 1 })}
                 disabled={disabled}
                 maxLength={200}
                 value={section.text}
@@ -70,7 +100,7 @@ export const StructuredContentEditor = ({ disabled = false, onChange, value = []
             </Space>
           ) : section.kind === 'paragraph' ? (
             <Input.TextArea
-              aria-label={`Paragraph ${index + 1}`}
+              aria-label={t('Paragraph {index}', { index: index + 1 })}
               disabled={disabled}
               maxLength={5000}
               rows={4}
@@ -79,32 +109,150 @@ export const StructuredContentEditor = ({ disabled = false, onChange, value = []
             />
           ) : section.kind === 'list' ? (
             <Input.TextArea
-              aria-label={`List ${index + 1}`}
+              aria-label={t('List {index}', { index: index + 1 })}
               disabled={disabled}
               rows={4}
               value={section.items.join('\n')}
               onChange={(event) =>
                 replace(index, {
                   ...section,
-                  items: event.target.value.split('\n').slice(0, 20).map((item) => item.slice(0, 500)),
+                  items: event.target.value
+                    .split('\n')
+                    .slice(0, 20)
+                    .map((item) => item.slice(0, 500)),
                 })
               }
             />
-          ) : (
-            <Space direction="vertical" className="w-full">
-              <Input
-                aria-label={`Image asset ID ${index + 1}`}
+          ) : section.kind === 'image' ? (
+            <Space orientation="vertical" className="w-full">
+              <ContentMediaSelect
                 disabled={disabled}
-                placeholder="Approved asset ID"
                 value={section.assetId}
-                onChange={(event) => replace(index, { ...section, assetId: event.target.value })}
+                onChange={(assetId) => replace(index, { ...section, assetId: assetId ?? '' })}
               />
               <Input
-                aria-label={`Image alternative text ${index + 1}`}
+                aria-label={t('Image alternative text {index}', { index: index + 1 })}
                 disabled={disabled}
                 maxLength={300}
                 value={section.alt}
                 onChange={(event) => replace(index, { ...section, alt: event.target.value })}
+              />
+            </Space>
+          ) : (
+            <Space orientation="vertical" className="w-full">
+              <Input
+                aria-label={t('Link label {index}', { index: index + 1 })}
+                disabled={disabled}
+                maxLength={120}
+                value={section.link.label}
+                onChange={(event) =>
+                  replace(index, {
+                    ...section,
+                    link: { ...section.link, label: event.target.value },
+                  })
+                }
+              />
+              <Select
+                aria-label={t('Link target type {index}', { index: index + 1 })}
+                disabled={disabled}
+                value={section.link.target.kind}
+                options={[
+                  { label: t('Internal resource'), value: 'internal' },
+                  { label: t('External HTTPS'), value: 'external' },
+                ]}
+                onChange={(kind: 'external' | 'internal') =>
+                  replace(index, {
+                    ...section,
+                    link: {
+                      ...section.link,
+                      target:
+                        kind === 'external'
+                          ? { kind, url: '' }
+                          : { kind, reference: { id: 'page.placeholder', kind: 'page' } },
+                    },
+                  })
+                }
+              />
+              {section.link.target.kind === 'external' ? (
+                <Input
+                  aria-label={t('External URL {index}', { index: index + 1 })}
+                  disabled={disabled}
+                  placeholder="https://example.com/path"
+                  value={section.link.target.url}
+                  onChange={(event) =>
+                    replace(index, {
+                      ...section,
+                      link: {
+                        ...section.link,
+                        target: { kind: 'external', url: event.target.value },
+                      },
+                    })
+                  }
+                />
+              ) : (
+                <Space.Compact className="w-full">
+                  <Select
+                    aria-label={t('Internal resource kind {index}', { index: index + 1 })}
+                    disabled={disabled}
+                    value={section.link.target.reference.kind}
+                    options={['product', 'collection', 'page', 'article', 'policy'].map((kind) => ({
+                      label: kind,
+                      value: kind,
+                    }))}
+                    onChange={(kind) =>
+                      replace(index, {
+                        ...section,
+                        link: {
+                          ...section.link,
+                          target: {
+                            kind: 'internal',
+                            reference: {
+                              id: `${kind}.placeholder`,
+                              kind,
+                            } as typeof section.link.target.reference,
+                          },
+                        },
+                      })
+                    }
+                  />
+                  <Input
+                    aria-label={t('Internal resource ID {index}', { index: index + 1 })}
+                    disabled={disabled}
+                    value={section.link.target.reference.id}
+                    onChange={(event) =>
+                      replace(index, {
+                        ...section,
+                        link: {
+                          ...section.link,
+                          target: {
+                            kind: 'internal',
+                            reference: {
+                              ...('reference' in section.link.target
+                                ? section.link.target.reference
+                                : { id: 'page.placeholder', kind: 'page' as const }),
+                              id: event.target.value,
+                            },
+                          },
+                        },
+                      })
+                    }
+                  />
+                </Space.Compact>
+              )}
+              <Select
+                aria-label={t('Link window {index}', { index: index + 1 })}
+                disabled={disabled}
+                value={section.link.targetBehavior}
+                options={[
+                  { label: t('Same window'), value: 'same-window' },
+                  { label: t('New window'), value: 'new-window' },
+                ]}
+                onChange={(targetBehavior) =>
+                  replace(index, {
+                    ...section,
+                    link: { ...section.link, targetBehavior },
+                  })
+                }
               />
             </Space>
           )}

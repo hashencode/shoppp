@@ -5,7 +5,7 @@ import { resolveFashionStoreEditorMedia } from "../../resources";
 import FashionStorePageTitle from "../shared/FashionStorePageTitle.vue";
 import FashionStoreShell from "../shared/FashionStoreShell.vue";
 
-type ContactPresentation = Extract<PresentationViewModel, { kind: "state" }>;
+type ContactPresentation = Extract<PresentationViewModel, { kind: "released-content" | "state" }>;
 
 const properties = defineProps<{
   presentation: ContactPresentation;
@@ -13,6 +13,20 @@ const properties = defineProps<{
 }>();
 
 const contact = computed(() => properties.presentation.publicContact);
+const released = computed(() =>
+  properties.presentation.kind === "released-content" ? properties.presentation : undefined,
+);
+const heading = computed(() =>
+  properties.presentation.kind === "released-content"
+    ? properties.presentation.title
+    : properties.presentation.heading,
+);
+const message = computed(() =>
+  properties.presentation.kind === "released-content"
+    ? properties.presentation.summary
+    : properties.presentation.message,
+);
+const state = computed(() => properties.presentation.state);
 const weekdayLabels = {
   monday: "Monday",
   tuesday: "Tuesday",
@@ -34,7 +48,7 @@ const serviceHoursText = computed(() => {
     .join("; ");
 });
 const mediaSource = computed(() =>
-  properties.presentation.media
+  properties.presentation.kind === "state" && properties.presentation.media
     ? resolveFashionStoreEditorMedia(properties.resolveAsset, properties.presentation.media)
     : undefined,
 );
@@ -43,7 +57,7 @@ const hasGeneralDetails = computed(() =>
     contact.value?.supportEmail ||
     contact.value?.privacyEmail ||
     contact.value?.publicPhone ||
-    (properties.presentation.state === "populated" && contact.value?.serviceHours),
+    (state.value === "populated" && contact.value?.serviceHours),
   ),
 );
 </script>
@@ -56,16 +70,19 @@ const hasGeneralDetails = computed(() =>
       :data-content-state="presentation.state"
       :data-contact-version="presentation.contactVersion"
     >
-      <FashionStorePageTitle :title="presentation.heading" />
+      <FashionStorePageTitle :title="heading" />
       <section class="pt-0 pb-60px sm-pb-40px">
         <div class="container">
           <div class="row align-items-center gy-4">
             <div class="col-lg-7">
               <p class="alt-font fs-22 text-dark-gray mb-0">
-                {{ presentation.message }}
+                {{ message }}
               </p>
             </div>
-            <div v-if="presentation.media && mediaSource" class="col-lg-5">
+            <div
+              v-if="presentation.kind === 'state' && presentation.media && mediaSource"
+              class="col-lg-5"
+            >
               <img
                 :src="mediaSource"
                 :alt="presentation.media.alt"
@@ -75,6 +92,33 @@ const hasGeneralDetails = computed(() =>
               />
             </div>
           </div>
+        </div>
+      </section>
+
+      <section v-if="released" class="pt-0 pb-60px sm-pb-40px">
+        <div class="container">
+          <template v-for="section in released.sections" :key="section.id">
+            <h2 v-if="section.kind === 'heading' && section.level === 2">{{ section.text }}</h2>
+            <h3 v-else-if="section.kind === 'heading'">{{ section.text }}</h3>
+            <p v-else-if="section.kind === 'paragraph'">{{ section.text }}</p>
+            <figure v-else-if="section.kind === 'image'">
+              <img
+                :alt="section.alt"
+                :height="section.media.height"
+                :src="section.media.src"
+                :width="section.media.width"
+              />
+              <figcaption v-if="section.caption">{{ section.caption }}</figcaption>
+            </figure>
+            <p v-else>
+              <a
+                :href="section.href"
+                :rel="section.targetBehavior === 'new-window' ? 'noopener noreferrer' : undefined"
+                :target="section.targetBehavior === 'new-window' ? '_blank' : undefined"
+                >{{ section.label }}</a
+              >
+            </p>
+          </template>
         </div>
       </section>
 

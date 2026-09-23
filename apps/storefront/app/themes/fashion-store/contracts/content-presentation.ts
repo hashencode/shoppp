@@ -110,10 +110,16 @@ export interface FashionStoreContentPresentation<K extends FashionStoreContentRo
 export function resolveFashionStoreLiveContactPresentation(
   viewModel: PresentationViewModel,
   route: FashionStoreContentRouteKey,
-): Extract<PresentationViewModel, { kind: "state" }> | undefined {
-  return route === "contact" && viewModel.kind === "state" && viewModel.publicContact
+): Extract<PresentationViewModel, { kind: "released-content" | "state" }> | undefined {
+  return route === "contact" && "publicContact" in viewModel && viewModel.publicContact
     ? viewModel
     : undefined;
+}
+
+export function resolveFashionStoreReleasedContentPresentation(
+  viewModel: PresentationViewModel,
+): Extract<PresentationViewModel, { kind: "released-content" }> | undefined {
+  return viewModel.kind === "released-content" ? viewModel : undefined;
 }
 
 const routeHeading: Record<FashionStoreContentRouteKey, string> = {

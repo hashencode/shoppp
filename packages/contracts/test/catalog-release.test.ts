@@ -73,6 +73,42 @@ const canonicalRelease = {
 } as const;
 
 describe("catalog release contracts", () => {
+  const v3CandidateWithSections = (sections: unknown[]) => {
+    const digest = "a".repeat(64);
+    return {
+      ...canonicalRelease,
+      content: [
+        {
+          digest,
+          id: "page.boundary",
+          kind: "page",
+          payload: { sections },
+          route: "/pages/boundary",
+          slug: "boundary",
+          title: "Boundary",
+          version: 1,
+        },
+      ],
+      environment: "development",
+      identity: {
+        faviconAssetId: null,
+        id: "identity.primary",
+        logoAssets: [],
+        seo: {},
+        socialShareAssetId: null,
+        storefrontName: "Shoppp",
+        tagline: "",
+        version: 1,
+      },
+      navigation: [],
+      purpose: "private-preview",
+      routeOutput: [...canonicalRelease.routes, "/pages/boundary"],
+      routes: [...canonicalRelease.routes, "/pages/boundary"],
+      schemaVersion: 3,
+      sourceVersionVector: [{ digest, id: "page.boundary", kind: "page", version: 1 }],
+    };
+  };
+
   test("requires unique ordered Product IDs for Collection writes", () => {
     const input = {
       description: "Travel",
@@ -158,6 +194,54 @@ describe("catalog release contracts", () => {
       ],
     };
     expect(catalogReleaseV3Schema.safeParse(candidate).success).toBe(false);
+  });
+
+  test("fails closed at the release parser for every Content max-plus-one boundary", () => {
+    const paragraph = (index: number, text = "x") => ({
+      id: `section.p${index}`,
+      kind: "paragraph" as const,
+      text,
+    });
+    const link = (index: number) => ({
+      id: `section.link${index}`,
+      kind: "link" as const,
+      link: {
+        label: "Link",
+        target: { kind: "external" as const, url: `https://example.test/${index}` },
+        targetBehavior: "same-window" as const,
+      },
+    });
+    const media = (index: number) => ({
+      alt: "Media",
+      assetId: "media_01J00000000000000000000000",
+      id: `section.media${index}`,
+      kind: "image" as const,
+    });
+    const boundaries = [
+      {
+        exact: [paragraph(0, "x".repeat(5_000))],
+        overflow: [paragraph(0, "x".repeat(5_001))],
+      },
+      {
+        exact: Array.from({ length: 40 }, (_, index) => paragraph(index)),
+        overflow: Array.from({ length: 41 }, (_, index) => paragraph(index)),
+      },
+      {
+        exact: Array.from({ length: 20 }, (_, index) => link(index)),
+        overflow: Array.from({ length: 21 }, (_, index) => link(index)),
+      },
+      {
+        exact: Array.from({ length: 20 }, (_, index) => media(index)),
+        overflow: Array.from({ length: 21 }, (_, index) => media(index)),
+      },
+    ];
+
+    for (const { exact, overflow } of boundaries) {
+      expect(catalogReleaseV3Schema.safeParse(v3CandidateWithSections(exact)).success).toBe(true);
+      expect(catalogReleaseV3Schema.safeParse(v3CandidateWithSections(overflow)).success).toBe(
+        false,
+      );
+    }
   });
 
   test("reads an ID-less legacy release but excludes it from stable live selection", () => {

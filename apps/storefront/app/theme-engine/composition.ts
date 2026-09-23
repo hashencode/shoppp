@@ -1,4 +1,10 @@
-import type { CanonicalCatalogRelease, StorefrontResourceReference } from "@shoppp/contracts";
+import type {
+  CanonicalCatalogRelease,
+  CatalogReleaseV3,
+  StorefrontResourceReference,
+} from "@shoppp/contracts";
+
+type StorefrontCatalogRelease = CanonicalCatalogRelease | CatalogReleaseV3;
 
 import type { PresentationViewModel } from "./view-models";
 
@@ -14,7 +20,7 @@ export interface ThemeReferenceDestination {
 }
 
 export interface ThemeCompositionAdapter {
-  destinations(release: CanonicalCatalogRelease): readonly ThemeReferenceDestination[];
+  destinations(release: StorefrontCatalogRelease): readonly ThemeReferenceDestination[];
   home?: {
     featuredCollectionSettingId: string;
     featuredProductSettingId: string;
@@ -22,7 +28,7 @@ export interface ThemeCompositionAdapter {
     sectionType: string;
   };
   referenceHref(
-    release: CanonicalCatalogRelease,
+    release: StorefrontCatalogRelease,
     reference: StorefrontResourceReference,
   ): string | undefined;
 }

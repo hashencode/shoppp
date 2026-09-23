@@ -1,8 +1,11 @@
-import type { CanonicalCatalogRelease, PageTemplate } from "@shoppp/contracts";
+import type { CanonicalCatalogRelease, CatalogReleaseV3, PageTemplate } from "@shoppp/contracts";
+
+type StorefrontCatalogRelease = CanonicalCatalogRelease | CatalogReleaseV3;
 
 export interface ThemeRouteContract {
   canonicalPath?: string;
-  family?: "catalog-collection" | "catalog-product" | "exact";
+  family?:
+    "catalog-collection" | "catalog-product" | "released-article" | "released-page" | "exact";
   id: string;
   indexing?: "index" | "noindex";
   modes?: readonly ThemePresentationMode[];
@@ -39,7 +42,7 @@ function availableInMode(route: ThemeRouteContract, mode?: ThemePresentationMode
 export function themeRoutePaths(
   routes: readonly ThemeRouteContract[],
   mode: ThemePresentationMode,
-  release?: CanonicalCatalogRelease,
+  release?: StorefrontCatalogRelease,
 ): string[] {
   const paths = routes
     .filter(
@@ -67,13 +70,30 @@ export function themeRoutePaths(
         .map(({ slug }) => `/collections/${slug}`),
     );
   }
+  if (release.schemaVersion === 3) {
+    const releasedKinds = new Set(
+      routes
+        .filter((route) => availableInMode(route, mode))
+        .map(({ family }) => family)
+        .filter((family) => family === "released-page" || family === "released-article"),
+    );
+    paths.push(
+      ...release.content
+        .filter(({ kind }) =>
+          kind === "page"
+            ? releasedKinds.has("released-page")
+            : kind === "article" && releasedKinds.has("released-article"),
+        )
+        .map(({ route }) => route),
+    );
+  }
   return [...new Set(paths)];
 }
 
 export function resolveThemeRoute(
   path: string,
   routes: readonly ThemeRouteContract[],
-  release?: CanonicalCatalogRelease,
+  release?: StorefrontCatalogRelease,
   mode?: ThemePresentationMode,
 ): ResolvedThemeRouteContract | undefined {
   const normalized = normalizeThemeRoutePath(path);
@@ -115,6 +135,16 @@ export function resolveThemeRoute(
         (entry) => entry.slug === slug && entry.status === "published",
       );
       if (collection) return { ...route, parameters: { collectionId: collection.id, slug } };
+    }
+    if (
+      release.schemaVersion === 3 &&
+      (route.family === "released-page" || route.family === "released-article")
+    ) {
+      const expectedKind = route.family === "released-page" ? "page" : "article";
+      const record = release.content.find(
+        ({ kind, route: releasedRoute }) => kind === expectedKind && releasedRoute === normalized,
+      );
+      if (record) return { ...route, parameters: { slug: record.slug } };
     }
   }
   return undefined;

@@ -11,6 +11,7 @@ export interface CatalogMediaListInput {
 interface CatalogMediaRow {
   alt_text: string;
   height: number;
+  id: string;
   product_name: string;
   r2_key: string;
   width: number;
@@ -20,7 +21,7 @@ export async function listCatalogMedia(env: ApiBindings, input: CatalogMediaList
   const query = input.query.trim().slice(0, 100);
   const pattern = `%${query.replaceAll("%", "\\%").replaceAll("_", "\\_")}%`;
   const bindings = [query, pattern, pattern] as const;
-  const where = `p.status IN ('published', 'archived')
+  const where = `p.status = 'published'
     AND (? = '' OR pm.alt_text LIKE ? ESCAPE '\\' OR p.name LIKE ? ESCAPE '\\')`;
   const count = await env.DB.prepare(
     `SELECT COUNT(*) AS total
@@ -31,7 +32,7 @@ export async function listCatalogMedia(env: ApiBindings, input: CatalogMediaList
     .bind(...bindings)
     .first<{ total: number }>();
   const rows = await env.DB.prepare(
-    `SELECT pm.r2_key, pm.alt_text, pm.width, pm.height, p.name AS product_name
+    `SELECT pm.id, pm.r2_key, pm.alt_text, pm.width, pm.height, p.name AS product_name
        FROM product_media pm
        JOIN products p ON p.id = pm.product_id
       WHERE ${where}
@@ -47,6 +48,7 @@ export async function listCatalogMedia(env: ApiBindings, input: CatalogMediaList
       .map((row) => ({
         alt: row.alt_text,
         height: row.height,
+        id: row.id,
         key: row.r2_key,
         kind: "catalog" as const,
         productName: row.product_name,
