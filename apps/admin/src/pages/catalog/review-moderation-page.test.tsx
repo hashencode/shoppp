@@ -84,7 +84,7 @@ describe('ReviewModerationPage', () => {
       screen.queryByText('Only approved reviews can be included in a later Catalog release.')
     ).toBeNull()
     expect(await screen.findByText('Sample shopper · 4/5')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Review' }))
+    fireEvent.click(screen.getByRole('button', { name: /评\s*价/ }))
     expect(await screen.findByText('审核评价')).toBeTruthy()
     fireEvent.change(screen.getByRole('textbox', { name: '审核原因' }), {
       target: { value: 'Content reviewed' },

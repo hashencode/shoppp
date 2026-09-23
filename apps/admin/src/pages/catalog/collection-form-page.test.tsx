@@ -105,7 +105,7 @@ describe('CollectionFormPage', () => {
   it('saves ordered membership with the loaded expectedVersion', async () => {
     renderPage()
     expect(await screen.findByText('Carry-on')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Move Checked luggage up' }))
+    fireEvent.click(screen.getByRole('button', { name: '上移Checked luggage' }))
     fireEvent.change(screen.getByLabelText('变更原因'), {
       target: { value: 'Prioritize checked luggage' },
     })

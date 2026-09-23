@@ -229,9 +229,9 @@ describe('CatalogFormPage', () => {
     expect(await screen.findByText('Travel')).toBeTruthy()
     expect(screen.queryByLabelText('Collection slugs')).toBeNull()
     fireEvent.change(screen.getByLabelText('名称'), { target: { value: 'Unsaved Carry-on' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Manage Collection membership' }))
-    expect((await screen.findAllByText('Leave with unsaved Product changes?')).length).toBeGreaterThan(0)
-    fireEvent.click(screen.getByRole('button', { name: 'Open Collection management' }))
+    fireEvent.click(screen.getByRole('button', { name: '管理商品集合成员关系' }))
+    expect((await screen.findAllByText('放弃未保存的商品更改？')).length).toBeGreaterThan(0)
+    fireEvent.click(screen.getByRole('button', { name: '打开商品集合管理' }))
     expect(
       await screen.findByText(
         '/catalog/collections?handoffProductId=product-001&returnTo=%2Fcatalog%2Fproducts%2Fform%3Fmode%3Dmodify%26id%3Dproduct-001'
@@ -470,8 +470,8 @@ describe('CatalogFormPage', () => {
     const brand = await screen.findByLabelText('品牌')
     expect((brand as HTMLInputElement).value).toBe('Zalando')
     fireEvent.change(brand, { target: { value: 'Shoppp' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Move specification up 2' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Save product presentation' }))
+    fireEvent.click(screen.getByRole('button', { name: '上移规格 2' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存商品展示' }))
 
     await waitFor(() =>
       expect(submitted).toMatchObject({

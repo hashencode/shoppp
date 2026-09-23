@@ -145,9 +145,9 @@ describe('AppShell', () => {
     expect(screen.getByRole('menuitem', { name: /店铺配置/ })).toBeTruthy()
   })
 
-  it('omits setup navigation for staff without settings access', () => {
+  it('keeps the auth-only setup guide but omits welcome without settings access', () => {
     renderShell({ routes: templateRoutes, auth: { permissions: ['catalog.read'] } })
-    expect(screen.queryByRole('menuitem', { name: /开店指南/ })).toBeNull()
+    expect(screen.getByRole('menuitem', { name: /开店指南/ })).toBeTruthy()
     expect(screen.queryByRole('menuitem', { name: '欢迎' })).toBeNull()
     expect(screen.getByRole('menuitem', { name: /商品目录/ })).toBeTruthy()
   })
