@@ -135,12 +135,13 @@ describe("storefront theme matrix", () => {
     );
   });
 
-  test("keeps the Fashion source boundary structural until U6.2 registers a migration", () => {
+  test("keeps contiguous Fashion package boundaries without inline migration ownership", () => {
     const fashionStore = storefrontThemeMatrix.find(
       ({ descriptor }) => descriptor.id === "fashion-store",
     );
     expect(fashionStore?.directPackageBoundaries).toEqual([
       { fromSchemaVersion: 1, toSchemaVersion: 2 },
+      { fromSchemaVersion: 2, toSchemaVersion: 3 },
     ]);
     expect("migrations" in (fashionStore ?? {})).toBe(false);
   });

@@ -429,6 +429,14 @@ export interface FashionStoreProductRuntimeState {
   variants: FashionStoreProductPresentation["variants"];
 }
 
+export interface FashionStoreProductReviewInput {
+  body: string;
+  consentAccepted: true;
+  displayName: string;
+  email: string;
+  rating: number;
+}
+
 /**
  * Components depend on this Fashion-owned port. Fixture and live adapters own
  * simulation and Commerce revalidation respectively, outside serializable render data.
@@ -438,6 +446,10 @@ export interface FashionStoreProductActionPort {
   authoritative: boolean;
   perform(input: { label: string; role: "compare" | "question" | "share" | "wishlist" }): void;
   revalidate(): Promise<FashionStoreProductRuntimeState | null>;
+  submitReview(
+    input: FashionStoreProductReviewInput,
+    idempotencyKey: string,
+  ): Promise<{ message: string }>;
 }
 
 export const fashionStoreProductActionPortKey = Symbol(

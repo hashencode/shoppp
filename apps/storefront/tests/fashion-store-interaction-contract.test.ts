@@ -26,9 +26,9 @@ function componentSources(directory = componentsRoot): Array<{ path: string; sou
 }
 
 describe("Fashion Store semantic interaction contract", () => {
-  test("contains no provider-specific visual component or selector", () => {
+  test("contains no fixture-specific visual component or provider selector", () => {
     for (const { path, source } of componentSources()) {
-      expect(path).not.toMatch(/FashionStore(?:Live|Fixture).*(?:Page|Section)\.vue$/);
+      expect(path).not.toMatch(/FashionStoreFixture.*(?:Page|Section)\.vue$/);
       expect(source, path).not.toMatch(/data-fashion-store-(?:live|fixture)-/);
     }
   });

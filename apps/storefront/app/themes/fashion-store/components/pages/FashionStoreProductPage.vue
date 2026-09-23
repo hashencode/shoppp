@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { submitProductReviewSchema } from "@shoppp/contracts";
-
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { ProductPageModel } from "../../../../theme-engine/view-models";
 import {
@@ -8,7 +6,10 @@ import {
   type FashionStoreProductPresentation,
   type FashionStoreProductRuntimeState,
 } from "../../contracts/product-card";
-import { useFashionStoreProductActionPort } from "../../composables/useFashionStoreProductActionPort";
+import {
+  useFashionStoreProductActionPort,
+  validateFashionStoreProductReview,
+} from "../../composables/useFashionStoreProductActionPort";
 import { fashionStoreRoutePaths } from "../../page-contracts";
 import { fashionStoreAssetId } from "../../resources";
 import FashionStoreIcon from "../shared/FashionStoreIcon.vue";
@@ -25,7 +26,6 @@ const properties = defineProps<{
 }>();
 const presentation = computed(() => normalizeFashionStoreProductPresentation(properties.viewModel));
 const actionPort = useFashionStoreProductActionPort(presentation);
-const commerceApi = useCommerceApi();
 const runtimeProduct = ref<FashionStoreProductRuntimeState | null>(null);
 const runtimeState = ref<{ kind: "checking" | "error" | "ready"; message: string }>({
   kind: actionPort.authoritative ? "checking" : "ready",
@@ -138,29 +138,22 @@ function reviewInputChanged(): void {
 
 async function submitReview(): Promise<void> {
   if (reviewFormState.value.kind === "saving" || reviewFormState.value.kind === "success") return;
-  const errors: typeof reviewErrors.value = {};
   const name = reviewName.value.trim();
   const email = reviewEmail.value.trim();
   const body = reviewBody.value.trim();
-  if (!submitProductReviewSchema.shape.rating.safeParse(reviewRating.value).success)
-    errors.rating = "Choose a rating from 1 to 5 stars.";
-  if (!submitProductReviewSchema.shape.displayName.safeParse(name).success)
-    errors.name = "Enter a name of 2 to 80 characters.";
-  if (!submitProductReviewSchema.shape.email.safeParse(email).success)
-    errors.email = "Enter a valid email address.";
-  if (!submitProductReviewSchema.shape.body.safeParse(body).success)
-    errors.body = "Write a review of 10 to 2,000 characters.";
-  if (
-    !submitProductReviewSchema.shape.consentAccepted.safeParse(reviewConsentAccepted.value).success
-  )
-    errors.consent = "Accept the terms and privacy policy before submitting.";
+  const errors = validateFashionStoreProductReview({
+    body,
+    consentAccepted: reviewConsentAccepted.value,
+    displayName: name,
+    email,
+    rating: reviewRating.value,
+  });
   reviewErrors.value = errors;
   if (Object.keys(errors).length) return;
   reviewFormState.value = { kind: "saving", message: "Saving your review…" };
   reviewSubmissionKey ??= `review-${crypto.randomUUID()}`;
   try {
-    await commerceApi.submitProductReview(
-      presentation.value.slug,
+    const outcome = await actionPort.submitReview(
       {
         body,
         consentAccepted: true,
@@ -172,7 +165,7 @@ async function submitReview(): Promise<void> {
     );
     reviewFormState.value = {
       kind: "success",
-      message: "Your review was saved and is awaiting moderation. It is not public yet.",
+      message: outcome.message,
     };
   } catch (error) {
     const response = error as { data?: { error?: { message?: string } } };

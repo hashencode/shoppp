@@ -202,7 +202,6 @@ describe("static generation manifest", () => {
       "/wishlist",
       "/account",
       "/magazine",
-      "/magazine/marketing-tips-and-tricks",
       "/about",
       "/faq",
       "/contact",

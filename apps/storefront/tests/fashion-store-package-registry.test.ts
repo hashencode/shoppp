@@ -340,11 +340,11 @@ describe("Fashion Store exact package registry", () => {
     );
 
     expect(activeTheme).toContain('from "../themes/fashion-store/successor/registry"');
-    expect(activeTheme).not.toContain('from "../themes/fashion-store/successor/fixture-registry"');
+    expect(activeTheme).toContain('from "../themes/fashion-store/successor/fixture-registry"');
     expect(activeTheme).not.toContain('from "../themes/fashion-store/registry"');
     expect(activeTheme).not.toContain('from "../themes/fashion-store/fixture-registry"');
-    expect(activeTheme).toContain('"configurationSchemaVersion": 2');
-    expect(activeTheme).toContain('"themeVersion": "1.1.0"');
+    expect(activeTheme).toContain('"configurationSchemaVersion": 3');
+    expect(activeTheme).toContain('"themeVersion": "1.2.0"');
   });
 
   test("shares exact component identity and rejects any synthetic visual divergence", () => {

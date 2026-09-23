@@ -153,6 +153,6 @@ describe("build-local Catalog search", () => {
     );
     expect(shell).toContain('<noscript v-html="noScriptMarkup" />');
     expect(shell).toContain("Shopping actions require JavaScript");
-    expect(shell).toContain("Browse the published catalog");
+    expect(shell).toContain("Catalog content and canonical destinations remain available");
   });
 });
