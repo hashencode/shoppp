@@ -5,8 +5,8 @@ date: 2026-08-13
 topic: shoppp-product-master-plan
 execution: knowledge-work
 plan_role: product-master
-current_plan: 2026-09-22-0043-feat-storefront-control-plane-plan.md
-current_unit: FS-F14-U9
+current_plan: 2026-08-12-003-refactor-development-candidate-readiness-plan.md
+current_unit: REL-Pre-DC
 ---
 
 # Shoppp Product Master Plan
@@ -45,12 +45,12 @@ template-specific repair does not change product membership or candidate scope b
 
 ## Current execution pointer
 
-- **Active product plan:** `FS-F14` — [Storefront Control Plane](2026-09-22-0043-feat-storefront-control-plane-plan.md).
-- **Current unit:** `FS-F14-U9` — prove the integrated Fashion Preview path and hand product execution back to `REL-Pre-DC`.
-- **Current result:** FS-F14 U8 completed the exact Release × Experience × Fashion reader matrix, Config3 canonical-claim migration, historical package and tuple preservation, truthful Commerce and Policy projection, least-privilege private Release reads, Shipping freeze guards, and rollback reachability pinning.
-- **Next action:** Exercise one deterministic sparse authority set through Admin save, private candidate Release, successor Theme draft, exact Preview, approval, and generated Fashion output; reconcile the Surface Control Matrix and retain the exact tuple evidence.
-- **Blockers:** None for local U9 implementation. Remote mutation, candidate selection, deployment, DC, and PG remain separately gated.
-- **Handback:** Complete FS-F14 U1-U9, then return product control to `REL-Pre-DC`; no Candidate, DC, deployment, or PG state advances automatically.
+- **Active product plan:** `REL` — [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md).
+- **Current unit:** `REL-Pre-DC` — reconcile implementation readiness before immutable candidate selection.
+- **Current result:** FS-F14 completed U1-U9, including canonical Admin authorities, immutable private Preview, exact two-phase build/approval proof, the reconciled Fashion Surface Control Matrix, and integrated Fashion acceptance.
+- **Next action:** Reconcile the explicit product capability set and approved deferrals against their owning completed plans, then close the remaining candidate-identity validation prerequisites before selecting a candidate.
+- **Blockers:** The product capability/deferral audit and remaining REL candidate-identity validation work block DC1. No candidate is frozen; deployment, DC, and PG remain unstarted.
+- **Handback:** REL now owns the product sequence. FS-F14 remains completed historical authority and advances no Candidate, DC, deployment, or PG state by itself.
 
 The active child plan is authoritative if this summary and its execution checkpoint temporarily
 disagree. Repair this pointer in the same documentation change; do not copy the child plan's full
@@ -58,8 +58,8 @@ checkpoint here.
 
 ## Product-level sequence
 
-1. Execute active `FS-F14-U9` to prove the complete Storefront Control Plane through the immutable Fashion Preview path and retain acceptance evidence.
-2. Return to `REL-Pre-DC` for capability reconciliation and immutable candidate selection.
+1. Complete active `REL-Pre-DC` capability reconciliation and candidate-identity validation prerequisites.
+2. Select and freeze an immutable candidate only through REL's named authority.
 3. Run DC and PG only through their named human and production authorities.
 
 No candidate is currently frozen. DC and PG have not begun.

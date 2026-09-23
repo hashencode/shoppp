@@ -127,6 +127,7 @@ import {
 } from "../iam/invitations";
 import { requirePermission } from "../iam/permissions";
 import { getSetupGuide } from "../settings/setup-guide";
+import { getSetupGuideDestinations } from "../settings/setup-guide-destinations";
 import { getContactSettings, updateContactSettings } from "../settings/contact-profile";
 import { getStoreIdentity, updateStoreIdentity } from "../settings/store-identity";
 import {
@@ -2156,6 +2157,13 @@ export function createApp(options: CreateAppOptions = {}) {
     context.header("Cache-Control", "private, no-store");
     return context.json({
       data: await getSetupGuide(context),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/settings/setup-guide/destinations", (context) => {
+    context.header("Cache-Control", "private, no-store");
+    return context.json({
+      data: getSetupGuideDestinations(context),
       meta: { requestId: context.get("requestId") },
     });
   });

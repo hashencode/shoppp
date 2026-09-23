@@ -1,7 +1,11 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { canonicalCatalogReleaseSchema, fixtureBindingSchema } from "@shoppp/contracts";
+import {
+  canonicalCatalogReleaseSchema,
+  catalogReleaseV3Schema,
+  fixtureBindingSchema,
+} from "@shoppp/contracts";
 import * as z from "zod";
 
 import { fashionStoreManifest } from "../app/themes/fashion-store/successor/manifest";
@@ -65,6 +69,115 @@ export async function themePreviewBuildInput(
   let catalogRelease = canonicalCatalogReleaseSchema.parse(
     JSON.parse(await readFile(resolve(import.meta.dir, "../fixtures/release.json"), "utf8")),
   );
+  if (themeId === "fashion-store" && catalogRelease.schemaVersion !== 3) {
+    const content = catalogRelease.policies.map((policy) => ({
+      digest: "1".repeat(64),
+      id: `policy.${policy.slug}`,
+      kind: "policy" as const,
+      payload: {
+        effectiveDate: policy.effectiveDate,
+        sections: policy.sections.map((section, index) => ({
+          id: `section.${policy.slug}.${index + 1}`,
+          kind: "paragraph" as const,
+          text: `${section.heading}\n${section.body}`,
+        })),
+      },
+      route: `/policies/${policy.slug}`,
+      slug: policy.slug,
+      title: policy.title,
+      version: 1,
+    }));
+    const navigation = [
+      {
+        digest: "2".repeat(64),
+        id: "menu.header",
+        items: [
+          { id: "nav.home", label: "Home", parentId: null, position: 0, target: { kind: "route" as const, path: "/" } },
+          { id: "nav.shop", label: "Shop", parentId: null, position: 1, target: { kind: "route" as const, path: "/shop" } },
+          { id: "nav.shop.left", label: "Left sidebar", parentId: "nav.shop", position: 0, target: { kind: "route" as const, path: "/shop" } },
+          { id: "nav.shop.none", label: "No sidebar", parentId: "nav.shop", position: 1, target: { kind: "route" as const, path: "/shop/no-sidebar" } },
+          { id: "nav.shop.right", label: "Right sidebar", parentId: "nav.shop", position: 2, target: { kind: "route" as const, path: "/shop/right-sidebar" } },
+          { id: "nav.collections", label: "Collections", parentId: null, position: 2, target: { kind: "route" as const, path: "/collections" } },
+          { id: "nav.magazine", label: "Magazine", parentId: null, position: 3, target: { kind: "route" as const, path: "/magazine" } },
+        ],
+        placement: "header" as const,
+        version: 1,
+      },
+      {
+        digest: "3".repeat(64),
+        id: "menu.footer",
+        items: [
+          { id: "nav.footer.categories", label: "Categories", parentId: null, position: 0, target: { kind: "route" as const, path: "/collections" } },
+          { id: "nav.footer.travel", label: catalogRelease.collections[0]?.name ?? "Collections", parentId: "nav.footer.categories", position: 0, target: { kind: "route" as const, path: `/collections/${catalogRelease.collections[0]?.slug ?? "travel-essentials"}` } },
+          { id: "nav.footer.information", label: "Information", parentId: null, position: 1, target: { kind: "route" as const, path: "/about" } },
+          ...content.map((document, position) => ({
+            id: `nav.footer.${document.slug}`,
+            label: document.title,
+            parentId: "nav.footer.information",
+            position,
+            target: { kind: "internal" as const, reference: { id: document.id, kind: "policy" as const } },
+          })),
+        ],
+        placement: "footer" as const,
+        version: 1,
+      },
+    ];
+    catalogRelease = catalogReleaseV3Schema.parse({
+      ...catalogRelease,
+      commerce: {
+        payment: {
+          brands: fixture.productPaymentBrands,
+          enabled: fixture.productPaymentBrands.length > 0,
+          provider: "stripe",
+        },
+        shippingMethods: [
+          {
+            amount: 0,
+            countryCodes: ["US"],
+            currency: catalogRelease.site.defaultCurrency,
+            id: "ship_01JFASHIONPREVIEW00000001",
+            name: "Standard delivery",
+          },
+        ],
+      },
+      content,
+      environment: "staging",
+      identity: {
+        faviconAssetId: null,
+        id: "identity.primary",
+        logoAssets: [],
+        seo: {},
+        socialShareAssetId: null,
+        storefrontName: catalogRelease.site.name,
+        tagline: "",
+        version: 1,
+      },
+      navigation,
+      purpose: "private-preview",
+      routeOutput: catalogRelease.routes,
+      schemaVersion: 3,
+      sourceVersionVector: [
+        {
+          digest: "0".repeat(64),
+          id: "identity.primary",
+          kind: "store-identity",
+          version: 1,
+        },
+        ...content.map((document) => ({
+          digest: document.digest,
+          id: document.id,
+          kind: "policy" as const,
+          version: document.version,
+        })),
+        ...navigation.map((menu) => ({
+          digest: menu.digest,
+          id: menu.id,
+          kind: "navigation" as const,
+          version: menu.version,
+        })),
+      ],
+    });
+  }
   if (
     themeId === "fashion-store" &&
     process.env.STOREFRONT_FASHION_PRODUCT_CONTENT_CATALOG === "1"
@@ -235,9 +348,13 @@ async function main(): Promise<void> {
         throw new Error("STOREFRONT_FASHION_AUTHORED_HERO_COUNT must be an integer from 1 to 5.");
       }
       const hero = home.sections.find(({ type }) => type === "fashion-store.hero");
-      const collection = input.catalogRelease.collections.find(({ status }) => status === "published");
+      const collection = input.catalogRelease.collections.find(
+        ({ status }) => status === "published",
+      );
       if (!hero || hero.blocks.length < 3 || !collection) {
-        throw new Error("Authored Hero proof requires three source media tuples and one Collection.");
+        throw new Error(
+          "Authored Hero proof requires three source media tuples and one Collection.",
+        );
       }
       const source = structuredClone(hero.blocks);
       hero.blocks = Array.from({ length: authoredHeroCount }, (_, index) => {

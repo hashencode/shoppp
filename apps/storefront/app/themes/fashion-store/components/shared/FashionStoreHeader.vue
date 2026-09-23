@@ -55,7 +55,7 @@ function configuredLogo(): string | undefined {
 }
 
 const configuredBrandName = computed(
-  () => properties.configuration?.logo?.alt.trim() || properties.brandName || "Lifestyle",
+  () => properties.brandName || properties.configuration?.logo?.alt.trim() || "Lifestyle",
 );
 
 function routeHref(path: string): string | undefined {
@@ -441,6 +441,11 @@ defineExpose({ closeTransient });
   font-size: 17px;
   font-weight: 600;
 }
+@media (max-width: 1599px) {
+  .fashion-store-header-canonical .fashion-store-header-social {
+    display: none;
+  }
+}
 @media (max-width: 1199px) {
   .fashion-store-header-canonical .navbar > .container-fluid {
     padding-right: 35px;
@@ -462,7 +467,14 @@ defineExpose({ closeTransient });
   }
   .fashion-store-header-canonical .menu-order {
     order: 3;
-    margin-left: 12px;
+    margin-left: 0;
+  }
+  .fashion-store-header-canonical .navbar-toggler {
+    position: relative;
+    right: 16px;
+  }
+  .fashion-store-header-canonical .navbar > .container-fluid > .text-end {
+    margin-left: auto;
   }
   .fashion-store-header-canonical .navbar-collapse {
     position: absolute;
@@ -471,6 +483,25 @@ defineExpose({ closeTransient });
     left: 0;
     background: #fff;
     padding: 12px 20px;
+  }
+}
+@media (max-width: 360px) {
+  .fashion-store-header-canonical .navbar > .container-fluid {
+    padding-right: 11px;
+  }
+  .fashion-store-header-canonical .navbar > .container-fluid > [class*="col-"] {
+    padding-right: 0;
+    padding-left: 0;
+  }
+  .fashion-store-header-canonical .menu-order {
+    margin-left: 12px;
+  }
+  .fashion-store-header-canonical .navbar-toggler {
+    left: auto;
+    right: 4px;
+  }
+  .fashion-store-header-canonical .navbar-brand {
+    max-width: 145px;
   }
 }
 </style>

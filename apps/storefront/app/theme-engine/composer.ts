@@ -814,6 +814,7 @@ function shellViewModel(
         : {}),
     },
     publishedRoutes: release.routes,
+    siteName: release.site.name,
   });
 }
 
@@ -888,7 +889,7 @@ function homeViewModel(
       { kind: "marquee" },
       { kind: "magazine" },
     ],
-    shell: { footer: shell.footer, header: shell.header },
+    shell: { footer: shell.footer, header: shell.header, siteName: shell.siteName },
     state: "populated",
   }) as Extract<PresentationViewModel, { kind: "home" }>;
 }

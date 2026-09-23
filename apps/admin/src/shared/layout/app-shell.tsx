@@ -48,7 +48,7 @@ type RouteContract = {
   path: string
   title: string
   icon: ReactNode
-  permission: Parameters<typeof hasPermission>[1]
+  permission: Parameters<typeof hasPermission>[1] | null
   inMenu: boolean
   menuVisibility?: 'always' | 'dev-only'
   menuMode?: 'standalone' | 'grouped'
@@ -85,7 +85,7 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
         contract.inMenu &&
         contract.path !== '*' &&
         isMenuVisibleInCurrentEnv(contract) &&
-        hasPermission(role, contract.permission, permissions)
+        (contract.permission === null || hasPermission(role, contract.permission, permissions))
     )
   }, [permissions, role, routes])
 

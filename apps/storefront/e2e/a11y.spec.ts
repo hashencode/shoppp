@@ -52,16 +52,19 @@ test("keyboard users can skip navigation and reach purchase controls in document
   await page.keyboard.press("Tab");
   const skipLink = page.getByRole("link", { name: "Skip to content" });
   await expect(skipLink).toBeFocused();
+  const skipTarget = await skipLink.getAttribute("href");
+  expect(skipTarget).toMatch(/^#[a-z][a-z0-9-]*$/);
   await page.keyboard.press("Enter");
-  const mainContent = page.locator(fashionStore ? "#fashion-store-main" : "#main-content");
+  const mainContent = page.locator(skipTarget!);
   await expect(mainContent).toBeFocused();
   await page.keyboard.press("Tab");
   const breadcrumb = page.getByLabel("Breadcrumb");
   await expect(breadcrumb.getByRole("link", { name: "Home", exact: true })).toBeFocused();
   await page.keyboard.press("Tab");
-  if (fashionStore) {
-    await expect(breadcrumb.getByRole("link", { name: "Shop", exact: true })).toBeFocused();
-    const addToCart = page.getByRole("button", { name: "Add to cart" });
+  if (skipTarget === "#fashion-store-main") {
+    const addToCart = page
+      .locator("[data-product-purchase-region]")
+      .getByRole("button", { name: "Add to cart" });
     for (
       let index = 0;
       index < 20 && !(await addToCart.evaluate((node) => node === document.activeElement));

@@ -54,6 +54,36 @@ export const zhCNMessages: Record<string, string> = {
   'Internal resource ID {index}': '第 {index} 个内部资源 ID',
   'Link window {index}': '第 {index} 个链接窗口',
   'Store identity': '店铺身份',
+  Collections: '商品集合',
+  Navigation: '导航',
+  'Themes and preview': '主题与预览',
+  'Open the authority that owns the storefront fact you need to change.':
+    '打开负责该店铺事实的权威编辑器进行修改。',
+  'Each editor shows its own saved, candidate, live, stale, and next-action state.':
+    '每个编辑器会显示自身的已保存、候选、线上、过期状态和下一步操作。',
+  'Setup destinations could not be loaded': '无法加载设置入口',
+  'Retry after access or connectivity is restored.': '请在权限或网络恢复后重试。',
+  'Loading setup destinations…': '正在加载设置入口…',
+  'No setup destinations are available': '没有可用的设置入口',
+  'Ask an administrator for read access to the required editor.':
+    '请联系管理员获取所需编辑器的读取权限。',
+  'Store name, shared logos, metadata, and global search presentation.':
+    '店铺名称、共享 Logo、元数据和全局搜索展示。',
+  'Public contact channels and social profiles.': '公开联系方式与社交资料。',
+  'Draft, approve, publish, and archive legal policies.': '起草、批准、发布和归档法律政策。',
+  'Product facts, media, variants, prices, and publication.':
+    '商品事实、媒体、款式、价格和发布。',
+  'Collection presentation and ordered Product membership.': '商品集合展示和有序商品成员。',
+  'Merchant Pages and their storefront routes.': '商家页面及其店铺路由。',
+  'Editorial Articles and their storefront routes.': '编辑文章及其店铺路由。',
+  'Reusable Header and Footer menus.': '可复用的页头和页脚菜单。',
+  'Presentation Blocks, exact candidate selection, private Preview, and approval.':
+    '展示区块、精确候选选择、私有预览和批准。',
+  'Shipping zones, countries, and methods.': '配送区域、国家和方式。',
+  'Currency, payment, checkout, and operational configuration.':
+    '币种、支付、结账和运营配置。',
+  'Stock and availability facts.': '库存和可售事实。',
+  'Orders and fulfillment operations.': '订单和履约操作。',
   Reviews: '评价',
   'Review moderation': '评价审核',
   'Moderate reviews': '审核评价',

@@ -1,4 +1,5 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
@@ -29,9 +30,13 @@ interface FashionStoreAcceptancePlan {
   steps: { command: string[]; label: string }[];
 }
 
-type FashionStoreAcceptanceStage = "all" | "behavior" | "browser" | "unit";
+type FashionStoreAcceptanceStage = "all" | "behavior" | "browser" | "integrated" | "unit";
 
 const STOREFRONT_ROOT = resolve(import.meta.dir, "../apps/storefront");
+const U9_EXACT_BUILD_INPUT = resolve(STOREFRONT_ROOT, "test-results/u9-exact-tuple-build-input.json");
+const U9_EXACT_RECEIPT = resolve(STOREFRONT_ROOT, "test-results/u9-exact-tuple-receipt.json");
+const U9_EXACT_RELEASE = resolve(STOREFRONT_ROOT, "test-results/u9-exact-tuple-release.json");
+const U9_EXACT_ARTIFACT = resolve(STOREFRONT_ROOT, "test-results/u9-exact-tuple-artifact.json");
 const GENERATED_STATE_FILES = [
   resolve(STOREFRONT_ROOT, "app/generated/active-theme.ts"),
   resolve(STOREFRONT_ROOT, "app/generated/active-experience.ts"),
@@ -66,6 +71,86 @@ const ALL_UNIT_FILES = [
   "tests/fashion-store-magazine.test.ts",
   "tests/fashion-store-information-pages.test.ts",
 ];
+
+const INTEGRATED_STEPS = [
+  {
+    command: [
+      "bun",
+      "run",
+      "--cwd",
+      "../admin",
+      "test:e2e",
+      "--",
+      "e2e/setup-guide.spec.ts",
+      "e2e/storefront-theme-preview.spec.ts",
+    ],
+    label: "admin/exact-draft-preview",
+  },
+  {
+    command: [
+      "bun",
+      "run",
+      "--cwd",
+      "../api",
+      "test:workers",
+      "--",
+      "--disableConsoleIntercept",
+      "test/catalog/candidate-release.test.ts",
+      "-t",
+      "propagates one sparse Admin tuple",
+    ],
+    label: "control-plane/exact-tuple-receipt",
+  },
+  {
+    command: ["bunx", "playwright", "test", "--config", "playwright.u9-exact-tuple.config.ts"],
+    label: "theme/exact-tuple-build-browser",
+  },
+  {
+    command: [
+      "bun",
+      "run",
+      "--cwd",
+      "../api",
+      "test:workers",
+      "--",
+      "test/catalog/candidate-release.test.ts",
+      "test/storefront-experience/experience-api.test.ts",
+    ],
+    label: "control-plane/lifecycle-regressions",
+  },
+  {
+    command: [
+      "bun",
+      "test",
+      "tests/fashion-store-package-registry.test.ts",
+      "--test-name-pattern",
+      "retains the supported|isolates the successor|freezes the exact|freezes the supported|rejects every tuple|removes legacy|migrates v1|moves legacy|shares exact component",
+    ],
+    label: "theme/reader-matrix",
+  },
+  {
+    command: [
+      "bun",
+      "test",
+      "tests/fashion-store-runtime.test.ts",
+      "tests/fashion-store-collection.test.ts",
+      "tests/fashion-store-product.test.ts",
+      "tests/fashion-store-content.test.ts",
+      "tests/fashion-store-information-pages.test.ts",
+    ],
+    label: "theme/generated-output",
+  },
+  {
+    command: [
+      "bunx",
+      "playwright",
+      "test",
+      "--config",
+      "playwright.fashion-store-authored-hero.config.ts",
+    ],
+    label: "theme/authored-hero-browser",
+  },
+] as const;
 
 const PAGE_SELECTIONS: Record<FashionStoreAcceptancePageId, FashionStorePageAcceptanceSelection> = {
   about: {
@@ -165,6 +250,8 @@ export function buildFashionStoreAcceptancePlan(options: {
     throw new Error("page acceptance requires --page=<id>");
   if (options.scope === "theme" && options.page)
     throw new Error("theme acceptance does not accept --page");
+  if (options.scope === "page" && options.stage === "integrated")
+    throw new Error("integrated acceptance requires --scope=theme");
   const pages =
     options.scope === "page" ? [options.page as FashionStoreAcceptancePageId] : ALL_PAGES;
   const selection =
@@ -180,7 +267,9 @@ export function buildFashionStoreAcceptancePlan(options: {
       "test",
       "--config",
       "playwright.fashion-store.config.ts",
-      ...(selection?.e2eFiles ?? []),
+      ...(selection?.e2eFiles ?? [
+        ...new Set(Object.values(PAGE_SELECTIONS).flatMap(({ e2eFiles }) => e2eFiles)),
+      ]),
     ],
     label: options.scope === "page" ? `${pages[0]}/browser` : "theme/browser",
   };
@@ -194,11 +283,30 @@ export function buildFashionStoreAcceptancePlan(options: {
     steps:
       stage === "unit"
         ? [unitStep]
-        : stage === "browser"
-          ? [browserStep]
-          : stage === "behavior"
-            ? behaviorSteps
-            : [unitStep, browserStep, ...behaviorSteps],
+        : stage === "integrated"
+          ? [
+              ...INTEGRATED_STEPS.map((step) => ({
+                command: [...step.command],
+                label: step.label,
+              })),
+              browserStep,
+              ...behaviorSteps,
+            ]
+          : stage === "browser"
+            ? [browserStep]
+            : stage === "behavior"
+              ? behaviorSteps
+              : [
+                  ...(options.scope === "theme"
+                    ? INTEGRATED_STEPS.map((step) => ({
+                        command: [...step.command],
+                        label: step.label,
+                      }))
+                    : []),
+                  unitStep,
+                  browserStep,
+                  ...behaviorSteps,
+                ],
   };
 }
 
@@ -225,6 +333,8 @@ export async function runFashionStoreAcceptancePlan(
     PLAYWRIGHT_FORCE_ASYNC_LOADER: "1",
     STOREFRONT_FASHION_STORE_PORT: String(port),
     STOREFRONT_FASHION_STORE_SOURCE_PORT: String(sourcePort),
+    U9_EXACT_HANDSHAKE_URL: "",
+    STOREFRONT_U9_EXACT_PREBUILT: "0",
   };
   const originalGeneratedState = await Promise.all(
     GENERATED_STATE_FILES.map(async (path) => ({ contents: await readFile(path), path })),
@@ -232,14 +342,132 @@ export async function runFashionStoreAcceptancePlan(
   try {
     for (const step of plan.steps) {
       console.log(`[fashion-store-acceptance] ${step.label}: ${step.command.join(" ")}`);
+      let handshake: ReturnType<typeof Bun.serve> | undefined;
+      if (step.label === "control-plane/exact-tuple-receipt") {
+        const handshakePort = await availablePort();
+        env.U9_EXACT_HANDSHAKE_URL = `http://127.0.0.1:${handshakePort}`;
+        handshake = Bun.serve({
+          port: handshakePort,
+          async fetch(request) {
+            if (request.method !== "POST" || new URL(request.url).pathname !== "/phase-a")
+              return new Response("Not found", { status: 404 });
+            const phase = await request.json() as {
+              buildInput: Record<string, unknown>;
+              candidateReleaseId: string;
+              previewSnapshotId: string;
+            };
+            const inputIdentity = phase.buildInput.inputIdentity as Record<string, unknown>;
+            const catalogRelease = phase.buildInput.catalogRelease as Record<string, unknown>;
+            const snapshot = phase.buildInput.snapshot as Record<string, unknown>;
+            const contact = snapshot.contact as Record<string, unknown> | undefined;
+            if (
+              inputIdentity.catalogReleaseId !== phase.candidateReleaseId ||
+              inputIdentity.experienceSnapshotId !== phase.previewSnapshotId
+            ) return new Response("Phase A identity mismatch", { status: 409 });
+            await mkdir(resolve(STOREFRONT_ROOT, "test-results"), { recursive: true });
+            await Promise.all([
+              writeFile(U9_EXACT_BUILD_INPUT, `${JSON.stringify(phase.buildInput, null, 2)}\n`),
+              writeFile(U9_EXACT_RELEASE, `${JSON.stringify({
+                collections: catalogRelease.collections,
+                generatedAt: catalogRelease.generatedAt,
+                policies: catalogRelease.policies,
+                products: catalogRelease.products,
+                redirects: catalogRelease.redirects,
+                releaseId: catalogRelease.releaseId,
+                routes: catalogRelease.routes,
+                schemaVersion: 2,
+                site: catalogRelease.site,
+              }, null, 2)}\n`),
+            ]);
+            const build = Bun.spawn([
+              "bun", "run", "build",
+            ], {
+              cwd: STOREFRONT_ROOT,
+              env: {
+                ...env,
+                NUXT_CATALOG_RELEASE_FILE: "test-results/u9-exact-tuple-release.json",
+                STOREFRONT_BUILD_MODE: "preview",
+                STOREFRONT_EXPERIENCE_FILE: "test-results/u9-exact-tuple-build-input.json",
+              },
+              stderr: "inherit",
+              stdout: "inherit",
+            });
+            if (await build.exited) return new Response("Exact build failed", { status: 500 });
+            const verify = Bun.spawn(["bun", "scripts/verify-static.ts"], {
+              cwd: STOREFRONT_ROOT,
+              env: { ...env, STOREFRONT_BUILD_MODE: "preview" },
+              stderr: "inherit",
+              stdout: "inherit",
+            });
+            if (await verify.exited) return new Response("Exact static verification failed", { status: 500 });
+            const hash = createHash("sha256");
+            const visit = async (directory: string, prefix = "") => {
+              for (const entry of (await readdir(directory, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
+                const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+                if (entry.isDirectory()) await visit(resolve(directory, entry.name), relative);
+                else {
+                  hash.update(relative);
+                  hash.update(await readFile(resolve(directory, entry.name)));
+                }
+              }
+            };
+            await visit(resolve(STOREFRONT_ROOT, ".output/public"));
+            const artifactDigest = hash.digest("hex");
+            await writeFile(U9_EXACT_ARTIFACT, `${JSON.stringify({
+              artifactDigest,
+              candidateReleaseId: phase.candidateReleaseId,
+              contactVersion: contact?.version,
+              environment: phase.buildInput.environment,
+              previewSnapshotId: phase.previewSnapshotId,
+              themeId: inputIdentity.themeId,
+              themeVersion: inputIdentity.themeVersion,
+            }, null, 2)}\n`);
+            env.STOREFRONT_U9_EXACT_PREBUILT = "1";
+            return Response.json({ artifactDigest });
+          },
+        });
+      }
       const child = Bun.spawn(step.command, {
         cwd: STOREFRONT_ROOT,
         env,
         stderr: "inherit",
-        stdout: "inherit",
+        stdout: step.label === "control-plane/exact-tuple-receipt" ? "pipe" : "inherit",
       });
+      const capturedOutput =
+        step.label === "control-plane/exact-tuple-receipt"
+          ? new Response(child.stdout).text()
+          : Promise.resolve("");
       const exitCode = await child.exited;
+      const output = await capturedOutput;
+      handshake?.stop(true);
+      if (handshake) env.U9_EXACT_HANDSHAKE_URL = "";
+      if (output) process.stdout.write(output);
       if (exitCode !== 0) throw new Error(`${step.label} failed with exit code ${exitCode}`);
+      if (step.label === "control-plane/exact-tuple-receipt") {
+        const valueFor = (marker: string) => {
+          const line = output.split("\n").find((candidate) => candidate.startsWith(marker));
+          if (!line) throw new Error(`${step.label} did not emit ${marker}`);
+          return JSON.parse(line.slice(marker.length)) as Record<string, unknown>;
+        };
+        const receipt = valueFor("U9_EXACT_TUPLE_RECEIPT=");
+        const buildInput = JSON.parse(await readFile(U9_EXACT_BUILD_INPUT, "utf8")) as Record<string, unknown>;
+        const artifact = JSON.parse(await readFile(U9_EXACT_ARTIFACT, "utf8")) as Record<string, unknown>;
+        const inputIdentity = buildInput.inputIdentity as Record<string, unknown> | undefined;
+        if (
+          inputIdentity?.catalogReleaseId !== receipt.candidateReleaseId ||
+          inputIdentity?.experienceSnapshotId !== receipt.previewSnapshotId ||
+          artifact.artifactDigest !== receipt.artifactDigest ||
+          artifact.candidateReleaseId !== receipt.candidateReleaseId ||
+          artifact.previewSnapshotId !== receipt.previewSnapshotId
+          || artifact.contactVersion !== receipt.contactVersion
+          || artifact.environment !== receipt.environment
+          || artifact.themeId !== receipt.themeId
+          || artifact.themeVersion !== receipt.themeVersion
+        ) {
+          throw new Error("exact tuple receipt does not match the emitted build input identity");
+        }
+        await writeFile(U9_EXACT_RECEIPT, `${JSON.stringify(receipt, null, 2)}\n`);
+      }
     }
   } finally {
     await Promise.all(
@@ -268,6 +496,7 @@ async function main(): Promise<void> {
     values.stage !== "all" &&
     values.stage !== "behavior" &&
     values.stage !== "browser" &&
+    values.stage !== "integrated" &&
     values.stage !== "unit"
   )
     throw new Error(`unknown Fashion Store acceptance stage: ${values.stage}`);

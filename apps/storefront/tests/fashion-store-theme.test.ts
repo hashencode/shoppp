@@ -71,9 +71,7 @@ describe("Fashion Store preview registration", () => {
     const heroDefinition = fashionStoreManifest.componentRegistry.blocks.find(
       ({ type }) => type === "fashion-store.hero-slide",
     )!;
-    const firstHero = home.sections
-      .find(({ type }) => type === "fashion-store.hero")!
-      .blocks[0]!;
+    const firstHero = home.sections.find(({ type }) => type === "fashion-store.hero")!.blocks[0]!;
     for (const settingId of [
       "title",
       "price",
@@ -211,7 +209,7 @@ describe("Fashion Store preview registration", () => {
       "bun run test:fashion-store:unit && bun run test:fashion-store:browser && bun run test:fashion-store:acceptance",
     );
     expect(scripts["test:fashion-store:acceptance"]).toBe(
-      "bun ../../tools/run-fashion-store-acceptance.ts --scope=theme --stage=behavior",
+      "bun ../../tools/run-fashion-store-acceptance.ts --scope=theme --stage=integrated",
     );
     expect(scripts["test:fashion-store:unit"]).toBe(
       "bun ../../tools/run-fashion-store-acceptance.ts --scope=theme --stage=unit",

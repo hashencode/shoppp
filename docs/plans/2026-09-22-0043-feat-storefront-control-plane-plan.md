@@ -1,6 +1,7 @@
 ---
 title: Storefront Control Plane - Plan
 type: feat
+status: completed
 date: 2026-09-22
 topic: storefront-control-plane
 artifact_contract: ce-unified-plan/v1
@@ -26,14 +27,14 @@ deepened: 2026-09-22
 
 ### Execution Checkpoint
 
-- **Classification:** Active product successor after FS-F12 completed U7 human acceptance on 2026-09-22.
-- **Current product pointer:** `FS-F14-U9` — prove the integrated Fashion Preview path and hand product execution back to `REL-Pre-DC`.
+- **Classification:** Completed product successor; product execution returned to `REL-Pre-DC` on 2026-09-24.
+- **Current product pointer:** Complete — FS-F14-U1 through FS-F14-U9 are verified.
 - **Activation condition:** Met. FS-F13 and FS-F12 are complete and FS-F12 handed execution to FS-F14.
-- **Completed units:** U1 (U1.1-U1.3), U2, U3, U4, U5, U6, U7, and U8 completed on 2026-09-23; retained evidence is in `docs/progress/storefront-control-plane-verification.md`.
-- **Current unit:** U9, integrated Fashion Preview, acceptance, and product handback.
-- **Next concrete action:** Run one deterministic sparse authority set through Admin save, private candidate Release, successor Theme draft, exact Preview, approval, and generated Fashion output; reconcile every Surface Control Matrix row and retain the exact tuple evidence before handback.
-- **Blocker:** None for local U9 implementation. Remote mutation, deployment, and candidate/DC/PG advancement remain outside this stage.
-- **Handback:** After U1-U9 and the Definition of Done pass, return to `REL-Pre-DC`. No candidate is frozen automatically.
+- **Completed units:** U1 (U1.1-U1.3) through U9 completed on 2026-09-24; retained evidence is in `docs/progress/storefront-control-plane-verification.md`.
+- **Current unit:** Complete — no FS-F14 implementation unit remains active.
+- **Next concrete action:** `REL-Pre-DC` reconciles the product capability set and approved deferrals before selecting any immutable candidate.
+- **Blocker:** None within FS-F14. Candidate selection, deployment, DC, and PG remain separately gated by REL.
+- **Handback:** Completed to `REL-Pre-DC` without freezing a candidate or advancing DC, deployment, or PG.
 
 ---
 

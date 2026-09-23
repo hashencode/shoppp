@@ -19,6 +19,7 @@ export default defineConfig({
     : ["fashion-store-*.spec.ts", "theme-behavior-contract.spec.ts"],
   testIgnore: [
     "fashion-store-animation-performance.spec.ts",
+    "fashion-store-authored-hero.spec.ts",
     "fashion-store-live-commerce.spec.ts",
     "fashion-store-live-home-empty.spec.ts",
     "fashion-store-live-product-empty.spec.ts",

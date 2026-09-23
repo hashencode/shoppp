@@ -620,6 +620,7 @@ watch(
               <div
                 v-if="presentation.purchaseStatus !== 'unverified'"
                 class="d-flex align-items-center flex-column flex-sm-row mb-20px position-relative"
+                data-product-purchase-region
               >
                 <FashionStoreQuantityInput
                   class="me-15px xs-mb-15px order-1"

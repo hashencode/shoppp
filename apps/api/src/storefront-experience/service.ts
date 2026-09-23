@@ -150,6 +150,16 @@ interface SnapshotRow {
   theme_version: string;
 }
 
+interface ApprovalPreviewBuildRow {
+  artifact_digest: string | null;
+  artifact_prefix: string | null;
+  expires_at: string | null;
+  id: string;
+  snapshot_json: string;
+  snapshot_id: string;
+  status: "building" | "deployed" | "expired" | "failed" | "pending";
+}
+
 const PLATFORM_CONTRACT_VERSION = "1.0.0";
 const MAX_VALIDATION_LOOKUP_BINDINGS = 100;
 const defaultPackageRegistrations = [
@@ -1535,6 +1545,73 @@ async function existingSnapshot(
     .first<SnapshotRow>();
 }
 
+async function requiredApprovalPreviewBuild(
+  db: D1Database,
+  draftId: string,
+  draftVersion: number,
+  contactVersion: string,
+  catalogReleaseId?: string,
+): Promise<ApprovalPreviewBuildRow> {
+  const row = await db
+    .prepare(
+      `SELECT b.id, b.snapshot_id, b.status, b.artifact_digest, b.artifact_prefix, b.expires_at,
+              s.snapshot_json
+         FROM storefront_preview_builds b
+         JOIN storefront_experience_snapshots s ON s.id = b.snapshot_id
+         JOIN storefront_experience_validations v ON v.id = s.source_validation_id
+        WHERE s.source_draft_id = ?
+          AND s.source_draft_version = ?
+          AND s.kind = 'preview'
+          AND b.catalog_release_id IS ?
+          AND v.catalog_release_id IS ?
+        ORDER BY b.attempt DESC, b.created_at DESC
+        LIMIT 1`,
+    )
+    .bind(draftId, draftVersion, catalogReleaseId ?? null, catalogReleaseId ?? null)
+    .first<ApprovalPreviewBuildRow>();
+  if (!row) {
+    throw new ApiError(
+      409,
+      "storefront_preview_build_required",
+      "Create and successfully deploy the exact Preview before approval.",
+    );
+  }
+  if (
+    row.status !== "deployed" ||
+    !row.artifact_digest ||
+    !row.artifact_prefix ||
+    !row.expires_at ||
+    Date.parse(row.expires_at) <= Date.now()
+  ) {
+    throw new ApiError(
+      409,
+      "storefront_preview_build_not_deployed",
+      "The exact Preview build must have a current deployed artifact before approval.",
+    );
+  }
+  const previewSnapshot = experienceSnapshotSchema.parse(JSON.parse(row.snapshot_json));
+  if (previewSnapshot.contact?.version !== contactVersion) {
+    throw new ApiError(
+      409,
+      "storefront_preview_contact_changed",
+      "Public Contact changed after this Preview was built. Create and deploy a new exact Preview before approval.",
+    );
+  }
+  return row;
+}
+
+async function approvalRequiresPrivatePreviewBuild(
+  db: D1Database,
+  catalogReleaseId?: string,
+): Promise<boolean> {
+  if (!catalogReleaseId) return false;
+  const release = await db
+    .prepare("SELECT purpose FROM catalog_releases WHERE id = ?")
+    .bind(catalogReleaseId)
+    .first<{ purpose: string | null }>();
+  return release?.purpose === "private-preview";
+}
+
 async function insertSnapshot(
   context: Context<ApiEnvironment>,
   input: {
@@ -1552,6 +1629,7 @@ async function insertSnapshot(
       approvedAt: string;
       runId: string;
     };
+    previewBuild?: ApprovalPreviewBuildRow;
   },
 ) {
   const principal = context.get("principal");
@@ -1647,6 +1725,10 @@ async function insertSnapshot(
         catalogReleaseId: input.validation.catalog_release_id,
         draftId: input.row.id,
         draftVersion: input.row.version,
+        previewArtifactDigest: input.previewBuild?.artifact_digest,
+        previewArtifactPrefix: input.previewBuild?.artifact_prefix,
+        previewBuildId: input.previewBuild?.id,
+        previewSnapshotId: input.previewBuild?.snapshot_id,
         themeVersion: input.package.manifest.themeVersion,
       }),
     ),
@@ -1770,8 +1852,25 @@ export async function approveStorefrontExperienceDraft(
       "The approval must use the Catalog Release frozen by the Fashion U8 operator run.",
     );
   }
-  const resolution = await validResolution(context, id, expectedVersion, catalogReleaseId, options);
+  const resolution = await validResolution(
+    context,
+    id,
+    expectedVersion,
+    catalogReleaseId,
+    options,
+    true,
+  );
   const contact = operatorRun?.status === "approved" ? null : await frozenContact(context);
+  const previewBuild =
+    contact && (await approvalRequiresPrivatePreviewBuild(context.env.DB, catalogReleaseId))
+    ? await requiredApprovalPreviewBuild(
+        context.env.DB,
+        id,
+        expectedVersion,
+        contact.version,
+        catalogReleaseId,
+      )
+    : undefined;
   const deduplicationKey = contact
     ? `${id}:${expectedVersion}:${catalogReleaseId ?? "fixture-preview"}:approved:${resolution.package.manifest.themeVersion}:${resolution.package.manifest.configurationSchemaVersion}:contact:${contact.version}`
     : null;
@@ -1842,6 +1941,7 @@ export async function approveStorefrontExperienceDraft(
     resolvedTemplates: resolution.resolvedTemplates,
     row: resolution.row,
     validation: resolution.validation,
+    previewBuild,
     ...(operatorRun && expectedOperatorAuditId
       ? {
           operatorApproval: {

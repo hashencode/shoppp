@@ -6,7 +6,7 @@ import type { PresentationShellRenderViewModel, PresentationViewModel } from "..
 
 export type ActiveExperienceProviderInput =
   | { mode: "production" }
-  | { mode: "fixture-preview"; release?: CanonicalCatalogRelease }
+  | { mode: "fixture-preview"; release?: CanonicalCatalogRelease | CatalogReleaseV3 }
   | {
       identity: {
         catalogReleaseId: string;

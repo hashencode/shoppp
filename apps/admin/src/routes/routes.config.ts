@@ -27,7 +27,7 @@ export type TemplateRoute = {
   path: string
   title: string
   icon: ReactNode
-  permission: PermissionKey
+  permission: PermissionKey | null
   inMenu: boolean
   menuVisibility?: 'always' | 'dev-only'
   menuMode?: 'standalone' | 'grouped'
@@ -42,7 +42,7 @@ const commerceRoutes: TemplateRoute[] = [
     path: '/welcome',
     title: 'Store setup guide',
     icon: createElement(SmileOutlined),
-    permission: 'settings.read',
+    permission: null,
     inMenu: true,
     menuMode: 'standalone',
     component: () =>

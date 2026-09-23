@@ -421,3 +421,72 @@ candidate, or change runtime behavior.
   fixture-import assertion. Diff evidence isolates both baseline contracts from U8.
 - No remote candidate, deployment, DC, or PG state was created or advanced. U8 completes local
   canonical-claim migration and compatibility only; product execution advances to U9.
+
+## U9 integrated Fashion Preview, acceptance, and handback evidence
+
+- The deterministic sparse tuple ran as a two-phase lifecycle rather than a collection of
+  disconnected fixtures. Phase A saved the Contact authority, built the private candidate, created
+  the successor draft, validated the exact tuple, and requested Preview. The acceptance runner then
+  prepared and prerendered the real Storefront output, hashed `.output/public`, submitted that
+  digest through the authenticated build callback, and only then approved the draft. Pending,
+  failed, Contact-drifted, retried, deployed, approved, and idempotent paths fail or succeed at their
+  named boundary.
+- Final exact identity: candidate Release `f24ae4be-0129-4848-8fb6-6b422dad97b8`, Preview Snapshot
+  `snapshot-preview-66201a87a8915eed3a8dfc660d351b92`, approved Snapshot
+  `snapshot-approved-fed6729ce99b241894d3bc3f4dcc9d11`, Contact version
+  `0982b3060b99db12ebdf0da8e43e54f0b82d2448a89cced0dd01b5d9870c8f25`, Theme
+  `fashion-store@1.2.0`, environment `preview`, artifact SHA-256
+  `3e57fa589e0268e884495068632fd9f0d0b478e8fa584f46cf8d6be14d4a32b0`. Artifact metadata,
+  authenticated callback, approval audit, final receipt, generated input, static output, and browser
+  proof all matched these values.
+- The same tuple proves zero/one/multiple behavior: zero Header/Footer Navigation and zero
+  Article/Page routes render honest absence; one Collection contains one ordered Product; Home has
+  three ordered Experience Blocks; the Release contains four ordered Policies. Header and Footer
+  use released Identity and Contact, while Home, Collection, Product, Contact, and Policy visible
+  output use the same immutable tuple.
+- Setup Guide remains a permission-aware deep-link index. `/welcome` is available to an
+  authenticated operator without an unrelated `settings.read` gate; the versioned destinations
+  endpoint filters links by domain permission while the legacy readiness endpoint remains intact
+  for rolling compatibility. Browser proof opens Products, observes its business control, and
+  returns to the guide. All thirteen destination families support the return path.
+
+### Final Fashion PC Surface Control Matrix disposition
+
+| # | Final owner / immutable input | U9 visible disposition and retained proof |
+| ---: | --- | --- |
+| 1 | Store Identity / Catalog Release | Released store name drives Header/Footer identity and generated metadata in the exact tuple. |
+| 2 | Store Identity assets + Theme presentation | Config3 selects only released Identity variants; historical packages retain frozen fallback behavior. |
+| 3 | Navigation / Catalog Release | Exact tuple proves honest zero Header Navigation; populated schema-v3 acceptance proves ordered released hierarchy. |
+| 4 | Navigation / Catalog Release | Exact tuple proves honest zero Footer Navigation; populated acceptance proves three released Footer groups. |
+| 5 | Frozen Contact version | Header/Footer and Contact page use the exact Contact digest above; drift after Preview blocks approval. |
+| 6 | Experience Theme Blocks | Exact tuple renders three ordered Hero blocks; authored-Hero PC/no-JS/SSR proof retains the one-to-five contract. |
+| 7 | Experience Theme Blocks | Promotion and marquee use saved ordered blocks; no successor fixture fallback is accepted. |
+| 8 | Shipping, Policy, Commerce | Service claims derive from released canonical facts and destination-qualified Shipping output. |
+| 9 | Catalog Collections + Theme references | One released Collection and its one ordered Product render from stable IDs. |
+| 10 | Experience Theme Blocks | Brand absence/order follows the immutable block list without code-owned successor data. |
+| 11 | Content Articles + Theme references | Exact zero Article route is 404/absent; populated acceptance resolves released Article identities only. |
+| 12 | Catalog Product/Collection Release | The exact Product `Carry-on` and Collection `Travel` render from the candidate Release. |
+| 13 | Catalog Review publication | Generated Product output retains released review state and never imports fixture review bodies. |
+| 14 | Content Pages and Articles | Exact Page/Article zero state is honest; populated generated/browser gates cover released routes and safe rendering. |
+| 15 | Published Policies / Catalog Release | Four ordered Policies render from released `kind` and route identity, independent of slug wording. |
+| 16 | Frozen Contact version | Contact output shows `u9-sparse@example.test` from the exact immutable Contact input. |
+| 17 | Provider capability / Catalog Release | Payment marks are the validated released brand intersection, not Theme-owned toggles. |
+| 18 | Shipping + published Policies | Product delivery/return text is canonical and destination-neutral; legacy claims have no Config3 fallback. |
+| 19 | System route/capability authority | Browser, responsive, focus, keyboard, no-JS/static, cart, checkout, account, and utility-route gates pass. |
+
+- Official integrated acceptance on 2026-09-24 passed: Admin setup/Preview `4/4`; exact lifecycle
+  `1/1`; exact real build/static/browser `1/1`; API lifecycle `65` passed with one handshake-only
+  expected skip; reader matrix `9/9`; generated output `32/32`; authored Hero `4` passed with two
+  project-specific mobile skips; main Fashion browser matrix `295` passed, `269` contractual
+  project skips, `0` failed; Fashion accessibility `7/7`; and all fifteen page behavior-evidence
+  verifiers passed. Focused composer/theme `95/95`, acceptance-runner `7/7`, contract/runner
+  `21/21`, and `git diff --check` passed.
+- Full structured review first found six acceptance/permission/compatibility gaps, then four exact
+  lifecycle/fixture/accessibility defects, and finally the synthetic-digest ordering gap. All were
+  repaired and independently reverified with no remaining P0/P1/P2. Retained artifacts are
+  `/tmp/compound-engineering-501/ce-code-review/20260924-001712-26a4e70e/report.md`,
+  `/tmp/compound-engineering-501/ce-code-review/20260924-014506-26a4e70e/report.md`,
+  `/tmp/compound-engineering-501/ce-code-review/20260924-034712-26a4e70e/report.md`, and
+  `/tmp/compound-engineering-501/ce-code-review/20260924-042300-26a4e70e/report.md`.
+- No Candidate Template Matrix was frozen, no candidate was selected, and DC, deployment, and PG
+  remain unstarted. FS-F14 is complete and product execution returns to `REL-Pre-DC`.

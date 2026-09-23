@@ -47,6 +47,7 @@ const announcementLink = computed(
 );
 const footer = computed(() => properties.footer ?? experienceShell?.value?.footer);
 const header = computed(() => properties.header ?? experienceShell?.value?.header);
+const brandName = computed(() => properties.brandName ?? experienceShell?.value?.siteName);
 const resolvedPublishedRoutes = computed(
   () => properties.publishedRoutes ?? experienceShell?.value?.publishedRoutes,
 );

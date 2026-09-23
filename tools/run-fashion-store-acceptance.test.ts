@@ -41,23 +41,62 @@ describe("Fashion Store page acceptance routing", () => {
     expect(theme.steps.filter(({ label }) => label.endsWith("/behavior-evidence"))).toHaveLength(
       15,
     );
-    expect(theme.steps[1]!.command).toEqual([
-      "bunx",
-      "playwright",
-      "test",
-      "--config",
-      "playwright.fashion-store.config.ts",
-    ]);
+    const browserCommand = theme.steps.find(({ label }) => label === "theme/browser")?.command;
+    expect(browserCommand).toContain("playwright.fashion-store.config.ts");
+    expect(browserCommand).toContain("e2e/fashion-store-acceptance-slice.spec.ts");
+    expect(browserCommand).not.toContain("--grep-invert");
   });
 
   test("selects one acceptance stage without duplicating its page or test ledger", () => {
     const unit = buildFashionStoreAcceptancePlan({ scope: "theme", stage: "unit" });
     const behavior = buildFashionStoreAcceptancePlan({ scope: "theme", stage: "behavior" });
+    const integrated = buildFashionStoreAcceptancePlan({ scope: "theme", stage: "integrated" });
 
     expect(unit.steps.map(({ label }) => label)).toEqual(["theme/unit"]);
     expect(behavior.pages).toHaveLength(15);
     expect(behavior.steps).toHaveLength(15);
     expect(behavior.steps.every(({ label }) => label.endsWith("/behavior-evidence"))).toBe(true);
+    expect(integrated.steps.slice(0, 7).map(({ label }) => label)).toEqual([
+      "admin/exact-draft-preview",
+      "control-plane/exact-tuple-receipt",
+      "theme/exact-tuple-build-browser",
+      "control-plane/lifecycle-regressions",
+      "theme/reader-matrix",
+      "theme/generated-output",
+      "theme/authored-hero-browser",
+    ]);
+    expect(integrated.steps[0]!.command).toEqual([
+      "bun",
+      "run",
+      "--cwd",
+      "../admin",
+      "test:e2e",
+      "--",
+      "e2e/setup-guide.spec.ts",
+      "e2e/storefront-theme-preview.spec.ts",
+    ]);
+    expect(integrated.steps[1]!.command).toEqual([
+      "bun",
+      "run",
+      "--cwd",
+      "../api",
+      "test:workers",
+      "--",
+      "--disableConsoleIntercept",
+      "test/catalog/candidate-release.test.ts",
+      "-t",
+      "propagates one sparse Admin tuple",
+    ]);
+    expect(integrated.steps[3]!.command).toContain(
+      "test/storefront-experience/experience-api.test.ts",
+    );
+    expect(integrated.steps[4]!.command).toContain("tests/fashion-store-package-registry.test.ts");
+    expect(integrated.steps[5]!.command).toContain("tests/fashion-store-product.test.ts");
+    expect(integrated.steps[7]?.label).toBe("theme/browser");
+    expect(integrated.steps.slice(8)).toHaveLength(15);
+    expect(
+      integrated.steps.slice(8).every(({ label }) => label.endsWith("/behavior-evidence")),
+    ).toBe(true);
   });
 
   test("restores every generated storefront selection file after acceptance", () => {

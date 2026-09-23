@@ -46,7 +46,7 @@ function configuredLogo(): string | undefined {
 }
 
 const configuredBrandName = computed(
-  () => properties.configuration?.logo?.alt.trim() || properties.brandName || "Lifestyle",
+  () => properties.brandName || properties.configuration?.logo?.alt.trim() || "Lifestyle",
 );
 
 function fallbackLogo(): string {

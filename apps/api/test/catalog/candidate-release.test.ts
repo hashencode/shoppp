@@ -1,6 +1,14 @@
 import { env } from "cloudflare:workers";
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
+import {
+  catalogReleaseV3Schema,
+  storefrontExperienceDraftInputSchema,
+  type ExperienceSnapshot,
+} from "@shoppp/contracts";
+
+import { fashionStoreSuccessorPackage } from "../../../storefront/app/themes/fashion-store/package-registry";
+
 import { createApp } from "../../src/http/app";
 import { buildCatalogReleaseManifest } from "../../src/publishing/build-manifest";
 import {
@@ -9,6 +17,12 @@ import {
 } from "../../src/publishing/candidate-releases";
 import { candidateLedgerChunkCount } from "../../src/publishing/candidate-ledger";
 import { ADMIN_ROLE_IDS, seedHumanAdmin } from "../fixtures/admin-iam";
+
+declare global {
+  interface ImportMeta {
+    readonly dir: string;
+  }
+}
 
 const digest = "a".repeat(64);
 const baseSnapshot = {
@@ -304,6 +318,7 @@ async function seedCandidateSources(app: ReturnType<typeof createApp>) {
 }
 
 describe("private candidate builder integration", () => {
+  let preserveExactTupleReceipt = false;
   beforeAll(async () => {
     await env.DB.batch([
       env.DB.prepare("PRAGMA defer_foreign_keys = ON"),
@@ -346,6 +361,7 @@ describe("private candidate builder integration", () => {
   });
 
   afterEach(async () => {
+    if (preserveExactTupleReceipt) return;
     await env.DB.batch([
       env.DB.prepare(
         "DELETE FROM catalog_release_media_ledger WHERE release_id IN (SELECT id FROM catalog_releases WHERE purpose = 'private-preview')",
@@ -888,6 +904,416 @@ describe("private candidate builder integration", () => {
         .first(),
     ).toEqual({ candidate_status: "succeeded", status: "approved" });
   });
+
+  async function exerciseExactSparseTuple() {
+    preserveExactTupleReceipt = true;
+    const buildInputs: Array<{ catalogReleaseId?: string; snapshotId: string }> = [];
+    const app = createApp({
+      buildManifestToken: "candidate-build-token-at-least-32-bytes",
+      buildTrigger: vi.fn(async () => ({ correlationId: "u9-candidate-build" })),
+      experienceBuildTrigger: async (input) => {
+        buildInputs.push(input);
+        return { correlationId: `u9-experience-build-${buildInputs.length}` };
+      },
+      testIdentityVerifier: async () => ({
+        email: "candidate@example.test",
+        principalKind: "human",
+        subject: "candidate-admin",
+      }),
+    });
+
+    const currentContact = await app.fetch(adminRequest("/admin/settings/contact"), env);
+    expect(currentContact.status).toBe(200);
+    const contact = await currentContact.json<{
+      data: {
+        launchVersion: string | null;
+        privacyContactEmail: string;
+        profile: Record<string, unknown>;
+        profileVersion: string | null;
+      };
+    }>();
+    const supportEmail = "u9-sparse@example.test";
+    const savedContact = await app.fetch(
+      adminRequest("/admin/settings/contact", {
+        body: JSON.stringify({
+          expectedLaunchVersion: contact.data.launchVersion,
+          expectedProfileVersion: contact.data.profileVersion,
+          privacyContactEmail: contact.data.privacyContactEmail,
+          profile: { ...contact.data.profile, publishSupportEmail: true },
+          reason: "Save the deterministic U9 sparse tuple",
+          supportEmail,
+        }),
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(savedContact.status, await savedContact.clone().text()).toBe(200);
+
+    const built = await app.fetch(
+      adminRequest("/admin/catalog/releases/preview-candidates", {
+        body: JSON.stringify({ reason: "Freeze the deterministic U9 sparse tuple" }),
+        method: "POST",
+      }),
+      env,
+    );
+    expect(built.status, await built.clone().text()).toBe(201);
+    const candidateId = (await built.json<{ data: { id: string } }>()).data.id;
+    const inspected = await app.fetch(
+      adminRequest(`/admin/catalog/releases/preview-candidates/${candidateId}`),
+      env,
+    );
+    expect(inspected.status).toBe(200);
+    const candidate = catalogReleaseV3Schema.parse(
+      (await inspected.json<{ data: { manifest: unknown } }>()).data.manifest,
+    );
+    expect(candidate).toMatchObject({
+      purpose: "private-preview",
+      releaseId: candidateId,
+      schemaVersion: 3,
+    });
+    expect(candidate.products).toHaveLength(1);
+    expect(candidate.collections).toHaveLength(1);
+    expect(candidate.content).toHaveLength(4);
+    expect(candidate.content.every(({ kind }) => kind === "policy")).toBe(true);
+    expect(candidate.navigation).toEqual([]);
+
+    const manifest = fashionStoreSuccessorPackage.manifest;
+    const bindings = [
+      {
+        id: "u9-home-collection",
+        instanceId: "fashion-store-home",
+        kind: "catalog" as const,
+        reference: { id: candidate.collections[0]!.id, kind: "collection" as const },
+        settingId: "featured-collection",
+      },
+      {
+        id: "u9-collection-default",
+        instanceId: "fashion-store-collection",
+        kind: "catalog" as const,
+        reference: { id: candidate.collections[0]!.id, kind: "collection" as const },
+        settingId: "default-collection",
+      },
+    ];
+    const draft = storefrontExperienceDraftInputSchema.parse({
+      bindings,
+      experienceId: "experience-u9-sparse-tuple",
+      overrides: [],
+      presetId: "source-parity",
+      themeId: manifest.id,
+      themeVersion: manifest.themeVersion,
+    });
+    const sourceResponse = await app.fetch(
+      adminRequest("/admin/storefront-experiences/drafts", {
+        body: JSON.stringify({ draft, reason: "Start the U9 sparse Fashion draft" }),
+        method: "POST",
+      }),
+      env,
+    );
+    expect(sourceResponse.status, await sourceResponse.clone().text()).toBe(201);
+    const source = await sourceResponse.json<{ data: { id: string; version: number } }>();
+    const successorResponse = await app.fetch(
+      adminRequest(`/admin/storefront-experiences/drafts/${source.data.id}/successors`, {
+        body: JSON.stringify({
+          bindings,
+          overrides: [],
+          reason: "Carry the exact U9 tuple into a successor draft",
+          sourceVersion: source.data.version,
+        }),
+        method: "POST",
+      }),
+      env,
+    );
+    expect(successorResponse.status, await successorResponse.clone().text()).toBe(201);
+    const successor = await successorResponse.json<{ data: { id: string; version: number } }>();
+    expect(successor.data.id).not.toBe(source.data.id);
+
+    const validate = await app.fetch(
+      adminRequest(`/admin/storefront-experiences/drafts/${successor.data.id}/validate`, {
+        body: JSON.stringify({
+          catalogReleaseId: candidateId,
+          expectedVersion: successor.data.version,
+          reason: "Validate the exact U9 tuple",
+        }),
+        method: "POST",
+      }),
+      env,
+    );
+    expect(validate.status, await validate.clone().text()).toBe(200);
+    expect(await validate.json()).toMatchObject({ data: { issues: [], status: "valid" } });
+
+    const preview = await app.fetch(
+      adminRequest(`/admin/storefront-experiences/drafts/${successor.data.id}/preview`, {
+        body: JSON.stringify({
+          catalogReleaseId: candidateId,
+          expectedVersion: successor.data.version,
+          reason: "Privately Preview the exact U9 tuple",
+        }),
+        method: "POST",
+      }),
+      env,
+    );
+    expect(preview.status, await preview.clone().text()).toBe(202);
+    const previewBody = await preview.json<{
+      data: {
+        build: {
+          id: string;
+          inputIdentity: { catalogReleaseId: string; experienceSnapshotId: string };
+        };
+        snapshot: { id: string; snapshot: ExperienceSnapshot; sourceDraftId: string };
+      };
+    }>();
+    expect(previewBody.data.build.inputIdentity).toMatchObject({
+      catalogReleaseId: candidateId,
+      experienceSnapshotId: previewBody.data.snapshot.id,
+    });
+    expect(previewBody.data.snapshot).toMatchObject({
+      sourceDraftId: successor.data.id,
+      snapshot: {
+        contact: { publicContact: { supportEmail } },
+        themeId: manifest.id,
+        themeVersion: manifest.themeVersion,
+      },
+    });
+
+    const pendingApproval = await app.fetch(
+      adminRequest(`/admin/storefront-experiences/drafts/${successor.data.id}/approve`, {
+        body: JSON.stringify({
+          catalogReleaseId: candidateId,
+          confirm: true,
+          expectedVersion: successor.data.version,
+          reason: "Reject approval while the exact Preview build is pending",
+        }),
+        method: "POST",
+      }),
+      env,
+    );
+    expect(pendingApproval.status).toBe(409);
+    expect(await pendingApproval.json()).toMatchObject({
+      error: { code: "storefront_preview_build_not_deployed" },
+    });
+
+    const failedBuild = await app.fetch(
+      new Request(
+        `https://api.example.test/build/storefront-experiences/builds/${previewBody.data.build.id}/status`,
+        {
+          body: JSON.stringify({ failureCode: "u9_exact_tuple_build_failed", status: "failed" }),
+          headers: {
+            Authorization: "Bearer candidate-build-token-at-least-32-bytes",
+            "Content-Type": "application/json",
+            "Idempotency-Key": "u9-exact-tuple-build-failed",
+          },
+          method: "POST",
+        },
+      ),
+      env,
+    );
+    expect(failedBuild.status, await failedBuild.clone().text()).toBe(200);
+    const failedApproval = await app.fetch(
+      adminRequest(`/admin/storefront-experiences/drafts/${successor.data.id}/approve`, {
+        body: JSON.stringify({
+          catalogReleaseId: candidateId,
+          confirm: true,
+          expectedVersion: successor.data.version,
+          reason: "Reject approval after the exact Preview build failed",
+        }),
+        method: "POST",
+      }),
+      env,
+    );
+    expect(failedApproval.status).toBe(409);
+    expect(await failedApproval.json()).toMatchObject({
+      error: { code: "storefront_preview_build_not_deployed" },
+    });
+
+    const retryPreview = await app.fetch(
+      adminRequest(`/admin/storefront-experiences/drafts/${successor.data.id}/preview`, {
+        body: JSON.stringify({
+          catalogReleaseId: candidateId,
+          expectedVersion: successor.data.version,
+          reason: "Retry the exact U9 Preview build",
+        }),
+        method: "POST",
+      }),
+      env,
+    );
+    expect(retryPreview.status, await retryPreview.clone().text()).toBe(202);
+    const retryPreviewBody = await retryPreview.json<{
+      data: { build: { id: string }; snapshot: { id: string } };
+    }>();
+    expect(retryPreviewBody.data.build.id).not.toBe(previewBody.data.build.id);
+    const exactBuildManifest = await app.fetch(
+      new Request(
+        `https://api.example.test/build/storefront-experiences/builds/${retryPreviewBody.data.build.id}`,
+        { headers: { Authorization: "Bearer candidate-build-token-at-least-32-bytes" } },
+      ),
+      env,
+    );
+    expect(exactBuildManifest.status, await exactBuildManifest.clone().text()).toBe(200);
+    const exactBuildInput = await exactBuildManifest.json<Record<string, unknown>>();
+    expect(exactBuildInput).toMatchObject({
+      catalogRelease: { releaseId: candidateId },
+      inputIdentity: {
+        catalogReleaseId: candidateId,
+        experienceSnapshotId: retryPreviewBody.data.snapshot.id,
+      },
+      snapshot: {
+        contact: { publicContact: { supportEmail } },
+        id: retryPreviewBody.data.snapshot.id,
+      },
+    });
+    const handshakeUrl = (env as unknown as { U9_EXACT_HANDSHAKE_URL?: string })
+      .U9_EXACT_HANDSHAKE_URL;
+    if (!handshakeUrl) throw new Error("U9 exact tuple requires the acceptance build handshake");
+    console.log(`U9_EXACT_BUILD_INPUT=${JSON.stringify(exactBuildInput)}`);
+    const measuredArtifact = await fetch(`${handshakeUrl}/phase-a`, {
+      body: JSON.stringify({
+        buildId: retryPreviewBody.data.build.id,
+        buildInput: exactBuildInput,
+        candidateReleaseId: candidateId,
+        previewSnapshotId: retryPreviewBody.data.snapshot.id,
+      }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    });
+    expect(measuredArtifact.status, await measuredArtifact.clone().text()).toBe(200);
+    const { artifactDigest } = await measuredArtifact.json<{ artifactDigest: string }>();
+    expect(artifactDigest).toMatch(/^[a-f0-9]{64}$/);
+    const deployedBuild = await app.fetch(
+      new Request(
+        `https://api.example.test/build/storefront-experiences/builds/${retryPreviewBody.data.build.id}/status`,
+        {
+          body: JSON.stringify({
+            artifactDigest,
+            artifactPrefix: `snapshots/${retryPreviewBody.data.snapshot.id}/${candidateId}/${artifactDigest}`,
+            expiresAt: "2099-09-24T00:00:00.000Z",
+            status: "deployed",
+          }),
+          headers: {
+            Authorization: "Bearer candidate-build-token-at-least-32-bytes",
+            "Content-Type": "application/json",
+            "Idempotency-Key": "u9-exact-tuple-build-deployed",
+          },
+          method: "POST",
+        },
+      ),
+      env,
+    );
+    expect(deployedBuild.status, await deployedBuild.clone().text()).toBe(200);
+
+    const frozenLaunch = await env.DB.prepare(
+      "SELECT value_json, updated_at FROM settings WHERE key = 'launch_configuration'",
+    ).first<{ updated_at: string; value_json: string }>();
+    const driftedLaunch = JSON.parse(frozenLaunch!.value_json) as Record<string, unknown>;
+    driftedLaunch.supportEmail = "u9-drifted@example.test";
+    await env.DB.prepare(
+      "UPDATE settings SET value_json = ?, updated_at = ? WHERE key = 'launch_configuration'",
+    )
+      .bind(JSON.stringify(driftedLaunch), "2026-09-24T01:55:00.000Z")
+      .run();
+    const driftedApproval = await app.fetch(
+      adminRequest(`/admin/storefront-experiences/drafts/${successor.data.id}/approve`, {
+        body: JSON.stringify({
+          catalogReleaseId: candidateId,
+          confirm: true,
+          expectedVersion: successor.data.version,
+          reason: "Reject approval after Contact drift",
+        }),
+        method: "POST",
+      }),
+      env,
+    );
+    expect(driftedApproval.status).toBe(409);
+    expect(await driftedApproval.json()).toMatchObject({
+      error: { code: "storefront_preview_contact_changed" },
+    });
+    await env.DB.prepare(
+      "UPDATE settings SET value_json = ?, updated_at = ? WHERE key = 'launch_configuration'",
+    )
+      .bind(frozenLaunch!.value_json, frozenLaunch!.updated_at)
+      .run();
+
+    const approvedResponse = await app.fetch(
+      adminRequest(`/admin/storefront-experiences/drafts/${successor.data.id}/approve`, {
+        body: JSON.stringify({
+          catalogReleaseId: candidateId,
+          confirm: true,
+          expectedVersion: successor.data.version,
+          reason: "Approve the exact U9 tuple",
+        }),
+        method: "POST",
+      }),
+      env,
+    );
+    expect(approvedResponse.status, await approvedResponse.clone().text()).toBe(200);
+    const approved = await approvedResponse.json<{
+      data: { id: string; kind: string; snapshot: ExperienceSnapshot; sourceDraftId: string };
+    }>();
+    expect(approved.data).toMatchObject({
+      kind: "approved",
+      snapshot: { contact: { publicContact: { supportEmail } } },
+      sourceDraftId: successor.data.id,
+    });
+    const approvalRetry = await app.fetch(
+      adminRequest(`/admin/storefront-experiences/drafts/${successor.data.id}/approve`, {
+        body: JSON.stringify({
+          catalogReleaseId: candidateId,
+          confirm: true,
+          expectedVersion: successor.data.version,
+          reason: "Approve the exact U9 tuple",
+        }),
+        method: "POST",
+      }),
+      env,
+    );
+    expect(approvalRetry.status, await approvalRetry.clone().text()).toBe(200);
+    expect(await approvalRetry.json()).toMatchObject({ data: { id: approved.data.id } });
+    const approvalAudit = await env.DB.prepare(
+      "SELECT metadata_json FROM audit_events WHERE id = ?",
+    )
+      .bind(`audit-${approved.data.id}`)
+      .first<{ metadata_json: string }>();
+    const approvalAuditMetadata = JSON.parse(approvalAudit!.metadata_json) as Record<string, unknown>;
+    expect(approvalAuditMetadata).toMatchObject({
+      catalogReleaseId: expect.any(String),
+      previewArtifactDigest: artifactDigest,
+      previewBuildId: retryPreviewBody.data.build.id,
+      previewSnapshotId: retryPreviewBody.data.snapshot.id,
+    });
+    const exactTupleReceipt = {
+          artifactDigest,
+          approvalAuditArtifactDigest: approvalAuditMetadata.previewArtifactDigest,
+          callbackArtifactDigest: artifactDigest,
+          buildId: retryPreviewBody.data.build.id,
+          candidateReleaseId: candidateId,
+          contactVersion: previewBody.data.snapshot.snapshot.contact?.version,
+          environment: exactBuildInput.environment,
+          exactValues: {
+            collectionId: candidate.collections[0]!.id,
+            collectionName: candidate.collections[0]!.name,
+            collectionSlug: candidate.collections[0]!.slug,
+            productId: candidate.products[0]!.id,
+            productName: candidate.products[0]!.name,
+            productSlug: candidate.products[0]!.slug,
+            supportEmail,
+          },
+          previewSnapshotId: retryPreviewBody.data.snapshot.id,
+          successorDraftId: successor.data.id,
+          successorDraftVersion: successor.data.version,
+          approvedSnapshotId: approved.data.id,
+          themeId: manifest.id,
+          themeVersion: manifest.themeVersion,
+        };
+    console.log(`U9_EXACT_TUPLE_RECEIPT=${JSON.stringify(exactTupleReceipt)}`);
+    expect(buildInputs).toHaveLength(2);
+    expect(buildInputs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          catalogReleaseId: candidateId,
+          snapshotId: previewBody.data.snapshot.id,
+        }),
+      ]),
+    );
+  }
 
   test("freezes only verified payment brands and Shipping methods eligible for launch countries", async () => {
     const now = "2026-09-23T00:00:00.000Z";
@@ -1618,4 +2044,12 @@ describe("private candidate builder integration", () => {
       await env.DB.prepare("DELETE FROM products WHERE id LIKE '00000000-0000-4000-8000-%'").run();
     }
   });
+
+  test.skipIf(
+    !(env as unknown as { U9_EXACT_HANDSHAKE_URL?: string }).U9_EXACT_HANDSHAKE_URL,
+  )(
+    "propagates one sparse Admin tuple through candidate, successor, private Preview, approval, and generated Fashion output",
+    exerciseExactSparseTuple,
+    180_000,
+  );
 });

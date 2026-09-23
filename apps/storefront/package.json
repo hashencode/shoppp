@@ -23,7 +23,7 @@
     "test:fashion-store:unit": "bun ../../tools/run-fashion-store-acceptance.ts --scope=theme --stage=unit",
     "test:fashion-store:browser": "bun run test:fashion-store-live && bun run test:fashion-store-product:empty && PLAYWRIGHT_FORCE_ASYNC_LOADER=1 playwright test --config playwright.fashion-store.config.ts && bun run test:fashion-store-home:combined && bun run test:fashion-store-home:isolated",
     "test:fashion-store-product:empty": "PLAYWRIGHT_FORCE_ASYNC_LOADER=1 playwright test --config playwright.fashion-store-live-product-empty.config.ts",
-    "test:fashion-store:acceptance": "bun ../../tools/run-fashion-store-acceptance.ts --scope=theme --stage=behavior",
+    "test:fashion-store:acceptance": "bun ../../tools/run-fashion-store-acceptance.ts --scope=theme --stage=integrated",
     "test:fashion-store-home:combined": "STOREFRONT_FASHION_HOME_PROFILE=combined PLAYWRIGHT_FORCE_ASYNC_LOADER=1 playwright test --config playwright.fashion-store-live-unified-home.config.ts",
     "test:fashion-store-home:isolated": "STOREFRONT_FASHION_HOME_PROFILE=isolated PLAYWRIGHT_FORCE_ASYNC_LOADER=1 playwright test --config playwright.fashion-store-live-unified-home.config.ts",
     "test:fashion-store-live": "PLAYWRIGHT_FORCE_ASYNC_LOADER=1 playwright test --config playwright.fashion-store-live.config.ts",

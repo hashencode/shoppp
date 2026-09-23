@@ -271,9 +271,9 @@ async function expectLiveCanonicalShell(page: Page, home = false): Promise<void>
     expect(footerRow).not.toBeNull();
     expect(quickContact!.width).toBeLessThanOrEqual(footerRow!.width * 0.6);
   }
-  await expect(footer.getByText("My account", { exact: true })).toHaveAttribute(
-    "aria-disabled",
-    "true",
+  await expect(footer.getByRole("link", { name: "My account", exact: true })).toHaveAttribute(
+    "href",
+    "/account",
   );
   await expect(page.locator("body")).toHaveClass(home ? /fashion-store-home/ : /^$/);
 }

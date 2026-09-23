@@ -194,6 +194,7 @@ export const presentationShellViewModelSchema = z
       legacyNavigation: legacyHeaderNavigationSchema.optional(),
     }),
     publishedRoutes: z.array(z.string().startsWith("/")).max(1_000).optional(),
+    siteName: headingSchema,
   })
   .strict();
 export const presentationShellRenderViewModelSchema = presentationShellViewModelSchema.partial();

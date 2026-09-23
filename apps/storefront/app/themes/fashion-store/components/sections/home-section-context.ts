@@ -157,7 +157,7 @@ export function resolveFashionStoreHomeFoundation(
   const fallback = isLiveHomeViewModel(viewModel)
     ? liveFoundation(resolveLiveHomeData(viewModel))
     : fixtureFoundation(resolveFixtureHomeData(viewModel));
-  if (!instance) return fallback;
+  if (!instance || !isLiveHomeViewModel(viewModel)) return fallback;
   const visible = instance.blocks.filter(({ visible }) => visible);
   const text = (block: (typeof visible)[number], key: string) =>
     typeof block.settings[key] === "string" ? block.settings[key] : "";
@@ -209,6 +209,27 @@ export function resolveFashionStoreHomeEditorial(
   instance?: SectionInstance,
 ): FashionStoreHomeEditorialPresentation {
   if (instance) {
+    if (!isLiveHomeViewModel(viewModel)) {
+      const data = resolveFixtureHomeData(viewModel);
+      return {
+        categories: data.categories.map((category) => ({
+          ...category,
+          href: fashionStoreRoutePaths.collection,
+        })),
+        collection: {
+          description: "Flash summer sale 70% off on selected collection for him.",
+          eyebrow: "Lookbook 2023",
+          href: fashionStoreRoutePaths.collection,
+          items: data.collection,
+          title: { emphasis: "collection", lead: "New arrival" },
+        },
+        magazine: data.magazine.map((entry) => ({
+          ...entry,
+          articleHref: fashionStoreRoutePaths.article,
+          indexHref: fashionStoreRoutePaths.magazine,
+        })),
+      };
+    }
     const visible = instance.blocks.filter(({ visible }) => visible);
     const text = (block: (typeof visible)[number], key: string) =>
       typeof block.settings[key] === "string" ? block.settings[key] : "";

@@ -40,6 +40,7 @@ export default defineConfig(async () => {
             TURNSTILE_HOSTNAMES: "storefront-staging.example.invalid",
             TURNSTILE_REQUIRED: "false",
             TURNSTILE_TEST_MODE: "false",
+            U9_EXACT_HANDSHAKE_URL: process.env.U9_EXACT_HANDSHAKE_URL ?? "",
           },
         },
         wrangler: {

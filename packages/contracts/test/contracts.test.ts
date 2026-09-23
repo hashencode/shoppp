@@ -22,7 +22,8 @@ import { inventoryAdjustmentRequestSchema, inventoryReservationSchema } from "..
 import {
   commerceFunnelEventSchema,
   publicRuntimeConfigurationSchema,
-  SETUP_GUIDE_CHECKS,
+  SETUP_GUIDE_DESTINATION_IDS,
+  setupGuideDestinationsSchema,
   setupGuideSummarySchema,
 } from "../src/platform";
 
@@ -415,32 +416,23 @@ describe("admin IAM contracts", () => {
   });
 });
 
-describe("setup guide summary contract", () => {
-  test("keeps the complete denominator, rejects duplicates and permits new reason codes", () => {
+describe("setup guide destination contract", () => {
+  test("accepts bounded direct editor destinations and rejects non-guide links", () => {
     const summary = {
-      checkedAt: "2026-09-03T00:00:00.000Z",
-      environment: "staging",
-      configuration: null,
-      checks: SETUP_GUIDE_CHECKS.map((check) => ({
-        ...check,
-        status: "unavailable",
-        reasons: [{ code: "future_backend_reason" }],
+      destinations: SETUP_GUIDE_DESTINATION_IDS.map((id) => ({
+        href: `/settings/${id}?from=setup-guide`,
+        id,
       })),
     };
-    expect(setupGuideSummarySchema.safeParse(summary).success).toBe(true);
+    expect(setupGuideDestinationsSchema.safeParse(summary).success).toBe(true);
     expect(
-      setupGuideSummarySchema.safeParse({ ...summary, checks: summary.checks.slice(1) }).success,
-    ).toBe(false);
-    expect(
-      setupGuideSummarySchema.safeParse({
-        ...summary,
-        checks: summary.checks.map(() => summary.checks[0]),
+      setupGuideDestinationsSchema.safeParse({
+        destinations: [{ href: "https://example.test/settings", id: "identity" }],
       }).success,
     ).toBe(false);
     expect(
-      setupGuideSummarySchema.safeParse({
-        ...summary,
-        configuration: { defaultCurrency: "USD", updatedAt: null, secret: "must not leak" },
+      setupGuideDestinationsSchema.safeParse({
+        destinations: [{ href: "/settings/identity", id: "identity" }],
       }).success,
     ).toBe(false);
   });

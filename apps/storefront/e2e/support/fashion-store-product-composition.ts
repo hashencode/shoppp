@@ -100,10 +100,10 @@ export async function expectFashionStoreProductComposition(
     await expect(product.locator(".fashion-product-payments img")).toHaveCount(0);
   } else {
     await expect(product.locator("[data-product-assurance]")).toContainText(
-      "Delivery timing: Delivery timing is confirmed for your destination at checkout.",
+      "Delivery timing: Shipping options are confirmed for your destination at checkout.",
     );
     await expect(product.locator("[data-product-assurance]")).toContainText(
-      "Shipping & returns: Eligible unused items may be returned within 30 days of delivery.",
+      "Shipping & returns: See Shipping policy and Returns policy.",
     );
     await expect(product.locator(".fashion-product-payments img")).toHaveCount(6);
   }

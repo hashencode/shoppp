@@ -29,21 +29,16 @@ describe('AuthorizedHome', () => {
     expect(await screen.findByText('Setup checks destination')).toBeTruthy()
   })
   it.each([
-    { permissions: ['reporting.read'] as AdminPermission[], destination: 'Reporting destination' },
-    { permissions: ['catalog.read'] as AdminPermission[], destination: 'Catalog destination' },
-  ])(
-    'should retain the authorized business fallback for $permissions',
-    async ({ permissions, destination }) => {
-      renderHome(permissions)
-      expect(await screen.findByText(destination)).toBeTruthy()
-    }
-  )
-  it('should retain denied access when no business route is authorized', async () => {
+    ['reporting.read'],
+    ['catalog.read'],
+    ['content.read'],
+    ['themes.read'],
+  ] as [AdminPermission][])('should expose the filtered guide to a %s-only operator', async (permission) => {
+    renderHome([permission])
+    expect(await screen.findByText('Setup checks destination')).toBeTruthy()
+  })
+  it('should expose the empty guide to an authenticated operator with no domain reads', async () => {
     renderHome([])
-    expect(
-      await screen.findByText(
-        'Your administrator account does not have permission for this operation.'
-      )
-    ).toBeTruthy()
+    expect(await screen.findByText('Setup checks destination')).toBeTruthy()
   })
 })

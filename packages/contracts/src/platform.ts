@@ -405,7 +405,7 @@ export type UpdateLaunchConfigurationRequest = z.infer<
   typeof updateLaunchConfigurationRequestSchema
 >;
 
-/** Fixed denominator for the automatic setup checks; manual tasks are excluded. */
+/** Legacy readiness response retained until the pre-U9 Admin deployment can no longer be rolled back. */
 export const SETUP_GUIDE_CHECKS = [
   { id: "configuration_saved", step: "contacts" },
   { id: "contact_details", step: "contacts" },
@@ -430,7 +430,6 @@ export const setupGuideCheckSchema = z
     reasons: z.array(
       z
         .object({
-          // Open reason codes allow older clients to show a truthful generic fallback.
           code: z.string().min(1),
           countries: z.array(countryCodeSchema).optional(),
         })
@@ -468,3 +467,35 @@ export const setupGuideSummarySchema = z
 
 export type SetupGuideCheck = z.infer<typeof setupGuideCheckSchema>;
 export type SetupGuideSummary = z.infer<typeof setupGuideSummarySchema>;
+
+export const SETUP_GUIDE_DESTINATION_IDS = [
+  "identity",
+  "contact",
+  "policies",
+  "products",
+  "collections",
+  "pages",
+  "articles",
+  "navigation",
+  "themes",
+  "shipping",
+  "commerce",
+  "inventory",
+  "orders",
+] as const;
+
+export const setupGuideDestinationSchema = z
+  .object({
+    id: z.enum(SETUP_GUIDE_DESTINATION_IDS),
+    href: z.string().startsWith("/").includes("from=setup-guide"),
+  })
+  .strict();
+
+export const setupGuideDestinationsSchema = z
+  .object({
+    destinations: z.array(setupGuideDestinationSchema).max(SETUP_GUIDE_DESTINATION_IDS.length),
+  })
+  .strict();
+
+export type SetupGuideDestination = z.infer<typeof setupGuideDestinationSchema>;
+export type SetupGuideDestinations = z.infer<typeof setupGuideDestinationsSchema>;

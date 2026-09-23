@@ -22,7 +22,7 @@ const validateTemplateRoutes = (routes: TemplateRoute[]): RouteIssue[] => {
   const pathSet = new Set<string>()
 
   for (const route of routes) {
-    if (!route.key || !route.path || !route.title || !route.permission) {
+    if (!route.key || !route.path || !route.title || route.permission === undefined) {
       issues.push({
         code: 'ROUTE_INVALID',
         message: `Route ${route.key || 'unknown'} has missing required fields`,
@@ -131,9 +131,12 @@ const validRouter = createBrowserRouter(
           )
           .map((route) => ({
             path: toRootChildPath(route.path),
-            element: (
-              <PermissionGuard permission={route.permission}>{route.component()}</PermissionGuard>
-            ),
+            element:
+              route.permission === null ? (
+                route.component()
+              ) : (
+                <PermissionGuard permission={route.permission}>{route.component()}</PermissionGuard>
+              ),
           })),
       ],
     },
