@@ -121,9 +121,10 @@ function matchingTemplate(
   route: ResolvedThemeRouteContract,
 ): { pageId: string; template?: PageTemplate } {
   const stableId = route.parameters?.productId ?? route.parameters?.collectionId;
+  const template = experience.resolvedTemplates.find(({ pageType }) => pageType === route.pageType);
   return {
     pageId: stableId ? `${route.pageType}:${stableId}` : route.id,
-    template: experience.resolvedTemplates.find(({ pageType }) => pageType === route.pageType),
+    ...(template ? { template } : {}),
   };
 }
 

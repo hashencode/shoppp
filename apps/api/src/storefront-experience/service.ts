@@ -1942,7 +1942,7 @@ export async function approveStorefrontExperienceDraft(
     resolvedTemplates: resolution.resolvedTemplates,
     row: resolution.row,
     validation: resolution.validation,
-    previewBuild,
+    ...(previewBuild ? { previewBuild } : {}),
     ...(operatorRun && expectedOperatorAuditId
       ? {
           operatorApproval: {

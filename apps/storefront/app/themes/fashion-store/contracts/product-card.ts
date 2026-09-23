@@ -15,7 +15,7 @@ import { presentationProductCardSchema } from "../../../theme-engine/view-models
  * replacing this compatibility branch with one normalized card ViewModel.
  */
 export interface FashionStoreLegacyProductCard {
-  badge?: "Hot" | "New";
+  badge?: "Hot" | "New" | undefined;
   categories: readonly string[];
   colors: readonly string[];
   id: string;
