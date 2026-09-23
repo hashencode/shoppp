@@ -82,6 +82,12 @@ export function useFashionStoreProductActionPort(
   const actionAdapter = inject(storefrontActionAdapterKey, null);
   const previewCart = useFashionStorePreviewCart();
   const commerceApi = useCommerceApi();
+  const submitReview = async (input: FashionStoreProductReviewInput, idempotencyKey: string) => {
+    await commerceApi.submitProductReview(presentation.value.slug, input, idempotencyKey);
+    return {
+      message: "Your review was saved and is awaiting moderation. It is not public yet.",
+    };
+  };
 
   if (runtimeCommerce && actionAdapter) {
     return {
@@ -130,12 +136,7 @@ export function useFashionStoreProductActionPort(
           };
         }
       },
-      async submitReview(input, idempotencyKey) {
-        await commerceApi.submitProductReview(presentation.value.slug, input, idempotencyKey);
-        return {
-          message: "Your review was saved and is awaiting moderation. It is not public yet.",
-        };
-      },
+      submitReview,
     };
   }
 
@@ -173,8 +174,6 @@ export function useFashionStoreProductActionPort(
       });
       return { kind: "succeeded", message: `${input.productName} was added to your preview cart.` };
     },
-    async submitReview(_input: FashionStoreProductReviewInput, _idempotencyKey: string) {
-      return { message: "Preview review was not submitted." };
-    },
+    submitReview,
   };
 }

@@ -168,6 +168,21 @@ describe("Fashion Store semantic interaction contract", () => {
     expect(chooseOptionsRows.length).toBeGreaterThan(0);
   });
 
+  test("classifies Product review submission as a Catalog mutation", () => {
+    const review = fashionStoreInteractionContract.find(
+      ({ id }) => id === "fashion-store-product-review-submission",
+    );
+
+    expect(review).toMatchObject({
+      disposition: {
+        idSources: ["productId"],
+        intent: "product.review",
+        kind: "commerce-intent",
+      },
+      role: "commerce",
+    });
+  });
+
   test("owns every retained Home merchandising control through mutually exclusive families", () => {
     const homeRows = fashionStoreInteractionContract.filter(
       ({ routeId }) => routeId === "fashion-store-home",

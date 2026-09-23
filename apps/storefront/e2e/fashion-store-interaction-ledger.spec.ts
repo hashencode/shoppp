@@ -19,6 +19,11 @@ const sharedShellBehaviorIds = new Set([
 ]);
 const fixtureOnlyUnrenderedRows = [
   {
+    id: "fashion-store-home-header-shop-navigation-4",
+    reason:
+      "The released fixture Navigation renders direct page links; legacy grouped Pages uses the retained button row.",
+  },
+  {
     id: "fashion-store-home-header-cart-preview-2",
     reason:
       "The fixture-preview MiniCart has no mutable Commerce line; live coverage proves its remove control.",

@@ -100,6 +100,7 @@ export const storefrontInteractionDispositionSchema = z.discriminatedUnion("kind
         "checkout.start",
         "collection.open",
         "product.open",
+        "product.review",
         "variant.select",
       ]),
       kind: z.literal("commerce-intent"),

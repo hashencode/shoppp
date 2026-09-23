@@ -606,6 +606,25 @@ const sharedRows = [
     routeId: "fashion-store-shared",
   },
   {
+    behaviorId: "shared-product-review-submission",
+    breakpoints: ["all"],
+    candidate: "[data-fashion-store-product] .fashion-product-review-form form",
+    disposition: commerce("product.review", "productId"),
+    evidence: ["product-review-submission-state"],
+    fallback: "The review form remains readable but submits nothing without JavaScript.",
+    id: "fashion-store-product-review-submission",
+    inputModes: ["pointer", "keyboard", "touch", "reduced-motion", "no-js"],
+    inputOutcomes: inputOutcomes(
+      "A valid review is submitted once for moderation with the released product identity.",
+      "The review form remains readable but submits nothing without JavaScript.",
+    ),
+    outcome: "Review submission records one pending review through the Catalog review API.",
+    owner: "nuxt-commerce",
+    parity: ["structural", "behavioral", "absence"],
+    role: "commerce",
+    routeId: "fashion-store-shared",
+  },
+  {
     behaviorId: "shared-product-secondary-actions",
     breakpoints: ["all"],
     candidate: "[data-fashion-store-product] .fashion-product-secondary-actions button",
@@ -760,11 +779,7 @@ const sharedNavigationPaths = [
   ]),
 ];
 
-const unlinkedSharedRoutes = new Set([
-  "/shop/no-sidebar",
-  "/shop/right-sidebar",
-  "/policies/cookies",
-]);
+const unlinkedSharedRoutes = new Set(["/wishlist", "/faq", "/contact", "/policies/cookies"]);
 
 const sharedNavigationRows = sharedNavigationPaths.flatMap((path, index) =>
   unlinkedSharedRoutes.has(path)
