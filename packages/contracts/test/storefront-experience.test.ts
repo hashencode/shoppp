@@ -804,4 +804,38 @@ describe("storefront experience contracts", () => {
       }),
     ).toThrow();
   });
+
+  test("accepts bounded block rules and server-owned block mutations", async () => {
+    const { storefrontExperienceBlockCommandRequestSchema } = await import("../src/admin");
+    const add = storefrontExperienceBlockCommandRequestSchema.parse({
+      command: {
+        blockType: "fashion-store.hero-slide",
+        kind: "add",
+        sectionId: "fashion-store-home",
+        settings: { title: "A merchant-owned slide" },
+        templateId: "fashion-store-home",
+      },
+      expectedVersion: 3,
+      reason: "Add a bounded hero slide",
+    });
+    expect(add.command).not.toHaveProperty("id");
+    expect(
+      storefrontExperienceBlockCommandRequestSchema.safeParse({
+        ...add,
+        command: { ...add.command, id: "client-owned" },
+      }).success,
+    ).toBe(false);
+    expect(
+      storefrontExperienceBlockCommandRequestSchema.parse({
+        command: {
+          blockId: "hero-slide-a",
+          kind: "set-visibility",
+          templateId: "fashion-store-home",
+          visible: false,
+        },
+        expectedVersion: 3,
+        reason: "Hide the optional slide",
+      }),
+    ).toMatchObject({ command: { blockId: "hero-slide-a", visible: false } });
+  });
 });

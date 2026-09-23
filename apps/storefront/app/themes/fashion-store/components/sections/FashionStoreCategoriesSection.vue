@@ -8,7 +8,9 @@ import {
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
 const context = computed(() => resolveFashionStoreHomeSectionContext(properties.viewModel));
-const editorial = computed(() => resolveFashionStoreHomeEditorial(properties.viewModel));
+const editorial = computed(() =>
+  resolveFashionStoreHomeEditorial(properties.viewModel, properties.instance),
+);
 
 function sourceAsset(sourcePath: string): string {
   return resolveHomeAsset(properties.resolveAsset, sourcePath);
@@ -33,9 +35,16 @@ function sourceAsset(sourcePath: string): string {
           :class="{ 'lg-mb-30px': index < 2, 'sm-mb-30px': index === 2 }"
         >
           <div class="categories-box">
-            <a :href="category.href" data-fashion-store-route :aria-label="`View ${category.name}`">
+            <a
+              v-if="category.href"
+              :href="category.href"
+              :data-resource-id="category.resourceId"
+              data-fashion-store-route
+              :aria-label="`View ${category.name}`"
+            >
               <img class="sm-w-100" alt="" :src="sourceAsset(category.sourceImage)" />
             </a>
+            <div v-else><img class="sm-w-100" alt="" :src="sourceAsset(category.sourceImage)" /></div>
             <div
               v-if="category.itemCount"
               class="border-color-transparent-dark-very-light border alt-font fw-500 text-dark-gray text-uppercase ps-15px pe-15px fs-11 lh-26 border-radius-100px d-inline-block position-absolute right-20px top-20px"
@@ -44,7 +53,9 @@ function sourceAsset(sourcePath: string): string {
             </div>
             <div class="absolute-bottom-center bottom-40px md-bottom-25px">
               <a
+                v-if="category.href"
                 :href="category.href"
+                :data-resource-id="category.resourceId"
                 data-fashion-store-route
                 class="btn btn-white btn-switch-text btn-round-edge btn-box-shadow fs-18 text-uppercase-inherit p-5 min-w-150px"
               >
@@ -54,6 +65,11 @@ function sourceAsset(sourcePath: string): string {
                   }}</span>
                 </span>
               </a>
+              <span
+                v-else
+                class="btn btn-white btn-switch-text btn-round-edge btn-box-shadow fs-18 text-uppercase-inherit p-5 min-w-150px"
+                >{{ category.name }}</span
+              >
             </div>
           </div>
         </div>

@@ -73,15 +73,29 @@ function routeHref(path: string): string | undefined {
       <div class="row align-items-center pt-35px pb-35px">
         <div class="col-12 col-md-auto sm-mb-15px text-center text-md-start">
           <a
+            v-if="configuration?.logoPresentation?.visible !== false"
             href="/"
             data-fashion-store-route
             class="footer-logo"
+            :data-logo-asset-id="configuration?.logoPresentation?.assetId"
+            :data-logo-variant="configuration?.logoPresentation?.variant"
             :aria-label="`${configuredBrandName} home`"
+            :style="{
+              justifyContent: configuration?.logoPresentation?.placement,
+              padding: configuration?.logoPresentation
+                ? `${configuration.logoPresentation.spacing}px`
+                : undefined,
+            }"
           >
             <img
               :alt="configuration?.logo?.alt ?? ''"
               class="default-logo"
               :src="configuredLogo() ?? fallbackLogo()"
+              :style="
+                configuration?.logoPresentation
+                  ? { width: `${configuration.logoPresentation.width}px` }
+                  : undefined
+              "
               v-bind:data-at2x="configuredLogo() ?? fallbackLogoAt2x()"
             />
           </a>

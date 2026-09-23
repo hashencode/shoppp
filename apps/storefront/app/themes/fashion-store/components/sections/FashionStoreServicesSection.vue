@@ -8,11 +8,14 @@ import {
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
 const context = computed(() => resolveFashionStoreHomeSectionContext(properties.viewModel));
-const foundation = computed(() => resolveFashionStoreHomeFoundation(properties.viewModel));
+const foundation = computed(() =>
+  resolveFashionStoreHomeFoundation(properties.viewModel, properties.instance),
+);
 </script>
 
 <template>
   <section
+    v-if="foundation.services.length > 0"
     class="half-section"
     data-home-section="services"
     :data-presentation-variant="context.presentation.services"

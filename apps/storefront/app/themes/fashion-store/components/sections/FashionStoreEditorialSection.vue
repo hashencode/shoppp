@@ -8,7 +8,9 @@ import {
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
 const context = computed(() => resolveFashionStoreHomeSectionContext(properties.viewModel));
-const editorial = computed(() => resolveFashionStoreHomeEditorial(properties.viewModel));
+const editorial = computed(() =>
+  resolveFashionStoreHomeEditorial(properties.viewModel, properties.instance),
+);
 
 function sourceAsset(sourcePath: string): string {
   return resolveHomeAsset(properties.resolveAsset, sourcePath);
@@ -17,6 +19,7 @@ function sourceAsset(sourcePath: string): string {
 
 <template>
   <section
+    v-if="editorial.magazine.length > 0"
     class="pb-3 ps-7 pe-7 lg-ps-3 lg-pe-3 xs-px-0"
     data-home-section="magazine"
     :data-presentation-variant="context.presentation.editorial"
@@ -44,9 +47,14 @@ function sourceAsset(sourcePath: string): string {
             <li v-for="entry in editorial.magazine" :key="entry.name" class="grid-item">
               <article class="card bg-transparent border-0 h-100">
                 <div class="blog-image position-relative overflow-hidden">
-                  <a :href="entry.articleHref" data-fashion-store-route
+                  <a
+                    v-if="entry.articleHref"
+                    :href="entry.articleHref"
+                    :data-resource-id="entry.resourceId"
+                    data-fashion-store-route
                     ><img :alt="entry.name" :src="sourceAsset(entry.sourceImage)"
                   /></a>
+                  <img v-else :alt="entry.name" :src="sourceAsset(entry.sourceImage)" />
                 </div>
                 <div class="card-body px-0 pt-30px pb-30px sm-pb-15px">
                   <span v-if="entry.author || entry.date" class="mb-5px d-block"
@@ -67,10 +75,17 @@ function sourceAsset(sourcePath: string): string {
                     ></span
                   >
                   <a
+                    v-if="entry.articleHref"
                     :href="entry.articleHref"
+                    :data-resource-id="entry.resourceId"
                     data-fashion-store-route
                     class="alt-font card-title fs-20 lh-30 fw-500 text-dark-gray d-inline-block w-75 xl-w-85 lg-w-100"
                     >{{ entry.name }}</a
+                  >
+                  <span
+                    v-else
+                    class="alt-font card-title fs-20 lh-30 fw-500 text-dark-gray d-inline-block w-75 xl-w-85 lg-w-100"
+                    >{{ entry.name }}</span
                   >
                 </div>
               </article>

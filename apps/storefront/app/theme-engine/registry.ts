@@ -12,6 +12,7 @@ import type { FixtureBindingAliases } from "./providers/types";
 
 export interface ThemeRegistry {
   blocks: Readonly<Record<string, Component>>;
+  blocksOwnedBySections?: boolean;
   composition?: ThemeCompositionAdapter;
   fixtureBindingAliases?: FixtureBindingAliases;
   platformShell?: Component;
@@ -54,6 +55,7 @@ export function composeThemeRegistries(core: ThemeRegistry, theme: ThemeRegistry
   }
   return {
     blocks: Object.freeze({ ...core.blocks, ...theme.blocks }),
+    ...(theme.blocksOwnedBySections ? { blocksOwnedBySections: true } : {}),
     ...(theme.composition ? { composition: theme.composition } : {}),
     ...(theme.fixtureBindingAliases ? { fixtureBindingAliases: theme.fixtureBindingAliases } : {}),
     ...(theme.platformShell ? { platformShell: theme.platformShell } : {}),
@@ -108,12 +110,14 @@ export function renderTemplatePlan(
     throw new Error("Renderer shell ownership cannot be combined with duplicate shell ownership.");
   }
   return visibleSections.map((section) => ({
-    blocks: section.blocks
-      .filter(({ visible }) => visible)
-      .map((block) => ({
-        component: registeredComponent(registry.blocks, block.type, "block"),
-        instance: block,
-      })),
+    blocks: registry.blocksOwnedBySections
+      ? []
+      : section.blocks
+          .filter(({ visible }) => visible)
+          .map((block) => ({
+            component: registeredComponent(registry.blocks, block.type, "block"),
+            instance: block,
+          })),
     component: registeredComponent(registry.sections, section.type, "section"),
     ...(compositionCoversTemplate && registry.sectionComposition?.sections[section.type]
       ? {

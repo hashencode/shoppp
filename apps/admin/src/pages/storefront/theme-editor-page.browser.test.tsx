@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { afterEach, expect, describe, it } from '@rstest/core'
 import { page } from '@rstest/browser'
-import { cleanup, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, waitFor } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import type { AdminStorefrontTheme } from '@shoppp/contracts'
 import { translateMessage } from '../../shared/contexts/i18n-context'
@@ -36,11 +36,20 @@ const theme: AdminStorefrontTheme = {
   supportedPageTemplates: ['home'],
   fixtureBindings: [],
   componentRegistry: {
-    blocks: [],
+    blocks: [
+      {
+        type: 'hero.slide',
+        capabilities: [],
+        settings: [
+          { id: 'title', kind: 'text', default: 'Browser slide', maxLength: 100, required: true },
+        ],
+      },
+    ],
     sections: [
       {
         type: 'hero',
-        allowedBlockTypes: [],
+        allowedBlockTypes: ['hero.slide'],
+        blockRules: [{ blockType: 'hero.slide', min: 0, max: 3 }],
         capabilities: [],
         settings: [
           {
@@ -92,7 +101,16 @@ const theme: AdminStorefrontTheme = {
               id: 'hero',
               type: 'hero',
               visible: true,
-              blocks: [],
+              blocks: [
+                {
+                  actions: [],
+                  capabilities: [],
+                  id: 'browser-slide',
+                  settings: { title: 'Browser slide' },
+                  type: 'hero.slide',
+                  visible: true,
+                },
+              ],
               capabilities: [],
               settings: { heading: 'Saved headline' },
             },
@@ -144,6 +162,59 @@ const renderEditor = (failure: 'conflict' | 'persistent', staleCandidate = false
                 ? 'storefront_experience_draft_conflict'
                 : 'storefront_experience_validation_stale',
             message: 'PRIVATE SERVER SENTENCE',
+          },
+        },
+      }
+    }
+    if (
+      request.method === 'post' &&
+      request.url === '/admin/storefront-experiences/drafts/draft-browser/block-commands'
+    ) {
+      const body = JSON.parse(request.data as string) as {
+        command: { kind: string; blockIds?: string[] }
+      }
+      const added = {
+        block: {
+          actions: [],
+          capabilities: [],
+          id:
+            body.command.kind === 'duplicate' ? 'browser-slide-server-copy' : 'browser-slide-added',
+          settings: {
+            title:
+              body.command.kind === 'duplicate' ? 'Browser slide copy' : 'Added browser slide',
+          },
+          type: 'hero.slide',
+          visible: true,
+        },
+        kind: 'add-block' as const,
+        sectionId: 'hero',
+      }
+      const operations =
+        body.command.kind === 'remove'
+          ? [{ instanceId: 'browser-slide', kind: 'remove-block' as const }]
+          : body.command.kind === 'reorder'
+            ? [
+                added,
+                {
+                  instanceIds: body.command.blockIds ?? [],
+                  kind: 'reorder-blocks' as const,
+                  sectionId: 'hero',
+                },
+              ]
+            : [added]
+      return {
+        data: {
+          data: {
+            ...draft,
+            version: 2,
+            overrides: [
+              {
+                operations,
+                presetId: 'editorial',
+                schemaVersion: 1,
+                templateId: 'home',
+              },
+            ],
           },
         },
       }
@@ -220,6 +291,125 @@ const renderEditor = (failure: 'conflict' | 'persistent', staleCandidate = false
 
 describe('ThemeEditorPage browser behavior', () => {
   it(
+    'adds, reorders, and duplicates Blocks through the real editor controls',
+    { timeout: 20_000 },
+    async () => {
+      renderEditor('persistent')
+      const collapse = await waitFor(() => {
+        const target = document.querySelector<HTMLElement>(
+          '[data-testid="blocks-hero"] .ant-collapse-header'
+        )
+        expect(target).toBeTruthy()
+        return target!
+      })
+      fireEvent.click(collapse)
+      const reason = await waitFor(() => {
+        const target = document.querySelector<HTMLTextAreaElement>('[data-testid="change-reason"]')
+        expect(target).toBeTruthy()
+        return target!
+      })
+      fireEvent.change(reason, { target: { value: 'Add a browser Block' } })
+      const add = await waitFor(() => {
+        const target = document.querySelector<HTMLButtonElement>('[data-block-focus="add:hero"]')
+        expect(target).toBeTruthy()
+        return target!
+      })
+      fireEvent.click(add)
+      await waitFor(() =>
+        expect(document.querySelector('[data-block-focus="browser-slide-added"]')).toBeTruthy()
+      )
+
+      fireEvent.change(
+        document.querySelector<HTMLTextAreaElement>('[data-testid="change-reason"]')!,
+        { target: { value: 'Reorder browser Blocks' } }
+      )
+      const moveBefore = await waitFor(() => {
+        const target = document
+          .querySelector('[data-block-focus="browser-slide-added"] .anticon-arrow-up')
+          ?.closest<HTMLButtonElement>('button')
+        expect(target).toBeTruthy()
+        return target!
+      })
+      fireEvent.click(moveBefore)
+      await waitFor(() => {
+        const writes = transport!.requests.filter(({ method }) => method === 'post')
+        const command = JSON.parse(writes.at(-1)!.data as string).command
+        expect(command).toMatchObject({
+          blockIds: ['browser-slide-added', 'browser-slide'],
+          kind: 'reorder',
+          sectionId: 'hero',
+        })
+      })
+
+      fireEvent.change(
+        document.querySelector<HTMLTextAreaElement>('[data-testid="change-reason"]')!,
+        { target: { value: 'Duplicate browser Block' } }
+      )
+      const duplicate = await waitFor(() => {
+        const target = [...document.querySelectorAll<HTMLButtonElement>('button')].find(
+          (button) => button.textContent?.trim() === 'Duplicate'
+        )
+        expect(target).toBeTruthy()
+        return target!
+      })
+      fireEvent.click(duplicate)
+      await waitFor(() => {
+        const writes = transport!.requests.filter(({ method }) => method === 'post')
+        const command = JSON.parse(writes.at(-1)!.data as string).command
+        expect(command).toMatchObject({
+          blockId: 'browser-slide-added',
+          kind: 'duplicate',
+          templateId: 'home',
+        })
+        expect(
+          document.querySelector('[data-block-focus="browser-slide-server-copy"]')
+        ).toBeTruthy()
+      })
+    }
+  )
+
+  it(
+    'focuses the Section Block controls after removing the only Block',
+    { timeout: 20_000 },
+    async () => {
+      renderEditor('persistent')
+      const collapse = await waitFor(() => {
+        const target = document.querySelector<HTMLElement>(
+          '[data-testid="blocks-hero"] .ant-collapse-header'
+        )
+        expect(target).toBeTruthy()
+        return target!
+      })
+      fireEvent.click(collapse)
+      const reason = await waitFor(() => {
+        const target = document.querySelector<HTMLTextAreaElement>('[data-testid="change-reason"]')
+        expect(target).toBeTruthy()
+        return target!
+      })
+      fireEvent.change(reason, { target: { value: 'Remove browser slide' } })
+      const remove = await waitFor(() => {
+        const target = document.querySelector<HTMLButtonElement>(
+          '[data-block-focus="browser-slide"] .ant-btn-dangerous'
+        )
+        expect(target).toBeTruthy()
+        return target!
+      })
+      fireEvent.click(remove)
+      const confirm = await waitFor(() => {
+        const target = document.querySelector<HTMLButtonElement>(
+          '.ant-popconfirm-buttons .ant-btn-primary'
+        )
+        expect(target).toBeTruthy()
+        return target!
+      })
+      fireEvent.click(confirm)
+      await waitFor(() =>
+        expect(document.activeElement?.getAttribute('data-block-focus')).toBe('section:hero')
+      )
+    }
+  )
+
+  it(
     'preserves deployed releases and clears a stale private-candidate handoff',
     { timeout: 20_000 },
     async () => {
@@ -249,11 +439,16 @@ describe('ThemeEditorPage browser behavior', () => {
     { timeout: 20_000 },
     async () => {
       renderEditor('persistent')
-      const visibility = page.getByRole('switch')
-      await expect.element(visibility).toBeVisible()
-      const beforeAttempt = transport!.requests.length
+      const visibilityElement = await waitFor(() => {
+        const target = [...document.querySelectorAll<HTMLElement>('[role="switch"]')].find(
+          (element) => !element.getAttribute('aria-label')?.includes('browser-slide')
+        )
+        expect(target).toBeTruthy()
+        return target!
+      })
+      const beforeAttempt = transport!.requests.filter(({ method }) => method !== 'get').length
 
-      await visibility.click()
+      fireEvent.click(visibilityElement)
 
       const messageText =
         document.documentElement.lang === 'zh-CN'
@@ -261,11 +456,13 @@ describe('ThemeEditorPage browser behavior', () => {
           : 'At least one Home content Section must remain visible.'
       const message = page.getByText(messageText)
       await expect.element(message).toBeVisible()
-      await expect.element(visibility).toBeChecked()
+      expect(visibilityElement.getAttribute('aria-checked')).toBe('true')
       await waitFor(() =>
         expect(document.activeElement?.textContent).toContain(messageText)
       )
-      expect(transport!.requests).toHaveLength(beforeAttempt)
+      expect(transport!.requests.filter(({ method }) => method !== 'get')).toHaveLength(
+        beforeAttempt
+      )
     }
   )
 

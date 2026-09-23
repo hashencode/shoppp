@@ -20,6 +20,10 @@ import {
   fashionStoreHomeServices,
 } from "./home-content";
 import { fashionStoreRoutePaths } from "../../page-contracts";
+import {
+  fashionStoreBlockReferenceId,
+  resolveFashionStoreBlockReferenceHref,
+} from "../../contracts/block-destinations";
 
 export interface FashionStoreHomeSectionProperties {
   instance: SectionInstance;
@@ -40,7 +44,7 @@ export interface FashionStoreHomeFoundationPresentation {
   marquee: readonly string[];
   promotion:
     | { badge: string; kind: "badge"; message: string }
-    | { href: string; kind: "link"; label: string; message: string };
+    | { href: string; kind: "link"; label: string; message: string; resourceId?: string };
   services: readonly {
     description: string;
     icon: "package" | "refresh-cw" | "credit-card" | "phone";
@@ -53,6 +57,7 @@ export interface FashionStoreHomeEditorialPresentation {
     href: string;
     itemCount?: string;
     name: string;
+    resourceId?: string;
     sourceImage: string;
   }[];
   collection: {
@@ -68,6 +73,7 @@ export interface FashionStoreHomeEditorialPresentation {
     date?: string;
     indexHref: string;
     name: string;
+    resourceId?: string;
     sourceImage: string;
   }[];
 }
@@ -75,7 +81,7 @@ export interface FashionStoreHomeEditorialPresentation {
 const parsedFixtureHome = new WeakMap<object, FashionStoreHomeData>();
 const parsedLiveHome = new WeakMap<object, LiveHomeViewModel>();
 
-function isLiveHomeViewModel(viewModel: PresentationViewModel): boolean {
+export function isLiveHomeViewModel(viewModel: PresentationViewModel): boolean {
   return (
     viewModel.kind === "home" ||
     (viewModel.kind === "theme-section" &&
@@ -146,15 +152,108 @@ function liveFoundation(data: LiveHomeViewModel): FashionStoreHomeFoundationPres
 
 export function resolveFashionStoreHomeFoundation(
   viewModel: PresentationViewModel,
+  instance?: SectionInstance,
 ): FashionStoreHomeFoundationPresentation {
-  return isLiveHomeViewModel(viewModel)
+  const fallback = isLiveHomeViewModel(viewModel)
     ? liveFoundation(resolveLiveHomeData(viewModel))
     : fixtureFoundation(resolveFixtureHomeData(viewModel));
+  if (!instance) return fallback;
+  const visible = instance.blocks.filter(({ visible }) => visible);
+  const text = (block: (typeof visible)[number], key: string) =>
+    typeof block.settings[key] === "string" ? block.settings[key] : "";
+  const assetPath = (block: (typeof visible)[number]) => {
+    const value = block.settings.image;
+    return typeof value === "object" && value !== null && "kind" in value && value.kind === "theme"
+      ? value.path
+      : "";
+  };
+  return {
+    brands: visible
+      .filter(({ type }) => type === "fashion-store.brand")
+      .map((block) => ({ name: text(block, "name"), sourceImage: assetPath(block) })),
+    marquee: visible
+      .filter(({ type }) => type === "fashion-store.marquee-item")
+      .map((block) => text(block, "message")),
+    promotion: (() => {
+      const block = visible.find(({ type }) => type === "fashion-store.promotion-item");
+      return block
+        ? {
+            href:
+              resolveFashionStoreBlockReferenceHref(
+                isLiveHomeViewModel(viewModel) ? resolveLiveHomeData(viewModel) : null,
+                block,
+                "collection",
+                "collection",
+              ) ?? "",
+            kind: "link" as const,
+            label: text(block, "label"),
+            message: text(block, "message"),
+            resourceId: fashionStoreBlockReferenceId(block, "collection", "collection"),
+          }
+        : { badge: "", kind: "badge" as const, message: "" };
+    })(),
+    services: visible
+      .filter(({ type }) => type === "fashion-store.service")
+      .map((block) => ({
+        description: text(block, "description"),
+        icon: (["package", "refresh-cw", "credit-card", "phone"].includes(text(block, "variant"))
+          ? text(block, "variant")
+          : "package") as "package" | "refresh-cw" | "credit-card" | "phone",
+        title: text(block, "title"),
+      })),
+  };
 }
 
 export function resolveFashionStoreHomeEditorial(
   viewModel: PresentationViewModel,
+  instance?: SectionInstance,
 ): FashionStoreHomeEditorialPresentation {
+  if (instance) {
+    const visible = instance.blocks.filter(({ visible }) => visible);
+    const text = (block: (typeof visible)[number], key: string) =>
+      typeof block.settings[key] === "string" ? block.settings[key] : "";
+    const sourceImage = (block: (typeof visible)[number]) => {
+      const value = block.settings.image;
+      return typeof value === "object" &&
+        value !== null &&
+        "kind" in value &&
+        value.kind === "theme"
+        ? value.path
+        : "";
+    };
+    const live = isLiveHomeViewModel(viewModel) ? resolveLiveHomeData(viewModel) : null;
+    return {
+      categories: visible
+        .filter(({ type }) => type === "fashion-store.category")
+        .map((block) => ({
+          href:
+            resolveFashionStoreBlockReferenceHref(live, block, "collection", "collection") ?? "",
+          name: text(block, "name"),
+          resourceId: fashionStoreBlockReferenceId(block, "collection", "collection"),
+          sourceImage: sourceImage(block),
+        })),
+      collection: {
+        eyebrow: "Curated for you",
+        href: live?.featuredCollection.href ?? fashionStoreRoutePaths.collection,
+        items: fashionStoreHomeCollectionImages.map((image, index) => ({
+          name: live?.featuredCollection.name ?? "Collection",
+          sourceImage: image,
+          subtitle: `Look ${index + 1}`,
+        })),
+        title: { lead: live?.featuredCollection.name ?? "New arrival" },
+      },
+      magazine: visible
+        .filter(({ type }) => type === "fashion-store.editorial-card")
+        .map((block) => ({
+          articleHref:
+            resolveFashionStoreBlockReferenceHref(live, block, "article", "article") ?? "",
+          indexHref: fashionStoreRoutePaths.magazine,
+          name: text(block, "title"),
+          resourceId: fashionStoreBlockReferenceId(block, "article", "article"),
+          sourceImage: sourceImage(block),
+        })),
+    };
+  }
   if (isLiveHomeViewModel(viewModel)) {
     const data = resolveLiveHomeData(viewModel);
     return {

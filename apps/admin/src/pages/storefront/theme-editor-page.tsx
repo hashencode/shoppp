@@ -3,13 +3,16 @@ import {
   ArrowLeftOutlined,
   ArrowUpOutlined,
   CheckCircleOutlined,
+  CopyOutlined,
   EyeOutlined,
   ReloadOutlined,
   SaveOutlined,
+  PlusOutlined,
 } from '@ant-design/icons'
 import type {
   AdminStorefrontTheme,
   AssetReference,
+  BlockDefinition,
   ExperienceResourceBinding,
   PageTemplate,
   SectionDefinition,
@@ -18,6 +21,7 @@ import type {
   StorefrontResourceReference,
   ThemeOverride,
   ThemeOverrideOperation,
+  StorefrontExperienceBlockCommand,
 } from '@shoppp/contracts'
 import {
   Alert,
@@ -44,6 +48,7 @@ import { useAuth } from '../../infrastructure/auth/use-auth'
 import { normalizeApiError } from '../../infrastructure/http/api-client'
 import {
   approveStorefrontExperienceDraft,
+  applyStorefrontExperienceBlockCommand,
   createStorefrontExperienceSuccessor,
   createStorefrontExperienceMigrationSuccessor,
   createStorefrontPreviewGrant,
@@ -68,6 +73,7 @@ import {
   type StorefrontCatalogRelease,
 } from '../../services/storefront/api'
 import { QueryStateBlock } from '../../shared/components/query-state-block'
+import { SortActionGroup } from '../../shared/components/sort-action-group'
 import { useCurrentTranslate, useI18n } from '../../shared/contexts/i18n-context'
 import {
   LocalThemeError,
@@ -145,23 +151,54 @@ export const resolveDraftTemplates = (
         template.sections = operation.instanceIds
           .map((id) => byId.get(id))
           .filter((section): section is SectionInstance => Boolean(section))
+      } else if (operation.kind === 'add-block') {
+        const section = template.sections.find(({ id }) => id === operation.sectionId)
+        if (section && !section.blocks.some(({ id }) => id === operation.block.id)) {
+          section.blocks.push(structuredClone(operation.block))
+        }
+      } else if (operation.kind === 'remove-block') {
+        for (const section of template.sections) {
+          section.blocks = section.blocks.filter(({ id }) => id !== operation.instanceId)
+        }
+      } else if (operation.kind === 'reorder-blocks') {
+        const section = template.sections.find(({ id }) => id === operation.sectionId)
+        if (section) {
+          const byId = new Map(section.blocks.map((block) => [block.id, block]))
+          section.blocks = operation.instanceIds
+            .map((id) => byId.get(id))
+            .filter((block): block is SectionInstance['blocks'][number] => Boolean(block))
+        }
       } else {
-        const section = template.sections.find(({ id }) => id === operation.instanceId)
-        const presetSection = presetTemplate?.sections.find(({ id }) => id === operation.instanceId)
-        if (!section) continue
+        const section = template.sections.find(
+          ({ id, blocks }) =>
+            id === operation.instanceId || blocks.some((block) => block.id === operation.instanceId)
+        )
+        const instance =
+          section?.id === operation.instanceId
+            ? section
+            : section?.blocks.find(({ id }) => id === operation.instanceId)
+        const presetSection = presetTemplate?.sections.find(
+          ({ id, blocks }) =>
+            id === operation.instanceId || blocks.some((block) => block.id === operation.instanceId)
+        )
+        const presetInstance =
+          presetSection?.id === operation.instanceId
+            ? presetSection
+            : presetSection?.blocks.find(({ id }) => id === operation.instanceId)
+        if (!instance) continue
         if (operation.kind === 'set-visibility') {
-          section.visible = operation.visible
+          instance.visible = operation.visible
         }
         if (operation.kind === 'set-setting') {
-          section.settings[operation.settingId] = structuredClone(operation.value)
+          instance.settings[operation.settingId] = structuredClone(operation.value)
         }
         if (operation.kind === 'reset-setting') {
-          if (presetSection && operation.settingId in presetSection.settings) {
-            section.settings[operation.settingId] = structuredClone(
-              presetSection.settings[operation.settingId]
+          if (presetInstance && operation.settingId in presetInstance.settings) {
+            instance.settings[operation.settingId] = structuredClone(
+              presetInstance.settings[operation.settingId]
             )
           } else {
-            delete section.settings[operation.settingId]
+            delete instance.settings[operation.settingId]
           }
         }
       }
@@ -216,6 +253,47 @@ export const createThemeOverrides = (
             })
           }
         }
+      }
+      const baseBlocks = new Map(baseSection.blocks.map((block) => [block.id, block]))
+      const currentBlocks = new Map(section.blocks.map((block) => [block.id, block]))
+      for (const baseBlock of baseSection.blocks) {
+        if (!currentBlocks.has(baseBlock.id)) {
+          operations.push({ instanceId: baseBlock.id, kind: 'remove-block' })
+        }
+      }
+      for (const block of section.blocks) {
+        const baseBlock = baseBlocks.get(block.id)
+        if (!baseBlock) {
+          operations.push({ block: structuredClone(block), kind: 'add-block', sectionId: section.id })
+          continue
+        }
+        if (block.visible !== baseBlock.visible) {
+          operations.push({
+            instanceId: block.id,
+            kind: 'set-visibility',
+            visible: block.visible,
+          })
+        }
+        for (const settingId of new Set([
+          ...Object.keys(baseBlock.settings),
+          ...Object.keys(block.settings),
+        ])) {
+          if (equalValue(block.settings[settingId], baseBlock.settings[settingId])) continue
+          if (block.settings[settingId] === undefined) {
+            operations.push({ instanceId: block.id, kind: 'reset-setting', settingId })
+          } else {
+            operations.push({
+              instanceId: block.id,
+              kind: 'set-setting',
+              settingId,
+              value: structuredClone(block.settings[settingId]),
+            })
+          }
+        }
+      }
+      const blockOrder = section.blocks.map(({ id }) => id)
+      if (!equalValue(blockOrder, baseSection.blocks.map(({ id }) => id))) {
+        operations.push({ instanceIds: blockOrder, kind: 'reorder-blocks', sectionId: section.id })
       }
     }
     return operations.length === 0
@@ -276,6 +354,12 @@ const settingDefinitionFor = (
   section: SectionInstance
 ): SectionDefinition['settings'] =>
   theme.componentRegistry.sections.find(({ type }) => type === section.type)?.settings ?? []
+
+const blockDefinitionFor = (
+  theme: AdminStorefrontTheme,
+  blockType: string
+): BlockDefinition | undefined =>
+  theme.componentRegistry.blocks.find(({ type }) => type === blockType)
 
 export const SectionMoveButtons = ({
   count,
@@ -365,6 +449,7 @@ export const ThemeEditorPage = ({
   const draftHeadingRef = useRef<HTMLHeadingElement>(null)
   const successorFocusTarget = useRef<string | null>(null)
   const validationSummaryRef = useRef<HTMLDivElement>(null)
+  const blockFocusTarget = useRef<string | null>(null)
   const sectionVisibilityErrorRef = useRef<HTMLDivElement>(null)
   const dirty = useMemo(
     () => !equalValue(templates, savedTemplates) || !equalValue(bindings, savedBindings),
@@ -400,6 +485,20 @@ export const ThemeEditorPage = ({
     })
     return () => window.cancelAnimationFrame(frame)
   }, [draft?.id, draftId, loading])
+
+  useEffect(() => {
+    const target = blockFocusTarget.current
+    if (!target) return
+    const timer = window.setTimeout(() => {
+      const element = document.querySelector<HTMLElement>(
+        `[data-block-focus="${CSS.escape(target)}"]`
+      )
+      if (!element) return
+      element.focus()
+      blockFocusTarget.current = null
+    }, 500)
+    return () => window.clearTimeout(timer)
+  }, [templates])
 
   const load = useCallback(async () => {
     const request = ++loadRequest.current
@@ -723,6 +822,43 @@ export const ThemeEditorPage = ({
       section.settings = structuredClone(original.settings)
       section.visible = original.visible
     })
+  }
+
+  const runBlockCommand = async (command: StorefrontExperienceBlockCommand) => {
+    if (!draft || !theme || !canWrite || changeReason.trim().length < 3 || dirty) return
+    setBusy(true)
+    if (command.kind === 'remove') {
+      const section = templates
+        .flatMap(({ sections }) => sections)
+        .find(({ blocks }) => blocks.some(({ id }) => id === command.blockId))
+      const index = section?.blocks.findIndex(({ id }) => id === command.blockId) ?? -1
+      blockFocusTarget.current = section
+        ? section.blocks[index + 1]?.id ?? section.blocks[index - 1]?.id ?? `section:${section.id}`
+        : null
+    }
+    try {
+      const updated = await applyStorefrontExperienceBlockCommand(
+        draft,
+        command,
+        changeReason,
+        selectedReleaseId || undefined
+      )
+      const nextTemplates = resolveDraftTemplates(theme, updated)
+      setDraft(updated)
+      setTemplates(nextTemplates)
+      setSavedTemplates(cloneTemplates(nextTemplates))
+      setBindings(structuredClone(updated.bindings))
+      setSavedBindings(structuredClone(updated.bindings))
+      setChangeReason('')
+      message.success(currentT('Block command saved.'))
+    } catch (cause) {
+      blockFocusTarget.current = null
+      const apiError = normalizeApiError(cause)
+      if (apiError.status === 409) setConflict({ bindings, draft, overrides: draft.overrides })
+      setError(apiError)
+    } finally {
+      setBusy(false)
+    }
   }
 
   const save = async (reason: string): Promise<StorefrontExperienceDraft> => {
@@ -1250,6 +1386,7 @@ export const ThemeEditorPage = ({
       >
         <Input.TextArea
           aria-label={t('Change reason')}
+          data-testid="change-reason"
           placeholder={t('Describe why this experience is changing')}
           value={changeReason}
           maxLength={500}
@@ -1287,6 +1424,9 @@ export const ThemeEditorPage = ({
                 <ol className="space-y-3">
                   {template.sections.map((section, index) => {
                     const isRequired = requiredSection(template, section)
+                    const sectionDefinition = theme.componentRegistry.sections.find(
+                      ({ type }) => type === section.type
+                    )
                     const definitions = settingDefinitionFor(theme, section)
                     return (
                       <li key={section.id}>
@@ -1318,11 +1458,7 @@ export const ThemeEditorPage = ({
                         >
                           {sectionVisibilityError?.templateId === template.id &&
                           sectionVisibilityError.sectionId === section.id ? (
-                            <div
-                              ref={sectionVisibilityErrorRef}
-                              className="mb-3"
-                              tabIndex={-1}
-                            >
+                            <div ref={sectionVisibilityErrorRef} className="mb-3" tabIndex={-1}>
                               <Alert
                                 type="error"
                                 showIcon
@@ -1689,8 +1825,14 @@ export const ThemeEditorPage = ({
                               </div>
                             </>
                           ) : null}
-                          {section.blocks.length > 0 ? (
-                            <Collapse
+                          {section.blocks.length > 0 ||
+                          (sectionDefinition?.allowedBlockTypes.length ?? 0) > 0 ? (
+                            <div
+                              data-block-focus={`section:${section.id}`}
+                              data-testid={`blocks-${section.id}`}
+                              tabIndex={-1}
+                            >
+                              <Collapse
                               className="mt-4"
                               size="small"
                               items={[
@@ -1699,14 +1841,329 @@ export const ThemeEditorPage = ({
                                   label: t('{count} bounded blocks', {
                                     count: section.blocks.length,
                                   }),
-                                  children: section.blocks.map((block) => (
-                                    <div key={block.id}>
-                                      {block.id} · {block.type}
+                                  children: (
+                                    <div className="space-y-3">
+                                      {(sectionDefinition?.allowedBlockTypes ?? []).map(
+                                        (blockType) => {
+                                          const blockDefinition = blockDefinitionFor(
+                                            theme,
+                                            blockType
+                                          )
+                                          if (!blockDefinition) return null
+                                          const defaults = Object.fromEntries(
+                                            blockDefinition.settings.flatMap((setting) =>
+                                              'default' in setting && setting.default !== undefined
+                                                ? [[setting.id, structuredClone(setting.default)]]
+                                                : []
+                                            )
+                                          ) as Extract<
+                                            StorefrontExperienceBlockCommand,
+                                            { kind: 'add' }
+                                          >['settings']
+                                          return (
+                                            <Button
+                                              key={blockType}
+                                              data-block-focus={`add:${section.id}`}
+                                              icon={<PlusOutlined aria-hidden />}
+                                              disabled={
+                                                !canWrite ||
+                                                busy ||
+                                                dirty ||
+                                                changeReason.trim().length < 3
+                                              }
+                                              onClick={() =>
+                                                void runBlockCommand({
+                                                  kind: 'add',
+                                                  templateId: template.id,
+                                                  sectionId: section.id,
+                                                  blockType,
+                                                  settings: defaults,
+                                                })
+                                              }
+                                            >
+                                              {t('Add {id}', { id: blockType })}
+                                            </Button>
+                                          )
+                                        }
+                                      )}
+                                      {section.blocks.map((block, blockIndex) => {
+                                        const blockDefinition = blockDefinitionFor(
+                                          theme,
+                                          block.type
+                                        )
+                                        const orderedIds = section.blocks.map(({ id }) => id)
+                                        const blockControlsDisabled =
+                                          !canWrite ||
+                                          busy ||
+                                          dirty ||
+                                          changeReason.trim().length < 3
+                                        const move = (direction: -1 | 1) => {
+                                          const target = blockIndex + direction
+                                          if (target < 0 || target >= orderedIds.length) return
+                                          const next = [...orderedIds]
+                                          ;[next[blockIndex], next[target]] = [
+                                            next[target]!,
+                                            next[blockIndex]!,
+                                          ]
+                                          void runBlockCommand({
+                                            kind: 'reorder',
+                                            templateId: template.id,
+                                            sectionId: section.id,
+                                            blockIds: next,
+                                          })
+                                        }
+                                        return (
+                                          <Card
+                                            key={block.id}
+                                            data-block-focus={block.id}
+                                            tabIndex={-1}
+                                            size="small"
+                                            title={`${block.id} · ${block.type}`}
+                                          >
+                                            <Space wrap>
+                                              <SortActionGroup
+                                                count={section.blocks.length}
+                                                index={blockIndex}
+                                                disabled={blockControlsDisabled}
+                                                moveUpLabel={t('Move {id} before', {
+                                                  id: block.id,
+                                                })}
+                                                moveDownLabel={t('Move {id} after', {
+                                                  id: block.id,
+                                                })}
+                                                removeLabel={t('Remove {id}', { id: block.id })}
+                                                removeConfirmTitle={t('Remove this Block?')}
+                                                onMoveUp={() => move(-1)}
+                                                onMoveDown={() => move(1)}
+                                                onRemove={() =>
+                                                  void runBlockCommand({
+                                                    kind: 'remove',
+                                                    templateId: template.id,
+                                                    blockId: block.id,
+                                                  })
+                                                }
+                                              />
+                                              <Switch
+                                                aria-label={t('Show {id}', { id: block.id })}
+                                                checked={block.visible}
+                                                disabled={
+                                                  !canWrite ||
+                                                  busy ||
+                                                  dirty ||
+                                                  changeReason.trim().length < 3
+                                                }
+                                                onChange={(visible) =>
+                                                  void runBlockCommand({
+                                                    kind: 'set-visibility',
+                                                    templateId: template.id,
+                                                    blockId: block.id,
+                                                    visible,
+                                                  })
+                                                }
+                                              />
+                                              <Button
+                                                icon={<CopyOutlined aria-hidden />}
+                                                disabled={
+                                                  !canWrite ||
+                                                  busy ||
+                                                  dirty ||
+                                                  changeReason.trim().length < 3
+                                                }
+                                                onClick={() =>
+                                                  void runBlockCommand({
+                                                    kind: 'duplicate',
+                                                    templateId: template.id,
+                                                    blockId: block.id,
+                                                  })
+                                                }
+                                              >
+                                                {t('Duplicate')}
+                                              </Button>
+                                            </Space>
+                                            <div className="mt-3 space-y-3">
+                                              {blockDefinition?.settings.map((setting) => {
+                                                const value = block.settings[setting.id]
+                                                const label = `${block.id} ${setting.label ?? setting.id}`
+                                                if (setting.kind === 'text')
+                                                  return (
+                                                    <Input
+                                                      key={`${block.id}-${setting.id}-${draft.version}`}
+                                                      aria-label={label}
+                                                      defaultValue={
+                                                        typeof value === 'string' ? value : ''
+                                                      }
+                                                      disabled={
+                                                        !canWrite ||
+                                                        busy ||
+                                                        dirty ||
+                                                        changeReason.trim().length < 3
+                                                      }
+                                                      onBlur={(event) => {
+                                                        if (event.target.value !== value)
+                                                          void runBlockCommand({
+                                                            kind: 'set-setting',
+                                                            templateId: template.id,
+                                                            blockId: block.id,
+                                                            settingId: setting.id,
+                                                            value: event.target.value,
+                                                          })
+                                                      }}
+                                                    />
+                                                  )
+                                                if (setting.kind === 'select')
+                                                  return (
+                                                    <Select
+                                                      key={setting.id}
+                                                      aria-label={label}
+                                                      className="w-full"
+                                                      value={
+                                                        typeof value === 'string'
+                                                          ? value
+                                                          : undefined
+                                                      }
+                                                      options={setting.options.map((option) => ({
+                                                        label: option.label,
+                                                        value: option.value,
+                                                      }))}
+                                                      disabled={
+                                                        !canWrite ||
+                                                        busy ||
+                                                        dirty ||
+                                                        changeReason.trim().length < 3
+                                                      }
+                                                      onChange={(next) =>
+                                                        void runBlockCommand({
+                                                          kind: 'set-setting',
+                                                          templateId: template.id,
+                                                          blockId: block.id,
+                                                          settingId: setting.id,
+                                                          value: next,
+                                                        })
+                                                      }
+                                                    />
+                                                  )
+                                                if (
+                                                  setting.kind === 'product-reference' ||
+                                                  setting.kind === 'collection-reference' ||
+                                                  setting.kind === 'page-reference' ||
+                                                  setting.kind === 'article-reference' ||
+                                                  setting.kind === 'policy-reference'
+                                                ) {
+                                                  const referenceKind = setting.kind.replace(
+                                                    '-reference',
+                                                    ''
+                                                  ) as StorefrontResourceReference['kind']
+                                                  const selected =
+                                                    typeof value === 'object' &&
+                                                    value !== null &&
+                                                    'kind' in value &&
+                                                    value.kind === referenceKind &&
+                                                    'id' in value
+                                                      ? (value as StorefrontResourceReference)
+                                                      : undefined
+                                                  const resources = editorResources.filter(
+                                                    ({ kind }) => kind === referenceKind
+                                                  )
+                                                  const selectedResource = resources.find(
+                                                    ({ id }) => id === selected?.id
+                                                  )
+                                                  return (
+                                                    <StorefrontResourcePicker
+                                                      key={setting.id}
+                                                      disabled={
+                                                        !canWrite ||
+                                                        busy ||
+                                                        dirty ||
+                                                        changeReason.trim().length < 3
+                                                      }
+                                                      kind={referenceKind}
+                                                      label={label}
+                                                      missing={
+                                                        Boolean(selected?.id) && !selectedResource
+                                                      }
+                                                      releaseId={selectedRelease?.id}
+                                                      selected={
+                                                        selectedResource
+                                                          ? {
+                                                              id: selectedResource.id,
+                                                              kind: selectedResource.kind,
+                                                              name: selectedResource.label,
+                                                              path: selectedResource.path,
+                                                            }
+                                                          : undefined
+                                                      }
+                                                      value={selected?.id}
+                                                      onChange={(next) => {
+                                                        if (!next) return
+                                                        void runBlockCommand({
+                                                          blockId: block.id,
+                                                          kind: 'set-setting',
+                                                          settingId: setting.id,
+                                                          templateId: template.id,
+                                                          value: { id: next, kind: referenceKind },
+                                                        })
+                                                      }}
+                                                    />
+                                                  )
+                                                }
+                                                if (setting.kind === 'asset') {
+                                                  const assetValue =
+                                                    typeof value === 'object' &&
+                                                    value !== null &&
+                                                    'kind' in value &&
+                                                    (value.kind === 'theme' ||
+                                                      value.kind === 'remote' ||
+                                                      value.kind === 'catalog')
+                                                      ? (value as AssetReference)
+                                                      : setting.default
+                                                  const themeOptions = setting.themeOptions ?? []
+                                                  return (
+                                                    <Select
+                                                      key={setting.id}
+                                                      disabled={
+                                                        !canWrite ||
+                                                        busy ||
+                                                        dirty ||
+                                                        changeReason.trim().length < 3
+                                                      }
+                                                      aria-label={label}
+                                                      options={themeOptions.map((option) => ({
+                                                        label: option.label,
+                                                        value: option.value.path,
+                                                      }))}
+                                                      value={
+                                                        assetValue.kind === 'theme'
+                                                          ? assetValue.path
+                                                          : undefined
+                                                      }
+                                                      onChange={(path) => {
+                                                        const next = themeOptions.find(
+                                                          (option) => option.value.path === path
+                                                        )?.value
+                                                        if (!next) return
+                                                        void runBlockCommand({
+                                                          blockId: block.id,
+                                                          kind: 'set-setting',
+                                                          settingId: setting.id,
+                                                          templateId: template.id,
+                                                          value: next,
+                                                        })
+                                                      }}
+                                                    />
+                                                  )
+                                                }
+                                                return null
+                                              })}
+                                            </div>
+                                          </Card>
+                                        )
+                                      })}
                                     </div>
-                                  )),
+                                  ),
                                 },
                               ]}
-                            />
+                              />
+                            </div>
                           ) : null}
                         </Card>
                       </li>

@@ -8,7 +8,9 @@ import { useFashionStoreMotionViewport } from "../../composables/useFashionStore
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
 const context = computed(() => resolveFashionStoreHomeSectionContext(properties.viewModel));
-const foundation = computed(() => resolveFashionStoreHomeFoundation(properties.viewModel));
+const foundation = computed(() =>
+  resolveFashionStoreHomeFoundation(properties.viewModel, properties.instance),
+);
 const marqueeMessages = computed(() => foundation.value.marquee);
 const root = ref<HTMLElement>();
 const viewportVisible = useFashionStoreMotionViewport(root);
@@ -45,6 +47,7 @@ onBeforeUnmount(() => {
 
 <template>
   <section
+    v-if="marqueeMessages.length > 0"
     ref="root"
     class="p-0 border-top border-bottom border-color-extra-medium-gray"
     data-home-section="marquee"

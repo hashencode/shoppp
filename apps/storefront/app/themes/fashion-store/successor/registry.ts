@@ -15,6 +15,7 @@ import { fashionStoreSectionComposition } from "./composition";
 
 export const themeRegistry = {
   ...inheritedRegistry,
+  blocksOwnedBySections: true,
   rendererShell: FashionStoreHomeShell,
   sectionComposition: fashionStoreSectionComposition,
   sections: {

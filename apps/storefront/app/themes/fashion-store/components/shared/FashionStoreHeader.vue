@@ -231,27 +231,52 @@ defineExpose({ closeTransient });
             </div>
           </div>
           <a
+            v-if="configuration?.logoPresentation?.visible !== false"
             class="navbar-brand"
             href="/"
             data-fashion-store-route
+            :data-logo-asset-id="configuration?.logoPresentation?.assetId"
+            :data-logo-variant="configuration?.logoPresentation?.variant"
             :aria-label="`${configuredBrandName} home`"
+            :style="{
+              justifyContent: configuration?.logoPresentation?.placement,
+              padding: configuration?.logoPresentation
+                ? `${configuration.logoPresentation.spacing}px`
+                : undefined,
+            }"
           >
             <img
               :alt="configuration?.logo?.alt ?? ''"
               class="default-logo"
               :src="configuredLogo() ?? fallbackLogo()"
+              :style="
+                configuration?.logoPresentation
+                  ? { width: `${configuration.logoPresentation.width}px` }
+                  : undefined
+              "
               v-bind:data-at2x="configuredLogo() ?? fallbackLogoAt2x()"
             />
             <img
               :alt="configuration?.logo?.alt ?? ''"
               class="alt-logo"
               :src="configuredLogo() ?? fallbackLogo()"
+              :style="
+                configuration?.logoPresentation
+                  ? { width: `${configuration.logoPresentation.width}px` }
+                  : undefined
+              "
               v-bind:data-at2x="configuredLogo() ?? fallbackLogoAt2x()"
             />
             <img
               :alt="configuration?.logo?.alt ?? ''"
               class="mobile-logo"
+              v-if="configuration?.logoPresentation?.mobileVisible !== false"
               :src="configuredLogo() ?? fallbackLogo()"
+              :style="
+                configuration?.logoPresentation
+                  ? { width: `${configuration.logoPresentation.width}px` }
+                  : undefined
+              "
               v-bind:data-at2x="configuredLogo() ?? fallbackLogoAt2x()"
             />
           </a>

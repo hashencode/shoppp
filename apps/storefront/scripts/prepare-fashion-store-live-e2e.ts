@@ -599,6 +599,18 @@ async function main(): Promise<void> {
     productFixtureInput.expectedOrigin,
     { navigationCandidate, zeroArticles },
   );
+  const authoredHeroCount = Number(process.env.STOREFRONT_FASHION_AUTHORED_HERO_COUNT || 0);
+  if (authoredHeroCount > 0) {
+    const home = input.snapshot.resolvedTemplates.find(({ pageType }) => pageType === "home");
+    const hero = home?.sections.find(({ type }) => type === "fashion-store.hero");
+    const collection = input.catalogRelease.collections.find(({ status }) => status === "published");
+    if (!hero || !collection) {
+      throw new Error("Authored Hero live proof requires a Home Hero and one published Collection.");
+    }
+    for (const block of hero.blocks) {
+      block.settings.destination = { id: collection.id, kind: "collection" };
+    }
+  }
   if (unifiedHome) {
     const profile = parseFashionStoreHomeDevelopmentProfile(
       process.env.STOREFRONT_FASHION_HOME_PROFILE,

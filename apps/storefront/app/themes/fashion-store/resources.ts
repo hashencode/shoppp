@@ -247,6 +247,16 @@ const establishedIds: Readonly<Record<string, string>> = {
   "demo-fashion-store-slider-01.jpg": "fashion-store.slider-01",
   "demo-fashion-store-slider-02.jpg": "fashion-store.slider-02",
   "demo-fashion-store-slider-03.jpg": "fashion-store.slider-03",
+  ...Object.fromEntries(
+    ([1, 2, 3] as const).flatMap((index) =>
+      (["pattern-desktop.jpg", "pattern-mobile.jpg", "product.png", "thumb.jpg"] as const).map(
+        (suffix) => [
+          `fashion-store-decor-hero-0${index}-${suffix}`,
+          `fashion-store.decor-hero-${index}-${suffix.replace(/\.(?:jpg|png)$/, "")}`,
+        ],
+      ),
+    ),
+  ),
 };
 
 const decorHeroAssets = {

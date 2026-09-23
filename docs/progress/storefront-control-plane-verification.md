@@ -340,3 +340,41 @@ candidate, or change runtime behavior.
   baseline architecture/generation expectations; all U6 unit and browser paths passed.
 - No remote candidate, deployment, DC, or PG state was created or advanced. U6 completes local
   Navigation control capability only; product execution advances to U7.
+
+## U7 Theme Block authoring and Fashion marketing evidence
+
+- Added strict server-side add, duplicate, remove, reorder, visibility, and setting commands under
+  `expectedVersion` compare-and-set. Add and duplicate issue server UUIDs; every command resolves,
+  normalizes, and parses the complete next draft before persistence, and the winning CAS and audit
+  claim commit atomically in one D1 batch.
+- The seven bounded successor Block types are Hero slide, service, category, promotion item, brand,
+  marquee item, and editorial card. Repeated edits normalize below the 120-operation public bound;
+  stale, unknown, misplaced, incomplete reorder, min/max, undeclared asset, and candidate-external
+  resource commands fail without changing the draft.
+- Admin Theme Editor uses shared ordering/removal controls, deterministic focus restoration, server
+  conflict recovery, and existing typed settings. Page-level unit and real-browser coverage spans
+  all six commands, rejected requests, Block-specific 409 recovery, unsaved-context retention, and
+  removal focus.
+- Fashion Hero, promotion, services, category, brand, marquee, and editorial sections consume the
+  saved Block order, visibility, settings, Theme-owned media, and exact frozen Collection/Article
+  destinations. Empty optional regions disappear rather than importing fixed arrays.
+- Hero Blocks own the complete slide tuple: title, price, four Theme media roles, colors,
+  thumbnail, and typed destination. One-to-five authored slides render in exact order across PC,
+  mobile, JavaScript-disabled output, and SSR without the fixed Corby/Verona/Lewis successor data.
+- Theme Logo controls retain only Store Identity variant and bounded presentation settings. New
+  candidates freeze the exact released media URL, historical schema-v3 `{assetId, variant}` bytes
+  remain readable, and absent legacy media never causes the reader to invent a path or accept a
+  competing Theme upload.
+- A full structured code review confirmed 12 findings covering draft durability, atomic audit,
+  authorization, contract bounds, immutable route/media projection, complete Hero ownership,
+  shared Admin controls, focus, and failure coverage. All findings plus the second-round five-item
+  verification tail were repaired and independently reverified Ready. Retained artifacts are
+  `/tmp/compound-engineering-501/ce-code-review/20260923-170304-d358c16c/report.md` and
+  `/tmp/compound-engineering-501/ce-code-review/20260923-170304-d358c16c/final-repair-verification.md`.
+- Authoritative verification on 2026-09-23: API Experience `35/35`, Contracts `27/27`, Domain
+  `7/7`, Admin unit `36/36`, Admin Browser Mode `8/8`, Storefront focused suites `83/83`, authored
+  Hero browser `4` passed with `2` intentional project skips, and the complete Fashion Hero desktop
+  browser matrix `10/10` passed. Contracts, Domain, API, Admin, and Storefront scoped TypeScript
+  checks plus `git diff --check` passed.
+- No remote candidate, deployment, DC, or PG state was created or advanced. U7 completes local
+  Theme Block control capability only; product execution advances to U8.

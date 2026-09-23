@@ -213,7 +213,7 @@ test("Home hero and first product card keep their source-region thresholds", asy
   ).toEqual([]);
 
   expect(await page.locator(".fashion-store-hero-slide[data-active=true]").innerText()).toContain(
-    "Corby sofas",
+    "Featured lounge",
   );
   expect(
     await page.locator('[data-home-section="best-sellers"] .shop-footer').first().innerText(),
@@ -274,7 +274,7 @@ test("complete source home renders every static region and local image", async (
   await expect(page.locator("section:nth-of-type(6) .swiper-slide")).toHaveCount(8);
   await expect(page.locator("section:nth-of-type(7) img")).toHaveCount(5);
   await expect(page.locator("section:nth-of-type(8) .grid-item")).toHaveCount(5);
-  await expect(page.locator("section:nth-of-type(9) .swiper-slide")).toHaveCount(8);
+  await expect(page.locator("section:nth-of-type(9) .swiper-slide")).toHaveCount(4);
   await expect(page.locator("section:nth-of-type(10) .grid-item")).toHaveCount(4);
   await expect(page.locator("footer.footer-dark")).toHaveCount(1);
   await expect(page.locator(".sticky-wrap")).toHaveCount(1);
@@ -670,7 +670,7 @@ test("legacy runtime requests are absent while static content remains usable", a
 
   const hero = page.locator(".swiper.full-screen");
   const activeHero = hero.locator('.fashion-store-hero-slide[data-active="true"]');
-  await expect(activeHero).toContainText("Corby sofas");
+  await expect(activeHero).toContainText("Featured lounge");
   await expect(activeHero.getByRole("link", { name: "Shop Now" })).toBeVisible();
   evidence.push({ actionOutcome: true, behaviorId: "hero-carousel", mode: "fallback" });
   expect(await hero.evaluate((element) => getComputedStyle(element).cursor)).not.toBe("none");
@@ -1333,7 +1333,7 @@ test("approved local fonts and SVG icons are active", async ({ browser, page }) 
   ]);
   expect(compareFontContractSnapshots(reference, implementation)).toEqual([]);
   expect(
-    await page.evaluate(() => document.fonts.check("700 120px Plus Jakarta Sans", "Corby")),
+    await page.evaluate(() => document.fonts.check("700 120px Plus Jakarta Sans", "Featured")),
   ).toBe(true);
   const cartIcon = page.locator('.add-to-cart [data-fashion-store-icon="shopping-bag"]');
   await page.locator('[data-home-section="best-sellers"] .shop-box').first().hover();

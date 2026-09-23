@@ -840,6 +840,9 @@ export const catalogReleaseV3Schema = z
           z
             .object({
               assetId: z.string(),
+              // schema-v3 Releases predate frozen Logo presentation. Keep historical
+              // `{ assetId, variant }` bytes readable while new builders always emit media.
+              media: catalogMediaSchema.omit({ id: true }).optional(),
               variant: z.enum(["primary", "light", "dark", "compact"]),
             })
             .strict(),

@@ -11,6 +11,7 @@ import {
   blockDefinitionSchema,
   experienceResourceBindingSchema,
   sectionDefinitionSchema,
+  settingValueSchema,
   storefrontIdentifierSchema,
   storefrontSemverSchema,
   storefrontThemeDescriptorSchema,
@@ -790,6 +791,63 @@ export const updateStorefrontExperienceDraftRequestSchema = z
   })
   .strict();
 
+const blockCommandBase = { templateId: storefrontIdentifierSchema };
+export const storefrontExperienceBlockCommandSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      ...blockCommandBase,
+      blockType: storefrontIdentifierSchema,
+      kind: z.literal("add"),
+      sectionId: storefrontIdentifierSchema,
+      settings: z.record(storefrontIdentifierSchema, settingValueSchema),
+    })
+    .strict(),
+  z
+    .object({
+      ...blockCommandBase,
+      blockId: storefrontIdentifierSchema,
+      kind: z.literal("duplicate"),
+    })
+    .strict(),
+  z
+    .object({ ...blockCommandBase, blockId: storefrontIdentifierSchema, kind: z.literal("remove") })
+    .strict(),
+  z
+    .object({
+      ...blockCommandBase,
+      blockIds: z.array(storefrontIdentifierSchema).max(20),
+      kind: z.literal("reorder"),
+      sectionId: storefrontIdentifierSchema,
+    })
+    .strict(),
+  z
+    .object({
+      ...blockCommandBase,
+      blockId: storefrontIdentifierSchema,
+      kind: z.literal("set-visibility"),
+      visible: z.boolean(),
+    })
+    .strict(),
+  z
+    .object({
+      ...blockCommandBase,
+      blockId: storefrontIdentifierSchema,
+      kind: z.literal("set-setting"),
+      settingId: storefrontIdentifierSchema,
+      value: settingValueSchema,
+    })
+    .strict(),
+]);
+
+export const storefrontExperienceBlockCommandRequestSchema = z
+  .object({
+    catalogReleaseId: z.string().trim().min(1).max(160).optional(),
+    command: storefrontExperienceBlockCommandSchema,
+    expectedVersion: z.int().positive(),
+    reason: experienceReasonSchema,
+  })
+  .strict();
+
 export const createStorefrontExperienceSuccessorRequestSchema =
   updateStorefrontExperienceDraftRequestSchema.omit({ expectedVersion: true }).extend({
     sourceVersion: z.int().positive(),
@@ -948,6 +1006,12 @@ export type StorefrontExperienceMigrationDryRunRequest = z.infer<
 >;
 export type UpdateStorefrontExperienceDraftRequest = z.infer<
   typeof updateStorefrontExperienceDraftRequestSchema
+>;
+export type StorefrontExperienceBlockCommand = z.infer<
+  typeof storefrontExperienceBlockCommandSchema
+>;
+export type StorefrontExperienceBlockCommandRequest = z.infer<
+  typeof storefrontExperienceBlockCommandRequestSchema
 >;
 export type ValidateStorefrontExperienceDraftRequest = z.infer<
   typeof validateStorefrontExperienceDraftRequestSchema

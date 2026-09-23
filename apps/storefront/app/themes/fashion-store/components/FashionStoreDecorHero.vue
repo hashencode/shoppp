@@ -4,6 +4,7 @@ import type { Swiper as SwiperInstance } from "swiper/types";
 import { Swiper, SwiperSlide } from "swiper/vue";
 
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
+import type { FashionStoreDecorHeroSlide } from "../contracts/home-hero";
 import { fashionStoreDecorHeroContract, fashionStoreDecorHeroSlides } from "../contracts/home-hero";
 import { useFashionStoreDecorHeroMotion } from "../composables/useFashionStoreDecorHeroMotion";
 import { useFashionStoreMotionViewport } from "../composables/useFashionStoreMotionViewport";
@@ -23,7 +24,16 @@ useHead({
   ],
 });
 
-const properties = defineProps<{ resolveAsset: ThemeAssetResolver }>();
+type RenderedHeroSlide = Omit<FashionStoreDecorHeroSlide, "id" | "price" | "title"> & {
+  id: string;
+  price: string;
+  title: string;
+};
+const properties = defineProps<{
+  resolveAsset: ThemeAssetResolver;
+  slides?: readonly RenderedHeroSlide[];
+}>();
+const slides = computed(() => properties.slides ?? fashionStoreDecorHeroSlides);
 const root = ref<HTMLElement>();
 const swiper = shallowRef<SwiperInstance>();
 const activeIndex = ref(0);
@@ -80,7 +90,7 @@ function handleSlideChange(instance: SwiperInstance): void {
   }
   const prior = activeIndex.value;
   activeIndex.value = instance.realIndex;
-  if (prior === fashionStoreDecorHeroSlides.length - 1 && activeIndex.value === 0) {
+  if (prior === slides.value.length - 1 && activeIndex.value === 0) {
     completedCycle.value = true;
     instance.autoplay?.stop();
   }
@@ -151,7 +161,7 @@ watch([motion.ready, motion.phase], syncInputBoundary, { flush: "sync" });
       @real-index-change="handleSlideChange"
     >
       <SwiperSlide
-        v-for="(slide, index) in fashionStoreDecorHeroSlides"
+        v-for="(slide, index) in slides"
         :key="slide.id"
         class="fashion-store-hero-slide"
         :data-active="activeIndex === index ? 'true' : 'false'"
@@ -159,7 +169,7 @@ watch([motion.ready, motion.phase], syncInputBoundary, { flush: "sync" });
         <article
           class="fashion-store-decor-hero__slide"
           :data-hero-slide="index + 1"
-          :style="{ backgroundColor: slide.background }"
+          :style="{ backgroundColor: slide.background, color: slide.foreground }"
         >
           <div class="fashion-store-decor-hero__shape" data-hero-layer="shape"></div>
           <picture class="fashion-store-decor-hero__pattern" data-hero-layer="pattern">
@@ -189,12 +199,13 @@ watch([motion.ready, motion.phase], syncInputBoundary, { flush: "sync" });
             <p data-hero-layer="price">
               Price starting from <strong>{{ slide.price }}</strong>
             </p>
-            <a
-              :href="slide.href"
+            <component
+              :is="slide.href ? 'a' : 'span'"
+              :href="slide.href || undefined"
               class="btn btn-dark-gray btn-large btn-round-edge btn-box-shadow"
-              data-fashion-store-route
+              :data-fashion-store-route="slide.href ? '' : undefined"
               data-hero-layer="cta"
-              ><FashionStoreIcon name="shopping-bag" />Shop Now</a
+              ><FashionStoreIcon name="shopping-bag" />Shop Now</component
             >
           </div>
           <div class="fashion-store-decor-hero__next">
@@ -215,9 +226,7 @@ watch([motion.ready, motion.phase], syncInputBoundary, { flush: "sync" });
                 backgroundImage:
                   activeIndex === index
                     ? `url('${properties.resolveAsset(
-                        fashionStoreDecorHeroSlides[
-                          (index + 1) % fashionStoreDecorHeroSlides.length
-                        ]!.thumb,
+                        slides[(index + 1) % slides.length]!.thumb,
                       )}')`
                     : 'none',
               }"

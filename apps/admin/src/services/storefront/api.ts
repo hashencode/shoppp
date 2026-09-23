@@ -1,6 +1,7 @@
 import type {
   AdminStorefrontTheme,
   ExperienceResourceBinding,
+  StorefrontExperienceBlockCommand,
   ThemeOverride,
 } from '@shoppp/contracts'
 import { apiClient } from '../../infrastructure/http/api-client'
@@ -340,6 +341,25 @@ export const updateStorefrontExperienceDraft = async (
       reason,
     },
     { headers: { 'Idempotency-Key': idempotencyKey('theme-draft-update') } }
+  )
+  return response.data.data
+}
+
+export const applyStorefrontExperienceBlockCommand = async (
+  draft: StorefrontExperienceDraft,
+  command: StorefrontExperienceBlockCommand,
+  reason: string,
+  catalogReleaseId?: string
+): Promise<StorefrontExperienceDraft> => {
+  const response = await apiClient.post<{ data: StorefrontExperienceDraft }>(
+    `/admin/storefront-experiences/drafts/${draft.id}/block-commands`,
+    {
+      catalogReleaseId: catalogReleaseId || undefined,
+      command,
+      expectedVersion: draft.version,
+      reason,
+    },
+    { headers: { 'Idempotency-Key': idempotencyKey(`theme-block-${command.kind}`) } }
   )
   return response.data.data
 }

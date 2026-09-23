@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import type {
   CanonicalCatalogRelease,
+  CatalogReleaseV3,
   ExperienceSnapshot,
   PageTemplate,
   StorefrontThemeDescriptor,
@@ -37,7 +38,7 @@ import {
   selectLivePort,
   selectPresentationProvider,
 } from "../app/theme-engine/providers";
-import { resolveFixtureBinding } from "../app/theme-engine/view-models";
+import { resolveFixtureBinding, type PresentationViewModel } from "../app/theme-engine/view-models";
 import {
   resolveThemeRoute,
   themeRoutePaths,
@@ -48,6 +49,7 @@ import { fashionStoreCompositionAdapter } from "../app/themes/fashion-store/comp
 import { fashionStoreThemeRoutes } from "../app/themes/fashion-store/page-contracts";
 import { fashionStorePreset } from "../app/themes/fashion-store/presets/source-parity";
 import { fashionStoreSectionComposition } from "../app/themes/fashion-store/successor/composition";
+import { resolveFashionStoreBlockReferenceHref } from "../app/themes/fashion-store/contracts/block-destinations";
 import {
   createPreviewAccessHandler,
   normalizePreviewAssetPath,
@@ -394,6 +396,62 @@ describe("selected storefront theme generation", () => {
       await rm(directory, { force: true, recursive: true });
     }
   });
+});
+
+test("routes Block references to the exact frozen collection and article candidates", () => {
+  const viewModel = {
+    featuredCollection: { href: "/collections/not-the-reference", id: "collection.fallback" },
+    kind: "home",
+    resourceDestinations: [
+      { href: "/collections/first", id: "collection.first", kind: "collection" },
+      { href: "/collections/exact-second", id: "collection.second", kind: "collection" },
+      { href: "/magazine/exact-story", id: "article.exact", kind: "article" },
+    ],
+  } as unknown as PresentationViewModel;
+  const instance = {
+    blocks: [
+      {
+        actions: [],
+        capabilities: [],
+        id: "category-exact",
+        settings: {
+          collection: { id: "collection.second", kind: "collection" },
+          image: { kind: "theme", path: "assets/images/category.jpg" },
+          name: "Exact category",
+        },
+        type: "fashion-store.category",
+        visible: true,
+      },
+      {
+        actions: [],
+        capabilities: [],
+        id: "article-exact",
+        settings: {
+          article: { id: "article.exact", kind: "article" },
+          image: { kind: "theme", path: "assets/images/article.jpg" },
+          title: "Exact article",
+        },
+        type: "fashion-store.editorial-card",
+        visible: true,
+      },
+    ],
+  } as unknown as PageTemplate["sections"][number];
+  expect(
+    resolveFashionStoreBlockReferenceHref(
+      viewModel as Extract<PresentationViewModel, { kind: "home" }>,
+      instance.blocks[0]!,
+      "collection",
+      "collection",
+    ),
+  ).toBe("/collections/exact-second");
+  expect(
+    resolveFashionStoreBlockReferenceHref(
+      viewModel as Extract<PresentationViewModel, { kind: "home" }>,
+      instance.blocks[1]!,
+      "article",
+      "article",
+    ),
+  ).toBe("/magazine/exact-story");
 });
 
 describe("theme-neutral storefront composer", () => {
@@ -1388,6 +1446,170 @@ describe("theme-neutral storefront composer", () => {
           targetBehavior: "same-window",
         },
       },
+    });
+  });
+
+  test("resolves Theme Logo presentation against the stable Store Identity variant", () => {
+    const release = {
+      ...canonicalRelease,
+      content: [],
+      environment: "staging",
+      identity: {
+        faviconAssetId: null,
+        id: "identity.primary",
+        logoAssets: [
+          {
+            assetId: "asset_logo_primary",
+            media: { alt: "Primary identity", height: 60, src: "/media/frozen-primary.webp", width: 180 },
+            variant: "primary",
+          },
+          {
+            assetId: "asset_logo_dark",
+            media: { alt: "Dark identity", height: 64, src: "/media/frozen-dark.webp", width: 192 },
+            variant: "dark",
+          },
+        ],
+        seo: {},
+        socialShareAssetId: null,
+        storefrontName: "Shared Shoppp Identity",
+        tagline: "",
+        version: 3,
+      },
+      navigation: [],
+      purpose: "private-preview",
+      routeOutput: canonicalRelease.routes,
+      schemaVersion: 3,
+      sourceVersionVector: [
+        {
+          digest: "a".repeat(64),
+          id: "identity.primary",
+          kind: "store-identity",
+          version: 3,
+        },
+      ],
+    } satisfies CatalogReleaseV3;
+    const experience = {
+      ...liveSnapshot,
+      bindings: [],
+      resolvedTemplates: [
+        {
+          id: "home-template",
+          pageType: "home" as const,
+          requiredCapabilities: [],
+          sections: [
+            {
+              blocks: [],
+              capabilities: [],
+              id: "home",
+              settings: {
+                "header-logo": {
+                  alt: "Competing Theme Logo",
+                  height: 100,
+                  kind: "theme" as const,
+                  path: "assets/images/competing-logo.png",
+                  width: 100,
+                },
+                "identity-logo-mobile-visible": false,
+                "identity-logo-placement": "end",
+                "identity-logo-spacing": 12,
+                "identity-logo-variant": "dark",
+                "identity-logo-visible": true,
+                "identity-logo-width": 168,
+              },
+              type: "fashion-store.home",
+              visible: true,
+            },
+          ],
+        },
+      ],
+    } satisfies ExperienceSnapshot;
+
+    const shell = composeExperienceShell({
+      adapter: fashionStoreCompositionAdapter,
+      experience,
+      release,
+    });
+    expect(shell?.header).toMatchObject({
+      logo: {
+        alt: "Dark identity",
+        source: "url",
+        src: "/media/frozen-dark.webp",
+      },
+      logoPresentation: {
+        assetId: "asset_logo_dark",
+        mobileVisible: false,
+        placement: "end",
+        spacing: 12,
+        variant: "dark",
+        visible: true,
+        width: 168,
+      },
+    });
+    expect(shell?.footer.logoPresentation?.assetId).toBe("asset_logo_dark");
+    expect(JSON.stringify(shell)).not.toContain("competing-logo.png");
+  });
+
+  test("reads historical schema-v3 Logo references without inventing media", () => {
+    const release = {
+      ...canonicalRelease,
+      content: [],
+      environment: "staging",
+      identity: {
+        faviconAssetId: null,
+        id: "identity.primary",
+        logoAssets: [{ assetId: "asset_logo_primary", variant: "primary" }],
+        seo: {},
+        socialShareAssetId: null,
+        storefrontName: "Historical Shoppp Identity",
+        tagline: "",
+        version: 1,
+      },
+      navigation: [],
+      purpose: "private-preview",
+      routeOutput: canonicalRelease.routes,
+      schemaVersion: 3,
+      sourceVersionVector: [
+        {
+          digest: "a".repeat(64),
+          id: "identity.primary",
+          kind: "store-identity",
+          version: 1,
+        },
+      ],
+    } satisfies CatalogReleaseV3;
+    const experience = {
+      ...liveSnapshot,
+      bindings: [],
+      resolvedTemplates: [
+        {
+          id: "home-template",
+          pageType: "home" as const,
+          requiredCapabilities: [],
+          sections: [
+            {
+              blocks: [],
+              capabilities: [],
+              id: "home",
+              settings: {
+                "identity-logo-variant": "primary",
+                "identity-logo-visible": true,
+              },
+              type: "fashion-store.home",
+              visible: true,
+            },
+          ],
+        },
+      ],
+    } satisfies ExperienceSnapshot;
+
+    expect(
+      composeExperienceShell({
+        adapter: fashionStoreCompositionAdapter,
+        experience,
+        release,
+      }),
+    ).toMatchObject({
+      header: { logo: undefined, logoPresentation: undefined },
     });
   });
 

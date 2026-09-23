@@ -682,7 +682,17 @@ async function assembleCandidateManifest(
         ? identityAuthority.row.favicon_asset_id
         : null,
     id: "identity.primary" as const,
-    logoAssets: identityLogos.results,
+    logoAssets: identityLogos.results.map((logo) => {
+      const media = v2.products.flatMap((product) => product.media).find(({ id }) => id === logo.assetId);
+      if (!media) {
+        lifecycleError(
+          "catalog_identity_logo_media_missing",
+          `Store Identity logo ${logo.assetId} is absent from the frozen product media release.`,
+        );
+      }
+      const { id: _id, ...frozenMedia } = media;
+      return { ...logo, media: frozenMedia };
+    }),
     seo: JSON.parse(String(identityAuthority.row.seo_json)),
     socialShareAssetId:
       typeof identityAuthority.row.social_share_asset_id === "string"

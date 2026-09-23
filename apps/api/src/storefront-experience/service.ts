@@ -7,11 +7,14 @@ import {
   storefrontLinkSchema,
   storefrontResourceReferenceSchema,
   themePackageSchema,
+  type BlockDefinition,
   type CanonicalCatalogRelease,
   type CreateStorefrontExperienceDraftRequest,
   type CreateStorefrontExperienceSuccessorRequest,
   type ExperienceResourceBinding,
+  type PageTemplate,
   type StorefrontExperienceMigrationDryRunRequest,
+  type StorefrontExperienceBlockCommandRequest,
   type ThemeOverride,
   type ThemePackage,
   type ThemePackageMigrationBoundary,
@@ -41,7 +44,7 @@ import fashionStoreFixture from "../../../storefront/fixtures/experience/fashion
 import { storefrontThemeCatalog } from "../generated/storefront-theme-catalog";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
-import { recordAuditEvent } from "../iam/audit";
+import { prepareConditionalAuditEvent, recordAuditEvent } from "../iam/audit";
 import { redactForLog } from "../security/redaction";
 import { getContactSettings } from "../settings/contact-profile";
 import {
@@ -71,6 +74,8 @@ export interface ExperienceConfigurationMigration {
 }
 
 export interface StorefrontExperienceServiceOptions {
+  readonly blockCommandAuditId?: string;
+  readonly blockCommandNow?: () => string;
   readonly migrationBoundaries?: readonly ThemePackageMigrationBoundary[];
   readonly migrations?: readonly ExperienceConfigurationMigration[];
   readonly packages?: readonly ThemePackage[];
@@ -555,6 +560,11 @@ function resolveDraft(
       ]),
     ),
   );
+  const visibleSectionIds = new Set(
+    resolvedTemplates.flatMap(({ sections }) =>
+      sections.filter(({ visible }) => visible).map(({ id }) => id),
+    ),
+  );
   const declaredInstanceIds = new Set(
     resolvedTemplates.flatMap(({ sections }) =>
       sections.flatMap((section) => [section.id, ...section.blocks.map(({ id }) => id)]),
@@ -619,7 +629,7 @@ function resolveDraft(
   );
   if (catalogBindings.length === 0) {
     const fixtureBindingAliases = fashionStoreFixtureBindingAliasesForPackage(selectedPackage);
-    for (const instanceId of visibleInstanceIds) {
+    for (const instanceId of visibleSectionIds) {
       const alias = fixtureBindingAliases?.[instanceId];
       if (
         !fixtureInstanceIdSet.has(instanceId) &&
@@ -919,6 +929,392 @@ export async function updateStorefrontExperienceDraft(
   return getStorefrontExperienceDraft(context.env.DB, id);
 }
 
+function withBlockOperation(
+  row: DraftRow,
+  templateId: string,
+  operation: ThemeOverride["operations"][number],
+): ThemeOverride[] {
+  const overrides = parseOverrides(row.overrides_json);
+  const existing = overrides.find((candidate) => candidate.templateId === templateId);
+  if (existing) {
+    existing.operations.push(operation);
+    return overrides;
+  }
+  return [
+    ...overrides,
+    {
+      operations: [operation],
+      presetId: row.preset_id,
+      schemaVersion: row.configuration_schema_version,
+      templateId,
+    },
+  ];
+}
+
+function equalConfigurationValue(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function assertBoundedBlockAssets(
+  definition: BlockDefinition,
+  settings: Readonly<Record<string, unknown>>,
+): void {
+  for (const setting of definition.settings) {
+    if (setting.kind !== "asset") continue;
+    const value = settings[setting.id];
+    if (
+      typeof value !== "object" ||
+      value === null ||
+      !("kind" in value) ||
+      value.kind !== "theme" ||
+      !setting.themeOptions?.some((option) => equalConfigurationValue(option.value, value))
+    ) {
+      throw new ApiError(
+        422,
+        "storefront_experience_block_asset_invalid",
+        "Block marketing media must be a bounded Theme-owned asset.",
+      );
+    }
+  }
+}
+
+function normalizeTemplateOverride(
+  row: DraftRow,
+  base: PageTemplate,
+  current: PageTemplate,
+): ThemeOverride | undefined {
+  const operations: ThemeOverride["operations"] = [];
+  const currentSectionOrder = current.sections.map(({ id }) => id);
+  if (!equalConfigurationValue(currentSectionOrder, base.sections.map(({ id }) => id))) {
+    operations.push({ instanceIds: currentSectionOrder, kind: "reorder-sections" });
+  }
+  for (const section of current.sections) {
+    const baseSection = base.sections.find(({ id }) => id === section.id);
+    if (!baseSection) continue;
+    if (section.visible !== baseSection.visible) {
+      operations.push({
+        instanceId: section.id,
+        kind: "set-visibility",
+        visible: section.visible,
+      });
+    }
+    for (const settingId of new Set([
+      ...Object.keys(baseSection.settings),
+      ...Object.keys(section.settings),
+    ])) {
+      if (equalConfigurationValue(section.settings[settingId], baseSection.settings[settingId])) {
+        continue;
+      }
+      operations.push(
+        section.settings[settingId] === undefined
+          ? { instanceId: section.id, kind: "reset-setting", settingId }
+          : {
+              instanceId: section.id,
+              kind: "set-setting",
+              settingId,
+              value: structuredClone(section.settings[settingId]),
+            },
+      );
+    }
+    const baseBlocks = new Map(baseSection.blocks.map((block) => [block.id, block]));
+    const currentBlocks = new Map(section.blocks.map((block) => [block.id, block]));
+    for (const baseBlock of baseSection.blocks) {
+      if (!currentBlocks.has(baseBlock.id)) {
+        operations.push({ instanceId: baseBlock.id, kind: "remove-block" });
+      }
+    }
+    for (const block of section.blocks) {
+      const baseBlock = baseBlocks.get(block.id);
+      if (!baseBlock) {
+        operations.push({
+          block: structuredClone(block),
+          kind: "add-block",
+          sectionId: section.id,
+        });
+        continue;
+      }
+      if (block.visible !== baseBlock.visible) {
+        operations.push({
+          instanceId: block.id,
+          kind: "set-visibility",
+          visible: block.visible,
+        });
+      }
+      for (const settingId of new Set([
+        ...Object.keys(baseBlock.settings),
+        ...Object.keys(block.settings),
+      ])) {
+        if (equalConfigurationValue(block.settings[settingId], baseBlock.settings[settingId])) {
+          continue;
+        }
+        operations.push(
+          block.settings[settingId] === undefined
+            ? { instanceId: block.id, kind: "reset-setting", settingId }
+            : {
+                instanceId: block.id,
+                kind: "set-setting",
+                settingId,
+                value: structuredClone(block.settings[settingId]),
+              },
+        );
+      }
+    }
+    const currentBlockOrder = section.blocks.map(({ id }) => id);
+    if (!equalConfigurationValue(currentBlockOrder, baseSection.blocks.map(({ id }) => id))) {
+      operations.push({
+        instanceIds: currentBlockOrder,
+        kind: "reorder-blocks",
+        sectionId: section.id,
+      });
+    }
+  }
+  return operations.length === 0
+    ? undefined
+    : {
+        operations,
+        presetId: row.preset_id,
+        schemaVersion: row.configuration_schema_version,
+        templateId: current.id,
+      };
+}
+
+export async function applyStorefrontExperienceBlockCommand(
+  context: Context<ApiEnvironment>,
+  id: string,
+  request: StorefrontExperienceBlockCommandRequest,
+  options?: StorefrontExperienceServiceOptions,
+) {
+  const row = await draftRow(context.env.DB, id);
+  assertStorefrontThemeLifecycleWritable(row.theme_id);
+  assertExpectedVersion(row, request.expectedVersion);
+  const current = resolveDraft(row, options);
+  if (current.issues.length > 0) {
+    throw new ApiError(
+      422,
+      "storefront_experience_draft_invalid",
+      "Repair the current draft before editing Blocks.",
+      {
+        issues: current.issues,
+      },
+    );
+  }
+  const command = request.command;
+  const template = current.resolvedTemplates.find(
+    ({ id: templateId }) => templateId === command.templateId,
+  );
+  if (!template)
+    throw new ApiError(
+      422,
+      "storefront_experience_block_template_invalid",
+      "The Block command references an unknown template.",
+    );
+  const allBlocks = template.sections.flatMap(({ blocks }) => blocks);
+  const commandBlockId = "blockId" in command ? command.blockId : undefined;
+  const block = commandBlockId
+    ? allBlocks.find(({ id: blockId }) => blockId === commandBlockId)
+    : undefined;
+  const newId = () => `block-${crypto.randomUUID()}`;
+  let operation: ThemeOverride["operations"][number];
+  switch (command.kind) {
+    case "add": {
+      const section = template.sections.find(
+        ({ id: sectionId }) => sectionId === command.sectionId,
+      );
+      const definition = current.package.manifest.componentRegistry.blocks.find(
+        ({ type }) => type === command.blockType,
+      );
+      if (
+        !section ||
+        !definition ||
+        !current.package.manifest.componentRegistry.sections
+          .find(({ type }) => type === section.type)
+          ?.allowedBlockTypes.includes(definition.type)
+      ) {
+        throw new ApiError(
+          422,
+          "storefront_experience_block_type_invalid",
+          "The Block type is not allowed in this section.",
+        );
+      }
+      assertBoundedBlockAssets(definition, command.settings);
+      operation = {
+        block: {
+          actions: [],
+          capabilities: [...definition.capabilities],
+          id: newId(),
+          settings: command.settings,
+          type: definition.type,
+          visible: true,
+        },
+        kind: "add-block",
+        sectionId: section.id,
+      };
+      break;
+    }
+    case "duplicate": {
+      if (!block)
+        throw new ApiError(
+          422,
+          "storefront_experience_block_not_found",
+          "The Block was not found.",
+        );
+      const section = template.sections.find(({ blocks }) =>
+        blocks.some(({ id: blockId }) => blockId === block.id),
+      )!;
+      operation = {
+        block: { ...structuredClone(block), id: newId() },
+        kind: "add-block",
+        sectionId: section.id,
+      };
+      break;
+    }
+    case "remove":
+      if (!block)
+        throw new ApiError(
+          422,
+          "storefront_experience_block_not_found",
+          "The Block was not found.",
+        );
+      operation = { instanceId: block.id, kind: "remove-block" };
+      break;
+    case "reorder":
+      operation = {
+        instanceIds: command.blockIds,
+        kind: "reorder-blocks",
+        sectionId: command.sectionId,
+      };
+      break;
+    case "set-visibility":
+      if (!block)
+        throw new ApiError(
+          422,
+          "storefront_experience_block_not_found",
+          "The Block was not found.",
+        );
+      operation = { instanceId: block.id, kind: "set-visibility", visible: command.visible };
+      break;
+    case "set-setting":
+      if (!block)
+        throw new ApiError(
+          422,
+          "storefront_experience_block_not_found",
+          "The Block was not found.",
+        );
+      {
+        const definition = current.package.manifest.componentRegistry.blocks.find(
+          ({ type }) => type === block.type,
+        )!;
+        const setting = definition.settings.find(({ id: settingId }) => settingId === command.settingId);
+        if (setting?.kind === "asset") {
+          assertBoundedBlockAssets(definition, {
+            ...block.settings,
+            [command.settingId]: command.value,
+          });
+        }
+      }
+      operation = {
+        instanceId: block.id,
+        kind: "set-setting",
+        settingId: command.settingId,
+        value: command.value,
+      };
+      break;
+  }
+  const pendingOverrides = withBlockOperation(row, command.templateId, operation);
+  const catalogRelease = request.catalogReleaseId
+    ? await getCanonicalDeployedCatalogRelease(context.env.DB, request.catalogReleaseId, {
+        allowPrivateCandidate: true,
+        environment: context.env.ENVIRONMENT,
+        principalKind: context.get("principal").principalKind,
+      })
+    : undefined;
+  const resolution = resolveDraft(row, options, undefined, pendingOverrides, catalogRelease);
+  if (resolution.issues.length > 0) {
+    throw new ApiError(
+      422,
+      "storefront_experience_block_command_invalid",
+      "The Block command would create an invalid draft.",
+      {
+        issues: resolution.issues,
+      },
+    );
+  }
+  const preset = resolution.package.presets.find(({ id: presetId }) => presetId === row.preset_id)!;
+  const resolvedTemplate = resolution.resolvedTemplates.find(
+    ({ id: templateId }) => templateId === command.templateId,
+  )!;
+  const baseTemplate = preset.templates.find(
+    ({ id: templateId }) => templateId === command.templateId,
+  )!;
+  const normalizedTarget = normalizeTemplateOverride(row, baseTemplate, resolvedTemplate);
+  const overrides = [
+    ...pendingOverrides.filter(({ templateId }) => templateId !== command.templateId),
+    ...(normalizedTarget ? [normalizedTarget] : []),
+  ];
+  const nextBindings =
+    command.kind === "remove"
+      ? parseBindings(row.bindings_json).filter(({ instanceId }) => instanceId !== command.blockId)
+      : parseBindings(row.bindings_json);
+  try {
+    experienceDraftSchema.parse({
+      bindings: nextBindings,
+      experienceId: row.experience_id,
+      id: row.id,
+      overrides,
+      themeId: row.theme_id,
+      themeVersion: row.theme_version,
+      version: row.version + 1,
+    });
+  } catch {
+    throw new ApiError(
+      422,
+      "storefront_experience_block_command_unbounded",
+      "The normalized Block command exceeds the supported draft bounds.",
+    );
+  }
+  const now = options?.blockCommandNow?.() ?? new Date().toISOString();
+  const principal = context.get("principal");
+  const writeCondition = {
+    bindings: [],
+    // D1 executes batch statements sequentially in one transaction. `changes()` therefore
+    // identifies whether this batch's immediately preceding CAS UPDATE won, rather than
+    // matching mutable row values that another same-principal writer may have produced.
+    sql: "SELECT 1 WHERE changes() = 1",
+  } as const;
+  const [updated, audited] = await context.env.DB.batch([
+    context.env.DB.prepare(
+    `UPDATE storefront_experience_drafts SET bindings_json = ?, overrides_json = ?, version = version + 1,
+       updated_by = ?, updated_at = ? WHERE id = ? AND version = ?`,
+    ).bind(
+      JSON.stringify(nextBindings),
+      JSON.stringify(overrides),
+      principal.id,
+      now,
+      id,
+      request.expectedVersion,
+    ),
+    prepareConditionalAuditEvent(
+      context.env.DB,
+      {
+        action: `themes.block.${command.kind}`,
+        actorId: principal.id,
+        actorType: "admin",
+        id: options?.blockCommandAuditId ?? crypto.randomUUID(),
+        metadata: { fromVersion: request.expectedVersion, toVersion: request.expectedVersion + 1 },
+        reason: request.reason,
+        requestId: context.get("requestId"),
+        result: "succeeded",
+        targetId: id,
+        targetType: "storefront_experience_draft",
+      },
+      writeCondition,
+    ),
+  ]);
+  if (updated?.meta.changes !== 1) throw conflictError();
+  if (audited?.meta.changes !== 1) throw conflictError();
+  return getStorefrontExperienceDraft(context.env.DB, id);
+}
+
 export async function createStorefrontExperienceSuccessor(
   context: Context<ApiEnvironment>,
   sourceId: string,
@@ -1104,10 +1500,12 @@ async function snapshotId(deduplicationKey: string, kind: "approved" | "preview"
 async function frozenContact(context: Context<ApiEnvironment>) {
   const settings = await getContactSettings(context);
   const publicContact: PublicContact = publicContactSchema.parse(settings.publicContact);
-  const version = await sha256Hex(canonicalJson({
-    profileVersion: settings.profileVersion,
-    publicContact,
-  }));
+  const version = await sha256Hex(
+    canonicalJson({
+      profileVersion: settings.profileVersion,
+      publicContact,
+    }),
+  );
   return { publicContact, version };
 }
 
@@ -1361,9 +1759,10 @@ export async function approveStorefrontExperienceDraft(
   const deduplicationKey = contact
     ? `${id}:${expectedVersion}:${catalogReleaseId ?? "fixture-preview"}:approved:${resolution.package.manifest.themeVersion}:${resolution.package.manifest.configurationSchemaVersion}:contact:${contact.version}`
     : null;
-  const expectedSnapshotId = operatorRun?.status === "approved"
-    ? operatorRun.successorSnapshotId
-    : await snapshotId(deduplicationKey!, "approved");
+  const expectedSnapshotId =
+    operatorRun?.status === "approved"
+      ? operatorRun.successorSnapshotId
+      : await snapshotId(deduplicationKey!, "approved");
   if (!expectedSnapshotId) {
     throw new ApiError(
       409,

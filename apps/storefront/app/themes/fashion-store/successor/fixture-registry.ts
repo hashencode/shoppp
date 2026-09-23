@@ -18,6 +18,7 @@ import { fashionStoreFixtureBindingAliases, fashionStoreSectionComposition } fro
 
 export const fixtureThemeRegistry = {
   ...inheritedFixtureRegistry,
+  blocksOwnedBySections: true,
   fixtureBindingAliases: fashionStoreFixtureBindingAliases,
   rendererShell: FashionStoreHomeShell,
   sectionComposition: fashionStoreSectionComposition,

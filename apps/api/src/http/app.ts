@@ -51,6 +51,7 @@ import {
   updateAdminRoleRequestSchema,
   updateAdminUserRequestSchema,
   updateStorefrontExperienceDraftRequestSchema,
+  storefrontExperienceBlockCommandRequestSchema,
   updateLaunchConfigurationRequestSchema,
   updateContactSettingsRequestSchema,
   updateStoreIdentityRequestSchema,
@@ -264,6 +265,7 @@ import {
   listStorefrontExperienceDrafts,
   listStorefrontThemes,
   updateStorefrontExperienceDraft,
+  applyStorefrontExperienceBlockCommand,
   validateStorefrontExperienceDraft,
   type StorefrontExperienceServiceOptions,
 } from "../storefront-experience/service";
@@ -1810,6 +1812,32 @@ export function createApp(options: CreateAppOptions = {}) {
       const input = await parseJson(context, updateStorefrontExperienceDraftRequestSchema);
       return context.json({
         data: await updateStorefrontExperienceDraft(
+          context,
+          context.req.param("id"),
+          input,
+          options.storefrontExperienceServiceOptions,
+        ),
+        meta: { requestId: context.get("requestId") },
+      });
+    },
+  );
+  app.post(
+    "/admin/storefront-experiences/drafts/:id/block-commands",
+    async (context, next) => {
+      await requirePermission(context, "themes.write", {
+        id: context.req.param("id"),
+        type: "storefront_experience_draft",
+      });
+      await next();
+    },
+    idempotency("storefront.experience.block.command"),
+    async (context) => {
+      const input = await parseJson(context, storefrontExperienceBlockCommandRequestSchema);
+      if (input.catalogReleaseId) {
+        await requireCatalogReleaseRead(context, input.catalogReleaseId);
+      }
+      return context.json({
+        data: await applyStorefrontExperienceBlockCommand(
           context,
           context.req.param("id"),
           input,

@@ -229,6 +229,33 @@ async function main(): Promise<void> {
     const home = input.snapshot.resolvedTemplates.find(({ pageType }) => pageType === "home");
     if (!home) throw new Error("Fashion preview requires a Home template.");
     applyFashionStoreHomeComposition(home, profile.composition);
+    const authoredHeroCount = Number(process.env.STOREFRONT_FASHION_AUTHORED_HERO_COUNT || 0);
+    if (authoredHeroCount > 0) {
+      if (!Number.isInteger(authoredHeroCount) || authoredHeroCount < 1 || authoredHeroCount > 5) {
+        throw new Error("STOREFRONT_FASHION_AUTHORED_HERO_COUNT must be an integer from 1 to 5.");
+      }
+      const hero = home.sections.find(({ type }) => type === "fashion-store.hero");
+      const collection = input.catalogRelease.collections.find(({ status }) => status === "published");
+      if (!hero || hero.blocks.length < 3 || !collection) {
+        throw new Error("Authored Hero proof requires three source media tuples and one Collection.");
+      }
+      const source = structuredClone(hero.blocks);
+      hero.blocks = Array.from({ length: authoredHeroCount }, (_, index) => {
+        const media = source[index % source.length]!;
+        const alternate = source[(index + 1) % source.length]!;
+        return {
+          ...structuredClone(media),
+          id: `authored-hero-${index + 1}`,
+          settings: {
+            ...structuredClone(media.settings),
+            destination: { id: collection.id, kind: "collection" },
+            "pattern-mobile": structuredClone(alternate.settings["pattern-mobile"]),
+            price: `$${index + 1}0${index}.00`,
+            title: `Authored Hero ${index + 1}`,
+          },
+        };
+      });
+    }
   }
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, `${JSON.stringify(input, null, 2)}\n`);

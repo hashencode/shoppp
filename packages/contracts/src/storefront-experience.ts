@@ -207,8 +207,34 @@ const assetSettingDefinitionSchema = z
     id: storefrontIdentifierSchema,
     kind: z.literal("asset"),
     required: z.boolean(),
+    themeOptions: z
+      .array(
+        z
+          .object({
+            label: z.string().trim().min(1).max(120),
+            value: themeAssetReferenceSchema,
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(30)
+      .optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) => {
+    if (
+      value.themeOptions &&
+      !value.themeOptions.some(
+        (option) => JSON.stringify(option.value) === JSON.stringify(value.default),
+      )
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "The Theme asset default must be one of the bounded Theme options.",
+        path: ["default"],
+      });
+    }
+  });
 
 const linkSettingDefinitionSchema = z
   .object({
@@ -326,6 +352,19 @@ export const sectionDefinitionSchema = z
   .object({
     ...componentDefinitionBase,
     allowedBlockTypes: z.array(storefrontIdentifierSchema).max(30),
+    blockRules: z
+      .array(
+        z
+          .object({
+            blockType: storefrontIdentifierSchema,
+            max: z.int().positive().max(MAX_BLOCKS_PER_SECTION),
+            min: z.int().nonnegative().max(MAX_BLOCKS_PER_SECTION),
+          })
+          .strict()
+          .refine(({ max, min }) => min <= max, "Block rule minimum must not exceed maximum."),
+      )
+      .max(30)
+      .optional(),
   })
   .strict()
   .superRefine(validateComponentDefinition);
@@ -760,7 +799,27 @@ const resetSettingOperationSchema = z
     settingId: storefrontIdentifierSchema,
   })
   .strict();
+const addBlockOperationSchema = z
+  .object({
+    block: blockInstanceSchema,
+    kind: z.literal("add-block"),
+    sectionId: storefrontIdentifierSchema,
+  })
+  .strict();
+const removeBlockOperationSchema = z
+  .object({ instanceId: storefrontIdentifierSchema, kind: z.literal("remove-block") })
+  .strict();
+const reorderBlocksOperationSchema = z
+  .object({
+    instanceIds: z.array(storefrontIdentifierSchema).max(MAX_BLOCKS_PER_SECTION),
+    kind: z.literal("reorder-blocks"),
+    sectionId: storefrontIdentifierSchema,
+  })
+  .strict();
 export const themeOverrideOperationSchema = z.discriminatedUnion("kind", [
+  addBlockOperationSchema,
+  removeBlockOperationSchema,
+  reorderBlocksOperationSchema,
   reorderSectionsOperationSchema,
   setVisibilityOperationSchema,
   setSettingOperationSchema,
@@ -1067,6 +1126,24 @@ function validateThemePackage(
           [...sectionPath, "blocks"],
           "Block instance IDs must be unique within a section.",
         );
+        for (const rule of definition.blockRules ?? []) {
+          if (!definition.allowedBlockTypes.includes(rule.blockType)) {
+            addIssue(
+              context,
+              [...sectionPath, "blocks"],
+              "A block rule references a disallowed block type.",
+            );
+            continue;
+          }
+          const count = section.blocks.filter(({ type }) => type === rule.blockType).length;
+          if (count < rule.min || count > rule.max) {
+            addIssue(
+              context,
+              [...sectionPath, "blocks"],
+              `Block type ${rule.blockType} requires ${rule.min}-${rule.max} instances.`,
+            );
+          }
+        }
         section.blocks.forEach((block, blockIndex) => {
           const blockPath = [...sectionPath, "blocks", blockIndex] as PropertyKey[];
           const blockDefinition = blockByType.get(block.type);

@@ -48,6 +48,91 @@ import {
 import { fashionStoreBehaviorContract } from "../app/themes/fashion-store/behavior-contract";
 
 describe("Fashion Store preview registration", () => {
+  test("ships every bounded marketing Block with a Section-owned visible consumer", () => {
+    const home = fashionStorePreset.templates.find(({ pageType }) => pageType === "home")!;
+    const expected = new Map<string, readonly [string, number]>([
+      ["fashion-store.hero", ["fashion-store.hero-slide", 3]],
+      ["fashion-store.services", ["fashion-store.service", 4]],
+      ["fashion-store.categories", ["fashion-store.category", 4]],
+      ["fashion-store.promotion", ["fashion-store.promotion-item", 1]],
+      ["fashion-store.brand-strip", ["fashion-store.brand", 5]],
+      ["fashion-store.marquee", ["fashion-store.marquee-item", 4]],
+      ["fashion-store.editorial", ["fashion-store.editorial-card", 4]],
+    ]);
+    for (const section of home.sections) {
+      const contract = expected.get(section.type);
+      if (!contract) continue;
+      expect(section.blocks).toHaveLength(contract[1]);
+      expect(section.blocks.every(({ type }) => type === contract[0])).toBe(true);
+    }
+    expect(JSON.stringify(home)).not.toContain("Corby sofas");
+    expect(JSON.stringify(home)).not.toContain("Verona sofas");
+    expect(JSON.stringify(home)).not.toContain("Lewis sofas");
+    const heroDefinition = fashionStoreManifest.componentRegistry.blocks.find(
+      ({ type }) => type === "fashion-store.hero-slide",
+    )!;
+    const firstHero = home.sections
+      .find(({ type }) => type === "fashion-store.hero")!
+      .blocks[0]!;
+    for (const settingId of [
+      "title",
+      "price",
+      "pattern-desktop",
+      "pattern-mobile",
+      "product-image",
+      "thumbnail",
+      "background-color",
+      "foreground-color",
+    ]) {
+      const definition = heroDefinition.settings.find(({ id }) => id === settingId)!;
+      expect(firstHero.settings[settingId]).not.toEqual(
+        "default" in definition ? definition.default : undefined,
+      );
+    }
+    const plan = renderThemeTreePlan(home, themeRegistry);
+    expect(
+      plan.sections.find(({ instance }) => instance.type === "fashion-store.hero")?.blocks,
+    ).toEqual([]);
+  });
+  test("keeps Logo media Store Identity-owned and optional Block regions truthful", async () => {
+    const heroDefinition = fashionStoreManifest.componentRegistry.sections.find(
+      ({ type }) => type === "fashion-store.hero",
+    )!;
+    const settingIds = heroDefinition.settings.map(({ id }) => id);
+    expect(settingIds).toContain("identity-logo-variant");
+    expect(settingIds).toContain("identity-logo-width");
+    expect(settingIds).toContain("identity-logo-placement");
+    expect(settingIds).toContain("identity-logo-spacing");
+    expect(settingIds).toContain("identity-logo-visible");
+    expect(settingIds).toContain("identity-logo-mobile-visible");
+    expect(settingIds).not.toContain("header-logo");
+    expect(settingIds).not.toContain("footer-logo");
+    const home = fashionStorePreset.templates.find(({ pageType }) => pageType === "home")!;
+    expect(home.sections[0]!.settings).not.toHaveProperty("header-logo");
+    expect(home.sections[0]!.settings).not.toHaveProperty("footer-logo");
+
+    const header = await readFile(
+      resolve(
+        import.meta.dir,
+        "../app/themes/fashion-store/components/shared/FashionStoreHeader.vue",
+      ),
+      "utf8",
+    );
+    expect(header).toContain("data-logo-asset-id");
+    expect(header).toContain("data-logo-variant");
+    for (const [file, condition] of [
+      ["FashionStoreServicesSection.vue", "foundation.services.length > 0"],
+      ["FashionStoreBrandStripSection.vue", "foundation.brands.length > 0"],
+      ["FashionStoreMarqueeSection.vue", "marqueeMessages.length > 0"],
+      ["FashionStoreEditorialSection.vue", "editorial.magazine.length > 0"],
+    ] as const) {
+      const source = await readFile(
+        resolve(import.meta.dir, `../app/themes/fashion-store/components/sections/${file}`),
+        "utf8",
+      );
+      expect(source).toContain(`v-if="${condition}"`);
+    }
+  });
   test("routes generic motion and marquee behavior through their stable owners", async () => {
     const genericConfig = await readFile(
       resolve(import.meta.dir, "../playwright.fashion-store.config.ts"),
@@ -394,12 +479,16 @@ describe("Fashion Store preview registration", () => {
         "announcement-text",
         "announcement-link",
         "announcement-visible",
-        "header-logo",
+        "identity-logo-variant",
+        "identity-logo-width",
+        "identity-logo-placement",
+        "identity-logo-spacing",
+        "identity-logo-visible",
+        "identity-logo-mobile-visible",
         "header-contact-copy",
         "header-social-link",
         "header-legal-link",
         "header-highlight-page",
-        "footer-logo",
         "footer-contact-copy",
         "footer-social-link",
         "footer-legal-link",

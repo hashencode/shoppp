@@ -89,9 +89,19 @@ test("renders the permanent furniture Hero in a complete static first state", as
   const hero = page.locator("#fashion-store-decor-hero");
   await expect(hero).toBeVisible();
   await expect(hero).toHaveAttribute("data-active-slide", "1");
-  await expect(hero.locator("[data-hero-slide='1'] h1")).toHaveText("Corby sofas");
+  await expect(hero.locator("[data-hero-slide='1'] h1")).toHaveText("Featured lounge");
   await expect(hero.locator("[data-hero-slide='1']")).toContainText("$199.00");
-  await expect(hero.locator("[data-hero-slide='1'] a[href='/shop']")).toHaveText("Shop Now");
+  await expect(hero.locator("[data-hero-slide='1']")).toHaveCSS(
+    "background-color",
+    "rgb(229, 239, 243)",
+  );
+  await expect(hero.locator("[data-hero-slide='1'] [data-hero-layer='product']")).toHaveAttribute(
+    "src",
+    /decor-hero-01-product/,
+  );
+  await expect(hero.locator("[data-hero-slide='1'] a[href='/collections']")).toHaveText(
+    "Shop Now",
+  );
   await expect(hero.locator("[data-hero-slide='1'] [data-hero-layer='thumbnail']")).toHaveCSS(
     "background-image",
     /decor-hero-02-thumb/,
@@ -127,7 +137,7 @@ test("keeps the first slide static and layers later accepted changes", async ({
   );
   await expect(hero).toHaveAttribute("data-active-slide", "2");
   await expect(hero.locator(".swiper-slide-active [data-hero-layer='title']")).toHaveText(
-    "Verona sofas",
+    "Modern comfort",
   );
   await expect(hero).toHaveAttribute("data-action-phase", "idle", { timeout: 5_000 });
   if (isChromiumDesktop(testInfo)) {
@@ -227,11 +237,28 @@ test("keeps the SSR Hero usable when JavaScript is unavailable", async ({ browse
     const hero = page.locator("#fashion-store-decor-hero");
     await expect(hero).toBeVisible();
     await expect(hero).toHaveAttribute("data-active-slide", "1");
-    await expect(hero.locator("[data-hero-slide='1'] h1")).toHaveText("Corby sofas");
-    await expect(hero.locator("[data-hero-slide='1'] a[href='/shop']")).toHaveText("Shop Now");
+    await expect(hero.locator("[data-hero-slide='1'] h1")).toHaveText("Featured lounge");
+    await expect(hero.locator("[data-hero-slide='1']")).toContainText("$199.00");
+    await expect(hero.locator("[data-hero-slide='1'] [data-hero-layer='product']")).toHaveAttribute(
+      "src",
+      /decor-hero-01-product/,
+    );
+    await expect(hero.locator("[data-hero-slide='1'] a[href='/collections']")).toHaveText(
+      "Shop Now",
+    );
   } finally {
     await context.close();
   }
+});
+
+test("serializes the non-default authored Hero Block tuple into SSR HTML", async ({ request }) => {
+  const response = await request.get("/");
+  expect(response.ok()).toBe(true);
+  const html = await response.text();
+  expect(html).toContain("Featured lounge");
+  expect(html).toContain("$199.00");
+  expect(html).toContain("fashion-store-decor-hero-01-product");
+  expect(html).toContain("background-color:#e5eff3");
 });
 
 test("binds all Hero content and layer timings to the independent Decor source", async ({
@@ -247,14 +274,16 @@ test("binds all Hero content and layer timings to the independent Decor source",
     await Promise.all([prepareDecorSource(source), page.goto("/", { waitUntil: "networkidle" })]);
     const sourceSlides = source.locator("#decor-store-slider > ul > li");
     await expect(sourceSlides).toHaveCount(3);
-    for (const [index, title, price] of [
-      [0, "Corby sofas", "$199.00"],
-      [1, "Verona sofas", "$259.00"],
-      [2, "Lewis sofas", "$259.00"],
+    for (const [index, sourceTitle, implementationTitle, price] of [
+      [0, "Corby sofas", "Featured lounge", "$199.00"],
+      [1, "Verona sofas", "Modern comfort", "$259.00"],
+      [2, "Lewis sofas", "Everyday design", "$259.00"],
     ] as const) {
-      await expect(sourceSlides.nth(index)).toContainText(title);
+      await expect(sourceSlides.nth(index)).toContainText(sourceTitle);
       await expect(sourceSlides.nth(index)).toContainText(price);
-      await expect(page.locator(`[data-hero-slide='${index + 1}']`)).toContainText(title);
+      await expect(page.locator(`[data-hero-slide='${index + 1}']`)).toContainText(
+        implementationTitle,
+      );
       await expect(page.locator(`[data-hero-slide='${index + 1}']`)).toContainText(price);
     }
     const transitionMs = Number(await sourceSlides.first().getAttribute("data-masterspeed"));
@@ -300,10 +329,10 @@ test("binds all Hero content and layer timings to the independent Decor source",
     expect(initializer).toContain("stopAfterLoops: 0");
     expect(initializer).toContain("stopAtSlide: 1");
     await expectClientRuntimeStarted(page);
-    for (const [index, sourceIndex, title] of [
-      [0, 1, "Corby sofas"],
-      [1, 2, "Verona sofas"],
-      [2, 3, "Lewis sofas"],
+    for (const [index, sourceIndex, sourceTitle, implementationTitle] of [
+      [0, 1, "Corby sofas", "Featured lounge"],
+      [1, 2, "Verona sofas", "Modern comfort"],
+      [2, 3, "Lewis sofas", "Everyday design"],
     ] as const) {
       await source.evaluate((nextIndex) => {
         const jquery = (
@@ -319,10 +348,10 @@ test("binds all Hero content and layer timings to the independent Decor source",
         ).swiper?.slideTo(nextIndex, 0);
       }, index);
       await expect(source.locator("#decor-store-slider > ul > li.active-revslide")).toContainText(
-        title,
+        sourceTitle,
       );
       await expect(page.locator(".swiper-slide-active [data-hero-layer='title']")).toHaveText(
-        title,
+        implementationTitle,
       );
     }
   } finally {
@@ -416,5 +445,5 @@ test("keeps the Hero atomic when the GSAP runtime cannot load", async ({ page },
   await hero.locator("[data-hero-layer='next']").first().click();
   await page.keyboard.press("ArrowRight");
   await expect(hero).toHaveAttribute("data-active-slide", "1");
-  await expect(hero.locator("[data-hero-slide='1'] a[href='/shop']")).toHaveText("Shop Now");
+  await expect(hero.locator("[data-hero-slide='1'] a[href='/collections']")).toHaveText("Shop Now");
 });

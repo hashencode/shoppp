@@ -28,7 +28,20 @@ function minimalThirdTheme(): ThemeMatrixEntry {
       .filter((definition) =>
         definition.type.startsWith("fashion-store.") ? homeTypes.has(definition.type) : true,
       )
-      .map((definition) => ({ ...definition, type: minimalType(definition.type) }));
+      .map((definition) => ({
+        ...definition,
+        allowedBlockTypes: definition.allowedBlockTypes.map(minimalType),
+        blockRules: definition.blockRules?.map((rule) => ({
+          ...rule,
+          blockType: minimalType(rule.blockType),
+        })),
+        type: minimalType(definition.type),
+      }));
+  entry.package.manifest.componentRegistry.blocks =
+    entry.package.manifest.componentRegistry.blocks.map((definition) => ({
+      ...definition,
+      type: minimalType(definition.type),
+    }));
   entry.package.presets = entry.package.presets.map((preset) => ({
     ...preset,
     templates: preset.templates
@@ -37,6 +50,7 @@ function minimalThirdTheme(): ThemeMatrixEntry {
         ...template,
         sections: template.sections.map((section) => ({
           ...section,
+          blocks: section.blocks.map((block) => ({ ...block, type: minimalType(block.type) })),
           type: minimalType(section.type),
         })),
       })),

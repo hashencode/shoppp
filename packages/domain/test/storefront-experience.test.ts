@@ -190,4 +190,51 @@ describe("storefront experience invariants", () => {
     }).toThrow();
     expect(source.nested.value).toBe("approved");
   });
+
+  test("adds, duplicates, reorders, hides, edits, and removes stable block instances", () => {
+    const added = {
+      actions: [],
+      capabilities: [],
+      id: "hero-action-secondary",
+      settings: { label: "Discover" },
+      type: "core.product-action",
+      visible: true,
+    };
+    const resolved = resolveTemplateOverride(preset, {
+      ...override,
+      operations: [
+        { block: added, kind: "add-block", sectionId: "hero" },
+        {
+          instanceIds: ["hero-action-secondary", "hero-action"],
+          kind: "reorder-blocks",
+          sectionId: "hero",
+        },
+        { instanceId: "hero-action-secondary", kind: "set-visibility", visible: false },
+        {
+          instanceId: "hero-action-secondary",
+          kind: "set-setting",
+          settingId: "label",
+          value: "Updated",
+        },
+      ],
+    });
+    expect(resolved.sections[0]?.blocks.map(({ id }) => id)).toEqual([
+      "hero-action-secondary",
+      "hero-action",
+    ]);
+    expect(resolved.sections[0]?.blocks[0]).toMatchObject({
+      id: "hero-action-secondary",
+      settings: { label: "Updated" },
+      visible: false,
+    });
+    expect(
+      resolveTemplateOverride(preset, {
+        ...override,
+        operations: [
+          { block: added, kind: "add-block", sectionId: "hero" },
+          { instanceId: "hero-action-secondary", kind: "remove-block" },
+        ],
+      }).sections[0]?.blocks.map(({ id }) => id),
+    ).toEqual(["hero-action"]);
+  });
 });

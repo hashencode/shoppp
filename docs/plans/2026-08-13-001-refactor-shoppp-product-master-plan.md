@@ -6,7 +6,7 @@ topic: shoppp-product-master-plan
 execution: knowledge-work
 plan_role: product-master
 current_plan: 2026-09-22-0043-feat-storefront-control-plane-plan.md
-current_unit: FS-F14-U7
+current_unit: FS-F14-U8
 ---
 
 # Shoppp Product Master Plan
@@ -46,10 +46,10 @@ template-specific repair does not change product membership or candidate scope b
 ## Current execution pointer
 
 - **Active product plan:** `FS-F14` — [Storefront Control Plane](2026-09-22-0043-feat-storefront-control-plane-plan.md).
-- **Current unit:** `FS-F14-U7` — complete Theme Block authoring and Fashion marketing sections.
-- **Current result:** FS-F14 U6 completed versioned Header/Footer Navigation, two-level keyboard authoring, permission-safe backlinks, exact Release freezing, released Fashion shell consumption, and schema-v2 historical shell rollback compatibility.
-- **Next action:** Add proof-first strict Block commands and bounded Fashion Block types across contracts, Experience service, Admin Theme Editor, composer, and renderer; remove each fixed marketing array only after its replacement renders in fixture and live composition.
-- **Blockers:** None for local U7 implementation. Remote mutation, candidate selection, deployment, DC, and PG remain separately gated.
+- **Current unit:** `FS-F14-U8` — migrate canonical claims while preserving historical compatibility.
+- **Current result:** FS-F14 U7 completed strict server-owned Block commands, seven bounded Fashion marketing Block types, exact Release-backed references, Theme-owned marketing media, Identity-owned Logo presentation, and fixture/live PC/mobile/no-JS/SSR rendering.
+- **Next action:** Characterize historical Snapshot rendering, freeze the supported reader matrix, and add migration conflict fixtures before removing new-schema dependence on legacy contact, policy, shipping, return, payment, and Logo claims.
+- **Blockers:** None for local U8 implementation. Remote mutation, candidate selection, deployment, DC, and PG remain separately gated.
 - **Handback:** Complete FS-F14 U1-U9, then return product control to `REL-Pre-DC`; no Candidate, DC, deployment, or PG state advances automatically.
 
 The active child plan is authoritative if this summary and its execution checkpoint temporarily
@@ -58,7 +58,7 @@ checkpoint here.
 
 ## Product-level sequence
 
-1. Execute active `FS-F14-U7` and the remaining Storefront Control Plane units to replace hardcoded or duplicate Fashion storefront controls with their canonical Admin authorities and immutable Preview path.
+1. Execute active `FS-F14-U8` and the remaining Storefront Control Plane units to replace hardcoded or duplicate Fashion storefront controls with their canonical Admin authorities and immutable Preview path.
 2. Return to `REL-Pre-DC` for capability reconciliation and immutable candidate selection.
 3. Run DC and PG only through their named human and production authorities.
 

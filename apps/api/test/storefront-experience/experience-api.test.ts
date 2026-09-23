@@ -7,6 +7,7 @@ import {
   storefrontExperienceDraftInputSchema,
   themePackageSchema,
   type ThemePackage,
+  type ThemeOverride,
 } from "@shoppp/contracts";
 
 import fashionStoreFixture from "../../../storefront/fixtures/experience/fashion-store.json";
@@ -376,6 +377,420 @@ describe("storefront experience API", () => {
        VALUES ('role_admin', 'catalog.read', '2026-08-04T00:00:00.000Z')`,
     ).run();
     await seedOperator();
+  });
+
+  test("applies strict server-owned Block commands with optimistic concurrency", async () => {
+    const app = appFor();
+    const created = await createDraft(app, "theme-block-command-create");
+    expect(created.response.status).toBe(201);
+    const draftId = created.body.data.id;
+    const duplicate = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}/block-commands`,
+        {
+          command: {
+            blockId: "hero-slide-1",
+            kind: "duplicate",
+            templateId: "fashion-store-home",
+          },
+          expectedVersion: 1,
+          reason: "Duplicate the first bounded Hero slide",
+        },
+        "theme-block-command-duplicate",
+      ),
+      env,
+    );
+    expect(duplicate.status).toBe(200);
+    const duplicateBody = await duplicate.json<{
+      data: { overrides: ThemeOverride[]; version: number };
+    }>();
+    expect(duplicateBody.data.version).toBe(2);
+    const added = duplicateBody.data.overrides
+      .flatMap(({ operations }) => operations)
+      .find((operation) => operation.kind === "add-block");
+    expect(added).toMatchObject({ block: { type: "fashion-store.hero-slide" }, kind: "add-block" });
+    if (!added || added.kind !== "add-block") throw new Error("Expected a server-created Block.");
+    expect(added.block.id).toMatch(/^block-[a-f0-9-]+$/);
+    expect(added.block.id).not.toBe("hero-slide-1");
+
+    const unknown = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}/block-commands`,
+        {
+          command: {
+            blockType: "fashion-store.unknown",
+            kind: "add",
+            sectionId: "fashion-store-home",
+            settings: {},
+            templateId: "fashion-store-home",
+          },
+          expectedVersion: 2,
+          reason: "Reject an unknown Block type",
+        },
+        "theme-block-command-unknown",
+      ),
+      env,
+    );
+    expect(unknown.status).toBe(422);
+
+    const invalidSetting = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}/block-commands`,
+        {
+          command: {
+            blockId: "hero-slide-1",
+            kind: "set-setting",
+            settingId: "unknown",
+            templateId: "fashion-store-home",
+            value: "invalid",
+          },
+          expectedVersion: 2,
+          reason: "Reject an unknown Block setting",
+        },
+        "theme-block-command-invalid-setting",
+      ),
+      env,
+    );
+    expect(invalidSetting.status).toBe(422);
+
+    const disallowedSection = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}/block-commands`,
+        {
+          command: {
+            blockType: "fashion-store.service",
+            kind: "add",
+            sectionId: "fashion-store-home",
+            settings: { description: "Not a Hero", title: "Service", variant: "package" },
+            templateId: "fashion-store-home",
+          },
+          expectedVersion: 2,
+          reason: "Reject a service in the Hero",
+        },
+        "theme-block-command-disallowed-section",
+      ),
+      env,
+    );
+    expect(disallowedSection.status).toBe(422);
+
+    const fifth = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}/block-commands`,
+        {
+          command: { blockId: "hero-slide-1", kind: "duplicate", templateId: "fashion-store-home" },
+          expectedVersion: 2,
+          reason: "Fill the bounded Hero capacity",
+        },
+        "theme-block-command-fifth",
+      ),
+      env,
+    );
+    expect(fifth.status).toBe(200);
+    const excessive = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}/block-commands`,
+        {
+          command: { blockId: "hero-slide-1", kind: "duplicate", templateId: "fashion-store-home" },
+          expectedVersion: 3,
+          reason: "Reject a sixth Hero slide",
+        },
+        "theme-block-command-excessive",
+      ),
+      env,
+    );
+    expect(excessive.status).toBe(422);
+
+    const stale = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}/block-commands`,
+        {
+          command: { blockId: added.block.id, kind: "remove", templateId: "fashion-store-home" },
+          expectedVersion: 1,
+          reason: "Attempt stale removal",
+        },
+        "theme-block-command-stale",
+      ),
+      env,
+    );
+    expect(stale.status).toBe(409);
+  });
+
+  test("rolls back the Block CAS update when the coupled audit insert fails", async () => {
+    const auditId = "audit-block-command-collision";
+    await env.DB.prepare(
+      `INSERT INTO audit_events
+         (id, actor_type, actor_id, action, target_type, target_id, result, reason,
+          request_id, metadata_json, created_at)
+       VALUES (?, 'admin', 'seed', 'seed', 'seed', 'seed', 'succeeded', NULL,
+               'seed', '{}', '2026-09-23T00:00:00.000Z')`,
+    )
+      .bind(auditId)
+      .run();
+    const app = createApp({
+      storefrontExperienceServiceOptions: { blockCommandAuditId: auditId },
+      testIdentityVerifier: async () => ({
+        email: "theme-admin@example.test",
+        principalKind: "human",
+        subject: "theme-admin",
+      }),
+    });
+    const created = await createDraft(app, "theme-block-atomic-create");
+    const draftId = created.body.data.id;
+    const response = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}/block-commands`,
+        {
+          command: {
+            blockId: "hero-slide-1",
+            kind: "duplicate",
+            templateId: "fashion-store-home",
+          },
+          expectedVersion: 1,
+          reason: "Prove audit and Block CAS rollback together",
+        },
+        "theme-block-atomic-command",
+      ),
+      env,
+    );
+    expect(response.status).toBe(500);
+    const persisted = await app.fetch(
+      request(`/admin/storefront-experiences/drafts/${draftId}`),
+      env,
+    );
+    expect(await persisted.json()).toMatchObject({ data: { overrides: [], version: 1 } });
+  });
+
+  test("audits only the batch that wins a same-millisecond Block CAS race", async () => {
+    const fixedNow = "2026-09-23T12:34:56.789Z";
+    const app = createApp({
+      storefrontExperienceServiceOptions: { blockCommandNow: () => fixedNow },
+      testIdentityVerifier: async () => ({
+        email: "theme-admin@example.test",
+        principalKind: "human",
+        subject: "theme-admin",
+      }),
+    });
+    const created = await createDraft(app, "theme-block-concurrent-create");
+    const draftId = created.body.data.id;
+    const send = (requestId: string) =>
+      app.fetch(
+        writeRequest(
+          `/admin/storefront-experiences/drafts/${draftId}/block-commands`,
+          {
+            command: {
+              blockId: "hero-slide-1",
+              kind: "duplicate",
+              templateId: "fashion-store-home",
+            },
+            expectedVersion: 1,
+            reason: "Race the same Block version",
+          },
+          requestId,
+        ),
+        env,
+      );
+
+    const responses = await Promise.all([
+      send("theme-block-concurrent-a"),
+      send("theme-block-concurrent-b"),
+    ]);
+    expect(responses.map(({ status }) => status).sort()).toEqual([200, 409]);
+
+    const persisted = await app.fetch(
+      request(`/admin/storefront-experiences/drafts/${draftId}`),
+      env,
+    );
+    const persistedBody = await persisted.json<{
+      data: { overrides: ThemeOverride[]; updatedAt: string; version: number };
+    }>();
+    expect(persistedBody.data).toMatchObject({ updatedAt: fixedNow, version: 2 });
+    expect(
+      persistedBody.data.overrides
+        .flatMap(({ operations }) => operations)
+        .filter(({ kind }) => kind === "add-block"),
+    ).toHaveLength(1);
+
+    const audits = await env.DB.prepare(
+      `SELECT request_id FROM audit_events
+       WHERE action = 'themes.block.duplicate' AND target_id = ?
+       ORDER BY request_id`,
+    )
+      .bind(draftId)
+      .all<{ request_id: string }>();
+    expect(audits.results).toHaveLength(1);
+    expect(audits.results[0]?.request_id).toMatch(/^[a-f0-9-]{36}$/);
+  });
+
+  test("accepts every Block command and rejects Catalog media for Theme marketing settings", async () => {
+    const app = appFor();
+    const created = await createDraft(app, "theme-block-all-commands-create");
+    const draftId = created.body.data.id;
+    const endpoint = `/admin/storefront-experiences/drafts/${draftId}/block-commands`;
+    const rejectedMedia = await app.fetch(
+      writeRequest(
+        endpoint,
+        {
+          command: {
+            blockId: "category-1",
+            kind: "set-setting",
+            settingId: "image",
+            templateId: "fashion-store-home",
+            value: {
+              alt: "Catalog",
+              height: 900,
+              key: "catalog/marketing.webp",
+              kind: "catalog",
+              width: 900,
+            },
+          },
+          expectedVersion: 1,
+          reason: "Reject Catalog media in a Theme marketing Block",
+        },
+        "theme-block-reject-catalog-media",
+      ),
+      env,
+    );
+    expect(rejectedMedia.status).toBe(422);
+    expect(await rejectedMedia.json()).toMatchObject({
+      error: { code: "storefront_experience_block_asset_invalid" },
+    });
+
+    const categoryDefinition = fashionStoreSuccessorPackage.manifest.componentRegistry.blocks.find(
+      ({ type }) => type === "fashion-store.category",
+    )!;
+    const settings = Object.fromEntries(
+      categoryDefinition.settings.flatMap((setting) =>
+        "default" in setting && setting.default !== undefined
+          ? [[setting.id, structuredClone(setting.default)]]
+          : [],
+      ),
+    );
+    const send = async (command: Record<string, unknown>, version: number, key: string) => {
+      const response = await app.fetch(
+        writeRequest(
+          endpoint,
+          { command: { ...command, templateId: "fashion-store-home" }, expectedVersion: version, reason: `Exercise ${key} Block command` },
+          `theme-block-all-${key}`,
+        ),
+        env,
+      );
+      expect(response.status).toBe(200);
+      return response.json<{ data: { overrides: ThemeOverride[]; version: number } }>();
+    };
+    const added = await send(
+      {
+        blockType: "fashion-store.category",
+        kind: "add",
+        sectionId: "fashion-store-home-categories",
+        settings,
+      },
+      1,
+      "add",
+    );
+    const addedOperation = added.data.overrides
+      .flatMap(({ operations }) => operations)
+      .find(
+        (operation) =>
+          operation.kind === "add-block" && operation.block.type === "fashion-store.category",
+      );
+    if (!addedOperation || addedOperation.kind !== "add-block") throw new Error("Missing added Block");
+    const addedId = addedOperation.block.id;
+    const duplicated = await send(
+      { blockId: "category-1", kind: "duplicate" },
+      2,
+      "duplicate",
+    );
+    const duplicateId = duplicated.data.overrides
+      .flatMap(({ operations }) => operations)
+      .filter((operation) => operation.kind === "add-block")
+      .map((operation) => operation.block.id)
+      .find((id) => id !== addedId)!;
+    await send({ blockId: addedId, kind: "set-visibility", visible: false }, 3, "visibility");
+    await send(
+      { blockId: addedId, kind: "set-setting", settingId: "name", value: "Edited category" },
+      4,
+      "setting",
+    );
+    await send(
+      {
+        blockIds: [duplicateId, "category-4", "category-3", "category-2", "category-1", addedId],
+        kind: "reorder",
+        sectionId: "fashion-store-home-categories",
+      },
+      5,
+      "reorder",
+    );
+    const removed = await send({ blockId: addedId, kind: "remove" }, 6, "remove");
+    expect(removed.data.version).toBe(7);
+  });
+
+  test("normalizes more than 120 sequential Block commands into a bounded draft", async () => {
+    const app = appFor();
+    const created = await createDraft(app, "theme-block-normalize-create");
+    const draftId = created.body.data.id;
+    let version = 1;
+    for (let index = 0; index < 121; index += 1) {
+      const response = await app.fetch(
+        writeRequest(
+          `/admin/storefront-experiences/drafts/${draftId}/block-commands`,
+          {
+            command: {
+              blockId: "marquee-1",
+              kind: "set-visibility",
+              templateId: "fashion-store-home",
+              visible: index % 2 === 0 ? false : true,
+            },
+            expectedVersion: version,
+            reason: "Normalize repeated Block visibility commands",
+          },
+          `theme-block-normalize-${index}`,
+        ),
+        env,
+      );
+      expect(response.status).toBe(200);
+      version += 1;
+    }
+    const persisted = await app.fetch(
+      request(`/admin/storefront-experiences/drafts/${draftId}`),
+      env,
+    );
+    const body = await persisted.json<{ data: { overrides: ThemeOverride[]; version: number } }>();
+    expect(body.data.version).toBe(122);
+    expect(body.data.overrides.flatMap(({ operations }) => operations)).toHaveLength(1);
+  });
+
+  test("rejects Block references outside the exact candidate Release", async () => {
+    const app = appFor();
+    const releaseId = "release-block-reference";
+    await seedPreviewCatalogRelease(releaseId);
+    const created = await createDraft(app, "theme-block-reference-create", catalogReadyDraftInput);
+    expect(created.response.status).toBe(201);
+    const response = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${created.body.data.id}/block-commands`,
+        {
+          catalogReleaseId: releaseId,
+          command: {
+            blockId: "category-1",
+            kind: "set-setting",
+            settingId: "collection",
+            templateId: "fashion-store-home",
+            value: { id: "col_01JPREVIEWCOLLECT99999999", kind: "collection" },
+          },
+          expectedVersion: 1,
+          reason: "Bind the category to the exact candidate collection",
+        },
+        "theme-block-reference-missing",
+      ),
+      env,
+    );
+    expect(response.status).toBe(422);
+    const body = await response.json<{
+      error: { details?: { issues?: Array<{ code: string }> } };
+    }>();
+    expect(body.error.details?.issues).toContainEqual(
+      expect.objectContaining({ code: "content_reference_missing" }),
+    );
   });
 
   test("freezes public contacts in previews and gives changed contacts a new snapshot identity", async () => {
@@ -1861,6 +2276,27 @@ describe("storefront experience API", () => {
         env,
       );
       expect(directPreview.status).toBe(403);
+
+      const blockCommand = await app.fetch(
+        writeRequest(
+          `/admin/storefront-experiences/drafts/${created.body.data.id}/block-commands`,
+          {
+            catalogReleaseId: "release-permission-parity",
+            command: {
+              blockId: "category-1",
+              kind: "set-setting",
+              settingId: "name",
+              templateId: "fashion-store-home",
+              value: "Permission-safe category",
+            },
+            expectedVersion: 1,
+            reason: "Reject candidate-bound Block edits without Catalog access",
+          },
+          "theme-permission-block-command-denied-0001",
+        ),
+        env,
+      );
+      expect(blockCommand.status).toBe(403);
 
       const grant = await app.fetch(
         writeRequest(

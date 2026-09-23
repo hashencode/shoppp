@@ -163,16 +163,201 @@ export const activeExperienceSnapshot = {
       "requiredCapabilities": [],
       "sections": [
         {
-          "blocks": [],
+          "blocks": [
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "hero-slide-1",
+              "settings": {
+                "price": "$199.00",
+                "title": "Featured lounge",
+                "background-color": "mist",
+                "foreground-color": "ink",
+                "pattern-desktop": {
+                  "alt": "Hero desktop pattern 1",
+                  "height": 900,
+                  "kind": "theme",
+                  "path": "assets/hero/fashion-store-decor-hero-01-pattern-desktop.jpg",
+                  "width": 900
+                },
+                "pattern-mobile": {
+                  "alt": "Hero mobile pattern 1",
+                  "height": 900,
+                  "kind": "theme",
+                  "path": "assets/hero/fashion-store-decor-hero-01-pattern-mobile.jpg",
+                  "width": 900
+                },
+                "product-image": {
+                  "alt": "Hero product 1",
+                  "height": 900,
+                  "kind": "theme",
+                  "path": "assets/hero/fashion-store-decor-hero-01-product.png",
+                  "width": 900
+                },
+                "thumbnail": {
+                  "alt": "Hero thumbnail 1",
+                  "height": 900,
+                  "kind": "theme",
+                  "path": "assets/hero/fashion-store-decor-hero-01-thumb.jpg",
+                  "width": 900
+                }
+              },
+              "type": "fashion-store.hero-slide",
+              "visible": true
+            },
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "hero-slide-2",
+              "settings": {
+                "price": "$259.00",
+                "title": "Modern comfort",
+                "background-color": "peach",
+                "foreground-color": "ink",
+                "pattern-desktop": {
+                  "alt": "Hero desktop pattern 2",
+                  "height": 900,
+                  "kind": "theme",
+                  "path": "assets/hero/fashion-store-decor-hero-02-pattern-desktop.jpg",
+                  "width": 900
+                },
+                "pattern-mobile": {
+                  "alt": "Hero mobile pattern 2",
+                  "height": 900,
+                  "kind": "theme",
+                  "path": "assets/hero/fashion-store-decor-hero-02-pattern-mobile.jpg",
+                  "width": 900
+                },
+                "product-image": {
+                  "alt": "Hero product 2",
+                  "height": 900,
+                  "kind": "theme",
+                  "path": "assets/hero/fashion-store-decor-hero-02-product.png",
+                  "width": 900
+                },
+                "thumbnail": {
+                  "alt": "Hero thumbnail 2",
+                  "height": 900,
+                  "kind": "theme",
+                  "path": "assets/hero/fashion-store-decor-hero-02-thumb.jpg",
+                  "width": 900
+                }
+              },
+              "type": "fashion-store.hero-slide",
+              "visible": true
+            },
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "hero-slide-3",
+              "settings": {
+                "price": "$259.00",
+                "title": "Everyday design",
+                "background-color": "aqua",
+                "foreground-color": "ink",
+                "pattern-desktop": {
+                  "alt": "Hero desktop pattern",
+                  "height": 900,
+                  "kind": "theme",
+                  "path": "assets/hero/fashion-store-decor-hero-03-pattern-desktop.jpg",
+                  "width": 900
+                },
+                "pattern-mobile": {
+                  "alt": "Hero mobile pattern",
+                  "height": 900,
+                  "kind": "theme",
+                  "path": "assets/hero/fashion-store-decor-hero-03-pattern-mobile.jpg",
+                  "width": 900
+                },
+                "product-image": {
+                  "alt": "Hero product",
+                  "height": 900,
+                  "kind": "theme",
+                  "path": "assets/hero/fashion-store-decor-hero-03-product.png",
+                  "width": 900
+                },
+                "thumbnail": {
+                  "alt": "Hero thumbnail",
+                  "height": 900,
+                  "kind": "theme",
+                  "path": "assets/hero/fashion-store-decor-hero-03-thumb.jpg",
+                  "width": 900
+                }
+              },
+              "type": "fashion-store.hero-slide",
+              "visible": true
+            }
+          ],
           "capabilities": [],
           "id": "fashion-store-home",
           "required": true,
-          "settings": {},
+          "settings": {
+            "announcement-text": "",
+            "announcement-visible": true,
+            "header-contact-copy": "",
+            "footer-contact-copy": "",
+            "merchandising-title": "Featured edit",
+            "identity-logo-variant": "primary",
+            "identity-logo-width": 140,
+            "identity-logo-placement": "center",
+            "identity-logo-spacing": 0,
+            "identity-logo-visible": true,
+            "identity-logo-mobile-visible": true
+          },
           "type": "fashion-store.hero",
           "visible": true
         },
         {
-          "blocks": [],
+          "blocks": [
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "service-delivery",
+              "settings": {
+                "description": "On qualifying orders",
+                "title": "Free delivery",
+                "variant": "package"
+              },
+              "type": "fashion-store.service",
+              "visible": true
+            },
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "service-payment",
+              "settings": {
+                "description": "Protected checkout",
+                "title": "Secure payment",
+                "variant": "credit-card"
+              },
+              "type": "fashion-store.service",
+              "visible": true
+            },
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "service-returns",
+              "settings": {
+                "description": "Straightforward support",
+                "title": "Easy returns",
+                "variant": "refresh-cw"
+              },
+              "type": "fashion-store.service",
+              "visible": true
+            },
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "service-support",
+              "settings": {
+                "description": "Help when you need it",
+                "title": "Real support",
+                "variant": "phone"
+              },
+              "type": "fashion-store.service",
+              "visible": true
+            }
+          ],
           "capabilities": [],
           "id": "fashion-store-home-services",
           "required": false,
@@ -183,7 +368,76 @@ export const activeExperienceSnapshot = {
           "visible": true
         },
         {
-          "blocks": [],
+          "blocks": [
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "category-1",
+              "settings": {
+                "image": {
+                  "alt": "Women",
+                  "height": 900,
+                  "kind": "theme",
+                  "path": "assets/images/demo-fashion-store-banner-01.jpg",
+                  "width": 900
+                },
+                "name": "Women"
+              },
+              "type": "fashion-store.category",
+              "visible": true
+            },
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "category-2",
+              "settings": {
+                "image": {
+                  "alt": "Men",
+                  "height": 900,
+                  "kind": "theme",
+                  "path": "assets/images/demo-fashion-store-banner-02.jpg",
+                  "width": 900
+                },
+                "name": "Men"
+              },
+              "type": "fashion-store.category",
+              "visible": true
+            },
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "category-3",
+              "settings": {
+                "image": {
+                  "alt": "Accessories",
+                  "height": 900,
+                  "kind": "theme",
+                  "path": "assets/images/demo-fashion-store-banner-03.jpg",
+                  "width": 900
+                },
+                "name": "Accessories"
+              },
+              "type": "fashion-store.category",
+              "visible": true
+            },
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "category-4",
+              "settings": {
+                "image": {
+                  "alt": "Kids",
+                  "height": 900,
+                  "kind": "theme",
+                  "path": "assets/images/demo-fashion-store-banner-04.jpg",
+                  "width": 900
+                },
+                "name": "Kids"
+              },
+              "type": "fashion-store.category",
+              "visible": true
+            }
+          ],
           "capabilities": [],
           "id": "fashion-store-home-categories",
           "required": false,
@@ -203,7 +457,19 @@ export const activeExperienceSnapshot = {
           "visible": true
         },
         {
-          "blocks": [],
+          "blocks": [
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "promotion-primary",
+              "settings": {
+                "label": "Shop the collection",
+                "message": "New-season pieces are available now."
+              },
+              "type": "fashion-store.promotion-item",
+              "visible": true
+            }
+          ],
           "capabilities": [],
           "id": "fashion-store-home-promotion",
           "required": false,
@@ -223,7 +489,93 @@ export const activeExperienceSnapshot = {
           "visible": true
         },
         {
-          "blocks": [],
+          "blocks": [
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "brand-asos",
+              "settings": {
+                "image": {
+                  "alt": "ASOS",
+                  "height": 120,
+                  "kind": "theme",
+                  "path": "assets/images/logo-asos.svg",
+                  "width": 360
+                },
+                "name": "ASOS"
+              },
+              "type": "fashion-store.brand",
+              "visible": true
+            },
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "brand-chanel",
+              "settings": {
+                "image": {
+                  "alt": "CHANEL",
+                  "height": 120,
+                  "kind": "theme",
+                  "path": "assets/images/logo-chanel.svg",
+                  "width": 360
+                },
+                "name": "CHANEL"
+              },
+              "type": "fashion-store.brand",
+              "visible": true
+            },
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "brand-gucci",
+              "settings": {
+                "image": {
+                  "alt": "GUCCI",
+                  "height": 120,
+                  "kind": "theme",
+                  "path": "assets/images/logo-gucci.svg",
+                  "width": 360
+                },
+                "name": "GUCCI"
+              },
+              "type": "fashion-store.brand",
+              "visible": true
+            },
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "brand-celine",
+              "settings": {
+                "image": {
+                  "alt": "CELINE",
+                  "height": 120,
+                  "kind": "theme",
+                  "path": "assets/images/logo-celine.svg",
+                  "width": 360
+                },
+                "name": "CELINE"
+              },
+              "type": "fashion-store.brand",
+              "visible": true
+            },
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "brand-adidas",
+              "settings": {
+                "image": {
+                  "alt": "ADIDAS",
+                  "height": 120,
+                  "kind": "theme",
+                  "path": "assets/images/logo-adidas.svg",
+                  "width": 360
+                },
+                "name": "ADIDAS"
+              },
+              "type": "fashion-store.brand",
+              "visible": true
+            }
+          ],
           "capabilities": [],
           "id": "fashion-store-home-brands",
           "required": false,
@@ -243,7 +595,48 @@ export const activeExperienceSnapshot = {
           "visible": true
         },
         {
-          "blocks": [],
+          "blocks": [
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "marquee-1",
+              "settings": {
+                "message": "New arrivals"
+              },
+              "type": "fashion-store.marquee-item",
+              "visible": true
+            },
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "marquee-2",
+              "settings": {
+                "message": "Selected essentials"
+              },
+              "type": "fashion-store.marquee-item",
+              "visible": true
+            },
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "marquee-3",
+              "settings": {
+                "message": "Modern classics"
+              },
+              "type": "fashion-store.marquee-item",
+              "visible": true
+            },
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "marquee-4",
+              "settings": {
+                "message": "Everyday layers"
+              },
+              "type": "fashion-store.marquee-item",
+              "visible": true
+            }
+          ],
           "capabilities": [],
           "id": "fashion-store-home-marquee",
           "required": false,
@@ -254,7 +647,76 @@ export const activeExperienceSnapshot = {
           "visible": true
         },
         {
-          "blocks": [],
+          "blocks": [
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "editorial-1",
+              "settings": {
+                "image": {
+                  "alt": "Editorial story 1",
+                  "height": 900,
+                  "kind": "theme",
+                  "path": "assets/images/demo-fashion-store-blog-01.jpg",
+                  "width": 900
+                },
+                "title": "The new season edit"
+              },
+              "type": "fashion-store.editorial-card",
+              "visible": true
+            },
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "editorial-2",
+              "settings": {
+                "image": {
+                  "alt": "Editorial story 2",
+                  "height": 900,
+                  "kind": "theme",
+                  "path": "assets/images/demo-fashion-store-blog-02.jpg",
+                  "width": 900
+                },
+                "title": "How to build a lasting wardrobe"
+              },
+              "type": "fashion-store.editorial-card",
+              "visible": true
+            },
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "editorial-3",
+              "settings": {
+                "image": {
+                  "alt": "Editorial story 3",
+                  "height": 900,
+                  "kind": "theme",
+                  "path": "assets/images/demo-fashion-store-blog-06.jpg",
+                  "width": 900
+                },
+                "title": "Materials worth knowing"
+              },
+              "type": "fashion-store.editorial-card",
+              "visible": true
+            },
+            {
+              "actions": [],
+              "capabilities": [],
+              "id": "editorial-4",
+              "settings": {
+                "image": {
+                  "alt": "Editorial story 4",
+                  "height": 900,
+                  "kind": "theme",
+                  "path": "assets/images/demo-fashion-store-blog-07.jpg",
+                  "width": 900
+                },
+                "title": "Inside the latest collection"
+              },
+              "type": "fashion-store.editorial-card",
+              "visible": true
+            }
+          ],
           "capabilities": [],
           "id": "fashion-store-home-magazine",
           "required": false,

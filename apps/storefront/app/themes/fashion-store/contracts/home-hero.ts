@@ -6,19 +6,21 @@ export type FashionStoreDecorHeroAsset =
 
 export interface FashionStoreDecorHeroSlide {
   background: string;
-  href: "/shop";
-  id: `decor-hero-${1 | 2 | 3}`;
-  patternDesktop: FashionStoreDecorHeroAsset;
-  patternMobile: FashionStoreDecorHeroAsset;
+  foreground?: string;
+  href: string;
+  id: string;
+  patternDesktop: string;
+  patternMobile: string;
   price: string;
-  product: FashionStoreDecorHeroAsset;
-  thumb: FashionStoreDecorHeroAsset;
+  product: string;
+  thumb: string;
   title: string;
 }
 
 export const fashionStoreDecorHeroSlides = [
   {
     background: "#e5eff3",
+    foreground: "#232323",
     href: "/shop",
     id: "decor-hero-1",
     patternDesktop: "fashion-store.decor-hero-1-pattern-desktop",
@@ -30,6 +32,7 @@ export const fashionStoreDecorHeroSlides = [
   },
   {
     background: "#f7eee3",
+    foreground: "#232323",
     href: "/shop",
     id: "decor-hero-2",
     patternDesktop: "fashion-store.decor-hero-2-pattern-desktop",
@@ -41,6 +44,7 @@ export const fashionStoreDecorHeroSlides = [
   },
   {
     background: "#e9fafb",
+    foreground: "#232323",
     href: "/shop",
     id: "decor-hero-3",
     patternDesktop: "fashion-store.decor-hero-3-pattern-desktop",

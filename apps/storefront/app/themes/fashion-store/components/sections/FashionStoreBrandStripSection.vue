@@ -8,7 +8,9 @@ import {
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
 const context = computed(() => resolveFashionStoreHomeSectionContext(properties.viewModel));
-const foundation = computed(() => resolveFashionStoreHomeFoundation(properties.viewModel));
+const foundation = computed(() =>
+  resolveFashionStoreHomeFoundation(properties.viewModel, properties.instance),
+);
 const brandCopies = computed(() =>
   context.value.presentation.brands === "decor-continuous" ? 2 : 1,
 );
@@ -20,6 +22,7 @@ function sourceAsset(sourcePath: string): string {
 
 <template>
   <section
+    v-if="foundation.brands.length > 0"
     class="half-section border-bottom border-color-extra-medium-gray"
     data-home-section="brands"
     :data-presentation-variant="context.presentation.brands"

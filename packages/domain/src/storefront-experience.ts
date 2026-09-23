@@ -92,6 +92,23 @@ function assertCompleteReorder(template: PageTemplate, instanceIds: readonly str
   }
 }
 
+function assertCompleteBlockReorder(
+  template: PageTemplate,
+  sectionId: string,
+  instanceIds: readonly string[],
+): void {
+  const section = template.sections.find(({ id }) => id === sectionId);
+  if (!section) throw new Error(`Block reorder references missing section ${sectionId}.`);
+  const expected = section.blocks.map(({ id }) => id);
+  if (
+    new Set(instanceIds).size !== instanceIds.length ||
+    instanceIds.length !== expected.length ||
+    expected.some((id) => !instanceIds.includes(id))
+  ) {
+    throw new Error("Block reorder must contain every existing block exactly once.");
+  }
+}
+
 function updateInstance(
   template: PageTemplate,
   instanceId: string,
@@ -126,6 +143,46 @@ function applyOperation(
   operation: ThemeOverrideOperation,
 ): PageTemplate {
   switch (operation.kind) {
+    case "add-block": {
+      if (findInstance(template, operation.block.id)) {
+        throw new Error(`Block ID ${operation.block.id} already exists.`);
+      }
+      const section = template.sections.find(({ id }) => id === operation.sectionId);
+      if (!section) throw new Error(`Block add references missing section ${operation.sectionId}.`);
+      return {
+        ...template,
+        sections: template.sections.map((candidate) =>
+          candidate.id === operation.sectionId
+            ? { ...candidate, blocks: [...candidate.blocks, structuredClone(operation.block)] }
+            : candidate,
+        ),
+      };
+    }
+    case "remove-block": {
+      const location = findInstance(template, operation.instanceId);
+      if (!location || location.kind !== "block") {
+        throw new Error(`Block remove references missing block ${operation.instanceId}.`);
+      }
+      return {
+        ...template,
+        sections: template.sections.map((section, sectionIndex) =>
+          sectionIndex === location.sectionIndex
+            ? { ...section, blocks: section.blocks.filter(({ id }) => id !== operation.instanceId) }
+            : section,
+        ),
+      };
+    }
+    case "reorder-blocks": {
+      assertCompleteBlockReorder(template, operation.sectionId, operation.instanceIds);
+      return {
+        ...template,
+        sections: template.sections.map((section) => {
+          if (section.id !== operation.sectionId) return section;
+          const byId = new Map(section.blocks.map((block) => [block.id, block]));
+          return { ...section, blocks: operation.instanceIds.map((id) => byId.get(id)!) };
+        }),
+      };
+    }
     case "reorder-sections": {
       assertCompleteReorder(template, operation.instanceIds);
       const sectionsById = new Map(template.sections.map((section) => [section.id, section]));
@@ -231,7 +288,8 @@ export function findUpgradeConflicts(
   const conflicts: UpgradeConflict[] = [];
 
   override.operations.forEach((operation, operationIndex) => {
-    if (operation.kind === "reorder-sections") {
+    if (operation.kind === "add-block") return;
+    if (operation.kind === "reorder-sections" || operation.kind === "reorder-blocks") {
       for (const instanceId of operation.instanceIds) {
         if (previousById.has(instanceId) && !nextById.has(instanceId)) {
           conflicts.push({ code: "instance-removed", instanceId, operationIndex });

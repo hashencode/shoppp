@@ -1,5 +1,5 @@
 import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined } from '@ant-design/icons'
-import { Button, Space } from 'antd'
+import { Button, Popconfirm, Space } from 'antd'
 import React from 'react'
 
 void React
@@ -11,6 +11,11 @@ type SortActionGroupProps = {
   onMoveDown: () => void
   onRemove: () => void
   nested?: boolean
+  disabled?: boolean
+  moveDownLabel?: string
+  moveUpLabel?: string
+  removeLabel?: string
+  removeConfirmTitle?: string
 }
 
 const formatIndexLabel = (index: number, nested?: boolean) => {
@@ -19,13 +24,15 @@ const formatIndexLabel = (index: number, nested?: boolean) => {
   return `${prefix}${value}`
 }
 
-export const SortActionGroup = ({ index, count, onMoveUp, onMoveDown, onRemove, nested }: SortActionGroupProps) => (
+export const SortActionGroup = ({ index, count, onMoveUp, onMoveDown, onRemove, nested, disabled, moveDownLabel, moveUpLabel, removeLabel, removeConfirmTitle }: SortActionGroupProps) => (
   <Space>
     <Button type="text" className="p-2" style={{ color: 'var(--ant-color-primary)' }} tabIndex={-1}>
       {formatIndexLabel(index, nested)}
     </Button>
-    <Button icon={<ArrowUpOutlined />} disabled={index === 0} onClick={onMoveUp} />
-    <Button icon={<ArrowDownOutlined />} disabled={index === count - 1} onClick={onMoveDown} />
-    <Button icon={<DeleteOutlined />} danger onClick={onRemove} />
+    <Button aria-label={moveUpLabel} icon={<ArrowUpOutlined />} disabled={disabled || index === 0} onClick={onMoveUp} />
+    <Button aria-label={moveDownLabel} icon={<ArrowDownOutlined />} disabled={disabled || index === count - 1} onClick={onMoveDown} />
+    <Popconfirm disabled={disabled || !removeConfirmTitle} title={removeConfirmTitle} onConfirm={onRemove}>
+      <Button aria-label={removeLabel} icon={<DeleteOutlined />} disabled={disabled} danger onClick={removeConfirmTitle ? undefined : onRemove} />
+    </Popconfirm>
   </Space>
 )

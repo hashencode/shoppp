@@ -166,6 +166,18 @@ const shellContactSchema = z
     contactCopy: copySchema.optional(),
     legalLink: presentationLinkSchema.optional(),
     logo: editorMediaSchema.optional(),
+    logoPresentation: z
+      .object({
+        assetId: z.string().min(1).max(160),
+        mobileVisible: z.boolean(),
+        placement: z.enum(["start", "center", "end"]),
+        spacing: z.number().int().min(0).max(80),
+        variant: z.enum(["primary", "light", "dark", "compact"]),
+        visible: z.boolean(),
+        width: z.number().int().min(48).max(320),
+      })
+      .strict()
+      .optional(),
     legacyNavigation: legacyFooterNavigationSchema.optional(),
     navigation: shellNavigationSchema.optional(),
     publicContact: publicContactSchema.optional(),
@@ -329,6 +341,18 @@ export const homeViewModelSchema = z
     merchandisingTitle: headingSchema.default("Best sellers"),
     merchandisingVisible: z.boolean().default(true),
     products: z.array(presentationProductCardSchema).max(24),
+    resourceDestinations: z
+      .array(
+        z
+          .object({
+            href: z.string().startsWith("/"),
+            id: z.string().min(1).max(160),
+            kind: z.enum(["article", "collection"]),
+          })
+          .strict(),
+      )
+      .max(6_000)
+      .default([]),
     sections: homeSectionSequenceSchema,
     shell: presentationShellViewModelSchema.omit({
       announcement: true,

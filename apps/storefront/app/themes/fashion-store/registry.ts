@@ -14,6 +14,7 @@ import { themeAssets } from "./resources";
 
 export const themeRegistry = {
   blocks: {},
+  blocksOwnedBySections: true,
   composition: fashionStoreCompositionAdapter,
   platformShell: FashionStoreShell,
   sections: fashionStorePageSections,

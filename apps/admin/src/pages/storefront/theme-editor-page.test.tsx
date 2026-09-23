@@ -55,7 +55,15 @@ if (!window.ResizeObserver) {
 
 const theme: AdminStorefrontTheme = {
   componentRegistry: {
-    blocks: [],
+    blocks: [
+      {
+        capabilities: [],
+        settings: [
+          { default: 'Shop now', id: 'label', kind: 'text', maxLength: 80, required: true },
+        ],
+        type: 'synthetic.action',
+      },
+    ],
     sections: [
       {
         allowedBlockTypes: [],
@@ -64,7 +72,8 @@ const theme: AdminStorefrontTheme = {
         type: 'synthetic.navigation',
       },
       {
-        allowedBlockTypes: [],
+        allowedBlockTypes: ['synthetic.action'],
+        blockRules: [{ blockType: 'synthetic.action', min: 0, max: 3 }],
         capabilities: [],
         settings: [
           {
@@ -137,7 +146,16 @@ const theme: AdminStorefrontTheme = {
               visible: true,
             },
             {
-              blocks: [],
+              blocks: [
+                {
+                  actions: [],
+                  capabilities: [],
+                  id: 'hero-action',
+                  settings: { label: 'Shop now' },
+                  type: 'synthetic.action',
+                  visible: true,
+                },
+              ],
               capabilities: [],
               id: 'home-hero',
               settings: { alignment: 'left', heading: 'Preset headline' },
@@ -202,6 +220,7 @@ let approvalBody: Record<string, unknown> | null = null
 let migrationBody: Record<string, unknown> | null = null
 let createDraftBody: Record<string, unknown> | null = null
 let successorBody: Record<string, unknown> | null = null
+let blockCommandBody: Record<string, unknown> | null = null
 let buildStatus: 'building' | 'deployed' = 'building'
 const requestLog: string[] = []
 
@@ -313,6 +332,11 @@ const server = setupServer(
       validations: [],
       version: 2,
     }
+    return HttpResponse.json({ data: currentDraft })
+  }),
+  http.post('*/admin/storefront-experiences/drafts/:id/block-commands', async ({ request }) => {
+    blockCommandBody = (await request.json()) as Record<string, unknown>
+    currentDraft = { ...currentDraft, version: currentDraft.version + 1 }
     return HttpResponse.json({ data: currentDraft })
   }),
   http.post('*/admin/storefront-experiences/drafts/:id/successors', async ({ request }) => {
@@ -552,6 +576,7 @@ afterEach(() => {
   migrationBody = null
   createDraftBody = null
   successorBody = null
+  blockCommandBody = null
   buildStatus = 'building'
   window.sessionStorage.clear()
   window.history.replaceState(null, '', '/')
@@ -643,6 +668,129 @@ describe('ThemesPage', () => {
 })
 
 describe('ThemeEditorPage', () => {
+  const blockCommandCases: Array<{
+    expected: Record<string, unknown>
+    name: string
+    perform: () => void
+  }> = [
+    {
+      expected: { blockType: 'synthetic.action', kind: 'add', sectionId: 'home-hero' },
+      name: 'add',
+      perform: () => fireEvent.click(screen.getByRole('button', { name: 'Add synthetic.action' })),
+    },
+    {
+      expected: { blockId: 'hero-action', kind: 'set-visibility', visible: false },
+      name: 'visibility',
+      perform: () => fireEvent.click(screen.getByRole('switch', { name: 'Show hero-action' })),
+    },
+    {
+      expected: {
+        blockId: 'hero-action',
+        kind: 'set-setting',
+        settingId: 'label',
+        value: 'Edited action',
+      },
+      name: 'setting',
+      perform: () => {
+        const input = screen.getByRole('textbox', { name: 'hero-action label' })
+        fireEvent.change(input, { target: { value: 'Edited action' } })
+        fireEvent.blur(input)
+      },
+    },
+  ]
+
+  it.each(blockCommandCases)('dispatches the $name Block command from the editor page', async ({
+    expected,
+    perform,
+  }) => {
+    currentDraft = {
+      ...currentDraft,
+      overrides: [
+        {
+          operations: [
+            {
+              block: {
+                actions: [],
+                capabilities: [],
+                id: 'hero-action-second',
+                settings: { label: 'Second action' },
+                type: 'synthetic.action',
+                visible: true,
+              },
+              kind: 'add-block',
+              sectionId: 'home-hero',
+            },
+          ],
+          presetId: 'editorial',
+          schemaVersion: 1,
+          templateId: 'synthetic-home',
+        },
+      ],
+    }
+    server.use(
+      http.post('*/admin/storefront-experiences/drafts/:id/block-commands', async ({ request }) => {
+        blockCommandBody = (await request.json()) as Record<string, unknown>
+        currentDraft = { ...currentDraft, version: currentDraft.version + 1 }
+        return HttpResponse.json({ data: currentDraft })
+      })
+    )
+    renderEditor()
+    fireEvent.click(await screen.findByText('2 bounded blocks'))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+      target: { value: 'Author bounded Block content' },
+    })
+    perform()
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 80))
+    })
+    expect(blockCommandBody?.command).toMatchObject(expected)
+  })
+
+  it('surfaces a rejected Block command without reporting success', async () => {
+    server.use(
+      http.post('*/admin/storefront-experiences/drafts/:id/block-commands', () =>
+        HttpResponse.json(
+          { error: { code: 'storefront_experience_block_command_invalid', message: 'Private' } },
+          { status: 422 }
+        )
+      )
+    )
+    renderEditor()
+    fireEvent.click(await screen.findByText('1 bounded blocks'))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+      target: { value: 'Reject invalid Block command' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Add synthetic.action' }))
+
+    await screen.findByText('The last operation did not complete')
+    expect(screen.queryByText('Block command saved.')).toBeNull()
+  })
+
+  it('preserves the authored Block input during Block-specific 409 recovery', async () => {
+    server.use(
+      http.post('*/admin/storefront-experiences/drafts/:id/block-commands', () =>
+        HttpResponse.json(
+          { error: { code: 'storefront_experience_draft_conflict', message: 'Private conflict' } },
+          { status: 409 }
+        )
+      )
+    )
+    renderEditor()
+    fireEvent.click(await screen.findByText('1 bounded blocks'))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+      target: { value: 'Keep the authored Block input' },
+    })
+    const input = screen.getByRole('textbox', { name: 'hero-action label' })
+    fireEvent.change(input, { target: { value: 'Keep this authored action' } })
+    fireEvent.blur(input)
+
+    await screen.findByText('The saved draft changed while local edits were open')
+    expect((screen.getByRole('textbox', { name: 'hero-action label' }) as HTMLInputElement).value).toBe(
+      'Keep this authored action'
+    )
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Keep local edits' }))
+  })
+
   it('should use current language for pending save success without replaying an old toast', async () => {
     let complete!: (response: HttpResponse<Record<string, unknown>>) => void
     const pending = new Promise<HttpResponse<Record<string, unknown>>>((resolve) => {
@@ -1126,6 +1274,49 @@ describe('ThemeEditorPage', () => {
     )
   })
 
+  it('preserves server-owned Block operations across an ordinary section save', () => {
+    const draft = structuredClone(baseDraft)
+    draft.overrides.push({
+      operations: [
+        {
+          block: {
+            actions: [],
+            capabilities: [],
+            id: 'block-server-stable',
+            settings: { label: 'Server-owned action' },
+            type: 'synthetic.action',
+            visible: true,
+          },
+          kind: 'add-block',
+          sectionId: 'home-hero',
+        },
+      ],
+      presetId: draft.presetId,
+      schemaVersion: draft.configurationSchemaVersion,
+      templateId: 'synthetic-home',
+    })
+    const resolved = resolveDraftTemplates(theme, draft)
+    resolved[0]!.sections.find(({ id }) => id === 'home-hero')!.settings.heading =
+      'Saved after a Block command'
+
+    const overrides = createThemeOverrides(theme, draft, resolved)
+    expect(overrides[0]?.operations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          block: expect.objectContaining({ id: 'block-server-stable' }),
+          kind: 'add-block',
+          sectionId: 'home-hero',
+        }),
+        {
+          instanceId: 'home-hero',
+          kind: 'set-setting',
+          settingId: 'heading',
+          value: 'Saved after a Block command',
+        },
+      ])
+    )
+  })
+
   it('presents every asynchronous preview lifecycle state distinctly', () => {
     expect(previewBuildStatus(null).label).toBe('Not requested')
     expect(previewBuildStatus({ ...build(), status: 'pending' }).label).toBe('Queued')
@@ -1182,17 +1373,16 @@ describe('ThemeEditorPage', () => {
     expect(storyVisibility.getAttribute('aria-checked')).toBe('false')
     fireEvent.click(heroVisibility)
 
-    const message = await screen.findByText('At least one Home content Section must remain visible.')
+    const message = await screen.findByText(
+      'At least one Home content Section must remain visible.'
+    )
     const localError = message.closest('[tabindex="-1"]')
     expect(heroVisibility.getAttribute('aria-checked')).toBe('true')
     await waitFor(() => expect(document.activeElement).toBe(localError))
 
     fireEvent.click(screen.getByRole('button', { name: 'Reset home-story' }))
     expect(storyVisibility.getAttribute('aria-checked')).toBe('true')
-    expect(
-      screen.queryByText('At least one Home content Section must remain visible.')
-    ).toBeNull()
-
+    expect(screen.queryByText('At least one Home content Section must remain visible.')).toBeNull()
   })
 
   it('saves, validates, and previews the exact new optimistic version in order', async () => {

@@ -697,6 +697,45 @@ function shellViewModel(
   contact?: ExperienceSnapshot["contact"],
 ): PresentationShellViewModel {
   const mediaOrigin = catalogMediaOrigin(release) ?? null;
+  const logoVariant = ["primary", "light", "dark", "compact"].includes(
+    String(settings["identity-logo-variant"]),
+  )
+    ? (settings["identity-logo-variant"] as "primary" | "light" | "dark" | "compact")
+    : "primary";
+  const identityLogo =
+    release.schemaVersion === 3
+      ? release.identity.logoAssets.find(({ variant }) => variant === logoVariant)
+      : undefined;
+  const logo = identityLogo?.media
+    ? {
+        alt: identityLogo.media.alt,
+        height: identityLogo.media.height,
+        source: "url" as const,
+        src: identityLogo.media.src,
+        width: identityLogo.media.width,
+      }
+    : undefined;
+  const logoPresentation = identityLogo?.media
+    ? {
+        assetId: identityLogo.assetId,
+        mobileVisible: settings["identity-logo-mobile-visible"] !== false,
+        placement:
+          settings["identity-logo-placement"] === "start" ||
+          settings["identity-logo-placement"] === "end"
+            ? settings["identity-logo-placement"]
+            : ("center" as const),
+        spacing:
+          typeof settings["identity-logo-spacing"] === "number"
+            ? settings["identity-logo-spacing"]
+            : 0,
+        variant: logoVariant,
+        visible: settings["identity-logo-visible"] !== false,
+        width:
+          typeof settings["identity-logo-width"] === "number"
+            ? settings["identity-logo-width"]
+            : 140,
+      }
+    : undefined;
   return presentationShellViewModelSchema.parse({
     announcement:
       settings["announcement-visible"] === false
@@ -709,7 +748,8 @@ function shellViewModel(
         : { contactCopy: optionalTextSetting(settings, "footer-contact-copy") }),
       legalLink: editorLink(adapter, release, settings["footer-legal-link"]),
       legacyNavigation: resolveLegacyReleasedNavigation(release, "footer"),
-      logo: editorMedia(release, settings["footer-logo"], mediaOrigin),
+      logo: logo ?? editorMedia(release, settings["footer-logo"], mediaOrigin),
+      logoPresentation,
       navigation: resolveReleasedNavigation(release, "footer"),
       ...(!contact
         ? { socialLink: editorLink(adapter, release, settings["footer-social-link"]) }
@@ -722,7 +762,8 @@ function shellViewModel(
       highlightLink: referenceLink(adapter, release, settings["header-highlight-page"]),
       legalLink: editorLink(adapter, release, settings["header-legal-link"]),
       legacyNavigation: resolveLegacyReleasedNavigation(release, "header"),
-      logo: editorMedia(release, settings["header-logo"], mediaOrigin),
+      logo: logo ?? editorMedia(release, settings["header-logo"], mediaOrigin),
+      logoPresentation,
       navigation: resolveReleasedNavigation(release, "header"),
       ...(!contact
         ? { socialLink: editorLink(adapter, release, settings["header-social-link"]) }
@@ -780,6 +821,16 @@ function homeViewModel(
     merchandisingTitle: requiredTextSetting(settings, "merchandising-title", "Best sellers"),
     merchandisingVisible: settings["merchandising-visible"] !== false,
     products,
+    resourceDestinations: [
+      ...release.collections
+        .filter(({ status }) => status === "published")
+        .map(({ id, slug }) => ({ href: `/collections/${slug}`, id, kind: "collection" as const })),
+      ...(release.schemaVersion === 3
+        ? release.content
+            .filter(({ kind }) => kind === "article")
+            .map(({ id, route }) => ({ href: route, id, kind: "article" as const }))
+        : []),
+    ],
     sections: [
       { kind: "hero" },
       { kind: "services" },
@@ -848,7 +899,7 @@ export function composeExperienceShell(input: {
   sectionComposition?: ThemeCompositionDescriptor;
 }): PresentationShellViewModel | undefined {
   const experience = experienceSnapshotSchema.safeParse(input.experience);
-  const release = canonicalCatalogReleaseSchema.safeParse(input.release);
+  const release = catalogReleaseV3Schema.or(canonicalCatalogReleaseSchema).safeParse(input.release);
   if (!experience.success || !release.success) return undefined;
   const homeTemplate = experience.data.resolvedTemplates.find(
     ({ pageType }) => pageType === "home",
@@ -876,7 +927,7 @@ export function composePlatformRoutePresentation(input: {
   release: StorefrontCatalogRelease;
 }): PlatformRoutePresentationViewModel | undefined {
   const experience = experienceSnapshotSchema.safeParse(input.experience);
-  const release = canonicalCatalogReleaseSchema.safeParse(input.release);
+  const release = catalogReleaseV3Schema.or(canonicalCatalogReleaseSchema).safeParse(input.release);
   if (!experience.success || !release.success) return undefined;
   const settings = experience.data.resolvedTemplates
     .find(({ pageType }) => pageType === "content")

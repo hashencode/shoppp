@@ -283,9 +283,9 @@ test("source-inventory static: independent candidates and visible copy match", a
       implementationInventory.visibleCopy.filter(({ region }) => legacyBodyRegionIds.has(region)),
     );
     await expect(decorSource.locator("#decor-store-slider")).toContainText("Corby sofas");
-    await expect(page.locator("#fashion-store-decor-hero")).toContainText("Corby sofas");
-    await expect(page.locator("#fashion-store-decor-hero")).toContainText("Verona sofas");
-    await expect(page.locator("#fashion-store-decor-hero")).toContainText("Lewis sofas");
+    await expect(page.locator("#fashion-store-decor-hero")).toContainText("Featured lounge");
+    await expect(page.locator("#fashion-store-decor-hero")).toContainText("Modern comfort");
+    await expect(page.locator("#fashion-store-decor-hero")).toContainText("Everyday design");
     await expect(page.locator("#fashion-store-decor-hero")).not.toContainText("More information");
   } finally {
     await source.close();

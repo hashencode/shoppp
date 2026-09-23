@@ -168,6 +168,23 @@ describe("catalog release contracts", () => {
     expect(catalogReleaseSupportsStableReferences(candidate)).toBe(true);
   });
 
+  test("keeps historical schema-v3 Logo references readable without frozen media", () => {
+    const current = v3CandidateWithSections([]);
+    const historical = {
+      ...current,
+      identity: {
+        ...current.identity,
+        logoAssets: [{ assetId: "asset.logo.primary", variant: "primary" }],
+      },
+    };
+
+    const parsed = catalogReleaseV3Schema.parse(historical);
+    expect(parsed.identity.logoAssets).toEqual([
+      { assetId: "asset.logo.primary", variant: "primary" },
+    ]);
+    expect(parseCatalogRelease(historical).compatibility).toBe("vnext");
+  });
+
   test("rejects duplicate v3 sources and divergent route output", () => {
     const digest = "a".repeat(64);
     const candidate = {
