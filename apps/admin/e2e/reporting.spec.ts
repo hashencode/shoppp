@@ -98,7 +98,9 @@ test('operator reconciles the labeled dashboard, drills down, and confirms a sco
   const revenueRequests: ReportingQuery[] = []
   const orderRequests: ReportingQuery[] = []
   const chooseFilterOption = async (label: 'Currency' | 'Time zone', option: string) => {
-    await page.getByRole('combobox', { name: label }).click()
+    const combobox = page.getByRole('combobox', { name: label })
+    await combobox.click()
+    if (label === 'Time zone') await combobox.fill(option)
     await page
       .locator('.ant-select-dropdown:visible .ant-select-item-option-content')
       .filter({ hasText: option })

@@ -43,7 +43,7 @@ test('operator can publish a catalog draft and triggers exactly one build reques
 
   await expect(page.getByRole('heading', { name: 'Catalog' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Carry-on', exact: true })).toBeVisible()
-  await page.getByText('Publish').click()
+  await page.getByRole('button', { name: 'Publish', exact: true }).click()
   await page.getByPlaceholder('Publication reason').fill('Approved representative seed product')
   await page.locator('.ant-modal').getByRole('button', { name: 'Publish', exact: true }).click()
 
