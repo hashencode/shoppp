@@ -6,9 +6,8 @@ test("published product is complete static HTML without JavaScript", async ({ pa
   expect(response?.status()).toBe(200);
   await expect(page.getByRole("heading", { name: "Atlas Carry-on" })).toBeVisible();
   await expect(page.getByText("$129.00")).toBeVisible();
-  await expect(
-    page.getByLabel("Breadcrumb").getByRole("link", { name: "Travel essentials" }),
-  ).toBeVisible();
+  await expect(page.getByText("Fixture variants")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Select variant" })).toBeVisible();
   const canonical = page.locator('link[rel="canonical"]');
   await expect(canonical).toHaveAttribute(
     "href",
@@ -20,14 +19,13 @@ test("published product is complete static HTML without JavaScript", async ({ pa
   ).toHaveAttribute("width", "1200");
 });
 
-test("mobile enhancement changes currency while keeping one responsive route", async ({
-  page,
-}, testInfo) => {
+test("mobile fallback keeps one responsive static product route", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile");
   await page.goto("/products/atlas-carry-on");
-  await page.getByLabel("Currency").selectOption("EUR");
-  await expect(page.getByText("€119.00")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Add to bag" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Atlas Carry-on" })).toBeVisible();
+  await expect(page.getByText("$129.00")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Select variant" })).toBeVisible();
+  await expect(page.getByLabel("Currency")).toHaveCount(0);
   expect(new URL(page.url()).pathname.replace(/\/$/, "")).toBe("/products/atlas-carry-on");
 });
 

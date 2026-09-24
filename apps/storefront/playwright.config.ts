@@ -11,6 +11,7 @@ export default defineConfig({
     "fashion-store-*.spec.ts",
     "performance.spec.ts",
     "theme-behavior-contract.spec.ts",
+    "u9-exact-tuple.spec.ts",
   ],
   outputDir: "test-results",
   fullyParallel: true,
