@@ -17,6 +17,7 @@ describe("audit reason boundary", () => {
   );
 
   test("normalizes whitespace and redacts credential-shaped values", async () => {
+    const credentialShapedTestValue = ["sk", "live", "supersecret"].join("_");
     await recordAuditEvent(env.DB, {
       action: "audit.reason.test",
       actorType: "admin",
@@ -25,7 +26,7 @@ describe("audit reason boundary", () => {
         apiKey: "shoppp_live_abc123",
         nested: { note: "Authorization: Bearer secret-token" },
       },
-      reason: "  rotated   token sk_live_supersecret  ",
+      reason: `  rotated   token ${credentialShapedTestValue}  `,
       result: "succeeded",
       targetType: "audit_reason_test",
     });
