@@ -985,7 +985,10 @@ test("live Product retains matched desktop and mobile composition geometry", asy
   await page.getByRole("radio", { name: "XL" }).check();
   await page.locator("[data-fashion-store-product] button.btn-cart").click();
   await expect(page.locator("[data-live-product-status]")).toContainText("was added to your cart");
-  expect(submitted).toMatchObject({ variantId: liveProductCompositionIdentity.selectedVariantId });
+  expect(submitted).toMatchObject({
+    releaseId: buildInput.catalogRelease.releaseId,
+    variantId: liveProductCompositionIdentity.selectedVariantId,
+  });
 });
 
 test("live Product enables retry after initial Commerce revalidation fails", async ({ page }) => {
