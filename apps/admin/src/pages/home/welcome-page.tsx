@@ -1,6 +1,6 @@
 import { SETUP_GUIDE_CHECKS, type SetupGuideCheck, type SetupGuideDestination, type SetupGuideDestinations, type SetupGuideSummary } from '@shoppp/contracts'
 import { Alert, Button, Card, Collapse, Space, Statistic, Tag, Typography } from 'antd'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useHref, useLocation } from 'react-router-dom'
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
@@ -165,8 +165,16 @@ export const WelcomePage = () => {
     failed?: boolean
   } | null>(null)
   const [expanded, setExpanded] = useState<string[]>([])
+  const cardRef = useRef<HTMLDivElement>(null)
+  const stepsRef = useRef<HTMLDivElement>(null)
+  const [refreshHeight, setRefreshHeight] = useState<{
+    scope: string
+    card: number
+    steps: number
+  } | null>(null)
   const canRead = hasPermission(role, 'settings.read', permissions)
-  const requestKey = `${location.key}:${attempt}:${[...(permissions ?? [])].sort().join(',')}`
+  const requestScope = `${location.key}:${[...(permissions ?? [])].sort().join(',')}`
+  const requestKey = `${requestScope}:${attempt}`
   // History can reuse a location key; each transition needs a fresh request identity.
   const request = useMemo(() => ({ key: requestKey }), [requestKey])
 
@@ -210,6 +218,15 @@ export const WelcomePage = () => {
   const current = result?.request === request ? result : null
   const currentDestinations = destinationsResult?.request === request ? destinationsResult : null
   const loading = canRead && !current
+  const refreshing = refreshHeight?.scope === requestScope && (loading || !currentDestinations)
+  const recheck = () => {
+    setRefreshHeight({
+      scope: requestScope,
+      card: cardRef.current?.getBoundingClientRect().height ?? 0,
+      steps: stepsRef.current?.getBoundingClientRect().height ?? 0,
+    })
+    setAttempt((value) => value + 1)
+  }
   const restricted = !canRead || current?.errorStatus === 401 || current?.errorStatus === 403
   const summary = canRead && !restricted ? current?.summary : undefined
   const checks =
@@ -224,7 +241,7 @@ export const WelcomePage = () => {
 
   return (
     <CustomPageRecipe>
-      <Card>
+      <Card ref={cardRef} style={refreshing ? { minHeight: refreshHeight.card } : undefined}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <Statistic
             loading={loading}
@@ -232,7 +249,7 @@ export const WelcomePage = () => {
             value={summary ? passedCount : '—'}
             suffix={`/${SETUP_GUIDE_CHECKS.length}`}
           />
-          <Button onClick={() => setAttempt((value) => value + 1)} loading={loading}>
+          <Button onClick={recheck} loading={loading}>
             {t('Recheck')}
           </Button>
         </div>
@@ -273,7 +290,7 @@ export const WelcomePage = () => {
             showIcon
             type="error"
             title={t('Setup destinations could not be loaded')}
-            action={<Button onClick={() => setAttempt((value) => value + 1)}>{t('Retry')}</Button>}
+            action={<Button onClick={recheck}>{t('Retry')}</Button>}
           />
         ) : null}
         {!currentDestinations ? (
@@ -283,6 +300,8 @@ export const WelcomePage = () => {
         ) : null}
       </Card>
       <Collapse
+        ref={stepsRef}
+        style={refreshing ? { minHeight: refreshHeight.steps } : undefined}
         activeKey={expanded}
         onChange={(keys) => setExpanded(typeof keys === 'string' ? [keys] : keys)}
         items={STEPS.map((step, index) => {

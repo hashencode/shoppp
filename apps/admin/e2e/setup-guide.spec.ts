@@ -117,3 +117,42 @@ test('setup index recovers from an unavailable destination response', async ({ p
   await expect(page.getByText('Setup destinations could not be loaded')).toHaveCount(0)
   await expect(page.getByRole('link', { name: 'Store identity' })).toBeVisible()
 })
+
+test('recheck keeps the expanded guide height while replacing old results', async ({ page }) => {
+  let requests = 0
+  let releaseRecheck!: () => void
+  const pendingRecheck = new Promise<void>((resolve) => {
+    releaseRecheck = resolve
+  })
+  await page.route('**/api/admin/settings/setup-guide/destinations', (route) =>
+    route.fulfill({ json: { data: guide } })
+  )
+  await page.route('**/api/admin/settings/setup-guide', async (route) => {
+    requests += 1
+    if (requests === 2) await pendingRecheck
+    const result = requests === 1
+      ? guideSummary
+      : { ...guideSummary, checks: SETUP_GUIDE_CHECKS.map((check) => ({ ...check, status: 'passed' as const, reasons: [] })) }
+    await route.fulfill({ json: { data: result } })
+  })
+  await page.goto(path('/welcome'))
+  await expect(page.locator('.ant-statistic-content')).toHaveText('12/13')
+  await expect(page.getByText('Default configuration has not been confirmed. Review and save commercial settings.')).toBeVisible()
+  await page.waitForTimeout(450)
+  const card = page.locator('.ant-card').first()
+  const guidePanel = page.locator('.ant-collapse')
+  const cardBefore = await card.evaluate((element) => element.getBoundingClientRect().height)
+  const before = await guidePanel.evaluate((element) => element.getBoundingClientRect().height)
+
+  await page.getByRole('button', { name: 'Recheck' }).click()
+  await expect.poll(() => requests).toBe(2)
+  await expect(page.getByText('Default configuration has not been confirmed. Review and save commercial settings.')).toBeHidden()
+  await page.waitForTimeout(450)
+  const cardDuring = await card.evaluate((element) => element.getBoundingClientRect().height)
+  const during = await guidePanel.evaluate((element) => element.getBoundingClientRect().height)
+  expect(cardDuring).toBeGreaterThanOrEqual(cardBefore - 1)
+  expect(during).toBeGreaterThanOrEqual(before - 1)
+
+  releaseRecheck()
+  await expect(page.locator('.ant-statistic-content')).toHaveText('13/13')
+})
