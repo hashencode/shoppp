@@ -213,6 +213,27 @@ describe('MenuEditor integration', () => {
     expect(await screen.findByText('Published')).toBeTruthy()
   })
 
+  it('keeps unsaved menu edits from being discarded by publish', async () => {
+    renderEditor(['navigation.read', 'navigation.write', 'navigation.publish'])
+    await screen.findByDisplayValue('Home')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Item label' }), {
+      target: { value: 'Start here' },
+    })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+      target: { value: 'Update menu label' },
+    })
+    expect(screen.getByRole('button', { name: 'Publish' }).hasAttribute('disabled')).toBe(true)
+    expect(screen.getByRole('button', { name: 'Archive' }).hasAttribute('disabled')).toBe(true)
+    expect(publishRequests).toBe(0)
+    fireEvent.click(screen.getByRole('button', { name: 'Save draft' }))
+    await waitFor(() => expect(screen.getByText('Saved v2')).toBeTruthy())
+    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+      target: { value: 'Publish saved menu' },
+    })
+    expect(screen.getByRole('button', { name: 'Publish' }).hasAttribute('disabled')).toBe(false)
+    expect(screen.getByRole('button', { name: 'Archive' }).hasAttribute('disabled')).toBe(false)
+  })
+
   it('moves focus to Add menu item after removing the sole item', async () => {
     renderEditor(['navigation.read', 'navigation.write'])
     await screen.findByDisplayValue('Home')

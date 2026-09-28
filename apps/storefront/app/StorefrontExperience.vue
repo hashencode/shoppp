@@ -36,7 +36,7 @@ import {
   runtimeCommercePortKey,
   toRuntimeProductState,
 } from "./theme-engine/runtime-commerce";
-import { canonicalUrl, productStructuredData } from "./utils/seo";
+import { canonicalUrl, productStructuredData, resolveReleasedContentSeo } from "./utils/seo";
 import { catalogSearchIndexKey } from "./theme-engine/search";
 import {
   storefrontPlatformPresentationKey,
@@ -211,9 +211,14 @@ const routeSeo = computed(() => {
   const collection = contract?.parameters?.collectionId
     ? liveRelease?.collections.find(({ id }) => id === contract.parameters?.collectionId)
     : undefined;
+  const contentSeo =
+    contract?.pageType === "content" && liveRelease?.schemaVersion === 3
+      ? resolveReleasedContentSeo(liveRelease, normalizedPath)
+      : undefined;
   const title =
     product?.seoTitle ??
     collection?.seoTitle ??
+    contentSeo?.title ??
     (contract
       ? {
           cart: "Shopping cart",
@@ -231,12 +236,27 @@ const routeSeo = computed(() => {
     description:
       product?.seoDescription ??
       collection?.seoDescription ??
+      contentSeo?.description ??
       "Browse the published Fashion Store Experience.",
     product,
     title,
   };
 });
 const previewOrigin = activePreviewOrigin;
+if (activeExperienceSnapshot && liveRelease?.schemaVersion === 3) {
+  useHead(() => ({
+    link: liveRelease.identity.faviconMedia
+      ? [{ href: liveRelease.identity.faviconMedia.src, key: "storefront-favicon", rel: "icon" }]
+      : [],
+  }));
+  if (!previewOrigin) {
+    useSeoMeta({
+      title: () => (pageContract.value?.pageType === "content" ? routeSeo.value.title : undefined),
+      description: () =>
+        pageContract.value?.pageType === "content" ? routeSeo.value.description : undefined,
+    });
+  }
+}
 if (activeExperienceSnapshot && previewOrigin) {
   const seoOrigin = liveRelease?.site.origin ?? previewOrigin;
   useSeoMeta({

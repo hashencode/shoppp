@@ -891,6 +891,8 @@ export const catalogReleaseV3Schema = z
     identity: z
       .object({
         faviconAssetId: z.string().nullable(),
+        // Older schema-v3 Releases contain only the asset ID; new candidates freeze its media.
+        faviconMedia: catalogMediaSchema.omit({ id: true }).optional(),
         id: z.literal("identity.primary"),
         logoAssets: z.array(
           z

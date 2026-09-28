@@ -79,7 +79,9 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: "en" },
-      link: [{ href: "/favicon.svg", rel: "icon", type: "image/svg+xml" }],
+      link: [
+        { href: "/favicon.svg", key: "storefront-favicon", rel: "icon", type: "image/svg+xml" },
+      ],
       meta: [
         { charset: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },

@@ -583,6 +583,11 @@ export async function transitionContent(
       }
       statements.push(
         context.env.DB.prepare(
+          `DELETE FROM content_route_redirects
+            WHERE environment = ? AND from_path = ? AND content_kind = ? AND content_id = ?
+              AND EXISTS (${committedMutationCondition.sql})`,
+        ).bind(context.env.ENVIRONMENT, to, kind, id, ...committedMutationCondition.bindings),
+        context.env.DB.prepare(
           `UPDATE content_route_redirects SET to_path = ?, content_version = ?
             WHERE environment = ? AND content_kind = ? AND content_id = ?
               AND EXISTS (${committedMutationCondition.sql})`,

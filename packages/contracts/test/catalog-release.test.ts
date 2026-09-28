@@ -183,6 +183,20 @@ describe("catalog release contracts", () => {
       { assetId: "asset.logo.primary", variant: "primary" },
     ]);
     expect(parseCatalogRelease(historical).compatibility).toBe("vnext");
+    const withFavicon = catalogReleaseV3Schema.parse({
+      ...historical,
+      identity: {
+        ...historical.identity,
+        faviconAssetId: "asset.favicon",
+        faviconMedia: {
+          alt: "Store favicon",
+          height: 64,
+          src: "https://media.example.test/catalog-release-media/sha256/abc",
+          width: 64,
+        },
+      },
+    });
+    expect(withFavicon.identity.faviconMedia?.src).toContain("catalog-release-media/sha256/");
   });
 
   test("rejects duplicate v3 sources and divergent route output", () => {

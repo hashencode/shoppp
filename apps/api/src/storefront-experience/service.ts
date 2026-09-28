@@ -552,6 +552,25 @@ function resolveDraft(
       return [];
     }
   });
+  if (
+    row.theme_id === "fashion-store" &&
+    row.configuration_schema_version >= 3 &&
+    catalogRelease?.schemaVersion === 3 &&
+    catalogRelease.identity.logoAssets.length > 0
+  ) {
+    for (const template of resolvedTemplates.filter(({ pageType }) => pageType === "home")) {
+      const home = template.sections.find(({ id }) => id === "fashion-store-home");
+      if (!home) continue;
+      const selected = home.settings["identity-logo-variant"] ?? "primary";
+      if (!catalogRelease.identity.logoAssets.some(({ variant }) => variant === selected)) {
+        issues.push({
+          code: "identity_logo_variant_missing",
+          message: `Logo variant ${String(selected)} is not in the selected Catalog Release.`,
+          path: `${home.id}.identity-logo-variant`,
+        });
+      }
+    }
+  }
   const resolvedPackage = themePackageSchema.safeParse({
     manifest: selectedPackage.manifest,
     presets: selectedPackage.presets.map((candidate) =>

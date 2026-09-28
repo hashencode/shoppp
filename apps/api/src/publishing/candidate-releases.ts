@@ -487,6 +487,25 @@ async function planCandidateMedia(
       });
     }
   }
+  const frozenSource = (assetId: string) =>
+    manifest.products.flatMap(({ media }) => media).find(({ id }) => id === assetId)?.src;
+  for (const logo of manifest.identity.logoAssets) {
+    if (logo.media) {
+      const src = frozenSource(logo.assetId);
+      if (!src)
+        lifecycleError(
+          "catalog_identity_logo_media_missing",
+          `Logo ${logo.assetId} is unavailable.`,
+        );
+      logo.media.src = src;
+    }
+  }
+  if (manifest.identity.faviconAssetId && manifest.identity.faviconMedia) {
+    const src = frozenSource(manifest.identity.faviconAssetId);
+    if (!src)
+      lifecycleError("catalog_identity_favicon_media_missing", "Favicon media is unavailable.");
+    manifest.identity.faviconMedia.src = src;
+  }
   return [...ledger.values()];
 }
 
@@ -680,25 +699,29 @@ async function assembleCandidateManifest(
     )
     .bind(identityAuthority.id, identityAuthority.version)
     .all<{ assetId: string; variant: "primary" | "light" | "dark" | "compact" }>();
+  const identityMedia = (assetId: string, kind: "logo" | "favicon") => {
+    const media = v2.products.flatMap((product) => product.media).find(({ id }) => id === assetId);
+    if (!media) {
+      lifecycleError(
+        `catalog_identity_${kind}_media_missing`,
+        `Store Identity ${kind} ${assetId} is absent from the frozen product media release.`,
+      );
+    }
+    const { id: _id, ...frozenMedia } = media;
+    return frozenMedia;
+  };
+  const faviconAssetId =
+    typeof identityAuthority.row.favicon_asset_id === "string"
+      ? identityAuthority.row.favicon_asset_id
+      : null;
   const frozenIdentity = {
-    faviconAssetId:
-      typeof identityAuthority.row.favicon_asset_id === "string"
-        ? identityAuthority.row.favicon_asset_id
-        : null,
+    faviconAssetId,
+    ...(faviconAssetId ? { faviconMedia: identityMedia(faviconAssetId, "favicon") } : {}),
     id: "identity.primary" as const,
-    logoAssets: identityLogos.results.map((logo) => {
-      const media = v2.products
-        .flatMap((product) => product.media)
-        .find(({ id }) => id === logo.assetId);
-      if (!media) {
-        lifecycleError(
-          "catalog_identity_logo_media_missing",
-          `Store Identity logo ${logo.assetId} is absent from the frozen product media release.`,
-        );
-      }
-      const { id: _id, ...frozenMedia } = media;
-      return { ...logo, media: frozenMedia };
-    }),
+    logoAssets: identityLogos.results.map((logo) => ({
+      ...logo,
+      media: identityMedia(logo.assetId, "logo"),
+    })),
     seo: JSON.parse(String(identityAuthority.row.seo_json)),
     socialShareAssetId:
       typeof identityAuthority.row.social_share_asset_id === "string"

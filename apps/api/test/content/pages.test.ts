@@ -551,10 +551,48 @@ describe("content pages", () => {
       { from_path: "/pages/route-a", to_path: "/pages/route-c" },
       { from_path: "/pages/route-b", to_path: "/pages/route-c" },
     ]);
+    expect(
+      (
+        await app.fetch(
+          request(
+            `/admin/content/pages/${page.id}`,
+            { ...pageDraft, expectedVersion: 3, reason: "Return to route A", slug: "route-a" },
+            "PUT",
+          ),
+          env,
+        )
+      ).status,
+    ).toBe(200);
+    const returned = await app.fetch(
+      request(
+        `/admin/content/pages/${page.id}/publish`,
+        {
+          confirm: true,
+          expectedVersion: 4,
+          reason: "Publish route A again",
+          redirectFromOldSlug: true,
+        },
+        "POST",
+      ),
+      env,
+    );
+    expect(returned.status).toBe(200);
+    expect(
+      (
+        await env.DB.prepare(
+          "SELECT from_path, to_path FROM content_route_redirects WHERE content_id = ? ORDER BY from_path",
+        )
+          .bind(page.id)
+          .all()
+      ).results,
+    ).toEqual([
+      { from_path: "/pages/route-b", to_path: "/pages/route-a" },
+      { from_path: "/pages/route-c", to_path: "/pages/route-a" },
+    ]);
     await app.fetch(
       request(
         `/admin/content/pages/${page.id}/archive`,
-        { confirm: true, expectedVersion: 3, reason: "Retire all aliases" },
+        { confirm: true, expectedVersion: 4, reason: "Retire all aliases" },
         "POST",
       ),
       env,

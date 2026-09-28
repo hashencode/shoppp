@@ -127,11 +127,6 @@ useHead(() => ({
       rel: "preload" as const,
       type: "font/woff2",
     },
-    {
-      href: sourceAsset("images/favicon.png"),
-      rel: "icon",
-      type: "image/png",
-    },
     ...(properties.preloadImage
       ? [
           {

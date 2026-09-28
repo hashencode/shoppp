@@ -53,6 +53,31 @@ interface SnapshotIdentityRow {
 const GRANT_TTL_MS = 10 * 60 * 1_000;
 const SESSION_TTL_MS = 30 * 60 * 1_000;
 
+async function requirePreviewReleaseAvailable(
+  context: Context<ApiEnvironment>,
+  releaseId: string | null,
+  access: "grant" | "session",
+): Promise<void> {
+  if (!releaseId) return;
+  const available = await context.env.DB.prepare(
+    `SELECT 1 FROM catalog_releases
+      WHERE id = ? AND (
+        (purpose = 'public' AND status = 'deployed') OR
+        (purpose = 'private-preview' AND environment = ?
+          AND candidate_status = 'succeeded' AND candidate_expires_at > ?)
+      )`,
+  )
+    .bind(releaseId, context.env.ENVIRONMENT, new Date().toISOString())
+    .first();
+  if (!available) {
+    throw new ApiError(
+      403,
+      `storefront_preview_${access}_invalid`,
+      `The private preview ${access} is invalid or expired.`,
+    );
+  }
+}
+
 function requireConfiguredPreviewOrigin(
   environment: ApiEnvironment["Bindings"],
   origin: string,
@@ -242,6 +267,7 @@ export async function redeemStorefrontPreviewGrant(
       "The private preview artifact is no longer available.",
     );
   }
+  await requirePreviewReleaseAvailable(context, build.catalog_release_id, "grant");
   assertStorefrontThemePackageActivatable(
     build.snapshot_theme_id,
     build.snapshot_theme_version,
@@ -337,6 +363,7 @@ export async function authorizeStorefrontPreviewSession(
       "The private preview session is invalid or expired.",
     );
   }
+  await requirePreviewReleaseAvailable(context, row.catalog_release_id, "session");
   assertStorefrontThemePackageActivatable(
     row.snapshot_theme_id,
     row.snapshot_theme_version,

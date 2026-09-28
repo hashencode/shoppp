@@ -1,3 +1,22 @@
+import type { CatalogReleaseV3 } from "@shoppp/contracts";
+
+export const resolveReleasedContentSeo = (release: CatalogReleaseV3, path: string) => {
+  const normalizedPath = path.replace(/\/+$/, "") || "/";
+  const content = release.content.find(
+    (record) => record.kind !== "policy" && record.route === normalizedPath,
+  );
+  if (!content) return undefined;
+  const title = content.payload.seo?.title;
+  const description = content.payload.seo?.description;
+  return {
+    title: typeof title === "string" && title.trim() ? title : content.title,
+    description:
+      typeof description === "string" && description.trim()
+        ? description
+        : content.payload.summary?.trim() || content.title,
+  };
+};
+
 export interface SeoProduct {
   slug: string;
   name: string;

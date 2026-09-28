@@ -142,6 +142,7 @@ export const MenuEditor = ({ placement }: { placement: NavigationPlacement }) =>
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
+  const isDirty = JSON.stringify(items) !== JSON.stringify(record?.items ?? [])
   const actionRefs = useRef(new Map<string, HTMLElement>())
   const addItemRef = useRef<HTMLButtonElement>(null)
 
@@ -199,7 +200,7 @@ export const MenuEditor = ({ placement }: { placement: NavigationPlacement }) =>
   }
 
   const transition = async (action: 'archive' | 'publish') => {
-    if (!record || saving || reason.trim().length < 3) return
+    if (!record || saving || isDirty || reason.trim().length < 3) return
     setSaving(true)
     setError(null)
     try {
@@ -472,17 +473,19 @@ export const MenuEditor = ({ placement }: { placement: NavigationPlacement }) =>
         {canPublish && record?.status === 'draft' ? (
           <Popconfirm
             title={t('Publish this exact Navigation version?')}
+            disabled={isDirty || saving || reason.trim().length < 3}
             onConfirm={() => void transition('publish')}
           >
-            <Button disabled={saving || reason.trim().length < 3}>{t('Publish')}</Button>
+            <Button disabled={isDirty || saving || reason.trim().length < 3}>{t('Publish')}</Button>
           </Popconfirm>
         ) : null}
         {canPublish && record && record.status !== 'archived' ? (
           <Popconfirm
             title={t('Archive this Navigation menu?')}
+            disabled={isDirty || saving || reason.trim().length < 3}
             onConfirm={() => void transition('archive')}
           >
-            <Button danger disabled={saving || reason.trim().length < 3}>
+            <Button danger disabled={isDirty || saving || reason.trim().length < 3}>
               {t('Archive')}
             </Button>
           </Popconfirm>

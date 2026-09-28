@@ -8,6 +8,7 @@ import { resolveThemeRoute, themeRoutePaths } from "../app/theme-engine/routes";
 import { fashionStoreCompositionAdapter } from "../app/themes/fashion-store/composition";
 import { fashionStoreThemeRoutes } from "../app/themes/fashion-store/page-contracts";
 import { fashionStorePreset } from "../app/themes/fashion-store/presets/source-parity";
+import { resolveReleasedContentSeo } from "../app/utils/seo";
 
 const contentExperience = {
   approvedAt: "2026-09-23T00:00:00.000Z",
@@ -62,6 +63,43 @@ function release(content: CatalogReleaseV3["content"]): CatalogReleaseV3 {
 }
 
 describe("Fashion Store released Content destinations", () => {
+  test("uses frozen Page and Article SEO for their released routes", () => {
+    const candidate = release([
+      {
+        digest: "b".repeat(64),
+        id: "page.about",
+        kind: "page",
+        payload: {
+          sections: [],
+          seo: { title: "Our story | Shoppp", description: "Meet our makers." },
+          summary: "Our story summary",
+        },
+        route: "/about",
+        slug: "about",
+        title: "Our story",
+        version: 2,
+      },
+      {
+        digest: "c".repeat(64),
+        id: "article.notes",
+        kind: "article",
+        payload: { sections: [], seo: {}, summary: "Notes summary" },
+        route: "/magazine/notes",
+        slug: "notes",
+        title: "Useful notes",
+        version: 1,
+      },
+    ]);
+    expect(resolveReleasedContentSeo(candidate, "/about")).toEqual({
+      description: "Meet our makers.",
+      title: "Our story | Shoppp",
+    });
+    expect(resolveReleasedContentSeo(candidate, "/magazine/notes")).toEqual({
+      description: "Notes summary",
+      title: "Useful notes",
+    });
+    expect(resolveReleasedContentSeo(candidate, "/missing")).toBeUndefined();
+  });
   test("exposes only Page and Article records frozen in a schema-v3 Release", () => {
     const destinations = fashionStoreEditorDestinations(
       release([

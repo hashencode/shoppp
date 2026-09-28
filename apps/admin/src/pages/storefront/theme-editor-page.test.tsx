@@ -1896,6 +1896,65 @@ describe('ThemeEditorPage', () => {
     })
   })
 
+  it('revalidates a selected private candidate after editor refresh', async () => {
+    const candidateId = 'private-candidate-refresh'
+    currentDraft = { ...currentDraft, themeId: 'fashion-store' }
+    window.sessionStorage.setItem('storefront-editor-catalog-release', candidateId)
+    window.sessionStorage.setItem('storefront-editor-private-candidate', candidateId)
+    let candidateReads = 0
+    server.use(
+      http.get('*/admin/storefront-experiences/themes', () =>
+        HttpResponse.json({ data: [{ ...theme, id: 'fashion-store' }] })
+      ),
+      http.get('*/admin/storefront-experiences/catalog-releases', () =>
+        HttpResponse.json({ data: [catalogRelease('deployed-release')] })
+      ),
+      http.get('*/admin/catalog/releases/preview-candidates/:id', () => {
+        candidateReads += 1
+        return HttpResponse.json({
+          data: {
+            manifest: {
+              collections: [],
+              content: [],
+              environment: 'staging',
+              generatedAt: '2026-09-28T00:00:00.000Z',
+              products: [],
+            },
+          },
+        })
+      })
+    )
+    const first = renderEditor()
+    expect(await screen.findByText(new RegExp(`${candidateId} · staging`))).toBeTruthy()
+    expect(window.sessionStorage.getItem('storefront-editor-private-candidate')).toBe(candidateId)
+    first.unmount()
+    renderEditor()
+    expect(await screen.findByText(new RegExp(`${candidateId} · staging`))).toBeTruthy()
+    await waitFor(() => expect(candidateReads).toBe(2))
+  })
+
+  it('clears an abandoned private candidate without choosing a deployed release for the operator', async () => {
+    currentDraft = { ...currentDraft, themeId: 'fashion-store' }
+    window.sessionStorage.setItem('storefront-editor-catalog-release', 'abandoned-candidate')
+    window.sessionStorage.setItem('storefront-editor-private-candidate', 'abandoned-candidate')
+    server.use(
+      http.get('*/admin/storefront-experiences/themes', () =>
+        HttpResponse.json({ data: [{ ...theme, id: 'fashion-store' }] })
+      ),
+      http.get('*/admin/storefront-experiences/catalog-releases', () =>
+        HttpResponse.json({ data: [catalogRelease('deployed-release')] })
+      ),
+      http.get('*/admin/catalog/releases/preview-candidates/:id', () =>
+        HttpResponse.json({ error: { code: 'catalog_candidate_abandoned' } }, { status: 409 })
+      )
+    )
+    renderEditor()
+    expect(await screen.findByText('Private Catalog candidate is no longer available')).toBeTruthy()
+    expect(window.sessionStorage.getItem('storefront-editor-private-candidate')).toBeNull()
+    expect(window.sessionStorage.getItem('storefront-editor-catalog-release')).toBeNull()
+    expect(screen.queryByText(/deployed-release · staging/)).toBeNull()
+  })
+
   it('keeps release selection stable while busy and discards a delayed prior-release context', async () => {
     const releaseA = 'release-race-a'
     const releaseB = 'release-race-b'

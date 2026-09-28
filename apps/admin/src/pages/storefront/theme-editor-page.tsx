@@ -587,20 +587,24 @@ export const ThemeEditorPage = ({
       const privateCandidateHandoff = window.sessionStorage.getItem(
         'storefront-editor-private-candidate'
       )
+      let invalidPrivateCandidate = false
       void fetchStorefrontCatalogReleases()
         .then(async (deployed) => {
           if (
             !handedOffCandidate ||
-            privateCandidateHandoff !== handedOffCandidate ||
-            deployed.some(({ id }) => id === handedOffCandidate)
+            privateCandidateHandoff !== handedOffCandidate
           ) {
+            return deployed
+          }
+          if (deployed.some(({ id }) => id === handedOffCandidate)) {
+            window.sessionStorage.removeItem('storefront-editor-private-candidate')
             return deployed
           }
           try {
             const candidate = await fetchStorefrontCatalogCandidate(handedOffCandidate)
-            window.sessionStorage.removeItem('storefront-editor-private-candidate')
             return [candidate, ...deployed]
           } catch (cause) {
+            invalidPrivateCandidate = true
             window.sessionStorage.removeItem('storefront-editor-private-candidate')
             window.sessionStorage.removeItem('storefront-editor-catalog-release')
             if (!cancelled) setCandidateHandoffWarning(normalizeApiError(cause))
@@ -617,7 +621,9 @@ export const ThemeEditorPage = ({
                 : null
             const next =
               frozen ??
-              (releases.some(({ id }) => id === current) ? current : (releases[0]?.id ?? ''))
+              (invalidPrivateCandidate
+                ? ''
+                : releases.some(({ id }) => id === current) ? current : (releases[0]?.id ?? ''))
             selectedReleaseIdRef.current = next
             return next
           })
@@ -1355,6 +1361,7 @@ export const ThemeEditorPage = ({
                   value: release.id,
                 }))}
                 onChange={(value) => {
+                  window.sessionStorage.removeItem('storefront-editor-private-candidate')
                   selectedReleaseIdRef.current = value
                   setSelectedReleaseId(value)
                   window.sessionStorage.setItem('storefront-editor-catalog-release', value)

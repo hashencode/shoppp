@@ -4874,6 +4874,134 @@ describe("storefront experience API", () => {
       rotatedMediaEnvironment,
     );
     expect(legacyAuthorization.status).toBe(403);
+
+    const pendingGrantResponse = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/snapshots/${value.data.snapshot.id}/grants`,
+        {
+          catalogReleaseId: previewCatalogRelease.releaseId,
+          origin: env.PREVIEW_ORIGIN,
+          reason: "Verify abandonment revokes unused grants",
+        },
+        "theme-live-preview-grant-abandon-0001",
+      ),
+      env,
+    );
+    expect(pendingGrantResponse.status).toBe(201);
+    const pendingGrant = await pendingGrantResponse.json<{ data: { grant: string } }>();
+    const abandoned = await app.fetch(
+      writeRequest(
+        `/admin/catalog/releases/preview-candidates/${previewCatalogRelease.releaseId}/abandon`,
+        { reason: "Abandon exact private candidate" },
+        "theme-live-preview-abandon-0001",
+      ),
+      env,
+    );
+    expect(abandoned.status).toBe(200);
+    const redeemAfterAbandon = await app.fetch(
+      request("/internal/preview/redeem", {
+        body: JSON.stringify({ grant: pendingGrant.data.grant, origin: env.PREVIEW_ORIGIN }),
+        headers: {
+          Authorization: `Bearer ${env.PREVIEW_SERVICE_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(redeemAfterAbandon.status).toBe(403);
+    const authorizeAfterAbandon = await app.fetch(
+      request("/internal/preview/authorize", {
+        headers: {
+          Authorization: `Bearer ${env.PREVIEW_SERVICE_TOKEN}`,
+          Cookie: `__Host-shoppp-preview=${sessionValue.data.session}`,
+          "X-Preview-Origin": env.PREVIEW_ORIGIN,
+        },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(authorizeAfterAbandon.status).toBe(403);
+  });
+
+  test("validates the selected Theme Logo variant against frozen Store Identity", async () => {
+    const releaseId = "release-only-dark-logo";
+    await seedPreviewCatalogRelease(
+      releaseId,
+      catalogReleaseV3Schema.parse({
+        ...previewCatalogReleaseV3,
+        releaseId,
+        identity: {
+          ...previewCatalogReleaseV3.identity,
+          logoAssets: [
+            {
+              assetId: "asset.logo.dark",
+              variant: "dark",
+              media: { alt: "Dark Logo", height: 64, src: "/media/dark-logo.webp", width: 180 },
+            },
+          ],
+        },
+      }),
+    );
+    const app = appFor();
+    const defaultDraft = await createDraft(app, "logo-default-draft", {
+      ...catalogReadyDraftInput,
+      themeVersion: fashionStoreSuccessorPackage.manifest.themeVersion,
+    });
+    expect(defaultDraft.response.status).toBe(201);
+    const defaultValidation = await validateDraft(
+      app,
+      defaultDraft.body.data.id,
+      1,
+      "logo-default-validate",
+      releaseId,
+    );
+    expect(await defaultValidation.json()).toMatchObject({
+      data: {
+        status: "invalid",
+        issues: expect.arrayContaining([
+          expect.objectContaining({ code: "identity_logo_variant_missing" }),
+        ]),
+      },
+    });
+    const invalidPreview = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${defaultDraft.body.data.id}/preview`,
+        { catalogReleaseId: releaseId, expectedVersion: 1, reason: "Reject missing selected Logo" },
+        "logo-default-preview-0001",
+      ),
+      env,
+    );
+    expect(invalidPreview.status).toBe(409);
+    const darkDraft = await createDraft(app, "logo-dark-draft-0001", {
+      ...catalogReadyDraftInput,
+      experienceId: "experience-dark-logo",
+      themeVersion: fashionStoreSuccessorPackage.manifest.themeVersion,
+      overrides: [
+        {
+          operations: [
+            {
+              instanceId: "fashion-store-home",
+              kind: "set-setting",
+              settingId: "identity-logo-variant",
+              value: "dark",
+            },
+          ],
+          presetId: "source-parity",
+          schemaVersion: 3,
+          templateId: "fashion-store-home",
+        },
+      ],
+    });
+    expect(darkDraft.response.status).toBe(201);
+    const darkValidation = await validateDraft(
+      app,
+      darkDraft.body.data.id,
+      1,
+      "logo-dark-validate",
+      releaseId,
+    );
+    expect(await darkValidation.json()).toMatchObject({ data: { status: "valid", issues: [] } });
   });
 
   test("rejects a Catalog Release whose preview media exceeds the bounded origin set", async () => {

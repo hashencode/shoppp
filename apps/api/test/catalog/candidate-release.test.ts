@@ -382,8 +382,9 @@ describe("private candidate builder integration", () => {
       env.DB.prepare("DELETE FROM content_route_redirects"),
       env.DB.prepare("DELETE FROM content_page_versions"),
       env.DB.prepare("DELETE FROM content_article_versions"),
+      env.DB.prepare("DELETE FROM store_identity_logo_assets"),
       env.DB.prepare(
-        "UPDATE store_identity_versions SET status = 'published' WHERE identity_id = 'identity.primary'",
+        "UPDATE store_identity_versions SET status = 'published', favicon_asset_id = NULL WHERE identity_id = 'identity.primary'",
       ),
     ]);
     await seedPublishedPolicies();
@@ -903,6 +904,74 @@ describe("private candidate builder integration", () => {
         .bind(candidate.data.id)
         .first(),
     ).toEqual({ candidate_status: "succeeded", status: "approved" });
+  });
+
+  test("freezes the Store Identity favicon from published Product media", async () => {
+    const asset = await env.DB.prepare("SELECT id FROM product_media_assets LIMIT 1").first<{
+      id: string;
+    }>();
+    expect(asset?.id).toBeTruthy();
+    await env.DB.prepare(
+      "UPDATE store_identity_versions SET favicon_asset_id = ? WHERE identity_id = 'identity.primary'",
+    )
+      .bind(asset!.id)
+      .run();
+    await env.DB.prepare(
+      "INSERT INTO store_identity_logo_assets (identity_id, identity_version, asset_id, variant) VALUES ('identity.primary', 1, ?, 'primary')",
+    )
+      .bind(asset!.id)
+      .run();
+    const app = appFor();
+    const built = await app.fetch(
+      adminRequest("/admin/catalog/releases/preview-candidates", {
+        body: JSON.stringify({ reason: "Freeze storefront favicon" }),
+        method: "POST",
+      }),
+      env,
+    );
+    expect(built.status, await built.clone().text()).toBe(201);
+    const candidate = await built.json<{ data: { id: string } }>();
+    const inspected = await app.fetch(
+      adminRequest(`/admin/catalog/releases/preview-candidates/${candidate.data.id}`),
+      env,
+    );
+    const detail = await inspected.json<{
+      data: {
+        manifest: {
+          identity: {
+            faviconAssetId: string;
+            faviconMedia: { src: string };
+            logoAssets: Array<{ media: { src: string } }>;
+          };
+        };
+      };
+    }>();
+    expect(detail.data.manifest.identity.faviconAssetId).toBe(asset!.id);
+    expect(detail.data.manifest.identity.faviconMedia.src).toContain(
+      "/catalog-release-media/sha256/",
+    );
+    expect(detail.data.manifest.identity.logoAssets[0]?.media.src).toBe(
+      detail.data.manifest.identity.faviconMedia.src,
+    );
+  });
+
+  test("rejects a favicon absent from the frozen Product media", async () => {
+    await env.DB.prepare(
+      "UPDATE store_identity_versions SET favicon_asset_id = ? WHERE identity_id = 'identity.primary'",
+    )
+      .bind("asset.favicon.unpublished")
+      .run();
+    const response = await appFor().fetch(
+      adminRequest("/admin/catalog/releases/preview-candidates", {
+        body: JSON.stringify({ reason: "Reject missing favicon media" }),
+        method: "POST",
+      }),
+      env,
+    );
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      error: { code: "catalog_identity_favicon_media_missing" },
+    });
   });
 
   async function exerciseExactSparseTuple() {

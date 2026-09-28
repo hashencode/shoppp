@@ -106,6 +106,41 @@ describe("content articles", () => {
         .bind(article.id)
         .first(),
     ).toEqual({ from_path: "/magazine/useful-notes", to_path: "/magazine/better-notes" });
+    expect(
+      (
+        await app.fetch(
+          request(
+            `/admin/content/articles/${article.id}`,
+            { ...draft, expectedVersion: 2, reason: "Restore original Article slug" },
+            "PUT",
+          ),
+          env,
+        )
+      ).status,
+    ).toBe(200);
+    const returned = await app.fetch(
+      request(
+        `/admin/content/articles/${article.id}/publish`,
+        {
+          confirm: true,
+          expectedVersion: 3,
+          reason: "Publish restored Article slug",
+          redirectFromOldSlug: true,
+        },
+        "POST",
+      ),
+      env,
+    );
+    expect(returned.status).toBe(200);
+    expect(
+      (
+        await env.DB.prepare(
+          "SELECT from_path, to_path FROM content_route_redirects WHERE content_id = ?",
+        )
+          .bind(article.id)
+          .all()
+      ).results,
+    ).toEqual([{ from_path: "/magazine/better-notes", to_path: "/magazine/useful-notes" }]);
   });
 
   test("returns an empty truthful Article list when nothing is published", async () => {
