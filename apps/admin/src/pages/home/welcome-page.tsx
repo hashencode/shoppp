@@ -1,7 +1,15 @@
 import { SETUP_GUIDE_CHECKS, type SetupGuideCheck, type SetupGuideDestination, type SetupGuideDestinations, type SetupGuideSummary } from '@shoppp/contracts'
-import { Alert, Button, Card, Collapse, Space, Statistic, Tag, Typography } from 'antd'
+import {
+  ArrowRightOutlined,
+  CheckCircleOutlined,
+  ExclamationCircleOutlined,
+  LoadingOutlined,
+  LockOutlined,
+  WarningOutlined,
+} from '@ant-design/icons'
+import { Alert, Button, Card, Collapse, Statistic, Tag, Tooltip, Typography } from 'antd'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { useHref, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { fetchSetupGuide, fetchSetupGuideDestinations } from '../../services/platform/api'
@@ -13,47 +21,41 @@ void React
 type Step = SetupGuideCheck['step']
 type CheckStatus = SetupGuideCheck['status']
 type DestinationId = SetupGuideDestination['id']
-const STEPS: { key: Step; title: string; description: string; destinations: DestinationId[] }[] = [
+const STEPS: { key: Step; title: string; description: string }[] = [
   {
     key: 'contacts',
     title: 'Basics and contacts',
     description: 'Confirm the contact details used by shoppers and privacy requests.',
-    destinations: ['identity', 'contact', 'commerce'],
   },
   {
     key: 'products',
     title: 'Prepare products',
     description:
       'At least one published SKU needs a current price and available stock in the configured default currency. This does not check the entire catalog.',
-    destinations: ['products', 'collections', 'inventory', 'commerce'],
   },
   {
     key: 'shipping',
     title: 'Set up delivery',
     description:
       'Every enabled country needs a selected, active shipping method in its zone. Verify actual cart quotes with a test order.',
-    destinations: ['shipping', 'commerce'],
   },
   {
     key: 'payment',
     title: 'Set up payments',
     description:
       'Configuration checks cover credential formats and the environment payment mode. They do not verify a payment or webhook delivery.',
-    destinations: ['commerce'],
   },
   {
     key: 'storefront',
     title: 'Storefront and policies',
     description:
       'Check policy links and approval, then review the storefront through the existing theme workflow.',
-    destinations: ['policies', 'pages', 'articles', 'navigation', 'themes'],
   },
   {
     key: 'review',
     title: 'Review before launch',
     description:
       'Review inventory and runtime settings, then complete the manual checks. Production release follows the existing process.',
-    destinations: ['inventory', 'commerce', 'orders'],
   },
 ]
 const CHECK_LABEL: Record<SetupGuideCheck['id'], string> = {
@@ -82,6 +84,18 @@ const STATUS_COLOR: Record<CheckStatus, string> = {
   needs_action: 'warning',
   unavailable: 'error',
   restricted: 'default',
+}
+const STATUS_ICON = {
+  passed: CheckCircleOutlined,
+  needs_action: ExclamationCircleOutlined,
+  unavailable: WarningOutlined,
+  restricted: LockOutlined,
+} as const
+const STATUS_ICON_CLASS: Record<CheckStatus, string> = {
+  passed: 'text-green-600',
+  needs_action: 'text-amber-600',
+  unavailable: 'text-red-600',
+  restricted: 'text-slate-500',
 }
 const REASON_MESSAGE: Record<string, string> = {
   configuration_not_saved:
@@ -128,6 +142,43 @@ const DESTINATION_LABEL: Record<DestinationId, string> = {
   inventory: 'Inventory',
   orders: 'Orders',
 }
+const CHECK_TARGET: Partial<
+  Record<SetupGuideCheck['id'], { destination: DestinationId; anchor?: string; label?: string }>
+> = {
+  configuration_saved: { destination: 'commerce', anchor: 'sales' },
+  contact_details: { destination: 'contact' },
+  sellable_sku: { destination: 'products' },
+  sellable_currencies: { destination: 'products' },
+  shipping_countries: { destination: 'shipping' },
+  shipping_methods: { destination: 'shipping' },
+  shipping_country_methods: { destination: 'shipping' },
+  policy_configuration: { destination: 'commerce', anchor: 'policies', label: 'Policy settings' },
+  oversell_policy: { destination: 'commerce', anchor: 'sales', label: 'Sales and inventory' },
+  reservation_ttl: { destination: 'commerce', anchor: 'sales', label: 'Sales and inventory' },
+}
+const EDITOR_GROUPS: { title: string; destinations: DestinationId[] }[] = [
+  { title: 'Store settings', destinations: ['identity', 'contact', 'commerce', 'shipping', 'policies'] },
+  { title: 'Catalog and operations', destinations: ['products', 'collections', 'inventory', 'orders'] },
+  { title: 'Content and storefront', destinations: ['pages', 'articles', 'navigation', 'themes'] },
+]
+const UNCHECKED_DESTINATIONS = new Set<DestinationId>([
+  'identity',
+  'policies',
+  'collections',
+  'pages',
+  'articles',
+  'navigation',
+  'themes',
+  'orders',
+])
+const targetForCheck = (check: SetupGuideCheck) => {
+  if (check.id === 'payment_configuration') {
+    return check.reasons.some((reason) => reason.code === 'production_payment_mode_not_live')
+      ? { destination: 'commerce' as const, anchor: 'payment', label: 'Payments' }
+      : undefined
+  }
+  return CHECK_TARGET[check.id]
+}
 const ALL_STEPS = STEPS.map((step) => step.key)
 const failedChecks = (status: 'unavailable' | 'restricted'): SetupGuideCheck[] =>
   SETUP_GUIDE_CHECKS.map((check) => ({
@@ -143,14 +194,14 @@ type CheckResult = {
   failed?: boolean
 }
 
-const GuideAction = ({ children, to }: { children: React.ReactNode; to: string }) => {
-  const href = useHref(to)
-  return <Button href={href}>{children}</Button>
-}
-
 const DestinationLink = ({ destination }: { destination: SetupGuideDestination }) => {
   const { t } = useI18n()
-  return <GuideAction to={destination.href}>{t(DESTINATION_LABEL[destination.id])}</GuideAction>
+  return (
+    <Link to={destination.href} className="inline-flex items-center gap-1">
+      {t(DESTINATION_LABEL[destination.id])}
+      <ArrowRightOutlined aria-hidden="true" />
+    </Link>
+  )
 }
 
 export const WelcomePage = () => {
@@ -217,6 +268,10 @@ export const WelcomePage = () => {
   // A new request or permission snapshot cannot display the previous request's conclusions.
   const current = result?.request === request ? result : null
   const currentDestinations = destinationsResult?.request === request ? destinationsResult : null
+  const availableDestinations = currentDestinations?.destinations?.destinations ?? []
+  const browseDestinations = canRead
+    ? availableDestinations.filter((destination) => UNCHECKED_DESTINATIONS.has(destination.id))
+    : availableDestinations
   const loading = canRead && !current
   const refreshing = refreshHeight?.scope === requestScope && (loading || !currentDestinations)
   const recheck = () => {
@@ -235,6 +290,21 @@ export const WelcomePage = () => {
   const statusTag = (status: CheckStatus) => (
     <Tag color={STATUS_COLOR[status]}>{t(STATUS_LABEL[status])}</Tag>
   )
+  const statusIcon = (status?: CheckStatus) => {
+    const label = t(status ? STATUS_LABEL[status] : 'Checking…')
+    const Icon = status ? STATUS_ICON[status] : LoadingOutlined
+    return (
+      <Tooltip title={label}>
+        <span
+          role="img"
+          aria-label={label}
+          className={`inline-flex items-center text-lg ${status ? STATUS_ICON_CLASS[status] : ''}`}
+        >
+          <Icon aria-hidden="true" spin={!status} />
+        </span>
+      </Tooltip>
+    )
+  }
   const pendingCount = checks.filter((check) => check.status === 'needs_action').length
   const unavailableCount = checks.filter((check) => check.status === 'unavailable').length
   const restrictedCount = checks.filter((check) => check.status === 'restricted').length
@@ -306,25 +376,35 @@ export const WelcomePage = () => {
         onChange={(keys) => setExpanded(typeof keys === 'string' ? [keys] : keys)}
         items={STEPS.map((step, index) => {
           const stepChecks = checks.filter((check) => check.step === step.key)
-          const stepDestinations = currentDestinations?.destinations?.destinations.filter(
-            (destination) => step.destinations.includes(destination.id)
-          ) ?? []
           const stepStatus = (
             ['unavailable', 'restricted', 'needs_action', 'passed'] as const
           ).find((status) => stepChecks.some((check) => check.status === status))
           return {
             key: step.key,
             label: `${index + 1}. ${t(step.title)}`,
-            extra: stepStatus ? statusTag(stepStatus) : <Tag>{t('Checking…')}</Tag>,
+            extra: statusIcon(stepStatus),
             children: (
               <div className="space-y-3">
                 <Typography.Paragraph>{t(step.description)}</Typography.Paragraph>
                 <ul className="m-0 list-disc space-y-3 pl-5">
-                  {stepChecks.map((check) => (
-                    <li key={check.id}>
+                  {stepChecks.map((check) => {
+                    const target = check.status === 'needs_action' ? targetForCheck(check) : undefined
+                    const destination = target && availableDestinations.find(
+                      (item) => item.id === target.destination
+                    )
+                    return <li key={check.id}>
                       <div className="flex flex-wrap items-center gap-2">
                         <span>{t(CHECK_LABEL[check.id])}</span>
                         {statusTag(check.status)}
+                        {destination ? (
+                          <Link
+                            to={`${destination.href}${target.anchor ? `#${target.anchor}` : ''}`}
+                            className="inline-flex items-center gap-1"
+                          >
+                            {t('Go to {destination}', { destination: t(target.label ?? DESTINATION_LABEL[destination.id]) })}
+                            <ArrowRightOutlined aria-hidden="true" />
+                          </Link>
+                        ) : null}
                       </div>
                       {check.reasons.map((reason, reasonIndex) => (
                         <Typography.Paragraph
@@ -340,7 +420,7 @@ export const WelcomePage = () => {
                         </Typography.Paragraph>
                       ))}
                     </li>
-                  ))}
+                  })}
                 </ul>
                 {step.key === 'payment' &&
                 stepChecks.some((check) =>
@@ -360,22 +440,56 @@ export const WelcomePage = () => {
                   </Typography.Paragraph>
                 ) : null}
                 {step.key === 'review' ? (
-                  <Typography.Paragraph>
-                    {t(
-                      'Check the complete shopping journey, including delivery, payment and order confirmation, through the existing test-order process.'
-                    )}
-                  </Typography.Paragraph>
+                  <>
+                    {stepChecks.some(
+                      (check) =>
+                        (check.id === 'turnstile_configuration' || check.id === 'backup_configuration') &&
+                        check.status === 'needs_action'
+                    ) ? (
+                      <Typography.Paragraph>
+                        {t('Ask the deployment maintainer to configure the missing runtime bindings.')}
+                      </Typography.Paragraph>
+                    ) : null}
+                    <Typography.Paragraph>
+                      {t(
+                        'Check the complete shopping journey, including delivery, payment and order confirmation, through the existing test-order process.'
+                      )}
+                    </Typography.Paragraph>
+                  </>
                 ) : null}
-                <Space wrap>
-                  {stepDestinations.map((destination) => (
-                    <DestinationLink key={destination.id} destination={destination} />
-                  ))}
-                </Space>
               </div>
             ),
           }
         })}
       />
+      {browseDestinations.length ? (
+        <Card title={t(canRead ? 'Other setup areas' : 'Available editors')}>
+          <Typography.Paragraph type="secondary">
+            {t(canRead
+              ? 'These areas are outside the 13 automatic checks. Review draft, published, candidate and live state in each editor.'
+              : 'You can open the editors allowed for your account. Setup check conclusions require settings access.')}
+          </Typography.Paragraph>
+          <div className="grid gap-6 md:grid-cols-3">
+            {EDITOR_GROUPS.map((group) => {
+              const destinations = browseDestinations.filter(
+                (destination) => group.destinations.includes(destination.id)
+              )
+              return destinations.length ? (
+                <section key={group.title}>
+                  <Typography.Title level={5}>{t(group.title)}</Typography.Title>
+                  <ul className="m-0 space-y-2 p-0" style={{ listStyle: 'none' }}>
+                    {destinations.map((destination) => (
+                      <li key={destination.id}>
+                        <DestinationLink destination={destination} />
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null
+            })}
+          </div>
+        </Card>
+      ) : null}
     </CustomPageRecipe>
   )
 }

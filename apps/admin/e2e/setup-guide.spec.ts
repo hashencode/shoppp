@@ -17,6 +17,10 @@ const guide: SetupGuideDestinations = {
     { href: '/content/articles?from=setup-guide', id: 'articles' },
     { href: '/storefront/navigation?from=setup-guide', id: 'navigation' },
     { href: '/storefront/themes?from=setup-guide', id: 'themes' },
+    { href: '/settings/shipping?from=setup-guide', id: 'shipping' },
+    { href: '/settings/launch?from=setup-guide', id: 'commerce' },
+    { href: '/inventory?from=setup-guide', id: 'inventory' },
+    { href: '/orders?from=setup-guide', id: 'orders' },
   ],
 }
 const guideSummary: SetupGuideSummary = {
@@ -29,6 +33,11 @@ guideSummary.checks[0] = {
   ...guideSummary.checks[0]!,
   status: 'needs_action',
   reasons: [{ code: 'configuration_not_saved' }],
+}
+guideSummary.checks[2] = {
+  ...guideSummary.checks[2]!,
+  status: 'needs_action',
+  reasons: [{ code: 'no_sellable_sku' }],
 }
 
 test.beforeEach(async ({ page }) => {
@@ -71,8 +80,12 @@ for (const viewport of [
     await page.goto(path('/welcome'))
 
     await expect(page.getByRole('heading', { name: 'Store setup guide' })).toBeVisible()
-    await expect(page.locator('.ant-statistic-content')).toHaveText('12/13')
+    await expect(page.locator('.ant-statistic-content')).toHaveText('11/13')
     await expect(page.getByText('Default configuration has not been confirmed. Review and save commercial settings.')).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Go to Commercial settings' })).toHaveAttribute(
+      'href',
+      `${appBase}/settings/launch?from=setup-guide#sales`
+    )
     await expect(page.getByRole('link', { name: 'Store identity' })).toHaveAttribute(
       'href',
       `${appBase}/settings/identity?from=setup-guide`
@@ -90,8 +103,7 @@ for (const viewport of [
       'href',
       `${appBase}/storefront/themes?from=setup-guide`
     )
-    await page.getByText('2. Prepare products').click()
-    await page.getByRole('link', { name: 'Products' }).click()
+    await page.getByRole('link', { name: 'Go to Products' }).click()
     await expect(page.getByRole('heading', { name: 'Catalog' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Setup guide product' })).toBeVisible()
     await page.getByRole('link', { name: 'Back to store setup guide' }).click()
@@ -136,7 +148,7 @@ test('recheck keeps the expanded guide height while replacing old results', asyn
     await route.fulfill({ json: { data: result } })
   })
   await page.goto(path('/welcome'))
-  await expect(page.locator('.ant-statistic-content')).toHaveText('12/13')
+  await expect(page.locator('.ant-statistic-content')).toHaveText('11/13')
   await expect(page.getByText('Default configuration has not been confirmed. Review and save commercial settings.')).toBeVisible()
   await page.waitForTimeout(450)
   const card = page.locator('.ant-card').first()

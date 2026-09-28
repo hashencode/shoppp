@@ -1,5 +1,5 @@
 import React from 'react'
-import { SETUP_GUIDE_CHECKS, type AdminPermission, type SetupGuideSummary } from '@shoppp/contracts'
+import { SETUP_GUIDE_CHECKS, type AdminPermission, type SetupGuideCheck, type SetupGuideSummary } from '@shoppp/contracts'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
@@ -21,6 +21,10 @@ const destinations = [
   { href: '/content/articles?from=setup-guide', id: 'articles' },
   { href: '/storefront/navigation?from=setup-guide', id: 'navigation' },
   { href: '/storefront/themes?from=setup-guide', id: 'themes' },
+  { href: '/settings/shipping?from=setup-guide', id: 'shipping' },
+  { href: '/settings/launch?from=setup-guide', id: 'commerce' },
+  { href: '/inventory?from=setup-guide', id: 'inventory' },
+  { href: '/orders?from=setup-guide', id: 'orders' },
 ]
 
 const checkedSummary = (): SetupGuideSummary => ({
@@ -68,6 +72,11 @@ describe('WelcomePage setup guide', () => {
     )
     expect(screen.getByText('Default configuration has not been confirmed. Review and save commercial settings.')).toBeTruthy()
     expect(screen.getByText('1. Basics and contacts').closest('.ant-collapse-header')?.getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getByRole('img', { name: 'Needs action' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Go to Commercial settings' }).getAttribute('href')).toBe(
+      '/settings/launch?from=setup-guide#sales'
+    )
+    expect(screen.queryByRole('link', { name: 'Go to Contact settings' })).toBeNull()
     expect((await screen.findByRole('link', { name: 'Store identity' })).getAttribute('href')).toBe(
       '/settings/identity?from=setup-guide'
     )
@@ -145,6 +154,77 @@ describe('WelcomePage setup guide', () => {
     expect(screen.queryByText('Current configuration checks passed; manual verification is still required.')).toBeNull()
   })
 
+  it('explains operator-owned checks without offering a misleading editor shortcut', async () => {
+    const summary = checkedSummary()
+    summary.checks = summary.checks.map((check) => {
+      if (check.id === 'payment_configuration') {
+        return { ...check, status: 'needs_action', reasons: [{ code: 'payment_provider_missing' }] }
+      }
+      if (check.id === 'turnstile_configuration') {
+        return { ...check, status: 'needs_action', reasons: [{ code: 'turnstile_secret_missing' }] }
+      }
+      return check
+    })
+    server.use(
+      http.get('*/admin/settings/setup-guide', () => HttpResponse.json({ data: summary }))
+    )
+    renderGuide()
+
+    expect(await screen.findByText('The payment provider credential is not configured.')).toBeTruthy()
+    expect(screen.getByText('Ask the deployment maintainer to configure the environment credentials.')).toBeTruthy()
+    expect(screen.getByText('Ask the deployment maintainer to configure the missing runtime bindings.')).toBeTruthy()
+    expect(screen.queryByRole('link', { name: 'Go to Commercial settings' })).toBeNull()
+  })
+
+  it('sends actionable checks to the relevant section of the authorized editor', async () => {
+    const summary = checkedSummary()
+    const reasons: Partial<Record<SetupGuideCheck['id'], string>> = {
+      shipping_countries: 'shipping_country_unavailable',
+      payment_configuration: 'production_payment_mode_not_live',
+      policy_configuration: 'legal_approval_missing',
+    }
+    summary.checks = summary.checks.map((check) => {
+      const reason = reasons[check.id]
+      return reason
+        ? { ...check, status: 'needs_action' as const, reasons: [{ code: reason }] }
+        : check
+    })
+    server.use(
+      http.get('*/admin/settings/setup-guide', () => HttpResponse.json({ data: summary }))
+    )
+    renderGuide()
+
+    expect((await screen.findByRole('link', { name: 'Go to Shipping settings' })).getAttribute('href')).toBe(
+      '/settings/shipping?from=setup-guide'
+    )
+    expect(screen.getByRole('link', { name: 'Go to Payments' }).getAttribute('href')).toBe(
+      '/settings/launch?from=setup-guide#payment'
+    )
+    expect(screen.getByRole('link', { name: 'Go to Policy settings' }).getAttribute('href')).toBe(
+      '/settings/launch?from=setup-guide#policies'
+    )
+    expect(screen.getAllByRole('link', { name: /^Go to / })).toHaveLength(3)
+  })
+
+  it('does not expose an inline action when its destination is outside the permission snapshot', async () => {
+    const summary = checkedSummary()
+    summary.checks[0] = {
+      ...summary.checks[0]!,
+      status: 'needs_action',
+      reasons: [{ code: 'configuration_not_saved' }],
+    }
+    server.use(
+      http.get('*/admin/settings/setup-guide', () => HttpResponse.json({ data: summary })),
+      http.get('*/admin/settings/setup-guide/destinations', () =>
+        HttpResponse.json({ data: { destinations: destinations.slice(0, 2) } })
+      )
+    )
+    renderGuide(['settings.read', 'identity.read'])
+
+    expect(await screen.findByText('Default configuration has not been confirmed. Review and save commercial settings.')).toBeTruthy()
+    expect(screen.queryByRole('link', { name: 'Go to Commercial settings' })).toBeNull()
+  })
+
   it('keeps permitted guidance without requesting checks when settings access is absent', async () => {
     let checkRequests = 0
     server.use(
@@ -169,14 +249,14 @@ describe('WelcomePage setup guide', () => {
   it('should show only the destinations returned for the current permission snapshot', async () => {
     server.use(
       http.get('*/admin/settings/setup-guide/destinations', () =>
-        HttpResponse.json({ data: { destinations: destinations.slice(0, 2) } })
+        HttpResponse.json({ data: { destinations: [destinations[0], destinations[2]] } })
       )
     )
-    renderGuide(['settings.read', 'identity.read'])
+    renderGuide(['settings.read', 'identity.read', 'policies.read'])
 
     fireEvent.click(screen.getByText('1. Basics and contacts'))
     expect(await screen.findByRole('link', { name: 'Store identity' })).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Contact settings' })).toBeTruthy()
-    expect(screen.queryByRole('link', { name: 'Policies' })).toBeNull()
+    expect(screen.getByRole('link', { name: 'Policies' })).toBeTruthy()
+    expect(screen.queryByRole('link', { name: 'Collections' })).toBeNull()
   })
 })

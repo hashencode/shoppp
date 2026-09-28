@@ -662,6 +662,17 @@ export const zhCNMessages: Record<string, string> = {
   'Inventory settings': '库存设置',
   'View orders': '查看订单',
   'Passed automatic checks': '已通过检查项',
+  'Go to {destination}': '前往{destination}',
+  'Other setup areas': '其他开店事项',
+  'Available editors': '可访问的编辑页面',
+  'Catalog and operations': '商品与运营',
+  'Content and storefront': '内容与店面',
+  'These areas are outside the 13 automatic checks. Review draft, published, candidate and live state in each editor.':
+    '以下领域不在 13 项自动检查范围内，请在各编辑页面核对草稿、已发布、候选版本和线上状态。',
+  'You can open the editors allowed for your account. Setup check conclusions require settings access.':
+    '你可以进入当前账号有权访问的编辑页面；查看开店检查结论需要设置读取权限。',
+  'Ask the deployment maintainer to configure the missing runtime bindings.':
+    '请联系部署维护者配置缺失的运行环境绑定。',
   'These 13 checks cover initial store setup. Open each editor to review draft, published, candidate and live state.':
     '这 13 项检查覆盖初始开店配置。草稿、已发布、候选版本和线上状态请到各编辑页面核对。',
   Recheck: '重新检查',
