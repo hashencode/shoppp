@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import type { SetupGuideDestinations } from '@shoppp/contracts'
+import { SETUP_GUIDE_CHECKS, type SetupGuideDestinations, type SetupGuideSummary } from '@shoppp/contracts'
 import { mockAdminSession } from './support'
 import { normalizeAppBasePath } from '../src/shared/utils/normalize-app-base-path'
 
@@ -19,6 +19,17 @@ const guide: SetupGuideDestinations = {
     { href: '/storefront/themes?from=setup-guide', id: 'themes' },
   ],
 }
+const guideSummary: SetupGuideSummary = {
+  checkedAt: '2026-09-28T08:00:00.000Z',
+  environment: 'staging',
+  configuration: { updatedAt: '2026-09-28T07:00:00.000Z', defaultCurrency: 'USD' },
+  checks: SETUP_GUIDE_CHECKS.map((check) => ({ ...check, status: 'passed', reasons: [] })),
+}
+guideSummary.checks[0] = {
+  ...guideSummary.checks[0]!,
+  status: 'needs_action',
+  reasons: [{ code: 'configuration_not_saved' }],
+}
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -31,12 +42,15 @@ for (const viewport of [
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'mobile', width: 390, height: 844 },
 ]) {
-  test(`permission-aware setup index exposes direct authority links on ${viewport.name}`, async ({
+  test(`setup guide shows completion and guided authority links on ${viewport.name}`, async ({
     page,
   }) => {
     await page.setViewportSize(viewport)
     await page.route('**/api/admin/settings/setup-guide/destinations', (route) =>
       route.fulfill({ json: { data: guide } })
+    )
+    await page.route('**/api/admin/settings/setup-guide', (route) =>
+      route.fulfill({ json: { data: guideSummary } })
     )
     await page.route('**/api/admin/catalog/products**', (route) =>
       route.fulfill({
@@ -57,10 +71,13 @@ for (const viewport of [
     await page.goto(path('/welcome'))
 
     await expect(page.getByRole('heading', { name: 'Store setup guide' })).toBeVisible()
+    await expect(page.locator('.ant-statistic-content')).toHaveText('12/13')
+    await expect(page.getByText('Default configuration has not been confirmed. Review and save commercial settings.')).toBeVisible()
     await expect(page.getByRole('link', { name: 'Store identity' })).toHaveAttribute(
       'href',
       `${appBase}/settings/identity?from=setup-guide`
     )
+    await page.getByText('5. Storefront and policies').click()
     await expect(page.getByRole('link', { name: 'Policies' })).toHaveAttribute(
       'href',
       `${appBase}/settings/policies?from=setup-guide`
@@ -73,8 +90,7 @@ for (const viewport of [
       'href',
       `${appBase}/storefront/themes?from=setup-guide`
     )
-    await expect(page.getByText('Passed automatic checks')).toHaveCount(0)
-
+    await page.getByText('2. Prepare products').click()
     await page.getByRole('link', { name: 'Products' }).click()
     await expect(page.getByRole('heading', { name: 'Catalog' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Setup guide product' })).toBeVisible()
@@ -91,9 +107,13 @@ test('setup index recovers from an unavailable destination response', async ({ p
       ? route.fulfill({ status: 503, json: { error: { code: 'unavailable' } } })
       : route.fulfill({ json: { data: guide } })
   })
+  await page.route('**/api/admin/settings/setup-guide', (route) =>
+    route.fulfill({ json: { data: guideSummary } })
+  )
   await page.goto(path('/welcome'))
 
   await expect(page.getByText('Setup destinations could not be loaded')).toBeVisible()
   await page.getByRole('button', { name: 'Retry' }).click()
+  await expect(page.getByText('Setup destinations could not be loaded')).toHaveCount(0)
   await expect(page.getByRole('link', { name: 'Store identity' })).toBeVisible()
 })

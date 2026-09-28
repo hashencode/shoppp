@@ -7,6 +7,7 @@ import type {
   LaunchConfigurationStatus,
   OperationalHealth,
   SetupGuideDestinations,
+  SetupGuideSummary,
   PrivacyRequest,
   CreatePrivacyRequest,
   CreatePolicyRequest,
@@ -16,16 +17,23 @@ import type {
   UpdatePolicyRequest,
   UpdateStoreIdentityRequest,
 } from '@shoppp/contracts'
-import { contactSettingsSchema, setupGuideDestinationsSchema } from '@shoppp/contracts'
+import { contactSettingsSchema, setupGuideDestinationsSchema, setupGuideSummarySchema } from '@shoppp/contracts'
 import { apiClient } from '../../infrastructure/http/api-client'
 import { saveBlob, toBlobFileName } from '../../shared/utils/download'
 
-export const fetchSetupGuide = async (signal: AbortSignal): Promise<SetupGuideDestinations> => {
+export const fetchSetupGuideDestinations = async (signal: AbortSignal): Promise<SetupGuideDestinations> => {
   const response = await apiClient.get<{ data: SetupGuideDestinations }>(
     '/admin/settings/setup-guide/destinations',
     { signal }
   )
   return setupGuideDestinationsSchema.parse(response.data.data)
+}
+
+export const fetchSetupGuide = async (signal: AbortSignal): Promise<SetupGuideSummary> => {
+  const response = await apiClient.get<{ data: SetupGuideSummary }>('/admin/settings/setup-guide', {
+    signal,
+  })
+  return setupGuideSummarySchema.parse(response.data.data)
 }
 
 export const fetchContactSettings = async (): Promise<ContactSettings> => {

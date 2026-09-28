@@ -554,6 +554,7 @@ export const zhCNMessages: Record<string, string> = {
   'Country and shipping method links': '国家与配送方式关联',
   'Payment configuration': '支付配置',
   'Policy configuration': '政策配置',
+  'Commercial policy links and approval': '商业设置中的政策链接与确认',
   'Inventory reservation duration': '库存预留时长',
   'Turnstile configuration': 'Turnstile 配置',
   'Backup configuration': '备份配置',
@@ -661,6 +662,8 @@ export const zhCNMessages: Record<string, string> = {
   'Inventory settings': '库存设置',
   'View orders': '查看订单',
   'Passed automatic checks': '已通过检查项',
+  'These 13 checks cover initial store setup. Open each editor to review draft, published, candidate and live state.':
+    '这 13 项检查覆盖初始开店配置。草稿、已发布、候选版本和线上状态请到各编辑页面核对。',
   Recheck: '重新检查',
   'Environment: {environment} · Checked: {time}': '环境：{environment} · 检查时间：{time}',
   'Default currency: {currency} · Configuration saved: {time}':
