@@ -89,8 +89,7 @@ export const zhCNMessages: Record<string, string> = {
     '此政策已更改。请重新加载最新版本并再次检查。',
   'This Navigation menu changed. Reload it before continuing.':
     '此导航菜单已更改。请重新加载后再继续。',
-  'Remove the current storefront references before archiving.':
-    '归档前请先移除当前店铺引用。',
+  'Remove the current storefront references before archiving.': '归档前请先移除当前店铺引用。',
   'Choose a currently published Navigation target.': '请选择当前已发布的导航目标。',
   'This Navigation lifecycle action is no longer available.': '此导航生命周期操作已不可用。',
   'Catalog sources are frozen while a Preview candidate is building. Retry shortly.':
@@ -167,8 +166,7 @@ export const zhCNMessages: Record<string, string> = {
     '店铺名称、共享 Logo、元数据和全局搜索展示。',
   'Public contact channels and social profiles.': '公开联系方式与社交资料。',
   'Draft, approve, publish, and archive legal policies.': '起草、批准、发布和归档法律政策。',
-  'Product facts, media, variants, prices, and publication.':
-    '商品事实、媒体、款式、价格和发布。',
+  'Product facts, media, variants, prices, and publication.': '商品事实、媒体、款式、价格和发布。',
   'Collection presentation and ordered Product membership.': '商品集合展示和有序商品成员。',
   'Merchant Pages and their storefront routes.': '商家页面及其店铺路由。',
   'Editorial Articles and their storefront routes.': '编辑文章及其店铺路由。',
@@ -176,8 +174,7 @@ export const zhCNMessages: Record<string, string> = {
   'Presentation Blocks, exact candidate selection, private Preview, and approval.':
     '展示区块、精确候选选择、私有预览和批准。',
   'Shipping zones, countries, and methods.': '配送区域、国家和方式。',
-  'Currency, payment, checkout, and operational configuration.':
-    '币种、支付、结账和运营配置。',
+  'Currency, payment, checkout, and operational configuration.': '币种、支付、结账和运营配置。',
   'Stock and availability facts.': '库存和可售事实。',
   'Orders and fulfillment operations.': '订单和履约操作。',
   Reviews: '评价',
@@ -539,11 +536,11 @@ export const zhCNMessages: Record<string, string> = {
   'Configuration checks cover credential formats and the environment payment mode. They do not verify a payment or webhook delivery.':
     '配置检查涵盖凭证格式和当前环境的支付模式，不验证实际支付或回调送达。',
   'Storefront and policies': '店面与政策',
-  'Check policy links and approval, then review the storefront through the existing theme workflow.':
-    '检查政策链接与确认状态，再通过现有主题流程检查店面。',
+  'Check policy links and approval, then verify the customer-facing storefront.':
+    '检查政策链接与确认状态，并核验面向顾客的店面内容。',
   'Review before launch': '上线前复核',
-  'Review inventory and runtime settings, then complete the manual checks. Production release follows the existing process.':
-    '复核库存与运行配置，然后完成人工检查。正式发布仍按现有流程进行。',
+  'Review inventory and runtime settings. Production release follows the existing process.':
+    '复核库存与运行配置。正式发布仍按现有流程进行。',
   'Commercial configuration saved': '商业配置已保存',
   'Contact email formats': '联系邮箱格式',
   'Public contact channel confirmed': '已确认公开联系渠道',
@@ -693,8 +690,9 @@ export const zhCNMessages: Record<string, string> = {
     '请由部署维护者配置当前环境的凭证。',
   'Preview the storefront and confirm the brand content and policy text.':
     '预览店面并确认品牌内容与政策正文。',
-  'Check the complete shopping journey, including delivery, payment and order confirmation, through the existing test-order process.':
-    '通过现有试单流程核验完整购物路径，包括配送、支付和订单确认。',
+  'Manual verification (not counted in automatic checks)': '人工核验（不计入自动检查）',
+  'Place a test order in the test storefront to verify delivery, payment and order confirmation. Review the resulting order in Admin.':
+    '在测试店面完成试单，核验配送、支付和订单确认；随后在后台查看该订单。',
   Welcome: '欢迎',
   'Commerce dashboard': '商业仪表盘',
   'Revenue report': '收入报表',
@@ -1258,7 +1256,8 @@ export const zhCNMessages: Record<string, string> = {
   Link: '链接',
   List: '列表',
   'Media could not be loaded': '媒体资源加载失败',
-  'This Content record changed. Reload it before continuing.': '此内容已发生变化，请重新加载后继续。',
+  'This Content record changed. Reload it before continuing.':
+    '此内容已发生变化，请重新加载后继续。',
   'Choose media from currently published Catalog products.': '请选择当前已发布商品中的媒体资源。',
   'Remove the current storefront references before continuing.': '请先移除当前店面引用后再继续。',
   'Confirm a redirect from the previous storefront route.': '请确认从原店面路由重定向。',

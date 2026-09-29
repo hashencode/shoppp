@@ -1,5 +1,9 @@
 import { expect, test } from '@playwright/test'
-import { SETUP_GUIDE_CHECKS, type SetupGuideDestinations, type SetupGuideSummary } from '@shoppp/contracts'
+import {
+  SETUP_GUIDE_CHECKS,
+  type SetupGuideDestinations,
+  type SetupGuideSummary,
+} from '@shoppp/contracts'
 import { mockAdminSession } from './support'
 import { normalizeAppBasePath } from '../src/shared/utils/normalize-app-base-path'
 
@@ -81,7 +85,11 @@ for (const viewport of [
 
     await expect(page.getByRole('heading', { name: 'Store setup guide' })).toBeVisible()
     await expect(page.locator('.ant-statistic-content')).toHaveText('11/13')
-    await expect(page.getByText('Default configuration has not been confirmed. Review and save commercial settings.')).toBeVisible()
+    await expect(
+      page.getByText(
+        'Default configuration has not been confirmed. Review and save commercial settings.'
+      )
+    ).toBeVisible()
     await expect(page.getByRole('link', { name: 'Go to Commercial settings' })).toHaveAttribute(
       'href',
       `${appBase}/settings/launch?from=setup-guide#sales`
@@ -103,6 +111,23 @@ for (const viewport of [
       'href',
       `${appBase}/storefront/themes?from=setup-guide`
     )
+    await expect(
+      page.getByText('Preview the storefront and confirm the brand content and policy text.')
+    ).toBeVisible()
+    await page.getByText('6. Review before launch').click()
+    await expect(
+      page.getByText(
+        'Place a test order in the test storefront to verify delivery, payment and order confirmation. Review the resulting order in Admin.'
+      )
+    ).toBeVisible()
+    await expect(
+      page
+        .getByText(
+          'Place a test order in the test storefront to verify delivery, payment and order confirmation. Review the resulting order in Admin.'
+        )
+        .locator('..')
+        .getByRole('link', { name: 'Orders' })
+    ).toHaveAttribute('href', `${appBase}/orders?from=setup-guide`)
     await page.getByRole('link', { name: 'Go to Products' }).click()
     await expect(page.getByRole('heading', { name: 'Catalog' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Setup guide product' })).toBeVisible()
@@ -142,14 +167,26 @@ test('recheck keeps the expanded guide height while replacing old results', asyn
   await page.route('**/api/admin/settings/setup-guide', async (route) => {
     requests += 1
     if (requests === 2) await pendingRecheck
-    const result = requests === 1
-      ? guideSummary
-      : { ...guideSummary, checks: SETUP_GUIDE_CHECKS.map((check) => ({ ...check, status: 'passed' as const, reasons: [] })) }
+    const result =
+      requests === 1
+        ? guideSummary
+        : {
+            ...guideSummary,
+            checks: SETUP_GUIDE_CHECKS.map((check) => ({
+              ...check,
+              status: 'passed' as const,
+              reasons: [],
+            })),
+          }
     await route.fulfill({ json: { data: result } })
   })
   await page.goto(path('/welcome'))
   await expect(page.locator('.ant-statistic-content')).toHaveText('11/13')
-  await expect(page.getByText('Default configuration has not been confirmed. Review and save commercial settings.')).toBeVisible()
+  await expect(
+    page.getByText(
+      'Default configuration has not been confirmed. Review and save commercial settings.'
+    )
+  ).toBeVisible()
   await page.waitForTimeout(450)
   const card = page.locator('.ant-card').first()
   const guidePanel = page.locator('.ant-collapse')
@@ -158,7 +195,11 @@ test('recheck keeps the expanded guide height while replacing old results', asyn
 
   await page.getByRole('button', { name: 'Recheck' }).click()
   await expect.poll(() => requests).toBe(2)
-  await expect(page.getByText('Default configuration has not been confirmed. Review and save commercial settings.')).toBeHidden()
+  await expect(
+    page.getByText(
+      'Default configuration has not been confirmed. Review and save commercial settings.'
+    )
+  ).toBeHidden()
   await page.waitForTimeout(450)
   const cardDuring = await card.evaluate((element) => element.getBoundingClientRect().height)
   const during = await guidePanel.evaluate((element) => element.getBoundingClientRect().height)

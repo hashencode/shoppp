@@ -1,4 +1,10 @@
-import { SETUP_GUIDE_CHECKS, type SetupGuideCheck, type SetupGuideDestination, type SetupGuideDestinations, type SetupGuideSummary } from '@shoppp/contracts'
+import {
+  SETUP_GUIDE_CHECKS,
+  type SetupGuideCheck,
+  type SetupGuideDestination,
+  type SetupGuideDestinations,
+  type SetupGuideSummary,
+} from '@shoppp/contracts'
 import {
   ArrowRightOutlined,
   CheckCircleOutlined,
@@ -48,14 +54,13 @@ const STEPS: { key: Step; title: string; description: string }[] = [
   {
     key: 'storefront',
     title: 'Storefront and policies',
-    description:
-      'Check policy links and approval, then review the storefront through the existing theme workflow.',
+    description: 'Check policy links and approval, then verify the customer-facing storefront.',
   },
   {
     key: 'review',
     title: 'Review before launch',
     description:
-      'Review inventory and runtime settings, then complete the manual checks. Production release follows the existing process.',
+      'Review inventory and runtime settings. Production release follows the existing process.',
   },
 ]
 const CHECK_LABEL: Record<SetupGuideCheck['id'], string> = {
@@ -101,7 +106,8 @@ const REASON_MESSAGE: Record<string, string> = {
   configuration_not_saved:
     'Default configuration has not been confirmed. Review and save commercial settings.',
   contact_details_invalid: 'Enter valid support and privacy contact email addresses.',
-  public_contact_not_confirmed: 'Confirm at least one public email or phone number in contact settings.',
+  public_contact_not_confirmed:
+    'Confirm at least one public email or phone number in contact settings.',
   no_sellable_sku:
     'No published SKU has a current price and available stock in the default currency.',
   legal_approval_missing: 'Legal approval for the published policies is required.',
@@ -157,19 +163,22 @@ const CHECK_TARGET: Partial<
   reservation_ttl: { destination: 'commerce', anchor: 'sales', label: 'Sales and inventory' },
 }
 const EDITOR_GROUPS: { title: string; destinations: DestinationId[] }[] = [
-  { title: 'Store settings', destinations: ['identity', 'contact', 'commerce', 'shipping', 'policies'] },
-  { title: 'Catalog and operations', destinations: ['products', 'collections', 'inventory', 'orders'] },
+  {
+    title: 'Store settings',
+    destinations: ['identity', 'contact', 'commerce', 'shipping', 'policies'],
+  },
+  {
+    title: 'Catalog and operations',
+    destinations: ['products', 'collections', 'inventory', 'orders'],
+  },
   { title: 'Content and storefront', destinations: ['pages', 'articles', 'navigation', 'themes'] },
 ]
 const UNCHECKED_DESTINATIONS = new Set<DestinationId>([
   'identity',
-  'policies',
   'collections',
   'pages',
   'articles',
   'navigation',
-  'themes',
-  'orders',
 ])
 const targetForCheck = (check: SetupGuideCheck) => {
   if (check.id === 'payment_configuration') {
@@ -240,25 +249,24 @@ export const WelcomePage = () => {
         if (active) setDestinationsResult({ request, failed: true })
       }
     )
-    if (canRead) void fetchSetupGuide(controller.signal).then(
-      (summary) => {
-        if (!active) return
-        setResult({ request, summary })
-        setExpanded(
-          STEPS.filter((step) =>
-            summary.checks.some(
-              (check) => check.step === step.key && check.status !== 'passed'
-            )
-          ).map((step) => step.key)
-        )
-      },
-      (error: unknown) => {
-        if (!active) return
-        const errorStatus = (error as { status?: number } | null)?.status
-        setResult({ request, failed: true, errorStatus })
-        setExpanded(ALL_STEPS)
-      }
-    )
+    if (canRead)
+      void fetchSetupGuide(controller.signal).then(
+        (summary) => {
+          if (!active) return
+          setResult({ request, summary })
+          setExpanded(
+            STEPS.filter((step) =>
+              summary.checks.some((check) => check.step === step.key && check.status !== 'passed')
+            ).map((step) => step.key)
+          )
+        },
+        (error: unknown) => {
+          if (!active) return
+          const errorStatus = (error as { status?: number } | null)?.status
+          setResult({ request, failed: true, errorStatus })
+          setExpanded(ALL_STEPS)
+        }
+      )
     return () => {
       active = false
       controller.abort()
@@ -325,11 +333,14 @@ export const WelcomePage = () => {
         </div>
         {summary ? (
           <Typography.Paragraph className="!mb-0 mt-3">
-            {t('Needs action')}: {pendingCount} · {t('Unable to check')}: {unavailableCount} · {t('No permission to check')}: {restrictedCount}
+            {t('Needs action')}: {pendingCount} · {t('Unable to check')}: {unavailableCount} ·{' '}
+            {t('No permission to check')}: {restrictedCount}
           </Typography.Paragraph>
         ) : null}
         <Typography.Paragraph className="!mb-0 mt-3" type="secondary">
-          {t('These 13 checks cover initial store setup. Open each editor to review draft, published, candidate and live state.')}
+          {t(
+            'These 13 checks cover initial store setup. Open each editor to review draft, published, candidate and live state.'
+          )}
         </Typography.Paragraph>
         {passedCount === SETUP_GUIDE_CHECKS.length ? (
           <Typography.Paragraph className="!mb-0 mt-3">
@@ -388,74 +399,104 @@ export const WelcomePage = () => {
                 <Typography.Paragraph>{t(step.description)}</Typography.Paragraph>
                 <ul className="m-0 list-disc space-y-3 pl-5">
                   {stepChecks.map((check) => {
-                    const target = check.status === 'needs_action' ? targetForCheck(check) : undefined
-                    const destination = target && availableDestinations.find(
-                      (item) => item.id === target.destination
-                    )
-                    return <li key={check.id}>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span>{t(CHECK_LABEL[check.id])}</span>
-                        {statusTag(check.status)}
-                        {destination ? (
-                          <Link
-                            to={`${destination.href}${target.anchor ? `#${target.anchor}` : ''}`}
-                            className="inline-flex items-center gap-1"
+                    const target =
+                      check.status === 'needs_action' ? targetForCheck(check) : undefined
+                    const destination =
+                      target && availableDestinations.find((item) => item.id === target.destination)
+                    return (
+                      <li key={check.id}>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span>{t(CHECK_LABEL[check.id])}</span>
+                          {statusTag(check.status)}
+                          {destination ? (
+                            <Link
+                              to={`${destination.href}${target.anchor ? `#${target.anchor}` : ''}`}
+                              className="inline-flex items-center gap-1"
+                            >
+                              {t('Go to {destination}', {
+                                destination: t(target.label ?? DESTINATION_LABEL[destination.id]),
+                              })}
+                              <ArrowRightOutlined aria-hidden="true" />
+                            </Link>
+                          ) : null}
+                        </div>
+                        {check.reasons.map((reason, reasonIndex) => (
+                          <Typography.Paragraph
+                            className="!mb-0 mt-1"
+                            type="secondary"
+                            key={`${reason.code}-${reasonIndex}`}
                           >
-                            {t('Go to {destination}', { destination: t(target.label ?? DESTINATION_LABEL[destination.id]) })}
-                            <ArrowRightOutlined aria-hidden="true" />
-                          </Link>
+                            {t(
+                              REASON_MESSAGE[reason.code] ??
+                                'This check needs further attention. Review the corresponding settings.',
+                              { countries: reason.countries?.join(', ') ?? '' }
+                            )}
+                          </Typography.Paragraph>
+                        ))}
+                        {check.status === 'needs_action' &&
+                        check.id === 'payment_configuration' &&
+                        check.reasons.some(
+                          (reason) =>
+                            reason.code === 'payment_provider_missing' ||
+                            reason.code === 'payment_webhook_missing'
+                        ) ? (
+                          <Typography.Paragraph className="!mb-0 mt-1" type="secondary">
+                            {t(
+                              'Ask the deployment maintainer to configure the environment credentials.'
+                            )}
+                          </Typography.Paragraph>
                         ) : null}
-                      </div>
-                      {check.reasons.map((reason, reasonIndex) => (
-                        <Typography.Paragraph
-                          className="!mb-0 mt-1"
-                          type="secondary"
-                          key={`${reason.code}-${reasonIndex}`}
-                        >
-                          {t(
-                            REASON_MESSAGE[reason.code] ??
-                              'This check needs further attention. Review the corresponding settings.',
-                            { countries: reason.countries?.join(', ') ?? '' }
-                          )}
-                        </Typography.Paragraph>
-                      ))}
-                    </li>
+                        {check.status === 'needs_action' &&
+                        (check.id === 'turnstile_configuration' ||
+                          check.id === 'backup_configuration') ? (
+                          <Typography.Paragraph className="!mb-0 mt-1" type="secondary">
+                            {t(
+                              'Ask the deployment maintainer to configure the missing runtime bindings.'
+                            )}
+                          </Typography.Paragraph>
+                        ) : null}
+                      </li>
+                    )
                   })}
                 </ul>
-                {step.key === 'payment' &&
-                stepChecks.some((check) =>
-                  check.reasons.some(
-                    (reason) =>
-                      reason.code === 'payment_provider_missing' ||
-                      reason.code === 'payment_webhook_missing'
-                  )
-                ) ? (
-                  <Typography.Paragraph>
-                    {t('Ask the deployment maintainer to configure the environment credentials.')}
-                  </Typography.Paragraph>
-                ) : null}
-                {step.key === 'storefront' ? (
-                  <Typography.Paragraph>
-                    {t('Preview the storefront and confirm the brand content and policy text.')}
-                  </Typography.Paragraph>
-                ) : null}
-                {step.key === 'review' ? (
-                  <>
-                    {stepChecks.some(
-                      (check) =>
-                        (check.id === 'turnstile_configuration' || check.id === 'backup_configuration') &&
-                        check.status === 'needs_action'
-                    ) ? (
-                      <Typography.Paragraph>
-                        {t('Ask the deployment maintainer to configure the missing runtime bindings.')}
-                      </Typography.Paragraph>
-                    ) : null}
-                    <Typography.Paragraph>
-                      {t(
-                        'Check the complete shopping journey, including delivery, payment and order confirmation, through the existing test-order process.'
-                      )}
-                    </Typography.Paragraph>
-                  </>
+                {step.key === 'storefront' || step.key === 'review' ? (
+                  <section aria-label={t('Manual verification (not counted in automatic checks)')}>
+                    <Typography.Text strong>
+                      {t('Manual verification (not counted in automatic checks)')}
+                    </Typography.Text>
+                    {step.key === 'storefront' ? (
+                      <div className="mt-2">
+                        <Typography.Paragraph className="!mb-1">
+                          {t(
+                            'Preview the storefront and confirm the brand content and policy text.'
+                          )}
+                        </Typography.Paragraph>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1">
+                          {availableDestinations
+                            .filter(
+                              (destination) =>
+                                destination.id === 'themes' || destination.id === 'policies'
+                            )
+                            .map((destination) => (
+                              <DestinationLink key={destination.id} destination={destination} />
+                            ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-2">
+                        <Typography.Paragraph className="!mb-1">
+                          {t(
+                            'Place a test order in the test storefront to verify delivery, payment and order confirmation. Review the resulting order in Admin.'
+                          )}
+                        </Typography.Paragraph>
+                        {availableDestinations
+                          .filter((destination) => destination.id === 'orders')
+                          .map((destination) => (
+                            <DestinationLink key={destination.id} destination={destination} />
+                          ))}
+                      </div>
+                    )}
+                  </section>
                 ) : null}
               </div>
             ),
@@ -465,14 +506,16 @@ export const WelcomePage = () => {
       {browseDestinations.length ? (
         <Card title={t(canRead ? 'Other setup areas' : 'Available editors')}>
           <Typography.Paragraph type="secondary">
-            {t(canRead
-              ? 'These areas are outside the 13 automatic checks. Review draft, published, candidate and live state in each editor.'
-              : 'You can open the editors allowed for your account. Setup check conclusions require settings access.')}
+            {t(
+              canRead
+                ? 'These areas are outside the 13 automatic checks. Review draft, published, candidate and live state in each editor.'
+                : 'You can open the editors allowed for your account. Setup check conclusions require settings access.'
+            )}
           </Typography.Paragraph>
           <div className="grid gap-6 md:grid-cols-3">
             {EDITOR_GROUPS.map((group) => {
-              const destinations = browseDestinations.filter(
-                (destination) => group.destinations.includes(destination.id)
+              const destinations = browseDestinations.filter((destination) =>
+                group.destinations.includes(destination.id)
               )
               return destinations.length ? (
                 <section key={group.title}>

@@ -1,5 +1,10 @@
 import React from 'react'
-import { SETUP_GUIDE_CHECKS, type AdminPermission, type SetupGuideCheck, type SetupGuideSummary } from '@shoppp/contracts'
+import {
+  SETUP_GUIDE_CHECKS,
+  type AdminPermission,
+  type SetupGuideCheck,
+  type SetupGuideSummary,
+} from '@shoppp/contracts'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
@@ -61,21 +66,28 @@ describe('WelcomePage setup guide', () => {
       status: 'needs_action',
       reasons: [{ code: 'configuration_not_saved' }],
     }
-    server.use(
-      http.get('*/admin/settings/setup-guide', () => HttpResponse.json({ data: summary }))
-    )
+    server.use(http.get('*/admin/settings/setup-guide', () => HttpResponse.json({ data: summary })))
     renderGuide()
 
     expect(await screen.findByText('Passed automatic checks')).toBeTruthy()
     await waitFor(() =>
       expect(document.querySelector('.ant-statistic-content')?.textContent).toBe('12/13')
     )
-    expect(screen.getByText('Default configuration has not been confirmed. Review and save commercial settings.')).toBeTruthy()
-    expect(screen.getByText('1. Basics and contacts').closest('.ant-collapse-header')?.getAttribute('aria-expanded')).toBe('true')
+    expect(
+      screen.getByText(
+        'Default configuration has not been confirmed. Review and save commercial settings.'
+      )
+    ).toBeTruthy()
+    expect(
+      screen
+        .getByText('1. Basics and contacts')
+        .closest('.ant-collapse-header')
+        ?.getAttribute('aria-expanded')
+    ).toBe('true')
     expect(screen.getByRole('img', { name: 'Needs action' })).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Go to Commercial settings' }).getAttribute('href')).toBe(
-      '/settings/launch?from=setup-guide#sales'
-    )
+    expect(
+      screen.getByRole('link', { name: 'Go to Commercial settings' }).getAttribute('href')
+    ).toBe('/settings/launch?from=setup-guide#sales')
     expect(screen.queryByRole('link', { name: 'Go to Contact settings' })).toBeNull()
     expect((await screen.findByRole('link', { name: 'Store identity' })).getAttribute('href')).toBe(
       '/settings/identity?from=setup-guide'
@@ -97,7 +109,11 @@ describe('WelcomePage setup guide', () => {
     expect(screen.getByRole('link', { name: 'Themes and preview' }).getAttribute('href')).toBe(
       '/storefront/themes?from=setup-guide'
     )
-    expect(screen.getByText('These 13 checks cover initial store setup. Open each editor to review draft, published, candidate and live state.')).toBeTruthy()
+    expect(
+      screen.getByText(
+        'These 13 checks cover initial store setup. Open each editor to review draft, published, candidate and live state.'
+      )
+    ).toBeTruthy()
   })
 
   it('should preserve the application basename for every returned deep link', async () => {
@@ -145,13 +161,19 @@ describe('WelcomePage setup guide', () => {
       )
     )
     await waitFor(() =>
-      expect((screen.getByRole('button', { name: /Recheck/ }) as HTMLButtonElement).disabled).toBe(false)
+      expect((screen.getByRole('button', { name: /Recheck/ }) as HTMLButtonElement).disabled).toBe(
+        false
+      )
     )
     fireEvent.click(screen.getByRole('button', { name: /Recheck/ }))
 
     expect(await screen.findByText('Setup checks could not be loaded.')).toBeTruthy()
     expect(document.querySelector('.ant-statistic-content')?.textContent).toBe('—/13')
-    expect(screen.queryByText('Current configuration checks passed; manual verification is still required.')).toBeNull()
+    expect(
+      screen.queryByText(
+        'Current configuration checks passed; manual verification is still required.'
+      )
+    ).toBeNull()
   })
 
   it('explains operator-owned checks without offering a misleading editor shortcut', async () => {
@@ -163,17 +185,58 @@ describe('WelcomePage setup guide', () => {
       if (check.id === 'turnstile_configuration') {
         return { ...check, status: 'needs_action', reasons: [{ code: 'turnstile_secret_missing' }] }
       }
+      if (check.id === 'backup_configuration') {
+        return { ...check, status: 'needs_action', reasons: [{ code: 'backup_export_missing' }] }
+      }
       return check
     })
-    server.use(
-      http.get('*/admin/settings/setup-guide', () => HttpResponse.json({ data: summary }))
-    )
+    server.use(http.get('*/admin/settings/setup-guide', () => HttpResponse.json({ data: summary })))
     renderGuide()
 
-    expect(await screen.findByText('The payment provider credential is not configured.')).toBeTruthy()
-    expect(screen.getByText('Ask the deployment maintainer to configure the environment credentials.')).toBeTruthy()
-    expect(screen.getByText('Ask the deployment maintainer to configure the missing runtime bindings.')).toBeTruthy()
+    expect(
+      await screen.findByText('The payment provider credential is not configured.')
+    ).toBeTruthy()
+    expect(
+      screen
+        .getByText('Ask the deployment maintainer to configure the environment credentials.')
+        .closest('li')?.textContent
+    ).toContain('Payment configuration')
+    const runtimeActions = screen.getAllByText(
+      'Ask the deployment maintainer to configure the missing runtime bindings.'
+    )
+    expect(runtimeActions.map((action) => action.closest('li')?.textContent)).toEqual([
+      expect.stringContaining('Turnstile configuration'),
+      expect.stringContaining('Backup configuration'),
+    ])
     expect(screen.queryByRole('link', { name: 'Go to Commercial settings' })).toBeNull()
+  })
+
+  it('places manual tasks in their steps with only truthful destination links', async () => {
+    renderGuide()
+
+    expect(await screen.findByText('Passed automatic checks')).toBeTruthy()
+    fireEvent.click(screen.getByText('5. Storefront and policies'))
+    const preview = screen.getByText(
+      'Preview the storefront and confirm the brand content and policy text.'
+    )
+    expect(preview.closest('section')?.textContent).toContain(
+      'Manual verification (not counted in automatic checks)'
+    )
+    expect(
+      preview.closest('section')?.querySelector('a[href="/storefront/themes?from=setup-guide"]')
+    ).toBeTruthy()
+    expect(
+      preview.closest('section')?.querySelector('a[href="/settings/policies?from=setup-guide"]')
+    ).toBeTruthy()
+
+    fireEvent.click(screen.getByText('6. Review before launch'))
+    const testOrder = screen.getByText(
+      'Place a test order in the test storefront to verify delivery, payment and order confirmation. Review the resulting order in Admin.'
+    )
+    expect(
+      testOrder.closest('section')?.querySelector('a[href="/orders?from=setup-guide"]')
+    ).toBeTruthy()
+    expect(testOrder.closest('section')?.querySelectorAll('a')).toHaveLength(1)
   })
 
   it('sends actionable checks to the relevant section of the authorized editor', async () => {
@@ -189,14 +252,12 @@ describe('WelcomePage setup guide', () => {
         ? { ...check, status: 'needs_action' as const, reasons: [{ code: reason }] }
         : check
     })
-    server.use(
-      http.get('*/admin/settings/setup-guide', () => HttpResponse.json({ data: summary }))
-    )
+    server.use(http.get('*/admin/settings/setup-guide', () => HttpResponse.json({ data: summary })))
     renderGuide()
 
-    expect((await screen.findByRole('link', { name: 'Go to Shipping settings' })).getAttribute('href')).toBe(
-      '/settings/shipping?from=setup-guide'
-    )
+    expect(
+      (await screen.findByRole('link', { name: 'Go to Shipping settings' })).getAttribute('href')
+    ).toBe('/settings/shipping?from=setup-guide')
     expect(screen.getByRole('link', { name: 'Go to Payments' }).getAttribute('href')).toBe(
       '/settings/launch?from=setup-guide#payment'
     )
@@ -221,7 +282,11 @@ describe('WelcomePage setup guide', () => {
     )
     renderGuide(['settings.read', 'identity.read'])
 
-    expect(await screen.findByText('Default configuration has not been confirmed. Review and save commercial settings.')).toBeTruthy()
+    expect(
+      await screen.findByText(
+        'Default configuration has not been confirmed. Review and save commercial settings.'
+      )
+    ).toBeTruthy()
     expect(screen.queryByRole('link', { name: 'Go to Commercial settings' })).toBeNull()
   })
 
@@ -256,6 +321,7 @@ describe('WelcomePage setup guide', () => {
 
     fireEvent.click(screen.getByText('1. Basics and contacts'))
     expect(await screen.findByRole('link', { name: 'Store identity' })).toBeTruthy()
+    fireEvent.click(screen.getByText('5. Storefront and policies'))
     expect(screen.getByRole('link', { name: 'Policies' })).toBeTruthy()
     expect(screen.queryByRole('link', { name: 'Collections' })).toBeNull()
   })
