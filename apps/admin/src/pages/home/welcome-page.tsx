@@ -54,16 +54,30 @@ const STEPS: { key: Step; title: string; description: string }[] = [
   {
     key: 'storefront',
     title: 'Storefront and policies',
-    description:
-      'Manually preview the storefront to confirm brand content and policy text; also check policy links and approval.',
+    description: 'Review storefront presentation and commercial policy accuracy.',
   },
   {
     key: 'review',
     title: 'Review before launch',
     description:
-      'Manually place a test order in the test storefront to verify delivery, payment and order confirmation; review the result in Admin. Production release follows the existing process.',
+      'Review inventory and runtime settings. Production release follows the existing process.',
   },
 ]
+const MANUAL_TASK: Partial<
+  Record<Step, { label: string; description: string; destinations: DestinationId[] }>
+> = {
+  storefront: {
+    label: 'Storefront preview and policy content',
+    description: 'Confirm brand content and policy text in the storefront preview.',
+    destinations: ['themes', 'policies'],
+  },
+  review: {
+    label: 'Complete shopping journey',
+    description:
+      'Place a test order in the test storefront to verify delivery, payment and order confirmation; review the result in Admin.',
+    destinations: ['orders'],
+  },
+}
 const CHECK_LABEL: Record<SetupGuideCheck['id'], string> = {
   configuration_saved: 'Commercial configuration saved',
   contact_details: 'Public contact channel confirmed',
@@ -399,12 +413,7 @@ export const WelcomePage = () => {
         onChange={(keys) => setExpanded(typeof keys === 'string' ? [keys] : keys)}
         items={STEPS.map((step, index) => {
           const stepChecks = checks.filter((check) => check.step === step.key)
-          const guidanceDestinations =
-            step.key === 'storefront'
-              ? ['themes', 'policies']
-              : step.key === 'review'
-                ? ['orders']
-                : []
+          const manualTask = MANUAL_TASK[step.key]
           const stepStatus = (
             ['unavailable', 'restricted', 'needs_action', 'passed'] as const
           ).find((status) => stepChecks.some((check) => check.status === status))
@@ -414,16 +423,7 @@ export const WelcomePage = () => {
             extra: statusIcon(stepStatus),
             children: (
               <div className="space-y-3">
-                <Typography.Paragraph className="!mb-0">
-                  {t(step.description)}{' '}
-                  {availableDestinations
-                    .filter((destination) => guidanceDestinations.includes(destination.id))
-                    .map((destination) => (
-                      <span className="mr-4 inline-block" key={destination.id}>
-                        <DestinationLink destination={destination} />
-                      </span>
-                    ))}
-                </Typography.Paragraph>
+                <Typography.Paragraph className="!mb-0">{t(step.description)}</Typography.Paragraph>
                 <ul className="m-0 list-disc space-y-3 pl-5">
                   {stepChecks.map((check) => {
                     const target =
@@ -481,6 +481,22 @@ export const WelcomePage = () => {
                       </li>
                     )
                   })}
+                  {manualTask ? (
+                    <li>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span>{t(manualTask.label)}</span>
+                        <Tag>{t('Manual check')}</Tag>
+                        {availableDestinations
+                          .filter((destination) => manualTask.destinations.includes(destination.id))
+                          .map((destination) => (
+                            <DestinationLink key={destination.id} destination={destination} />
+                          ))}
+                      </div>
+                      <Typography.Paragraph className="!mb-0 mt-1" type="secondary">
+                        {t(manualTask.description)}
+                      </Typography.Paragraph>
+                    </li>
+                  ) : null}
                 </ul>
               </div>
             ),

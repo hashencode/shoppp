@@ -120,21 +120,21 @@ for (const viewport of [
       'rgb(29, 78, 216)'
     )
     await expect(
-      page.getByText(/Manually preview the storefront to confirm brand content and policy text/)
+      page.getByText('Review storefront presentation and commercial policy accuracy.')
     ).toBeVisible()
+    const previewTask = page
+      .getByText('Storefront preview and policy content')
+      .locator('..')
+      .locator('..')
+    await expect(previewTask.getByText('Manual check')).toBeVisible()
+    await expect(previewTask.getByRole('link', { name: 'Go to Themes and preview' })).toBeVisible()
     await page.getByText('6. Review before launch').click()
-    await expect(
-      page.getByText(
-        /Manually place a test order in the test storefront to verify delivery, payment and order confirmation/
-      )
-    ).toBeVisible()
-    await expect(
-      page
-        .getByText(
-          /Manually place a test order in the test storefront to verify delivery, payment and order confirmation/
-        )
-        .getByRole('link', { name: 'Go to Orders' })
-    ).toHaveAttribute('href', `${appBase}/orders?from=setup-guide`)
+    const testOrderTask = page.getByText('Complete shopping journey').locator('..').locator('..')
+    await expect(testOrderTask.getByText('Manual check')).toBeVisible()
+    await expect(testOrderTask.getByRole('link', { name: 'Go to Orders' })).toHaveAttribute(
+      'href',
+      `${appBase}/orders?from=setup-guide`
+    )
     await page.getByRole('link', { name: 'Go to Products' }).click()
     await expect(page.getByRole('heading', { name: 'Catalog' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Setup guide product' })).toBeVisible()

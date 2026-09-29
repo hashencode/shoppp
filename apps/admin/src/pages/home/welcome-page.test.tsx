@@ -213,24 +213,33 @@ describe('WelcomePage setup guide', () => {
     expect(screen.queryByRole('link', { name: 'Go to Commercial settings' })).toBeNull()
   })
 
-  it('keeps manual guidance compact in its step with only truthful destination links', async () => {
+  it('keeps every action beside its check or manual task instead of the step description', async () => {
     renderGuide()
 
     expect(await screen.findByText('Passed automatic checks')).toBeTruthy()
     fireEvent.click(screen.getByText('5. Storefront and policies'))
-    const preview = screen.getByText(
-      /Manually preview the storefront to confirm brand content and policy text/
+    const storefrontDescription = screen.getByText(
+      'Review storefront presentation and commercial policy accuracy.'
     )
+    expect(storefrontDescription.querySelector('a')).toBeNull()
+    const preview = screen.getByText('Storefront preview and policy content').closest('li')
     expect(screen.queryByText('Manual verification (not counted in automatic checks)')).toBeNull()
-    expect(preview.querySelector('a[href="/storefront/themes?from=setup-guide"]')).toBeTruthy()
-    expect(preview.querySelector('a[href="/settings/policies?from=setup-guide"]')).toBeTruthy()
+    expect(preview?.textContent).toContain('Manual check')
+    expect(preview?.textContent).toContain(
+      'Confirm brand content and policy text in the storefront preview.'
+    )
+    expect(preview?.querySelector('a[href="/storefront/themes?from=setup-guide"]')).toBeTruthy()
+    expect(preview?.querySelector('a[href="/settings/policies?from=setup-guide"]')).toBeTruthy()
 
     fireEvent.click(screen.getByText('6. Review before launch'))
-    const testOrder = screen.getByText(
-      /Manually place a test order in the test storefront to verify delivery, payment and order confirmation/
+    const reviewDescription = screen.getByText(
+      'Review inventory and runtime settings. Production release follows the existing process.'
     )
-    expect(testOrder.querySelector('a[href="/orders?from=setup-guide"]')).toBeTruthy()
-    expect(testOrder.querySelectorAll('a')).toHaveLength(1)
+    expect(reviewDescription.querySelector('a')).toBeNull()
+    const testOrder = screen.getByText('Complete shopping journey').closest('li')
+    expect(testOrder?.textContent).toContain('Manual check')
+    expect(testOrder?.querySelector('a[href="/orders?from=setup-guide"]')).toBeTruthy()
+    expect(testOrder?.querySelectorAll('a')).toHaveLength(1)
   })
 
   it('sends actionable checks to the relevant section of the authorized editor', async () => {
@@ -258,11 +267,6 @@ describe('WelcomePage setup guide', () => {
     expect(screen.getByRole('link', { name: 'Go to Policy settings' }).getAttribute('href')).toBe(
       '/settings/launch?from=setup-guide#policies'
     )
-    expect(
-      screen
-        .getAllByRole('link', { name: /^Go to / })
-        .filter((link) => link.closest('.ant-collapse li'))
-    ).toHaveLength(3)
   })
 
   it('does not expose an inline action when its destination is outside the permission snapshot', async () => {

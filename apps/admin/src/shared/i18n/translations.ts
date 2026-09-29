@@ -536,11 +536,18 @@ export const zhCNMessages: Record<string, string> = {
   'Configuration checks cover credential formats and the environment payment mode. They do not verify a payment or webhook delivery.':
     '配置检查涵盖凭证格式和当前环境的支付模式，不验证实际支付或回调送达。',
   'Storefront and policies': '店面与政策',
-  'Manually preview the storefront to confirm brand content and policy text; also check policy links and approval.':
-    '人工预览店面，确认品牌内容与政策正文，并检查政策链接与确认状态。',
+  'Review storefront presentation and commercial policy accuracy.':
+    '核对店面展示及商业政策的准确性。',
   'Review before launch': '上线前复核',
-  'Manually place a test order in the test storefront to verify delivery, payment and order confirmation; review the result in Admin. Production release follows the existing process.':
-    '在测试店面人工试单，核验配送、支付和订单确认，并在后台查看结果。正式发布仍按现有流程进行。',
+  'Review inventory and runtime settings. Production release follows the existing process.':
+    '复核库存与运行配置。正式发布仍按现有流程进行。',
+  'Storefront preview and policy content': '店面预览与政策正文',
+  'Confirm brand content and policy text in the storefront preview.':
+    '在店面预览中确认品牌内容与政策正文。',
+  'Complete shopping journey': '完整购物流程',
+  'Place a test order in the test storefront to verify delivery, payment and order confirmation; review the result in Admin.':
+    '在测试店面完成试单，核验配送、支付和订单确认，并在后台查看结果。',
+  'Manual check': '人工核验',
   'Commercial configuration saved': '商业配置已保存',
   'Contact email formats': '联系邮箱格式',
   'Public contact channel confirmed': '已确认公开联系渠道',
