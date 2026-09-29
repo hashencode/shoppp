@@ -157,10 +157,15 @@ describe('WelcomePage setup guide', () => {
     await waitFor(() =>
       expect(document.querySelector('.ant-statistic-content')?.textContent).toBe('13/13')
     )
+    let releaseFailure!: () => void
+    const pendingFailure = new Promise<void>((resolve) => {
+      releaseFailure = resolve
+    })
     server.use(
-      http.get('*/admin/settings/setup-guide', () =>
-        HttpResponse.json({ error: { message: 'Unavailable' } }, { status: 503 })
-      )
+      http.get('*/admin/settings/setup-guide', async () => {
+        await pendingFailure
+        return HttpResponse.json({ error: { message: 'Unavailable' } }, { status: 503 })
+      })
     )
     await waitFor(() =>
       expect((screen.getByRole('button', { name: /Recheck/ }) as HTMLButtonElement).disabled).toBe(
@@ -168,6 +173,14 @@ describe('WelcomePage setup guide', () => {
       )
     )
     fireEvent.click(screen.getByRole('button', { name: /Recheck/ }))
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: /Recheck/ }).classList.contains('ant-btn-loading')
+      ).toBe(true)
+    )
+    expect(document.querySelector('.ant-statistic-content')?.textContent).toBe('13/13')
+    expect(screen.queryByText('Setup checks could not be loaded.')).toBeNull()
+    releaseFailure()
 
     expect(await screen.findByText('Setup checks could not be loaded.')).toBeTruthy()
     expect(document.querySelector('.ant-statistic-content')?.textContent).toBe('—/13')

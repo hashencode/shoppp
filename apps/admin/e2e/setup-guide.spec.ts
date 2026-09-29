@@ -162,15 +162,24 @@ test('setup index recovers from an unavailable destination response', async ({ p
   await expect(page.getByRole('link', { name: 'Go to Store identity' })).toBeVisible()
 })
 
-test('recheck keeps the expanded guide height while replacing old results', async ({ page }) => {
+test('recheck keeps the current guide visible until checks and destinations are ready', async ({
+  page,
+}) => {
   let requests = 0
+  let destinationRequests = 0
   let releaseRecheck!: () => void
   const pendingRecheck = new Promise<void>((resolve) => {
     releaseRecheck = resolve
   })
-  await page.route('**/api/admin/settings/setup-guide/destinations', (route) =>
-    route.fulfill({ json: { data: guide } })
-  )
+  let releaseDestinations!: () => void
+  const pendingDestinations = new Promise<void>((resolve) => {
+    releaseDestinations = resolve
+  })
+  await page.route('**/api/admin/settings/setup-guide/destinations', async (route) => {
+    destinationRequests += 1
+    if (destinationRequests === 2) await pendingDestinations
+    await route.fulfill({ json: { data: guide } })
+  })
   await page.route('**/api/admin/settings/setup-guide', async (route) => {
     requests += 1
     if (requests === 2) await pendingRecheck
@@ -202,17 +211,33 @@ test('recheck keeps the expanded guide height while replacing old results', asyn
 
   await page.getByRole('button', { name: 'Recheck' }).click()
   await expect.poll(() => requests).toBe(2)
-  await expect(
-    page.getByText(
-      'Default configuration has not been confirmed. Review and save commercial settings.'
-    )
-  ).toBeHidden()
-  await page.waitForTimeout(450)
-  const cardDuring = await card.evaluate((element) => element.getBoundingClientRect().height)
-  const during = await guidePanel.evaluate((element) => element.getBoundingClientRect().height)
-  expect(cardDuring).toBeGreaterThanOrEqual(cardBefore - 1)
-  expect(during).toBeGreaterThanOrEqual(before - 1)
+  await expect.poll(() => destinationRequests).toBe(2)
+  try {
+    await expect(page.getByRole('button', { name: /Recheck/ })).toHaveClass(/ant-btn-loading/)
+    await expect(page.locator('.ant-statistic-content')).toHaveText('11/13')
+    await expect(
+      page.getByText(
+        'Default configuration has not been confirmed. Review and save commercial settings.'
+      )
+    ).toBeVisible()
+    await page.waitForTimeout(450)
+    const cardDuring = await card.evaluate((element) => element.getBoundingClientRect().height)
+    const during = await guidePanel.evaluate((element) => element.getBoundingClientRect().height)
+    expect(cardDuring).toBeGreaterThanOrEqual(cardBefore - 1)
+    expect(during).toBeGreaterThanOrEqual(before - 1)
 
-  releaseRecheck()
+    const checkResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/admin/settings/setup-guide?') ||
+        response.url().endsWith('/api/admin/settings/setup-guide')
+    )
+    releaseRecheck()
+    await checkResponse
+    await expect(page.getByRole('button', { name: /Recheck/ })).toHaveClass(/ant-btn-loading/)
+    await expect(page.locator('.ant-statistic-content')).toHaveText('11/13')
+  } finally {
+    releaseRecheck()
+    releaseDestinations()
+  }
   await expect(page.locator('.ant-statistic-content')).toHaveText('13/13')
 })

@@ -1,6 +1,6 @@
 # 开店指南维护说明
 
-功能及交付权威：`docs/plans/2026-09-03-1445-feat-admin-store-setup-guide-plan.md`；2026-09-28 的引导页面修正由 `docs/plans/2026-09-28-002-fix-admin-setup-guide-guidance-plan.md` 管理，重新检查时的高度稳定性由 `docs/plans/2026-09-28-003-fix-admin-setup-guide-refresh-height-plan.md` 管理，逐项处理入口由 `docs/plans/2026-09-28-004-feat-admin-setup-guide-action-links-plan.md` 管理；2026-09-29 的说明归位、精简、链接一致性及任务行标准分别由 `docs/plans/2026-09-29-001-fix-admin-setup-guide-task-placement-plan.md`、`docs/plans/2026-09-29-002-fix-admin-setup-guide-manual-guidance-plan.md`、`docs/plans/2026-09-29-003-fix-admin-setup-guide-link-consistency-plan.md` 和 `docs/plans/2026-09-29-004-fix-admin-setup-guide-action-placement-plan.md` 管理；联系方式扩展由 `docs/plans/2026-09-18-1128-feat-contact-management-plan.md` 管理。
+功能及交付权威：`docs/plans/2026-09-03-1445-feat-admin-store-setup-guide-plan.md`；2026-09-28 的引导页面修正由 `docs/plans/2026-09-28-002-fix-admin-setup-guide-guidance-plan.md` 管理，重新检查时的高度稳定性由 `docs/plans/2026-09-28-003-fix-admin-setup-guide-refresh-height-plan.md` 管理，逐项处理入口由 `docs/plans/2026-09-28-004-feat-admin-setup-guide-action-links-plan.md` 管理；2026-09-29 的说明归位、精简、链接一致性、任务行标准及重新检查展示分别由 `docs/plans/2026-09-29-001-fix-admin-setup-guide-task-placement-plan.md`、`docs/plans/2026-09-29-002-fix-admin-setup-guide-manual-guidance-plan.md`、`docs/plans/2026-09-29-003-fix-admin-setup-guide-link-consistency-plan.md`、`docs/plans/2026-09-29-004-fix-admin-setup-guide-action-placement-plan.md` 和 `docs/plans/2026-09-29-005-fix-admin-setup-guide-recheck-flicker-plan.md` 管理；联系方式扩展由 `docs/plans/2026-09-18-1128-feat-contact-management-plan.md` 管理。
 
 ## 使用方式
 
@@ -35,7 +35,7 @@
 - `unavailable`：配置或领域查询失败；重新检查，持续失败时由维护者排查对应 API/数据库。
 - `restricted`：当前账户缺少领域读取权限；由具备相应权限的人检查。
 
-API 摘要携带检查时间、环境、配置保存时间及默认币种，响应禁止共享缓存；指南顶部展示通过数/固定总数和各非通过状态的数量，不展示这些上下文字段。每次检查使用同一份配置；重新检查期间旧的通过数不作为当前结果，概要卡片与步骤列表保持原有高度，直至新响应结束。领域失败不会抹掉独立领域的结果；配置读取失败时不会拼接默认值或历史结果。
+API 摘要携带检查时间、环境、配置保存时间及默认币种，响应禁止共享缓存；指南顶部展示通过数/固定总数和各非通过状态的数量，不展示这些上下文字段。每次检查使用同一份配置；重新检查时按钮显示 loading，当前统计、问题、入口与展开状态保持可见，直到检查结果和权限过滤后的入口请求都结束才一起更新。若本次检查失败，完成后清除旧通过数并显示失败状态；页面或权限范围变化时也不沿用旧结果。领域失败不会抹掉独立领域的结果；配置读取失败时不会拼接默认值或历史结果。
 
 步骤内检查项以无序列表展示。包含未通过检查的步骤在结果返回后自动展开，全部检查通过的步骤默认折叠；手动展开或折叠只影响当前页面状态。
 

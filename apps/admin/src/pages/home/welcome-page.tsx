@@ -14,7 +14,7 @@ import {
   WarningOutlined,
 } from '@ant-design/icons'
 import { Alert, Button, Card, Collapse, Statistic, Tag, Tooltip, Typography } from 'antd'
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
@@ -212,10 +212,12 @@ const failedChecks = (status: 'unavailable' | 'restricted'): SetupGuideCheck[] =
   }))
 
 type CheckResult = {
-  request: { key: string }
+  request: { key: string; scope: string }
   summary?: SetupGuideSummary
   errorStatus?: number
   failed?: boolean
+  destinations?: SetupGuideDestinations
+  destinationsFailed?: boolean
 }
 
 const DestinationLink = ({
@@ -245,81 +247,69 @@ export const WelcomePage = () => {
   const location = useLocation()
   const [attempt, setAttempt] = useState(0)
   const [result, setResult] = useState<CheckResult | null>(null)
-  const [destinationsResult, setDestinationsResult] = useState<{
-    request: { key: string }
-    destinations?: SetupGuideDestinations
-    failed?: boolean
-  } | null>(null)
   const [expanded, setExpanded] = useState<string[]>([])
-  const cardRef = useRef<HTMLDivElement>(null)
-  const stepsRef = useRef<HTMLDivElement>(null)
-  const [refreshHeight, setRefreshHeight] = useState<{
-    scope: string
-    card: number
-    steps: number
-  } | null>(null)
   const canRead = hasPermission(role, 'settings.read', permissions)
-  const requestScope = `${location.key}:${[...(permissions ?? [])].sort().join(',')}`
+  const requestScope = `${location.key}:${role}:${[...(permissions ?? [])].sort().join(',')}`
   const requestKey = `${requestScope}:${attempt}`
   // History can reuse a location key; each transition needs a fresh request identity.
-  const request = useMemo(() => ({ key: requestKey }), [requestKey])
+  const request = useMemo(
+    () => ({ key: requestKey, scope: requestScope }),
+    [requestKey, requestScope]
+  )
 
   useEffect(() => {
     let active = true
     const controller = new AbortController()
-    void fetchSetupGuideDestinations(controller.signal).then(
-      (destinations) => {
-        if (active) setDestinationsResult({ request, destinations })
-      },
-      () => {
-        if (active) setDestinationsResult({ request, failed: true })
-      }
-    )
-    if (canRead)
-      void fetchSetupGuide(controller.signal).then(
-        (summary) => {
-          if (!active) return
-          setResult({ request, summary })
+    void Promise.allSettled([
+      fetchSetupGuideDestinations(controller.signal),
+      canRead ? fetchSetupGuide(controller.signal) : Promise.resolve(null),
+    ]).then(([destinations, checks]) => {
+      if (!active) return
+      const next: CheckResult = { request }
+      if (destinations.status === 'fulfilled') next.destinations = destinations.value
+      else next.destinationsFailed = true
+      if (canRead) {
+        const nextSummary = checks.status === 'fulfilled' ? checks.value : null
+        if (nextSummary) {
+          next.summary = nextSummary
           setExpanded(
             STEPS.filter((step) =>
-              summary.checks.some((check) => check.step === step.key && check.status !== 'passed')
+              nextSummary.checks.some(
+                (check) => check.step === step.key && check.status !== 'passed'
+              )
             ).map((step) => step.key)
           )
-        },
-        (error: unknown) => {
-          if (!active) return
-          const errorStatus = (error as { status?: number } | null)?.status
-          setResult({ request, failed: true, errorStatus })
+        } else {
+          next.failed = true
+          next.errorStatus =
+            checks.status === 'rejected'
+              ? (checks.reason as { status?: number } | null)?.status
+              : undefined
           setExpanded(ALL_STEPS)
         }
-      )
+      }
+      setResult(next)
+    })
     return () => {
       active = false
       controller.abort()
     }
   }, [canRead, request])
 
-  // A new request or permission snapshot cannot display the previous request's conclusions.
+  // Rechecks keep the last complete result for this scope until both requests finish.
   const current = result?.request === request ? result : null
-  const currentDestinations = destinationsResult?.request === request ? destinationsResult : null
-  const availableDestinations = currentDestinations?.destinations?.destinations ?? []
+  const displayed = current ?? (result?.request.scope === requestScope ? result : null)
+  const availableDestinations = displayed?.destinations?.destinations ?? []
   const browseDestinations = canRead
     ? availableDestinations.filter((destination) => UNCHECKED_DESTINATIONS.has(destination.id))
     : availableDestinations
-  const loading = canRead && !current
-  const refreshing = refreshHeight?.scope === requestScope && (loading || !currentDestinations)
-  const recheck = () => {
-    setRefreshHeight({
-      scope: requestScope,
-      card: cardRef.current?.getBoundingClientRect().height ?? 0,
-      steps: stepsRef.current?.getBoundingClientRect().height ?? 0,
-    })
-    setAttempt((value) => value + 1)
-  }
-  const restricted = !canRead || current?.errorStatus === 401 || current?.errorStatus === 403
-  const summary = canRead && !restricted ? current?.summary : undefined
+  const initialLoading = canRead && !displayed
+  const recheck = () => setAttempt((value) => value + 1)
+  const restricted = !canRead || displayed?.errorStatus === 401 || displayed?.errorStatus === 403
+  const summary = canRead && !restricted ? displayed?.summary : undefined
   const checks =
-    summary?.checks ?? (loading ? [] : failedChecks(restricted ? 'restricted' : 'unavailable'))
+    summary?.checks ??
+    (initialLoading ? [] : failedChecks(restricted ? 'restricted' : 'unavailable'))
   const passedCount = checks.filter((check) => check.status === 'passed').length
   const statusTag = (status: CheckStatus) => (
     <Tag color={STATUS_COLOR[status]}>{t(STATUS_LABEL[status])}</Tag>
@@ -345,15 +335,15 @@ export const WelcomePage = () => {
 
   return (
     <CustomPageRecipe>
-      <Card ref={cardRef} style={refreshing ? { minHeight: refreshHeight.card } : undefined}>
+      <Card>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <Statistic
-            loading={loading}
+            loading={initialLoading}
             title={t('Passed automatic checks')}
             value={summary ? passedCount : '—'}
             suffix={`/${SETUP_GUIDE_CHECKS.length}`}
           />
-          <Button onClick={recheck} loading={loading}>
+          <Button onClick={recheck} loading={!current}>
             {t('Recheck')}
           </Button>
         </div>
@@ -373,7 +363,7 @@ export const WelcomePage = () => {
             {t('Current configuration checks passed; manual verification is still required.')}
           </Typography.Paragraph>
         ) : null}
-        {current?.failed || !canRead ? (
+        {displayed?.failed || !canRead ? (
           <Alert
             className="mt-3"
             showIcon
@@ -385,30 +375,32 @@ export const WelcomePage = () => {
               'Previous results have been cleared. Recheck after access or connectivity is restored.'
             )}
             action={
-              current?.errorStatus === 401 ? (
+              displayed?.errorStatus === 401 ? (
                 <Button onClick={() => void refreshSession()}>{t('Verify session')}</Button>
               ) : undefined
             }
           />
         ) : null}
-        {currentDestinations?.failed ? (
+        {displayed?.destinationsFailed ? (
           <Alert
             className="mt-3"
             showIcon
             type="error"
             title={t('Setup destinations could not be loaded')}
-            action={<Button onClick={recheck}>{t('Retry')}</Button>}
+            action={
+              <Button onClick={recheck} loading={!current}>
+                {t('Retry')}
+              </Button>
+            }
           />
         ) : null}
-        {!currentDestinations ? (
+        {!displayed ? (
           <Typography.Paragraph className="!mb-0 mt-3" type="secondary">
             {t('Loading setup destinations…')}
           </Typography.Paragraph>
         ) : null}
       </Card>
       <Collapse
-        ref={stepsRef}
-        style={refreshing ? { minHeight: refreshHeight.steps } : undefined}
         activeKey={expanded}
         onChange={(keys) => setExpanded(typeof keys === 'string' ? [keys] : keys)}
         items={STEPS.map((step, index) => {
