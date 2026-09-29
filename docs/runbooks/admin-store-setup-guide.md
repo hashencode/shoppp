@@ -1,10 +1,10 @@
 # 开店指南维护说明
 
-功能及交付权威：`docs/plans/2026-09-03-1445-feat-admin-store-setup-guide-plan.md`；2026-09-28 的引导页面修正由 `docs/plans/2026-09-28-002-fix-admin-setup-guide-guidance-plan.md` 管理，重新检查时的高度稳定性由 `docs/plans/2026-09-28-003-fix-admin-setup-guide-refresh-height-plan.md` 管理，逐项处理入口由 `docs/plans/2026-09-28-004-feat-admin-setup-guide-action-links-plan.md` 管理；2026-09-29 的说明归位与精简分别由 `docs/plans/2026-09-29-001-fix-admin-setup-guide-task-placement-plan.md` 和 `docs/plans/2026-09-29-002-fix-admin-setup-guide-manual-guidance-plan.md` 管理；联系方式扩展由 `docs/plans/2026-09-18-1128-feat-contact-management-plan.md` 管理。
+功能及交付权威：`docs/plans/2026-09-03-1445-feat-admin-store-setup-guide-plan.md`；2026-09-28 的引导页面修正由 `docs/plans/2026-09-28-002-fix-admin-setup-guide-guidance-plan.md` 管理，重新检查时的高度稳定性由 `docs/plans/2026-09-28-003-fix-admin-setup-guide-refresh-height-plan.md` 管理，逐项处理入口由 `docs/plans/2026-09-28-004-feat-admin-setup-guide-action-links-plan.md` 管理；2026-09-29 的说明归位、精简和链接一致性分别由 `docs/plans/2026-09-29-001-fix-admin-setup-guide-task-placement-plan.md`、`docs/plans/2026-09-29-002-fix-admin-setup-guide-manual-guidance-plan.md` 和 `docs/plans/2026-09-29-003-fix-admin-setup-guide-link-consistency-plan.md` 管理；联系方式扩展由 `docs/plans/2026-09-18-1128-feat-contact-management-plan.md` 管理。
 
 ## 使用方式
 
-有 `settings.read` 权限的管理员从后台根路径进入 `/welcome`。六个步骤可以自由进入；待处理检查项后面的文字箭头链接直接进入有权访问的编辑页面或固定分组。保存设置后返回指南会重新检查。缺少 `settings.read` 的用户仍可从指南的“可访问的编辑页面”进入其他有读取权限的编辑器，但看不到配置检查结论。旧 `/settings/launch` 地址继续提供商业设置。
+有 `settings.read` 权限的管理员从后台根路径进入 `/welcome`。六个步骤可以自由进入；待处理检查项后面的文字箭头链接直接进入有权访问的编辑页面或固定分组。指南内所有可点击的目的地使用统一的蓝色“前往＋目标名称”文字和箭头；没有对应授权入口时不显示链接。保存设置后返回指南会重新检查。缺少 `settings.read` 的用户仍可从指南的“可访问的编辑页面”进入其他有读取权限的编辑器，但看不到配置检查结论。旧 `/settings/launch` 地址继续提供商业设置。
 
 “基础与联系方式”进入 `/settings/contact`。有 `settings.write` 权限的管理员在此维护客服邮箱、隐私联系邮箱、公开显示选择、电话、服务时间及其时区、可选的实体地址和社交媒体链接，填写变更原因后保存。两个邮箱仍以 `launch_configuration` 为唯一存储来源；其余字段保存在 `contact_profile`。只读账号可查看，不能保存。保存时同时检查邮箱配置版本和联系方式资料版本；若提示冲突，应先核对并重新加载最新值，再提交需要保留的修改。
 

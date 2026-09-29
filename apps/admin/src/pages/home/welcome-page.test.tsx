@@ -89,26 +89,26 @@ describe('WelcomePage setup guide', () => {
       screen.getByRole('link', { name: 'Go to Commercial settings' }).getAttribute('href')
     ).toBe('/settings/launch?from=setup-guide#sales')
     expect(screen.queryByRole('link', { name: 'Go to Contact settings' })).toBeNull()
-    expect((await screen.findByRole('link', { name: 'Store identity' })).getAttribute('href')).toBe(
-      '/settings/identity?from=setup-guide'
-    )
+    expect(
+      (await screen.findByRole('link', { name: 'Go to Store identity' })).getAttribute('href')
+    ).toBe('/settings/identity?from=setup-guide')
     fireEvent.click(screen.getByText('5. Storefront and policies'))
-    expect(screen.getByRole('link', { name: 'Policies' }).getAttribute('href')).toBe(
+    expect(screen.getByRole('link', { name: 'Go to Policies' }).getAttribute('href')).toBe(
       '/settings/policies?from=setup-guide'
     )
     fireEvent.click(screen.getByText('2. Prepare products'))
-    expect(screen.getByRole('link', { name: 'Collections' }).getAttribute('href')).toBe(
+    expect(screen.getByRole('link', { name: 'Go to Collections' }).getAttribute('href')).toBe(
       '/catalog/collections?from=setup-guide'
     )
-    expect(screen.getByRole('link', { name: 'Pages' }).getAttribute('href')).toBe(
+    expect(screen.getByRole('link', { name: 'Go to Pages' }).getAttribute('href')).toBe(
       '/content/pages?from=setup-guide'
     )
-    expect(screen.getByRole('link', { name: 'Navigation' }).getAttribute('href')).toBe(
+    expect(screen.getByRole('link', { name: 'Go to Navigation' }).getAttribute('href')).toBe(
       '/storefront/navigation?from=setup-guide'
     )
-    expect(screen.getByRole('link', { name: 'Themes and preview' }).getAttribute('href')).toBe(
-      '/storefront/themes?from=setup-guide'
-    )
+    expect(
+      screen.getByRole('link', { name: 'Go to Themes and preview' }).getAttribute('href')
+    ).toBe('/storefront/themes?from=setup-guide')
     expect(
       screen.getByText(
         'These 13 checks cover initial store setup. Open each editor to review draft, published, candidate and live state.'
@@ -126,9 +126,9 @@ describe('WelcomePage setup guide', () => {
     )
 
     fireEvent.click(screen.getByText('1. Basics and contacts'))
-    expect((await screen.findByRole('link', { name: 'Store identity' })).getAttribute('href')).toBe(
-      '/admin/settings/identity?from=setup-guide'
-    )
+    expect(
+      (await screen.findByRole('link', { name: 'Go to Store identity' })).getAttribute('href')
+    ).toBe('/admin/settings/identity?from=setup-guide')
   })
 
   it('should expose a retryable error without stale destinations', async () => {
@@ -143,11 +143,13 @@ describe('WelcomePage setup guide', () => {
     renderGuide()
 
     expect(await screen.findByText('Setup destinations could not be loaded')).toBeTruthy()
-    expect(screen.queryByRole('link', { name: 'Store identity' })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Go to Store identity' })).toBeNull()
     fail = false
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Retry' })))
     fireEvent.click(screen.getByText('1. Basics and contacts'))
-    await waitFor(() => expect(screen.getByRole('link', { name: 'Store identity' })).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: 'Go to Store identity' })).toBeTruthy()
+    )
   })
 
   it('clears an earlier completion count when a recheck cannot load current checks', async () => {
@@ -256,7 +258,11 @@ describe('WelcomePage setup guide', () => {
     expect(screen.getByRole('link', { name: 'Go to Policy settings' }).getAttribute('href')).toBe(
       '/settings/launch?from=setup-guide#policies'
     )
-    expect(screen.getAllByRole('link', { name: /^Go to / })).toHaveLength(3)
+    expect(
+      screen
+        .getAllByRole('link', { name: /^Go to / })
+        .filter((link) => link.closest('.ant-collapse li'))
+    ).toHaveLength(3)
   })
 
   it('does not expose an inline action when its destination is outside the permission snapshot', async () => {
@@ -296,9 +302,9 @@ describe('WelcomePage setup guide', () => {
     renderGuide(['catalog.read'])
 
     fireEvent.click(screen.getByText('2. Prepare products'))
-    expect(await screen.findByRole('link', { name: 'Products' })).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Collections' })).toBeTruthy()
-    expect(screen.queryByRole('link', { name: 'Contact settings' })).toBeNull()
+    expect(await screen.findByRole('link', { name: 'Go to Products' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Go to Collections' })).toBeTruthy()
+    expect(screen.queryByRole('link', { name: 'Go to Contact settings' })).toBeNull()
     expect(screen.getByText('Setup checks are not authorized.')).toBeTruthy()
     expect(checkRequests).toBe(0)
   })
@@ -312,9 +318,9 @@ describe('WelcomePage setup guide', () => {
     renderGuide(['settings.read', 'identity.read', 'policies.read'])
 
     fireEvent.click(screen.getByText('1. Basics and contacts'))
-    expect(await screen.findByRole('link', { name: 'Store identity' })).toBeTruthy()
+    expect(await screen.findByRole('link', { name: 'Go to Store identity' })).toBeTruthy()
     fireEvent.click(screen.getByText('5. Storefront and policies'))
-    expect(screen.getByRole('link', { name: 'Policies' })).toBeTruthy()
-    expect(screen.queryByRole('link', { name: 'Collections' })).toBeNull()
+    expect(screen.getByRole('link', { name: 'Go to Policies' })).toBeTruthy()
+    expect(screen.queryByRole('link', { name: 'Go to Collections' })).toBeNull()
   })
 })

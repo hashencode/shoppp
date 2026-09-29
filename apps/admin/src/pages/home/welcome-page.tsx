@@ -204,11 +204,22 @@ type CheckResult = {
   failed?: boolean
 }
 
-const DestinationLink = ({ destination }: { destination: SetupGuideDestination }) => {
+const DestinationLink = ({
+  destination,
+  anchor,
+  label,
+}: {
+  destination: SetupGuideDestination
+  anchor?: string
+  label?: string
+}) => {
   const { t } = useI18n()
   return (
-    <Link to={destination.href} className="inline-flex items-center gap-1">
-      {t(DESTINATION_LABEL[destination.id])}
+    <Link
+      to={`${destination.href}${anchor ? `#${anchor}` : ''}`}
+      className="inline-flex items-center gap-1 !text-blue-700 hover:!text-blue-800 hover:underline focus-visible:underline"
+    >
+      {t('Go to {destination}', { destination: t(label ?? DESTINATION_LABEL[destination.id]) })}
       <ArrowRightOutlined aria-hidden="true" />
     </Link>
   )
@@ -425,15 +436,11 @@ export const WelcomePage = () => {
                           <span>{t(CHECK_LABEL[check.id])}</span>
                           {statusTag(check.status)}
                           {destination ? (
-                            <Link
-                              to={`${destination.href}${target.anchor ? `#${target.anchor}` : ''}`}
-                              className="inline-flex items-center gap-1"
-                            >
-                              {t('Go to {destination}', {
-                                destination: t(target.label ?? DESTINATION_LABEL[destination.id]),
-                              })}
-                              <ArrowRightOutlined aria-hidden="true" />
-                            </Link>
+                            <DestinationLink
+                              destination={destination}
+                              anchor={target.anchor}
+                              label={target.label}
+                            />
                           ) : null}
                         </div>
                         {check.reasons.map((reason, reasonIndex) => (

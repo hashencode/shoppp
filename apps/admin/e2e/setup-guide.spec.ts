@@ -94,22 +94,30 @@ for (const viewport of [
       'href',
       `${appBase}/settings/launch?from=setup-guide#sales`
     )
-    await expect(page.getByRole('link', { name: 'Store identity' })).toHaveAttribute(
+    await expect(page.getByRole('link', { name: 'Go to Commercial settings' })).toHaveCSS(
+      'color',
+      'rgb(29, 78, 216)'
+    )
+    await expect(page.getByRole('link', { name: 'Go to Store identity' })).toHaveAttribute(
       'href',
       `${appBase}/settings/identity?from=setup-guide`
     )
     await page.getByText('5. Storefront and policies').click()
-    await expect(page.getByRole('link', { name: 'Policies' })).toHaveAttribute(
+    await expect(page.getByRole('link', { name: 'Go to Policies' })).toHaveAttribute(
       'href',
       `${appBase}/settings/policies?from=setup-guide`
     )
-    await expect(page.getByRole('link', { name: 'Navigation' })).toHaveAttribute(
+    await expect(page.getByRole('link', { name: 'Go to Navigation' })).toHaveAttribute(
       'href',
       `${appBase}/storefront/navigation?from=setup-guide`
     )
-    await expect(page.getByRole('link', { name: 'Themes and preview' })).toHaveAttribute(
+    await expect(page.getByRole('link', { name: 'Go to Themes and preview' })).toHaveAttribute(
       'href',
       `${appBase}/storefront/themes?from=setup-guide`
+    )
+    await expect(page.getByRole('link', { name: 'Go to Themes and preview' })).toHaveCSS(
+      'color',
+      'rgb(29, 78, 216)'
     )
     await expect(
       page.getByText(/Manually preview the storefront to confirm brand content and policy text/)
@@ -125,7 +133,7 @@ for (const viewport of [
         .getByText(
           /Manually place a test order in the test storefront to verify delivery, payment and order confirmation/
         )
-        .getByRole('link', { name: 'Orders' })
+        .getByRole('link', { name: 'Go to Orders' })
     ).toHaveAttribute('href', `${appBase}/orders?from=setup-guide`)
     await page.getByRole('link', { name: 'Go to Products' }).click()
     await expect(page.getByRole('heading', { name: 'Catalog' })).toBeVisible()
@@ -151,7 +159,7 @@ test('setup index recovers from an unavailable destination response', async ({ p
   await expect(page.getByText('Setup destinations could not be loaded')).toBeVisible()
   await page.getByRole('button', { name: 'Retry' }).click()
   await expect(page.getByText('Setup destinations could not be loaded')).toHaveCount(0)
-  await expect(page.getByRole('link', { name: 'Store identity' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Go to Store identity' })).toBeVisible()
 })
 
 test('recheck keeps the expanded guide height while replacing old results', async ({ page }) => {
