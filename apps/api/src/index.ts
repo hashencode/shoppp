@@ -1,3 +1,4 @@
+import { cleanupTraffic } from "./analytics/service";
 import { createApp } from "./http/app";
 import type { ApiBindings } from "./http/context";
 import { expireDueReservations } from "./inventory/expiry";
@@ -27,6 +28,7 @@ export default {
     }
     await cleanupExpiredStorefrontPreviews(env, new Date(controller.scheduledTime));
     await expireDueReservations(env.DB);
+    await cleanupTraffic(env.DB, controller.scheduledTime);
     await cleanupExpiredAdminAuthState(env.DB, new Date(controller.scheduledTime));
     if (env.NOTIFICATION_QUEUE) {
       await dispatchPendingNotifications(env.DB, env.NOTIFICATION_QUEUE);

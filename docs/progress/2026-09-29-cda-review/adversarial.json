@@ -1,0 +1,29 @@
+{
+  "reviewer": "adversarial",
+  "findings": [
+    {
+      "title": "Sustained traffic outpaces retry-record expiry cleanup",
+      "severity": "P2",
+      "file": "apps/api/src/analytics/service.ts",
+      "line": 60,
+      "why_it_matters": "The collector accepts traffic independently across source and visitor quotas, but the scheduler removes only 500 expired events every five minutes. At 200 accepted page entries per minute (for example 200 independent visitors each opening one page), 1,000 records expire between runs while only 500 are removed. The expired backlog grows by 500 each cycle, retaining event-level visitor/product/release associations far beyond the documented two-hour retry window and eventually consuming database capacity. The deliberate per-query batch bound is reasonable, but there is no continuation or draining mechanism to keep retention bounded.",
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "confidence": 75,
+      "evidence": [
+        "apps/api/src/analytics/service.ts:60:     (SELECT rowid FROM traffic_event_dedup WHERE expires_at <= ? ORDER BY expires_at LIMIT 500)`,",
+        "apps/api/src/index.ts:31 calls cleanupTraffic once per non-backup scheduled invocation; apps/api/wrangler.jsonc:32 configures that invocation every five minutes.",
+        "apps/api/src/analytics/protection.ts keys quotas separately by source and visitor; no global ingestion ceiling restricts all traffic to the cleaner's 100 records/minute capacity.",
+        "apps/api/src/analytics/service.ts:52 sets expires_at to now + two hours, while migration 0039 retains visitor_digest, product_id and release_id on each dedup row until deletion.",
+        "apps/api/test/analytics/traffic.test.ts:317-330 verifies only that one cleanup leaves one of 501 expired rows; it does not exercise scheduled backlog continuation. docs/progress/2026-09-29-cda-runtime-setup.md:17 describes retry records as lasting two hours."
+      ],
+      "pre_existing": false,
+      "suggested_fix": "Keep bounded deletion batches, but drain or enqueue continuation while expired rows remain, using a bounded execution budget and a continuation mechanism when that budget is exhausted. Add a focused scheduler/cleanup test with several batches proving backlog progress exceeds supported ingestion and aggregates remain intact."
+    }
+  ],
+  "residual_risks": [],
+  "testing_gaps": [
+    "Built-storefront traffic E2E intercepts both identity and event endpoints, while API tests invoke a standalone Hono collector with a supplied cookie and source header. These establish each side separately but do not verify real browser Secure cookie persistence through the storefront service-binding gateway. A small gateway-to-collector browser check would cover that specific integration boundary; no failure at that boundary was established by inspection."
+  ]
+}

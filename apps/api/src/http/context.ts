@@ -7,6 +7,10 @@ export interface ApiBindings {
   ADMIN_ORIGIN: string;
   ADMIN_DEVELOPMENT_ORIGIN?: string;
   ANALYTICS_RATE_LIMITER?: RateLimit;
+  TRAFFIC_RATE_LIMITER?: RateLimit;
+  TRAFFIC_ENABLED?: string;
+  TRAFFIC_KEYS_JSON?: string;
+  TRAFFIC_ACTIVE_KEY_ID?: string;
   BACKUP_BUCKET: R2Bucket;
   BACKUP_WORKFLOW?: Workflow;
   CHECKOUT_RATE_LIMITER?: RateLimit;

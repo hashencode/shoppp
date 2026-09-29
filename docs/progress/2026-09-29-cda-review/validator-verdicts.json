@@ -1,0 +1,16 @@
+{
+  "verdicts": [
+    {
+      "#": 1,
+      "status": "confirmed",
+      "protected_subject": null,
+      "reason": "With sustained accepted traffic above 100 events/minute across independent source/visitor quota keys, newly added service.ts:56-64 and index.ts:31 remove only 500 expired rows per five-minute invocation (wrangler.jsonc:32), so the retry-record backlog grows contrary to KTD6's short-term retention requirement; the inspected 501-row cleanup test establishes the batch cap, and production incidence was not measured."
+    },
+    {
+      "#": 2,
+      "status": "confirmed",
+      "protected_subject": "concurrency",
+      "reason": "A stalled identity fetch/body or event fetch in newly added traffic.ts:15-22,42-48 prevents pending.then at line 64 from dispatching later visits, while traffic.client.ts:10 holds the identity Web Lock until that same operation settles; a read-only Bun 1.3.5 probe of the reviewed working-tree client queued two routes, observed only one request while the first remained pending and two after release, confirming reachability with an injected stall, while production incidence was not measured."
+    }
+  ]
+}

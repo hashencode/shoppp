@@ -1,0 +1,10 @@
+{
+  "reviewer": "performance",
+  "findings": [],
+  "residual_risks": [
+    "Hosted D1 latency and query resource consumption at the configured 500,000-bucket reporting boundary remain unverified. The source uses indexed window predicates, bounds source rows, and batches daily SQL without transferring UV identities, so this review found no demonstrated runtime performance defect at expected usage."
+  ],
+  "testing_gaps": [
+    "The cleanup test verifies one 500-row batch, but no sustained-ingestion operational check verifies that the five-minute scheduled cleanup keeps expired dedup backlog stable. The current schedule can remove at most 100 rows per minute; this is a capacity boundary to measure against real accepted traffic, rather than a proven near-term defect."
+  ]
+}

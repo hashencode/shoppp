@@ -1,0 +1,80 @@
+{
+  "branch": "codex/fix-new-arrival-icon",
+  "completed_at": "2026-09-29T15:24:28.424496+00:00",
+  "cost": {
+    "host": "codex",
+    "scope": {
+      "changed_lines": 2176,
+      "depth": "full",
+      "exec_nontest_lines": 1125,
+      "size_band": "large",
+      "unclassified_lines": {
+        ".jsonc": 23,
+        ".md": 311
+      }
+    },
+    "stages": [
+      {
+        "elapsed_seconds": 0.048,
+        "ended_at": "2026-09-29T15:06:37.757151+00:00",
+        "facts": {
+          "changed_lines": 2176,
+          "depth": "full",
+          "exec_nontest_lines": 1125,
+          "size_band": "large",
+          "unclassified_lines": {
+            ".jsonc": 23,
+            ".md": 311
+          }
+        },
+        "stage": "scope",
+        "started_at": "2026-09-29T15:06:37.708945+00:00"
+      },
+      {
+        "elapsed_seconds": 0.049,
+        "ended_at": "2026-09-29T15:06:37.805972+00:00",
+        "reviewers": 11,
+        "stage": "select",
+        "started_at": "2026-09-29T15:06:37.757151+00:00"
+      },
+      {
+        "candidates": 2,
+        "elapsed_seconds": 517.732,
+        "ended_at": "2026-09-29T15:15:15.537490+00:00",
+        "stage": "dispatch",
+        "started_at": "2026-09-29T15:06:37.805972+00:00"
+      },
+      {
+        "candidates": 2,
+        "elapsed_seconds": 42.33,
+        "ended_at": "2026-09-29T15:17:42.962624+00:00",
+        "stage": "merge",
+        "started_at": "2026-09-29T15:17:00.632190+00:00"
+      },
+      {
+        "elapsed_seconds": 126.076,
+        "ended_at": "2026-09-29T15:20:20.586393+00:00",
+        "stage": "validate",
+        "started_at": "2026-09-29T15:18:14.510110+00:00"
+      },
+      {
+        "candidates": 2,
+        "elapsed_seconds": 53.097,
+        "ended_at": "2026-09-29T15:24:28.482797+00:00",
+        "stage": "report",
+        "started_at": "2026-09-29T15:23:35.385710+00:00"
+      }
+    ],
+    "status": "complete",
+    "totals": {
+      "artifact_bytes": 1042756,
+      "candidates": 2,
+      "elapsed_seconds": 739.332,
+      "reviewers": 11
+    },
+    "truncated_events": 0
+  },
+  "head_sha": "05d0fe68f710f3c1578f76c02bee2c0f3e9fce28",
+  "run_id": "2026-09-29-cda-review",
+  "verdict": "Ready with fixes"
+}

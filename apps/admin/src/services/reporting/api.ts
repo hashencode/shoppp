@@ -1,4 +1,8 @@
+import { trafficReportSchema, productSalesReportSchema } from '@shoppp/contracts'
 import type {
+  TrafficQuery,
+  TrafficReport,
+  ProductSalesReport,
   ReportExport,
   ReportExportRequest,
   ReportOrderRow,
@@ -30,20 +34,30 @@ export const fetchReportOrders = async (
   return { data: response.data.data, ...response.data.meta }
 }
 
-export const createReportExport = async (
-  input: ReportExportRequest
-): Promise<ReportExport> => {
-  const response = await apiClient.post<{ data: ReportExport }>(
-    '/admin/reporting/exports',
-    input,
-    {
-      headers: {
-        'Idempotency-Key': `report-export-${crypto.randomUUID()}`,
-      },
-    }
-  )
+export const createReportExport = async (input: ReportExportRequest): Promise<ReportExport> => {
+  const response = await apiClient.post<{ data: ReportExport }>('/admin/reporting/exports', input, {
+    headers: {
+      'Idempotency-Key': `report-export-${crypto.randomUUID()}`,
+    },
+  })
   return response.data.data
 }
 
 export const reportExportDownloadUrl = (id: string): string =>
   `/admin/reporting/exports/${encodeURIComponent(id)}/download`
+
+export const fetchTrafficReport = async (query: TrafficQuery): Promise<TrafficReport> => {
+  const response = await apiClient.get<{ data: TrafficReport }>('/admin/reporting/traffic', {
+    params: query,
+  })
+  return trafficReportSchema.parse(response.data.data)
+}
+
+export const fetchProductSalesReport = async (
+  query: ReportingQuery
+): Promise<ProductSalesReport> => {
+  const response = await apiClient.get<{ data: ProductSalesReport }>('/admin/reporting/products', {
+    params: query,
+  })
+  return productSalesReportSchema.parse(response.data.data)
+}

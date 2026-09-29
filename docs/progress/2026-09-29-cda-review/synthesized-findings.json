@@ -1,0 +1,108 @@
+{
+  "findings": [
+    {
+      "#": 1,
+      "autofix_class": "manual",
+      "confidence": 75,
+      "evidence": [
+        "apps/api/src/analytics/service.ts:60:     (SELECT rowid FROM traffic_event_dedup WHERE expires_at <= ? ORDER BY expires_at LIMIT 500)`,",
+        "apps/api/src/index.ts:31 calls cleanupTraffic once per non-backup scheduled invocation; apps/api/wrangler.jsonc:32 configures that invocation every five minutes.",
+        "apps/api/src/analytics/protection.ts keys quotas separately by source and visitor; no global ingestion ceiling restricts all traffic to the cleaner's 100 records/minute capacity.",
+        "apps/api/src/analytics/service.ts:52 sets expires_at to now + two hours, while migration 0039 retains visitor_digest, product_id and release_id on each dedup row until deletion.",
+        "apps/api/test/analytics/traffic.test.ts:317-330 verifies only that one cleanup leaves one of 501 expired rows; it does not exercise scheduled backlog continuation. docs/progress/2026-09-29-cda-runtime-setup.md:17 describes retry records as lasting two hours.",
+        "docs/plans/2026-09-29-2128-feat-commerce-dashboard-analytics-plan.md:125 KTD6 requires short-term idempotency and no long-lived per-visit logs; line 150 delegates cleanup to bounded maintenance batches. The capacity claim preserves this design and questions its drain rate, not the settled long-lived aggregate policy. Production incidence was not measured."
+      ],
+      "file": "apps/api/src/analytics/service.ts",
+      "first_evidence": "apps/api/src/analytics/service.ts:60:     (SELECT rowid FROM traffic_event_dedup WHERE expires_at <= ? ORDER BY expires_at LIMIT 500)`,",
+      "independent_reviewers": [
+        "adversarial"
+      ],
+      "line": 60,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "adversarial"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Keep bounded deletion batches, but drain or enqueue continuation while expired rows remain, using a bounded execution budget and a continuation mechanism when that budget is exhausted. Add a focused scheduler/cleanup test with several batches proving backlog progress exceeds supported ingestion and aggregates remain intact.",
+      "title": "Sustained traffic outpaces retry-record expiry cleanup",
+      "why_it_matters": "The collector accepts traffic independently across source and visitor quotas, but the scheduler removes only 500 expired events every five minutes. At 200 accepted page entries per minute (for example 200 independent visitors each opening one page), 1,000 records expire between runs while only 500 are removed. The expired backlog grows by 500 each cycle, retaining event-level visitor/product/release associations far beyond the documented two-hour retry window and eventually consuming database capacity. The deliberate per-query batch bound is reasonable, but there is no continuation or draining mechanism to keep retention bounded."
+    },
+    {
+      "#": 2,
+      "autofix_class": "gated_auto",
+      "confidence": 75,
+      "evidence": [
+        "apps/storefront/app/utils/traffic.ts:42-48: const result = await request(\"/api/platform/traffic/events\", {\n            method: \"POST\",\n            credentials: \"same-origin\",\n            keepalive: true,\n            headers: { \"Content-Type\": \"application/json\" },\n            body,\n          });",
+        "apps/storefront/app/utils/traffic.ts:64: pending = pending.then(() => send(route, productId));",
+        "apps/storefront/app/utils/traffic.ts:15-22: identity fetch and response.json() are awaited without an AbortSignal or deadline.",
+        "apps/storefront/app/plugins/traffic.client.ts:11: navigator.locks ? navigator.locks.request(\"shoppp-traffic-identity\", operation) : operation(),"
+      ],
+      "file": "apps/storefront/app/utils/traffic.ts",
+      "first_evidence": "apps/storefront/app/utils/traffic.ts:42-48: const result = await request(\"/api/platform/traffic/events\", {\n            method: \"POST\",\n            credentials: \"same-origin\",\n            keepalive: true,\n            headers: { \"Content-Type\": \"application/json\" },\n            body,\n          });",
+      "independent_reviewers": [
+        "reliability"
+      ],
+      "line": 42,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "reliability"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Give identity acquisition (including JSON body consumption) and each event attempt a finite AbortController deadline, clearing the timer in finally. A 10-second deadline is a defensible default for optional analytics. Let the existing catches release the queue and Web Lock after timeout, preserve the identical event ID/body for the existing bounded retry, and add a focused stalled-request test proving later visits can proceed.",
+      "title": "Bound traffic requests so one stall cannot stop collection",
+      "why_it_matters": "Integration point without a timeout: both identity and event requests use native fetch without a deadline, while every subsequent route entry waits on the same pending promise. If an identity response, response body, or event response stalls, the affected tab stops collecting every later route entry until that request eventually settles. An identity stall additionally holds the cross-tab Web Lock supplied by the plugin, preventing other tabs from initializing traffic. Shopping remains usable, so this loss is silent in the dashboard rather than a visible page failure."
+    }
+  ],
+  "first_evidence_backfilled": 0,
+  "malformed_findings": 0,
+  "malformed_returns": 0,
+  "pre_existing_findings": [],
+  "residual_risks": [
+    "Hosted D1 latency and query resource consumption at the configured 500,000-bucket reporting boundary remain unverified. The source uses indexed window predicates, bounds source rows, and batches daily SQL without transferring UV identities, so this review found no demonstrated runtime performance defect at expected usage."
+  ],
+  "status": "complete",
+  "suppressed_by_confidence": {},
+  "suppressed_findings": [],
+  "testing_gaps": [
+    "apps/storefront/app/utils/traffic.ts:28-49 introduces expiry renewal and 401/403 identity invalidation, but apps/storefront/tests/traffic.test.ts exercises only a fresh successful ticket, one network retry, and identity network failure. Add fake-clock cases for a later route visit after ticket expiry and a rejected event followed by a later visit; assert renewal, no retry of the rejected event, and a fresh event ID. This proves that ordinary long-lived shopper sessions resume collection without repeatedly submitting a rejected ticket.",
+    "apps/admin/src/pages/dashboard/dashboard-page.tsx:254-268 has a separate traffic response generation guard, while dashboard.test.tsx:201-231 defers only revenue for its stale-response test. Defer an old fetchTrafficReport, change the range, resolve the new response, then resolve and reject the old request in separate cases; assert that current UV, PV chart and ranking remain present. Revenue's shared financial guard coverage does not exercise this independent success/error guard.",
+    "apps/storefront/tests/traffic.test.ts awaits every visit sequentially. Add overlapping A -> B -> A visits while identity initialization or the first delivery is deferred, then release it and assert three distinct entry events in order with one identity initialization. This directly exercises the newly introduced pending queue and lastPath dedup interaction used by app:mounted/page:finish. Existing browser tests cover mount duplication and simultaneous tabs, but not rapid same-tab transitions."
+  ],
+  "triage_groups": [],
+  "peer": {
+    "selected": true,
+    "target": null,
+    "route": null,
+    "preference_source": "default",
+    "outcome": "in-process-fallback",
+    "artifact": null,
+    "coverage": "Cross-model pass not run: no different-provider CLI or connector installed; local adversarial fallback completed."
+  },
+  "coverage_notes": [
+    "Depth full. Explicitly included untracked CDA files at caller request. All 11 selected reviewers completed; no code mutation or heavy tests during review.",
+    "Standards fallback: AGENTS.md governs all changed paths; apps/admin/AGENTS.md additionally governs admin.",
+    "Cheap solutions path/title search found no plausible matching entries; learnings not selected.",
+    "Parent verification reports typecheck/lint/build, focused Worker/reporting/migrations and desktop/mobile browser passing; full repository tests ongoing.",
+    "After initial snapshot scope appended staging reset inventory compatibility and dashboard i18n browser include; remaining reviewers saw addendum. Source unchanged except this parent-owned addendum.",
+    "Parent subsequently verified real local HTTPS production-build browser -> same-origin gateway -> actual createApp identity/events -> D1 migrations/manifest -> actual reporting traffic: refresh, SPA, second tab yielded 4PV/1UV/product2PV, Secure HttpOnly cookie and correct public route, all 200/204. Evidence /tmp/shoppp-cda-e2e.log; durable probe/evidence being saved. Remove now-obsolete mocked-only gateway coverage risk.",
+    "Cross-model pass not run: no different-provider CLI or connector installed; local adversarial fallback completed.",
+    "No validator shortcut applies: both candidates lack verified cross-model corroboration; both actionable P2 findings selected in one batch.",
+    "First-evidence backfilled: 0; quote-gate demotions: 0; mode-aware demotions: 0; settlement preference suppressions: 0.",
+    "Removed obsolete mocked-only gateway and ordinary SPA coverage concerns using the parent-reported real HTTPS gateway/createApp/D1/reporting closed loop. Deduplicated independent traffic stale-response test gap and omitted cleanup advisory duplicates already represented by finding #1.",
+    "No triage group: two unrelated fixes would form decorative single-item groups."
+  ],
+  "mode_aware_demotion_count": 0,
+  "quote_gate_demotion_count": 0,
+  "settlement_suppressed_count": 0,
+  "reconciliation_notes": [
+    "#1 retains a code-established drain-capacity defect under the short-term record contract, conditional on sustained accepted rate above 100/minute; do not claim production incidence.",
+    "#2 retains a code-established serial queue and cross-tab identity lock stall, conditional on a request or body not settling promptly. No severity elevation."
+  ],
+  "learnings": [],
+  "agent_native_gaps": [],
+  "deployment_notes": []
+}

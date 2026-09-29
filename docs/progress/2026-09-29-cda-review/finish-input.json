@@ -1,0 +1,181 @@
+{
+  "run_id": "2026-09-29-cda-review",
+  "run_dir": "/Users/studio/Documents/GitHub/shoppp/docs/progress/2026-09-29-cda-review",
+  "skill_dir": "/Users/studio/.codex/plugins/cache/compound-engineering-plugin/compound-engineering/3.29.0/skills/ce-code-review",
+  "docs_root": "docs",
+  "mode": {
+    "agent": true,
+    "apply_local": false,
+    "grouping": "auto",
+    "depth": "full"
+  },
+  "invocation": {
+    "arguments": "mode:agent base:05d0fe68^ plan:docs/plans/2026-09-29-2128-feat-commerce-dashboard-analytics-plan.md",
+    "constraints": [
+      "CDA work only including current dirty and untracked CDA files; exclude all earlier branch commits.",
+      "Read-only except review artifacts under governed docs root. Do not change source, checkout, create worktree, git commit, push or run heavy test suites (root owns).",
+      "U8 evidence and checkpoint closure are ongoing in parent task; distinguish pending closure from missing implemented behavior."
+    ]
+  },
+  "scope": {
+    "mode": "standalone",
+    "base": "05d0fe68^",
+    "diff_a": "0b24241dd6e023a62d8a399a067b38e952659808",
+    "diff_b": null,
+    "pr": {
+      "number": null,
+      "url": null,
+      "title": null,
+      "body": null,
+      "base_ref_name": null,
+      "head_ref_oid": null,
+      "head_ref": null,
+      "base_ref": null,
+      "has_prior_comments": false
+    },
+    "branch": "codex/fix-new-arrival-icon",
+    "head_sha": "05d0fe68f710f3c1578f76c02bee2c0f3e9fce28",
+    "files": "/Users/studio/Documents/GitHub/shoppp/docs/progress/2026-09-29-cda-review/files.txt",
+    "diff": "/Users/studio/Documents/GitHub/shoppp/docs/progress/2026-09-29-cda-review/full.diff",
+    "tree_is_reviewed_head": true,
+    "untracked_excluded": []
+  },
+  "intent": {
+    "summary": "Implement CDA commerce dashboard: first-card currency changes financial data only; browser timezone; four cards with full-period distinct UV versus daily PV trend/product ranks; automatic public storefront traffic, preview/test exclusion, long-lived minute aggregates/minimal UV associations, two-hour retry dedup, exact current-public links, partial failure and stale response protection.",
+    "confidence": "explicit"
+  },
+  "plan": {
+    "path": "docs/plans/2026-09-29-2128-feat-commerce-dashboard-analytics-plan.md",
+    "source": "explicit",
+    "requirements": [
+      "| R1 | 第一张总销售额卡内提供币种选择，控制全部财务指标；dashboard 默认使用浏览器时区，无头像全局设置或时区选择器 | AE1、AE2 |",
+      "| R2 | 顶部依次为总销售额、独立访客（全期 UV）、支付笔数、净销售额；提供同口径真实迷你趋势和可计算的上期比较 | AE3、AE4 |",
+      "| R3 | 主分析卡包含销售额／访问量 Tabs；右上角日期预设和日期范围控制全页 | AE5 |",
+      "| R4 | 销售额 Tab 显示逐日总销售额趋势及商品销售额排名，不扣退款 | AE6 |",
+      "| R5 | 访问量 Tab 显示逐日页面访问次数（PV）及商品页面 PV 排名；同一访客多次真实访问累计计数，规格合并到稳定 productId | AE7 |",
+      "| R6 | 排名保留历史商品名称；有当前公开商城页面时可点击，否则显示纯文本 | AE8 |",
+      "| R8 | 正式商城默认自动采集，不增加统计同意流程；预览和明确测试流量排除 | AE10 |",
+      "| R9 | 财务与访问数据按同一查询时区归日；全期 UV 跨日去重；PV 汇总长期保存，不设固定 90 天删除；查询成功无记录显示 0，查询失败显示重试 | AE4、AE7、AE11 |",
+      "| R10 | 保留权限、竞态保护、主题、国际化、加载／错误／空状态和订单报表入口；不展示渠道占比或热门搜索 | AE5、AE11、AE12 |"
+    ],
+    "implementation_units": [
+      "### U1 — 契约、统计存储验证和部署 authority 核对",
+      "### U2 — 销售卡币种与浏览器时区查询",
+      "### U3 — 商品销售额排行与公开链接",
+      "### U4 — 汇总存储、匿名身份与受控入口",
+      "### U5 — 商城自动 UV／PV 埋点",
+      "### U6 — UV 卡与 PV 趋势／商品排名报表",
+      "### U7 — 参照模板组装正式商业仪表盘",
+      "### U8 — 集成验证、证据与关闭"
+    ],
+    "settled_decisions": [
+      "- **D1 — 货币和时区位置（已修订）。** `session-settled: user-directed`；Governs R1。后续决定替代原头像全局设置：币种位于第一张总销售额卡，影响财务查询而非业务定价；dashboard 默认浏览器时区，无全局偏好 Provider 或新时区选择器。",
+      "- **D2 — UV 与 PV 分开（已修订）。** `session-settled: user-directed`；Governs R2、R5、R9。顶部卡是所选范围内独立访客 UV；主卡访问量趋势及商品访问排名是 PV。替代原“主卡也用 UV”的解释。",
+      "- **D3 — 销售额排名。** `session-settled: user-directed`；Governs R4。商品按销售金额排名、不扣退款；净销售额仍扣退款。",
+      "- **D4 — 页面构成。** `session-settled: user-directed`；Governs R2、R3、R6、R10。四张顶部卡及主卡 Tabs／日期／趋势／商品排名，不设独立筛选栏；访问指标遵循修订 D2，搜索部分由 D5 取消。",
+      "- **D5 — 删除热门搜索。** `session-settled: user-directed`；Governs R7（退役）、R10。删除卡片及采集／存储／报表／验收，不新增替补卡。",
+      "- **D6 — 自动统计与零值。** `session-settled: user-directed`；Governs R8、R9。默认统计，不增加同意交互；正常查询没有记录显示 0。不建设暂停管理或停采覆盖区间系统；接口失败仍是错误，不能伪装成 0。",
+      "- **D7 — 汇总优先、取消固定 90 天。** `session-settled: user-directed`；Governs R9。PV 长期保存汇总，不长期存每次访问明细；顶部跨日 UV 保留必要匿名去重依据，不能只存每日人数再相加。取消旧的固定 90 天删除与相关不可用状态。"
+    ]
+  },
+  "roster": {
+    "selected": [
+      {
+        "reviewer": "correctness",
+        "tier": "session",
+        "reason": "Relevant CDA runtime/schema/test/standard surface"
+      },
+      {
+        "reviewer": "security",
+        "tier": "session",
+        "reason": "Relevant CDA runtime/schema/test/standard surface"
+      },
+      {
+        "reviewer": "adversarial",
+        "tier": "session",
+        "reason": "Relevant CDA runtime/schema/test/standard surface"
+      },
+      {
+        "reviewer": "project-standards",
+        "tier": "mid-tier",
+        "reason": "Relevant CDA runtime/schema/test/standard surface"
+      },
+      {
+        "reviewer": "testing",
+        "tier": "mid-tier",
+        "reason": "Relevant CDA runtime/schema/test/standard surface"
+      },
+      {
+        "reviewer": "maintainability",
+        "tier": "mid-tier",
+        "reason": "Relevant CDA runtime/schema/test/standard surface"
+      },
+      {
+        "reviewer": "performance",
+        "tier": "mid-tier",
+        "reason": "Relevant CDA runtime/schema/test/standard surface"
+      },
+      {
+        "reviewer": "api-contract",
+        "tier": "mid-tier",
+        "reason": "Relevant CDA runtime/schema/test/standard surface"
+      },
+      {
+        "reviewer": "data-migration",
+        "tier": "mid-tier",
+        "reason": "Relevant CDA runtime/schema/test/standard surface"
+      },
+      {
+        "reviewer": "reliability",
+        "tier": "mid-tier",
+        "reason": "Relevant CDA runtime/schema/test/standard surface"
+      },
+      {
+        "reviewer": "julik-frontend-races",
+        "tier": "mid-tier",
+        "reason": "Relevant CDA runtime/schema/test/standard surface"
+      }
+    ],
+    "standards": {
+      "criteria": [
+        "AGENTS.md (all changed files)",
+        "apps/admin/AGENTS.md (admin files)"
+      ],
+      "fallback_named": true,
+      "not_run_reason": null
+    },
+    "packs": {
+      "roots": [],
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "collection": {
+    "returns": "/Users/studio/Documents/GitHub/shoppp/docs/progress/2026-09-29-cda-review/raw-returns.json",
+    "unstructured_returns": [],
+    "failed_reviewers": [],
+    "bound_exceeded": [],
+    "fast_pass": {
+      "emitted_preliminary": false,
+      "candidates": []
+    }
+  },
+  "peer": {
+    "selected": true,
+    "target": null,
+    "route": null,
+    "preference_source": "default",
+    "outcome": "in-process-fallback",
+    "artifact": null,
+    "coverage": "Cross-model pass not run: no different-provider CLI or connector installed; local adversarial fallback completed."
+  },
+  "coverage_notes": [
+    "Depth full. Explicitly included untracked CDA files at caller request. All 11 selected reviewers completed; no code mutation or heavy tests during review.",
+    "Standards fallback: AGENTS.md governs all changed paths; apps/admin/AGENTS.md additionally governs admin.",
+    "Cheap solutions path/title search found no plausible matching entries; learnings not selected.",
+    "Parent verification reports typecheck/lint/build, focused Worker/reporting/migrations and desktop/mobile browser passing; full repository tests ongoing.",
+    "After initial snapshot scope appended staging reset inventory compatibility and dashboard i18n browser include; remaining reviewers saw addendum. Source unchanged except this parent-owned addendum.",
+    "Parent subsequently verified real local HTTPS production-build browser -> same-origin gateway -> actual createApp identity/events -> D1 migrations/manifest -> actual reporting traffic: refresh, SPA, second tab yielded 4PV/1UV/product2PV, Secure HttpOnly cookie and correct public route, all 200/204. Evidence /tmp/shoppp-cda-e2e.log; durable probe/evidence being saved. Remove now-obsolete mocked-only gateway coverage risk.",
+    "Parent retained final implementation verification at docs/progress/2026-09-29-cda-implementation-evidence.md and reusable real HTTPS browser probe at docs/progress/2026-09-29-cda-browser-probe.mjs. Full API reset compatibility rerun14/14 and isolated admin timeout rerun47/47 passed; remaining suites passed."
+  ]
+}

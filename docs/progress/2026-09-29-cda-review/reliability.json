@@ -1,0 +1,26 @@
+{
+  "reviewer": "reliability",
+  "findings": [
+    {
+      "title": "Bound traffic requests so one stall cannot stop collection",
+      "severity": "P2",
+      "file": "apps/storefront/app/utils/traffic.ts",
+      "line": 42,
+      "why_it_matters": "Integration point without a timeout: both identity and event requests use native fetch without a deadline, while every subsequent route entry waits on the same pending promise. If an identity response, response body, or event response stalls, the affected tab stops collecting every later route entry until that request eventually settles. An identity stall additionally holds the cross-tab Web Lock supplied by the plugin, preventing other tabs from initializing traffic. Shopping remains usable, so this loss is silent in the dashboard rather than a visible page failure.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "confidence": 75,
+      "evidence": [
+        "apps/storefront/app/utils/traffic.ts:42-48: const result = await request(\"/api/platform/traffic/events\", {\n            method: \"POST\",\n            credentials: \"same-origin\",\n            keepalive: true,\n            headers: { \"Content-Type\": \"application/json\" },\n            body,\n          });",
+        "apps/storefront/app/utils/traffic.ts:64: pending = pending.then(() => send(route, productId));",
+        "apps/storefront/app/utils/traffic.ts:15-22: identity fetch and response.json() are awaited without an AbortSignal or deadline.",
+        "apps/storefront/app/plugins/traffic.client.ts:11: navigator.locks ? navigator.locks.request(\"shoppp-traffic-identity\", operation) : operation(),"
+      ],
+      "pre_existing": false,
+      "suggested_fix": "Give identity acquisition (including JSON body consumption) and each event attempt a finite AbortController deadline, clearing the timer in finally. A 10-second deadline is a defensible default for optional analytics. Let the existing catches release the queue and Web Lock after timeout, preserve the identical event ID/body for the existing bounded retry, and add a focused stalled-request test proving later visits can proceed."
+    }
+  ],
+  "residual_risks": [],
+  "testing_gaps": []
+}

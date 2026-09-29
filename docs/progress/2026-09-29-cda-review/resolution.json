@@ -1,0 +1,28 @@
+{
+  "review_run": "2026-09-29-cda-review",
+  "review_status": "complete",
+  "resolved_findings": [
+    {
+      "#": 1,
+      "status": "fixed",
+      "files": [
+        "packages/db/migrations/0039_commerce_analytics.sql",
+        "apps/api/test/analytics/traffic.test.ts"
+      ],
+      "verification": "4x600 sustained event cohorts keep retry rows at600 and PV2400; final API57 and DB18 passed"
+    },
+    {
+      "#": 2,
+      "status": "fixed",
+      "files": [
+        "apps/storefront/app/utils/traffic.ts",
+        "apps/storefront/tests/traffic.test.ts"
+      ],
+      "verification": "10-second deadline including body; initialization/queue progresses; same-event retries; collector8 tests72 assertions"
+    }
+  ],
+  "testing_gaps": "All3 addressed: expiry/401/403, queued A→B→A, old traffic success/failure; dashboard11 passed",
+  "unresolved_actionable_findings": [],
+  "scope_limit": "Hosted D1 resource/latency at500000 bucket rows not measured; local cap/index probe verified, no demonstrated defect. Hosted deployment/capacity is outside authorized plan.",
+  "evidence": "docs/progress/2026-09-29-cda-implementation-evidence.md"
+}

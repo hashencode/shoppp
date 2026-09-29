@@ -323,6 +323,28 @@ describe("commerce reporting API", () => {
     expect(await env.REPORT_EXPORTS.head(stored!.object_key)).not.toBeNull();
   });
 
+  test("serves currency product sales and currency-free traffic under reporting permission", async () => {
+    const analyst = appFor("report-analyst");
+    const support = appFor("report-support");
+    for (const path of [
+      `/admin/reporting/products?${WINDOW_QUERY}`,
+      "/admin/reporting/traffic?startDate=2026-07-29&endDate=2026-07-29&timeZone=America%2FNew_York",
+    ]) {
+      const response = await analyst.fetch(request(path), env);
+      expect(response.status).toBe(200);
+      expect(response.headers.get("Cache-Control")).toContain("no-store");
+      expect(((await response.json()) as { data: { products: unknown[] } }).data.products).toEqual(
+        [],
+      );
+      expect((await support.fetch(request(path), env)).status).toBe(403);
+    }
+    const invalid = await analyst.fetch(
+      request("/admin/reporting/traffic?startDate=2026-07-30&endDate=2026-07-29&timeZone=UTC"),
+      env,
+    );
+    expect(invalid.status).toBe(422);
+  });
+
   test("denies export creation and download without permission, then expires files", async () => {
     const support = appFor("report-support");
     expect(

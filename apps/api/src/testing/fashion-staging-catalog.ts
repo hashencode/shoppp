@@ -43,6 +43,10 @@ export const FASHION_STAGING_REVIEWED_MANIFEST_DIGEST =
 const BOOT_CRITICAL_TABLES = ["d1_migrations", "fashion_staging_catalog_reset_locks"] as const;
 
 const DISPOSABLE_TABLES = [
+  "traffic_event_dedup",
+  "traffic_pv_buckets",
+  "traffic_uv_buckets",
+  "traffic_collection",
   "audit_events",
   "cart_lines",
   "carts",

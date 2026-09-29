@@ -37,6 +37,10 @@ import {
   inventoryAdjustmentRequestSchema,
   reportExportRequestSchema,
   reportingQuerySchema,
+  trafficEventSchema,
+  trafficIdentityRequestSchema,
+  trafficQuerySchema,
+  productSalesQuerySchema,
   replayNotificationJobRequestSchema,
   resendAdminInvitationRequestSchema,
   revokeAdminInvitationRequestSchema,
@@ -206,6 +210,10 @@ import {
 } from "../recovery/notification-jobs";
 import { createReportExport, downloadReportExport, getReportExport } from "../reporting/export";
 import { getRevenueReport, listReportOrders } from "../reporting/order-metrics";
+import { getProductSalesReport } from "../reporting/product-ranking";
+import { getTrafficReport } from "../reporting/traffic";
+import { initializeTraffic, recordTraffic } from "../analytics/service";
+import { protectTraffic } from "../analytics/protection";
 import type { RateLimiter } from "../security/rate-limit";
 import { protectCheckoutSubmission, protectReviewSubmission } from "../security/public-submission";
 import { safeRequestId } from "../security/redaction";
@@ -967,6 +975,15 @@ export function createApp(options: CreateAppOptions = {}) {
       data: configuration,
       meta: { requestId: context.get("requestId") },
     });
+  });
+  app.post("/platform/traffic/identity", protectTraffic(), async (context) => {
+    const input = await parseJson(context, trafficIdentityRequestSchema);
+    const data = await initializeTraffic(context, input);
+    return context.json({ data, meta: { requestId: context.get("requestId") } });
+  });
+  app.post("/platform/traffic/events", protectTraffic(), async (context) => {
+    await recordTraffic(context, await parseJson(context, trafficEventSchema));
+    return context.body(null, 204);
   });
   app.post(
     "/platform/events",
@@ -2935,6 +2952,21 @@ export function createApp(options: CreateAppOptions = {}) {
   app.get("/admin/orders", async (context) => {
     await requirePermission(context, "orders.read", { type: "order" });
     return context.json(await listOrders(context));
+  });
+  app.get("/admin/reporting/products", async (context) => {
+    await requirePermission(context, "reporting.read", { type: "commerce_report" });
+    const data = await getProductSalesReport(
+      context.env,
+      validatedQuery(context, productSalesQuerySchema),
+    );
+    context.header("Cache-Control", "no-store");
+    return context.json({ data, meta: { requestId: context.get("requestId") } });
+  });
+  app.get("/admin/reporting/traffic", async (context) => {
+    await requirePermission(context, "reporting.read", { type: "commerce_report" });
+    const data = await getTrafficReport(context.env, validatedQuery(context, trafficQuerySchema));
+    context.header("Cache-Control", "no-store");
+    return context.json({ data, meta: { requestId: context.get("requestId") } });
   });
   app.get("/admin/reporting/revenue", async (context) => {
     await requirePermission(context, "reporting.read", { type: "commerce_report" });

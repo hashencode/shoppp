@@ -1,0 +1,4555 @@
+diff --git a/apps/admin/src/pages/dashboard/dashboard-page.tsx b/apps/admin/src/pages/dashboard/dashboard-page.tsx
+index 6a134a97..3d53d63a 100644
+--- a/apps/admin/src/pages/dashboard/dashboard-page.tsx
++++ b/apps/admin/src/pages/dashboard/dashboard-page.tsx
+@@ -1,41 +1,43 @@
+-import type { ReportingQuery, RevenueMetrics, RevenueReport } from '@shoppp/contracts'
++import type {
++  ReportingQuery,
++  RevenueReport,
++  TrafficReport,
++  ProductSalesReport,
++} from '@shoppp/contracts'
+ import { ArrowDownOutlined, ArrowUpOutlined, QuestionCircleOutlined } from '@ant-design/icons'
+ import {
++  Alert,
+   Button,
+   Card,
+   Col,
++  DatePicker,
+   Empty,
+-  Form,
+   Row,
+   Skeleton,
+-  Statistic,
+-  Table,
+-  App,
++  Select,
++  Tabs,
+   Tooltip,
++  Typography,
+   theme,
+ } from 'antd'
+ import dayjs from 'dayjs'
+-import type { Dayjs } from 'dayjs'
+-import React, { useEffect, useMemo, useRef, useState } from 'react'
++import React, { useContext, useEffect, useRef, useState } from 'react'
+ import { useNavigate } from 'react-router-dom'
+-import { useLocalizedApiError } from '../../shared/i18n/api-error'
+-import { fetchRevenueReport } from '../../services/reporting/api'
++import { AuthContext } from '../../infrastructure/auth/auth-context'
++import {
++  fetchRevenueReport,
++  fetchTrafficReport,
++  fetchProductSalesReport,
++} from '../../services/reporting/api'
+ import { useI18n } from '../../shared/contexts/i18n-context'
+-import { useTheme } from '../../shared/contexts/theme-context'
+ import { formatMinorCurrency } from '../../shared/i18n/format-currency'
+-import {
+-  buildSearchGridProps,
+-  TemplateListFilterForm,
+-  type TemplateListFilterField,
+-  useTemplateListFilters,
+-} from '../../shared/template-kit/list'
+ import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
+-import { getTimeZoneOptions, resolveDefaultTimeZone } from '../../shared/utils/time-zones'
++import { resolveDefaultTimeZone } from '../../shared/utils/time-zones'
++import { DashboardChart } from './dashboard-chart'
+ 
+ void React
+-
+ const CURRENCY_OPTIONS = [
+   ...new Set([
+     'CNY',
+     'USD',
+     'EUR',
+@@ -47,381 +49,503 @@ const CURRENCY_OPTIONS = [
+     'CAD',
+     ...Intl.supportedValuesOf('currency'),
+   ]),
+ ].map((value) => ({ label: value, value }))
+ 
+-const initialQuery = (): ReportingQuery => ({
+-  currency: 'CNY',
+-  endDate: dayjs().format('YYYY-MM-DD'),
+-  startDate: dayjs().subtract(29, 'day').format('YYYY-MM-DD'),
+-  timeZone: resolveDefaultTimeZone(),
+-})
++const todayInZone = (timeZone: string): string => {
++  const parts = new Intl.DateTimeFormat('en-US', {
++    timeZone,
++    year: 'numeric',
++    month: '2-digit',
++    day: '2-digit',
++  }).formatToParts(new Date())
++  const part = (name: string) => parts.find((entry) => entry.type === name)!.value
++  return `${part('year')}-${part('month')}-${part('day')}`
++}
+ 
+-type DashboardFilterValues = {
+-  currency: string
+-  timeZone: string
+-  dateRange: [Dayjs, Dayjs]
++const initialQuery = (storageKey: string | null): ReportingQuery => {
++  let timeZone = 'UTC'
++  try {
++    timeZone = resolveDefaultTimeZone()
++  } catch {
++    // Keep UTC if the browser cannot resolve its timezone.
++  }
++  const today = dayjs(todayInZone(timeZone))
++  let currency = 'CNY'
++  try {
++    const saved = storageKey ? window.localStorage.getItem(storageKey) : null
++    if (CURRENCY_OPTIONS.some((option) => option.value === saved)) currency = saved!
++  } catch {
++    // Storage may be unavailable; keep the default.
++  }
++  return {
++    currency,
++    endDate: today.format('YYYY-MM-DD'),
++    startDate: today.subtract(29, 'day').format('YYYY-MM-DD'),
++    timeZone,
++  }
+ }
+ 
+-type ReportSnapshot = {
+-  data: RevenueReport
++type FinancialSnapshot = {
++  key: string
+   query: ReportingQuery
++  revenue: RevenueReport | null
++  products: ProductSalesReport | null
+ }
++type TrafficSnapshot = { key: string; report: TrafficReport | null }
+ 
+-const toFilterValues = (query: ReportingQuery): DashboardFilterValues => ({
+-  currency: query.currency,
+-  timeZone: query.timeZone,
+-  dateRange: [dayjs(query.startDate), dayjs(query.endDate)],
+-})
+-
+-const toReportingQuery = (values: DashboardFilterValues): ReportingQuery => ({
+-  currency: values.currency,
+-  timeZone: values.timeZone,
+-  startDate: values.dateRange[0].format('YYYY-MM-DD'),
+-  endDate: values.dateRange[1].format('YYYY-MM-DD'),
+-})
+-
+-type MetricCardProps = {
+-  label: string
+-  value: number
+-  currency?: string
+-  comparison: number
+-  description: string
+-  comparisonWindow: string
++const Failure = ({ onRetry }: { onRetry: () => void }) => {
++  const { t } = useI18n()
++  return (
++    <Alert
++      type="error"
++      title={t('Reporting data is unavailable.')}
++      action={<Button onClick={onRetry}>{t('Retry')}</Button>}
++    />
++  )
+ }
+ 
+ const MetricCard = ({
+   label,
++  description,
+   value,
++  previous,
+   currency,
+-  comparison,
+-  description,
++  series,
+   comparisonWindow,
+-}: MetricCardProps) => {
++  control,
++  loading,
++  retry,
++}: {
++  label: string
++  description: string
++  value?: number
++  previous?: number
++  currency?: string
++  series: { date: string; value: number }[]
++  comparisonWindow?: string
++  control?: React.ReactNode
++  loading: boolean
++  retry: () => void
++}) => {
+   const { locale, t } = useI18n()
+   const { token } = theme.useToken()
+-  const delta = value - comparison
+-  const currencyFormatter = currency
+-    ? new Intl.NumberFormat(locale, { style: 'currency', currency })
+-    : undefined
+-  const unit = currencyFormatter?.formatToParts(0).find((part) => part.type === 'currency')?.value
+-  const fractionDigits = currencyFormatter?.resolvedOptions().maximumFractionDigits ?? 0
+-  const divisor = 10 ** fractionDigits
+-  const numberFormatter = new Intl.NumberFormat(
+-    locale,
+-    currency ? { minimumFractionDigits: fractionDigits, maximumFractionDigits: fractionDigits } : {}
+-  )
+-  const amount = numberFormatter.format(Math.abs(delta) / divisor)
+-  const DirectionIcon = delta > 0 ? ArrowUpOutlined : ArrowDownOutlined
+-
++  const format = (amount: number) =>
++    currency
++      ? formatMinorCurrency(amount, currency, locale)
++      : new Intl.NumberFormat(locale).format(amount)
++  const delta = value !== undefined && previous !== undefined ? value - previous : undefined
++  const Direction = delta !== undefined && delta < 0 ? ArrowDownOutlined : ArrowUpOutlined
+   return (
+-    <Card className="h-full">
+-      <Statistic
+-        title={
+-          <span className="inline-flex items-center gap-1">
+-            {unit ? `${label} (${unit})` : label}
+-            <Tooltip title={description} trigger={['hover', 'focus']}>
+-              <Button
+-                type="text"
+-                size="small"
+-                aria-label={t('About {metric}', { metric: label })}
+-                icon={<QuestionCircleOutlined aria-hidden />}
+-                style={{ color: token.colorTextSecondary }}
+-              />
+-            </Tooltip>
+-          </span>
+-        }
+-        value={value / divisor}
+-        formatter={() => numberFormatter.format(value / divisor)}
+-        styles={{ content: { fontSize: 24 } }}
+-      />
+-      {delta !== 0 && (
+-        <p className="mb-0 mt-2 text-xs">
+-          <Tooltip title={t('Previous {window}', { window: comparisonWindow })}>
+-            <span style={{ color: delta > 0 ? token.colorSuccessText : token.colorErrorText }}>
+-              <DirectionIcon aria-label={delta > 0 ? t('Increase') : t('Decrease')} /> {amount}
+-            </span>
++    <Card className="h-full" data-metric={label}>
++      <div className="flex flex-wrap items-center justify-between gap-1">
++        <span style={{ color: token.colorTextSecondary }}>
++          {label}
++          <Tooltip title={description} trigger={['hover', 'focus']}>
++            <Button
++              type="text"
++              size="small"
++              aria-label={t('About {metric}', { metric: label })}
++              icon={<QuestionCircleOutlined aria-hidden />}
++            />
+           </Tooltip>
+-        </p>
++        </span>
++        {control}
++      </div>
++      {loading ? (
++        <>
++          <Skeleton active paragraph={{ rows: 2 }} title={false} />
++          <span>{t('Loading report…')}</span>
++        </>
++      ) : value === undefined ? (
++        <Failure onRetry={retry} />
++      ) : (
++        <>
++          <div className="my-2 text-2xl font-semibold" data-testid="metric-value">
++            {format(value)}
++          </div>
++          <DashboardChart
++            label={t('Daily trend for {metric}', { metric: label })}
++            series={series}
++            currency={currency}
++            mini
++          />
++          <p
++            className="mb-0 mt-2 text-xs"
++            style={{
++              color:
++                delta !== undefined && delta !== 0
++                  ? delta > 0
++                    ? token.colorSuccessText
++                    : token.colorErrorText
++                  : token.colorTextSecondary,
++            }}
++          >
++            {delta === undefined ? (
++              t('Previous period unavailable')
++            ) : (
++              <Tooltip title={t('Previous {window}', { window: comparisonWindow ?? '—' })}>
++                <span>
++                  {delta !== 0 && (
++                    <Direction aria-label={delta > 0 ? t('Increase') : t('Decrease')} />
++                  )}{' '}
++                  {delta > 0 ? '+' : ''}
++                  {format(delta)}
++                  {' · '}
++                  {previous! > 0
++                    ? new Intl.NumberFormat(locale, {
++                        style: 'percent',
++                        maximumFractionDigits: 1,
++                      }).format(delta / previous!)
++                    : t('Percentage unavailable')}
++                </span>
++              </Tooltip>
++            )}
++          </p>
++        </>
+       )}
+     </Card>
+   )
+ }
+ 
+ export const DashboardPage = () => {
+-  const { message } = App.useApp()
++  const auth = useContext(AuthContext)
++  const storageKey = auth?.session
++    ? `shoppp.dashboard.currency:${auth.session.environment}:${auth.session.identityId}`
++    : null
++  return <DashboardContent key={storageKey ?? 'anonymous'} storageKey={storageKey} />
++}
++
++const DashboardContent = ({ storageKey }: { storageKey: string | null }) => {
+   const navigate = useNavigate()
+   const { locale, t } = useI18n()
+-  const { searchCompactLayout } = useTheme()
+-  const localizeError = useLocalizedApiError()
+-  const numberFormatter = useMemo(() => new Intl.NumberFormat(locale), [locale])
+-  const [filterForm] = Form.useForm<DashboardFilterValues>()
+-  const [defaultQuery] = useState<ReportingQuery>(initialQuery)
+-  const initialFilterValues = useMemo(() => toFilterValues(defaultQuery), [defaultQuery])
+-  const {
+-    filters: committedQuery,
+-    requestVersion,
+-    onSubmit: commitFilters,
+-    onReset: resetFilters,
+-  } = useTemplateListFilters<DashboardFilterValues, ReportingQuery>({
+-    form: filterForm,
+-    initialFilters: defaultQuery,
+-    toFilters: toReportingQuery,
+-    autoApplyOnValuesChange: false,
+-  })
+-  const [reportSnapshot, setReportSnapshot] = useState<ReportSnapshot | null>(null)
+-  const [loading, setLoading] = useState(true)
+-  const latestRequest = useRef(0)
++  const [query, setQuery] = useState<ReportingQuery>(() => initialQuery(storageKey))
++  const [preset, setPreset] = useState('30')
++  const [rangeError, setRangeError] = useState(false)
++  const [tab, setTab] = useState('sales')
++  const [financialRetry, setFinancialRetry] = useState(0)
++  const [trafficRetry, setTrafficRetry] = useState(0)
++  const [financial, setFinancial] = useState<FinancialSnapshot | null>(null)
++  const [traffic, setTraffic] = useState<TrafficSnapshot | null>(null)
++  const financialRequest = useRef(0)
++  const trafficRequest = useRef(0)
++  const { startDate, endDate, timeZone, currency } = query
++  const financialKey = JSON.stringify(query)
++  const trafficKey = JSON.stringify({ startDate, endDate, timeZone })
+ 
+   useEffect(() => {
+-    const requestId = latestRequest.current + 1
+-    latestRequest.current = requestId
+-    const querySnapshot = { ...committedQuery }
+-    const load = async () => {
+-      setLoading(true)
+-      try {
+-        const result = await fetchRevenueReport(querySnapshot)
+-        if (latestRequest.current === requestId) {
+-          setReportSnapshot({ data: result, query: querySnapshot })
+-        }
+-      } catch (error) {
+-        if (latestRequest.current === requestId) void message.error(localizeError(error))
+-      } finally {
+-        if (latestRequest.current === requestId) setLoading(false)
++    const request = ++financialRequest.current
++    const snapshot = { ...query }
++    void Promise.allSettled([fetchRevenueReport(snapshot), fetchProductSalesReport(snapshot)]).then(
++      ([revenue, products]) => {
++        if (financialRequest.current !== request) return
++        setFinancial({
++          key: financialKey,
++          query: snapshot,
++          revenue: revenue.status === 'fulfilled' ? revenue.value : null,
++          products: products.status === 'fulfilled' ? products.value : null,
++        })
+       }
+-    }
+-    const timer = window.setTimeout(() => void load(), 0)
++    )
+     return () => {
+-      window.clearTimeout(timer)
+-      latestRequest.current += 1
++      financialRequest.current += 1
+     }
+-  }, [message, localizeError, committedQuery, requestVersion])
+-
+-  const report = reportSnapshot?.data ?? null
++  }, [query, financialKey, financialRetry])
+ 
+-  const comparisonWindow = report
+-    ? `${report.comparison.startDate}–${report.comparison.endDate}`
+-    : '—'
+-  const cards = useMemo<
+-    Array<{
+-      currency?: boolean
+-      key: keyof RevenueMetrics
+-      label: string
+-      description: string
+-    }>
+-  >(
+-    () => [
+-      {
+-        currency: true,
+-        key: 'grossSales',
+-        label: t('Gross sales'),
+-        description: t(
+-          'Order totals counted once when paid orders are created. Later cancellations and refunds do not change this amount.'
+-        ),
+-      },
+-      {
+-        currency: true,
+-        key: 'refundTotal',
+-        label: t('Refunds'),
+-        description: t(
+-          'Successful refunds counted by their completion time, including partial refunds and refunds for canceled orders.'
+-        ),
+-      },
+-      {
+-        currency: true,
+-        key: 'netSales',
+-        label: t('Net sales'),
+-        description: t(
+-          'Gross sales minus refunds completed in the selected period. This can be negative when refunds exceed sales.'
+-        ),
+-      },
+-      {
+-        key: 'orderCount',
+-        label: t('Paid orders'),
+-        description: t(
+-          'Paid orders created in the selected period. Failed checkouts and test orders are excluded.'
+-        ),
+-      },
+-      {
+-        currency: true,
+-        key: 'averageOrderValue',
+-        label: t('Average order value'),
+-        description: t(
+-          'Gross sales divided by paid order count, rounded to the currency’s smallest unit. Zero when there are no paid orders.'
+-        ),
+-      },
+-    ],
+-    [t]
+-  )
+-  const filterFields = useMemo<TemplateListFilterField<DashboardFilterValues>[]>(
+-    () => [
+-      {
+-        type: 'select',
+-        name: 'currency',
+-        label: t('Currency'),
+-        options: CURRENCY_OPTIONS,
+-        formItemProps: { rules: [{ required: true }] },
+-        selectProps: {
+-          'aria-label': t('Currency'),
+-          allowClear: false,
+-          showSearch: true,
+-          optionFilterProp: 'label',
+-        },
+-      },
+-      {
+-        type: 'select',
+-        name: 'timeZone',
+-        label: t('Time zone'),
+-        options: getTimeZoneOptions(defaultQuery.timeZone),
+-        formItemProps: { rules: [{ required: true }] },
+-        selectProps: {
+-          'aria-label': t('Time zone'),
+-          allowClear: false,
+-          showSearch: true,
+-          optionFilterProp: 'label',
+-        },
+-      },
+-      {
+-        type: 'date-range',
+-        name: 'dateRange',
+-        label: t('Date range'),
+-        colProps: { sm: 24, md: 16, lg: 16, xl: 12, xxl: 12 },
+-        formItemProps: {
+-          rules: [
+-            {
+-              validator: async (_, value: DashboardFilterValues['dateRange'] | null) => {
+-                if (!value?.[0] || !value[1]) {
+-                  throw new Error(t('Select a start and end date.'))
+-                }
+-              },
+-            },
+-          ],
+-        },
+-        datePickerProps: {
+-          'aria-label': t('Date range'),
+-          format: 'YYYY-MM-DD',
+-          placeholder: [t('Start date'), t('End date')],
+-        },
++  useEffect(() => {
++    const request = ++trafficRequest.current
++    void fetchTrafficReport({ startDate, endDate, timeZone }).then(
++      (report) => {
++        if (request === trafficRequest.current) setTraffic({ key: trafficKey, report })
+       },
+-    ],
+-    [defaultQuery.timeZone, t]
+-  )
+-  const searchGridProps = useMemo(() => buildSearchGridProps(filterFields), [filterFields])
+-  const submitFilters = (values: DashboardFilterValues) => {
+-    latestRequest.current += 1
+-    setReportSnapshot(null)
+-    setLoading(true)
+-    commitFilters(values)
++      () => {
++        if (request === trafficRequest.current) setTraffic({ key: trafficKey, report: null })
++      }
++    )
++    return () => {
++      trafficRequest.current += 1
++    }
++  }, [startDate, endDate, timeZone, trafficKey, trafficRetry])
++
++  const finances = financial?.key === financialKey ? financial : null
++  const visits = traffic?.key === trafficKey ? traffic : null
++  const revenue = finances?.revenue
++  const report = visits?.report
++  const retryFinancial = () => {
++    setFinancial(null)
++    setFinancialRetry((value) => value + 1)
+   }
+-  const resetAndQuery = () => {
+-    latestRequest.current += 1
+-    setReportSnapshot(null)
+-    setLoading(true)
+-    resetFilters()
++  const retryTraffic = () => {
++    setTraffic(null)
++    setTrafficRetry((value) => value + 1)
+   }
+-  const retry = () => {
+-    latestRequest.current += 1
+-    setReportSnapshot(null)
+-    setLoading(true)
+-    commitFilters(toFilterValues(committedQuery))
++  const commitDates = (start: string, end: string) => {
++    const days = dayjs(end).diff(dayjs(start), 'day')
++    if (days < 0 || days > 366) {
++      setRangeError(true)
++      return
++    }
++    setRangeError(false)
++    setQuery((current) =>
++      current.startDate === start && current.endDate === end
++        ? current
++        : { ...current, startDate: start, endDate: end }
++    )
+   }
++  const changePreset = (value: string) => {
++    setPreset(value)
++    if (value === 'custom') return
++    const today = dayjs(todayInZone(timeZone))
++    let start = today
++    switch (value) {
++      case 'today': break
++      case 'week': start = today.subtract((today.day() + 6) % 7, 'day'); break
++      case 'month': start = today.startOf('month'); break
++      case 'year': start = today.startOf('year'); break
++      default: start = today.subtract(Number(value) - 1, 'day')
++    }
++    commitDates(start.format('YYYY-MM-DD'), today.format('YYYY-MM-DD'))
++  }
++  const currencyControl = (
++    <Select
++      aria-label={t('Currency')}
++      value={currency}
++      options={CURRENCY_OPTIONS}
++      showSearch
++      optionFilterProp="label"
++      size="small"
++      style={{ minWidth: 88 }}
++      onChange={(next: string) => {
++        setQuery((current) =>
++          current.currency === next ? current : { ...current, currency: next }
++        )
++        try {
++          if (storageKey) window.localStorage.setItem(storageKey, next)
++        } catch {
++          /* Storage is optional. */
++        }
++      }}
++    />
++  )
++  const financialWindow = revenue
++    ? `${revenue.comparison.startDate}–${revenue.comparison.endDate}`
++    : undefined
++  const financialCards = [
++    {
++      key: 'grossSales' as const,
++      label: t('Gross sales'),
++      description: t(
++        'Order totals counted once when paid orders are created. Later cancellations and refunds do not change this amount.'
++      ),
++      monetary: true,
++    },
++    {
++      key: 'orderCount' as const,
++      label: t('Paid orders'),
++      description: t(
++        'Paid orders created in the selected period. Failed checkouts and test orders are excluded.'
++      ),
++      monetary: false,
++    },
++    {
++      key: 'netSales' as const,
++      label: t('Net sales'),
++      description: t(
++        'Gross sales minus refunds completed in the selected period. This can be negative when refunds exceed sales.'
++      ),
++      monetary: true,
++    },
++  ]
++  const renderFinancialCard = (card: (typeof financialCards)[number]) => (
++    <Col key={card.key} xs={24} sm={12} xl={6}>
++      <MetricCard
++        label={card.label}
++        description={card.description}
++        value={revenue?.current.metrics[card.key]}
++        previous={revenue?.comparison.metrics[card.key]}
++        currency={card.monetary ? currency : undefined}
++        series={
++          revenue?.current.series.map((row) => ({ date: row.date, value: row[card.key] })) ?? []
++        }
++        comparisonWindow={financialWindow}
++        control={card.key === 'grossSales' ? currencyControl : undefined}
++        loading={!finances}
++        retry={retryFinancial}
++      />
++    </Col>
++  )
++  const isSales = tab === 'sales'
++  const chartReady = isSales ? finances : visits
++  const chartData = isSales ? revenue : report
++  const rankingReady = isSales ? finances : visits
++  const rankingReport = isSales ? finances?.products : report
++  const series = isSales
++    ? revenue?.current.series.map((row) => ({ date: row.date, value: row.grossSales }))
++    : report?.series.map((row) => ({ date: row.date, value: row.pageViews }))
++  const rankings = isSales
++    ? finances?.products?.products.map((product) => ({ ...product, value: product.grossSales }))
++    : report?.products.map((product) => ({ ...product, value: product.pageViews }))
++  const retry = isSales ? retryFinancial : retryTraffic
++  const today = todayInZone(timeZone)
+ 
+   return (
+     <CustomPageRecipe title={t('Commerce dashboard')}>
+-      <Card variant="borderless" styles={{ body: { paddingRight: 8 } }}>
+-        <TemplateListFilterForm<DashboardFilterValues>
+-          form={filterForm}
+-          formProps={{ initialValues: initialFilterValues }}
+-          fields={filterFields}
+-          fieldColProps={searchGridProps.formItem}
+-          labelCol={searchGridProps.labelItem}
+-          wrapperCol={searchGridProps.inputItem}
+-          actionsColProps={searchGridProps.actions}
+-          compactLayout={searchCompactLayout}
+-          submitText={t('Query')}
+-          submitLoading={loading && !report}
+-          onSubmit={submitFilters}
+-          onReset={resetAndQuery}
+-        />
+-      </Card>
+-
+-      {loading && !report ? (
+-        <Card>
+-          <Skeleton active />
+-          <span>{t('Loading report…')}</span>
+-        </Card>
+-      ) : report ? (
+-        <>
+-          <Row gutter={[16, 16]}>
+-            {cards.map((card) => (
+-              <Col key={card.key} xs={24} md={12} xl={card.key === 'averageOrderValue' ? 24 : 6}>
+-                <MetricCard
+-                  label={card.label}
+-                  value={report.current.metrics[card.key]}
+-                  comparison={report.comparison.metrics[card.key]}
+-                  description={card.description}
+-                  comparisonWindow={comparisonWindow}
+-                  {...(card.currency ? { currency: report.currency } : {})}
+-                />
+-              </Col>
+-            ))}
+-          </Row>
+-          <Card
+-            title={t('Daily revenue series')}
+-            extra={
++      <Row gutter={[16, 16]}>
++        {renderFinancialCard(financialCards[0]!)}
++        <Col xs={24} sm={12} xl={6}>
++          <MetricCard
++            label={t('Unique visitors')}
++            description={t(
++              'Distinct anonymous browsers across the selected period. Daily visitors are deduplicated separately.'
++            )}
++            value={report?.uniqueVisitors}
++            previous={report?.comparison.available ? report.comparison.uniqueVisitors : undefined}
++            comparisonWindow={
++              report ? `${report.comparison.startDate}–${report.comparison.endDate}` : undefined
++            }
++            series={
++              report?.series.map((row) => ({ date: row.date, value: row.uniqueVisitors })) ?? []
++            }
++            loading={!visits}
++            retry={retryTraffic}
++          />
++        </Col>
++        {financialCards.slice(1).map(renderFinancialCard)}
++      </Row>
++      <Card>
++        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
++          <Tabs
++            activeKey={tab}
++            onChange={setTab}
++            items={[
++              { key: 'sales', label: t('Sales') },
++              { key: 'views', label: t('Page views') },
++            ]}
++          />
++          <div className="flex max-w-full flex-wrap items-center gap-2">
++            <Select
++              aria-label={t('Date preset')}
++              value={preset}
++              onChange={changePreset}
++              style={{ minWidth: 130 }}
++              options={[
++                ['today', 'Today'],
++                ['7', 'Last 7 days'],
++                ['30', 'Last 30 days'],
++                ['week', 'This week'],
++                ['month', 'This month'],
++                ['year', 'This year'],
++                ['custom', 'Custom'],
++              ].map(([value, label]) => ({ value, label: t(label!) }))}
++            />
++            <DatePicker.RangePicker
++              aria-label={t('Date range')}
++              value={[dayjs(startDate), dayjs(endDate)]}
++              allowClear={false}
++              format="YYYY-MM-DD"
++              placeholder={[t('Start date'), t('End date')]}
++              style={{ maxWidth: '100%' }}
++              onChange={(dates) => {
++                if (dates?.[0] && dates[1]) {
++                  setPreset('custom')
++                  commitDates(dates[0].format('YYYY-MM-DD'), dates[1].format('YYYY-MM-DD'))
++                }
++              }}
++            />
++          </div>
++        </div>
++        {rangeError && (
++          <Alert type="warning" title={t('Select an ordered date range of at most 367 days.')} />
++        )}
++        {startDate <= today && endDate >= today && (
++          <Typography.Paragraph type="secondary">
++            {t('Today is still in progress; comparisons include a partial day.')}
++          </Typography.Paragraph>
++        )}
++        <Row gutter={[32, 24]}>
++          <Col xs={24} lg={16}>
++            {!chartReady ? (
++              <>
++                <Skeleton active />
++                <span>{t('Loading report…')}</span>
++              </>
++            ) : !chartData ? (
++              <Failure onRetry={retry} />
++            ) : (
++              <DashboardChart
++                label={isSales ? t('Daily gross sales') : t('Daily page views')}
++                series={series ?? []}
++                currency={isSales ? currency : undefined}
++              />
++            )}
++            {isSales && revenue && (
+               <Button
+-                onClick={() => {
+-                  const params = new URLSearchParams(reportSnapshot!.query)
+-                  navigate(`/reports/orders?${params.toString()}`)
+-                }}
++                onClick={() =>
++                  navigate(`/reports/orders?${new URLSearchParams(finances!.query).toString()}`)
++                }
+               >
+                 {t('View underlying orders')}
+               </Button>
+-            }
+-          >
+-            <Table
+-              rowKey="date"
+-              pagination={false}
+-              dataSource={report.current.series}
+-              locale={{
+-                emptyText: <Empty description={t('No commerce events in this window.')} />,
+-              }}
+-              columns={[
+-                { dataIndex: 'date', key: 'date', title: t('Local date'), width: 120 },
+-                {
+-                  dataIndex: 'grossSales',
+-                  key: 'gross',
+-                  title: t('Gross ({currency})', { currency: report.currency }),
+-                  render: (value: number) => formatMinorCurrency(value, report.currency, locale),
+-                },
+-                {
+-                  dataIndex: 'refundTotal',
+-                  key: 'refund',
+-                  title: t('Refunds ({currency})', { currency: report.currency }),
+-                  render: (value: number) => formatMinorCurrency(value, report.currency, locale),
+-                },
+-                {
+-                  dataIndex: 'netSales',
+-                  key: 'net',
+-                  title: t('Net ({currency})', { currency: report.currency }),
+-                  render: (value: number) => formatMinorCurrency(value, report.currency, locale),
+-                },
+-                {
+-                  dataIndex: 'orderCount',
+-                  key: 'orders',
+-                  title: t('Paid orders'),
+-                  width: 120,
+-                  render: (value: number) => numberFormatter.format(value),
+-                },
+-              ]}
+-              scroll={{ x: 720 }}
+-            />
+-          </Card>
+-        </>
+-      ) : (
+-        <Empty description={t('Reporting data is unavailable.')}>
+-          <Button onClick={retry}>{t('Retry')}</Button>
+-        </Empty>
+-      )}
++            )}
++            {!isSales && report?.collectionStartedAt && (
++              <Typography.Paragraph type="secondary">
++                {t('Recorded since {date}', {
++                  date: new Intl.DateTimeFormat(locale, { timeZone, dateStyle: 'medium' }).format(
++                    new Date(report.collectionStartedAt)
++                  ),
++                })}
++              </Typography.Paragraph>
++            )}
++          </Col>
++          <Col xs={24} lg={8}>
++            <Typography.Title level={5}>
++              {isSales ? t('Top products by sales') : t('Top products by page views')}
++            </Typography.Title>
++            {isSales && (
++              <Typography.Paragraph type="secondary">
++                {t('Product line totals, before refunds; excludes order-level adjustments.')}
++              </Typography.Paragraph>
++            )}
++            {!rankingReady ? (
++              <Skeleton active />
++            ) : !rankingReport ? (
++              <Failure onRetry={retry} />
++            ) : !rankings?.length ? (
++              <Empty
++                image={Empty.PRESENTED_IMAGE_SIMPLE}
++                description={t('No product activity in this window.')}
++              >
++                <Button onClick={retry}>{t('Refresh')}</Button>
++              </Empty>
++            ) : (
++              <ol className="m-0 list-none space-y-4 p-0">
++                {rankings.map((product, index) => (
++                  <li key={product.productId} className="flex items-center gap-3">
++                    <span className="w-5 shrink-0 text-center">{index + 1}</span>
++                    <span className="min-w-0 flex-1 break-words">
++                      {product.path && rankingReport.storefrontOrigin ? (
++                        <a
++                          href={`${rankingReport.storefrontOrigin}${product.path}`}
++                          target="_blank"
++                          rel="noopener noreferrer"
++                        >
++                          {product.name}
++                        </a>
++                      ) : (
++                        product.name
++                      )}
++                    </span>
++                    <span className="shrink-0">
++                      {isSales
++                        ? formatMinorCurrency(product.value, currency, locale)
++                        : new Intl.NumberFormat(locale).format(product.value)}
++                    </span>
++                  </li>
++                ))}
++              </ol>
++            )}
++          </Col>
++        </Row>
++      </Card>
+     </CustomPageRecipe>
+   )
+ }
+diff --git a/apps/admin/src/pages/dashboard/dashboard.test.tsx b/apps/admin/src/pages/dashboard/dashboard.test.tsx
+index 2003f3b7..bd3d1d9e 100644
+--- a/apps/admin/src/pages/dashboard/dashboard.test.tsx
++++ b/apps/admin/src/pages/dashboard/dashboard.test.tsx
+@@ -1,437 +1,273 @@
+ import React from 'react'
+-import type { RevenueReport } from '@shoppp/contracts'
+-import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+-import { afterAll, afterEach, beforeAll, describe, expect, it, rstest } from '@rstest/core'
+-import { HttpResponse, http } from 'msw'
+-import { setupServer } from 'msw/node'
++import type { AdminSession, RevenueReport } from '@shoppp/contracts'
++import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
++import { afterEach, beforeEach, describe, expect, it, rstest } from '@rstest/core'
+ import { MemoryRouter, useLocation } from 'react-router-dom'
+-import { ThemeProvider } from '../../shared/contexts/theme-context'
+ import { renderInLocale } from '../../test/render-in-locale'
+ import { DashboardPage } from './dashboard-page'
++import * as timeZones from '../../shared/utils/time-zones'
+ import * as reportingApi from '../../services/reporting/api'
++import { AuthContext } from '../../infrastructure/auth/auth-context'
++import { revenueFixture, trafficFixture, productsFixture } from './dashboard-test-data'
++import { authContextFixture } from '../../test/auth-context-fixture'
+ 
+ void React
+-
+-if (!window.matchMedia) {
++if (!window.matchMedia)
+   Object.defineProperty(window, 'matchMedia', {
+     writable: true,
+     value: () => ({
+       matches: false,
+-      addListener: () => undefined,
+-      removeListener: () => undefined,
+-      addEventListener: () => undefined,
+-      removeEventListener: () => undefined,
++      addListener() {},
++      removeListener() {},
++      addEventListener() {},
++      removeEventListener() {},
+     }),
+   })
+-}
+-if (!window.ResizeObserver) {
++if (!window.ResizeObserver)
+   window.ResizeObserver = class {
+     observe() {}
+     unobserve() {}
+     disconnect() {}
+   } as unknown as typeof ResizeObserver
+-}
+-
+-const report: RevenueReport = {
+-  comparison: {
+-    endDate: '2026-06-30',
+-    metrics: {
+-      averageOrderValue: 1_000,
+-      grossSales: 2_000,
+-      netSales: 1_900,
+-      orderCount: 2,
+-      refundTotal: 100,
+-    },
+-    startDate: '2026-06-01',
+-  },
+-  currency: 'USD',
+-  current: {
+-    endDate: '2026-07-30',
+-    metrics: {
+-      averageOrderValue: 1_750,
+-      grossSales: 3_500,
+-      netSales: 2_000,
+-      orderCount: 2,
+-      refundTotal: 1_500,
+-    },
+-    series: [
+-      {
+-        date: '2026-07-30',
+-        grossSales: 3_500,
+-        netSales: 2_000,
+-        orderCount: 2,
+-        refundTotal: 1_500,
+-      },
+-    ],
+-    startDate: '2026-07-01',
+-  },
+-  definitions: {
+-    grossSales: 'Paid orders recognized once.',
+-    refundTotal: 'Successful refunds at completion.',
+-  },
+-  timeZone: 'America/New_York',
+-}
+ 
+-const server = setupServer(
+-  http.get('*/admin/reporting/revenue', () => HttpResponse.json({ data: report }))
+-)
++rstest.mock('echarts-for-react', () => ({
++  default: ({ option }: { option: unknown }) => (
++    <div data-testid="chart-option">{JSON.stringify(option)}</div>
++  ),
++}))
+ 
++const sessionFixture = (environment: 'test' | 'production', identityId: string): AdminSession => ({
++  displayName: 'Dashboard operator',
++  email: 'operator@example.test',
++  environment,
++  identityId,
++  permissions: ['reporting.read'],
++  principalKind: 'human',
++  role: {
++    enabled: true,
++    id: 'role-operator',
++    key: 'operator',
++    name: 'Operator',
++    protected: false,
++    system: false,
++    version: 1,
++  },
++})
+ const LocationProbe = () => {
+   const location = useLocation()
+-  return <output aria-label="location">{`${location.pathname}${location.search}`}</output>
++  return (
++    <output aria-label="location">
++      {location.pathname}
++      {location.search}
++    </output>
++  )
+ }
+-
+-const getQueryButton = () => screen.getByText('Query').closest('button') as HTMLButtonElement
+-
+-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
++const renderDashboard = () =>
++  renderInLocale(
++    <MemoryRouter>
++      <DashboardPage />
++      <LocationProbe />
++    </MemoryRouter>
++  )
++const select = async (name: string, value: string) => {
++  fireEvent.mouseDown(screen.getByRole('combobox', { name }))
++  fireEvent.click(await screen.findByText(value, { selector: '.ant-select-item-option-content' }))
++}
++const metric = (name: string) =>
++  screen.getByText(name, { selector: 'span' }).closest('.ant-card') as HTMLElement
++beforeEach(() => {
++  rstest
++    .spyOn(reportingApi, 'fetchRevenueReport')
++    .mockImplementation(async (query) => revenueFixture(query))
++  rstest
++    .spyOn(reportingApi, 'fetchTrafficReport')
++    .mockImplementation(async (query) => trafficFixture(query))
++  rstest
++    .spyOn(reportingApi, 'fetchProductSalesReport')
++    .mockImplementation(async (query) => productsFixture(query))
++})
+ afterEach(() => {
+-  server.resetHandlers()
+-  rstest.unstubAllEnvs()
++  window.localStorage.clear()
+   rstest.restoreAllMocks()
+ })
+-afterAll(() => server.close())
+-
+-describe('DashboardPage', () => {
+-  it.each(['development', 'production'])(
+-    'queries real reports for retired preview links in %s',
+-    async (environment) => {
+-      rstest.stubEnv('NODE_ENV', environment)
+-      let requests = 0
+-      server.use(
+-        http.get('*/admin/reporting/revenue', () => {
+-          requests += 1
+-          return HttpResponse.json({ data: report })
+-        })
+-      )
+-      renderInLocale(
+-        <MemoryRouter initialEntries={['/dashboard?preview=metric-states']}>
+-          <DashboardPage />
+-        </MemoryRouter>
+-      )
+-      expect(await screen.findByText('35.00')).toBeTruthy()
+-      expect(screen.queryByText('250.00')).toBeNull()
+-      expect(screen.queryByText(/Demo data/)).toBeNull()
+-      expect(screen.getByRole('button', { name: 'View underlying orders' })).toBeTruthy()
+-      expect(requests).toBe(1)
+-    }
+-  )
+ 
+-  it('should show absolute changes without repeated reporting summaries', async () => {
+-    renderInLocale(
+-      <ThemeProvider>
+-        <MemoryRouter>
+-          <DashboardPage />
+-        </MemoryRouter>
+-      </ThemeProvider>
++describe('Commerce dashboard', () => {
++  it('renders four real metrics, separates UV from PV and preserves current/archived product links', async () => {
++    renderDashboard()
++    await screen.findByRole('button', { name: 'View underlying orders' })
++    expect(document.querySelectorAll('[data-metric]')).toHaveLength(4)
++    expect(within(metric('Unique visitors')).getByTestId('metric-value').textContent).toBe('1')
++    const uv = within(metric('Unique visitors')).getByTestId('chart-option').textContent!
++    expect(JSON.parse(uv).series[0].data).toEqual([1, 1])
++    expect(within(metric('Gross sales')).getByText(/75%/)).toBeTruthy()
++    expect(within(metric('Net sales')).getByText(/Percentage unavailable/)).toBeTruthy()
++    expect(screen.queryByText('Average order value')).toBeNull()
++    expect(screen.queryByRole('button', { name: 'Query' })).toBeNull()
++    expect(screen.getByRole('link', { name: 'Product A' }).getAttribute('href')).toBe(
++      'https://store.example.com/products/a'
+     )
+-
+-    await screen.findByText('Gross sales ($)')
+-    expect(screen.queryByText('Reporting basis:')).toBeNull()
+-    expect(screen.queryByText('Metric definitions')).toBeNull()
+-    expect(screen.getByText('Gross sales ($)')).toBeTruthy()
+-    expect(screen.getByText('Refunds ($)')).toBeTruthy()
+-    expect(screen.getByText('Net sales ($)')).toBeTruthy()
+-    expect(screen.getAllByText('Paid orders').length).toBeGreaterThan(0)
+-    expect(screen.getByText('Average order value ($)')).toBeTruthy()
+-    const grossCard = screen.getByText('Gross sales ($)').closest('.ant-card')!
+-    expect(grossCard.querySelector('p')?.textContent?.trim()).toBe('15.00')
+-    expect(grossCard.querySelector('p svg')?.getAttribute('data-icon')).toBe('arrow-up')
+-    expect(grossCard.querySelector('p [role="img"]')?.getAttribute('aria-label')).toBe('Increase')
+-    expect(screen.getByText('14.00')).toBeTruthy()
+-    expect(screen.getByText('1.00')).toBeTruthy()
+-    expect(screen.getByText('7.50')).toBeTruthy()
+-    expect(screen.queryByText('No change')).toBeNull()
+-    expect(screen.queryByText('vs. previous period')).toBeNull()
++    expect(screen.getByText('Archived product B').closest('a')).toBeNull()
++    fireEvent.click(screen.getByRole('tab', { name: 'Page views' }))
++    const chart = screen.getByRole('img', { name: 'Daily page views' })
+     expect(
+-      screen.getAllByText('Paid orders')[0]?.closest('.ant-card')?.querySelector('p')
+-    ).toBeNull()
+-    expect(screen.queryByText(/Previous 2026-06-01/)).toBeNull()
+-    expect(screen.getAllByText('$35.00').length).toBeGreaterThan(0)
+-    expect(screen.getAllByText('$15.00').length).toBeGreaterThan(0)
+-    expect(screen.getAllByText('$20.00').length).toBeGreaterThan(0)
+-    expect(screen.getByText('17.50')).toBeTruthy()
+-    expect(screen.getByRole('button', { name: 'View underlying orders' })).toBeTruthy()
+-  })
+-
+-  it('should explain metrics in Chinese on hover and focus, without exposing API copy', async () => {
+-    renderInLocale(
+-      <MemoryRouter>
+-        <DashboardPage />
+-      </MemoryRouter>,
+-      'zh-CN'
+-    )
+-    const help = await screen.findByRole('button', { name: '平均客单价说明' })
+-    expect(screen.queryByText('grossSales')).toBeNull()
+-    expect(screen.queryByText('Paid orders recognized once.')).toBeNull()
+-    fireEvent.mouseEnter(help)
+-    expect((await screen.findByRole('tooltip')).textContent).toContain('销售总额除以已支付订单数')
+-    fireEvent.mouseLeave(help)
+-    await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull())
+-    fireEvent.focus(screen.getByRole('button', { name: '退款说明' }))
+-    expect((await screen.findByRole('tooltip')).textContent).toContain('退款成功时间')
+-    expect(screen.getByText('销售总额 (US$)')).toBeTruthy()
+-    expect(screen.getByText('35.00')).toBeTruthy()
+-    expect(screen.queryByText('持平')).toBeNull()
+-    expect(screen.queryByText('较上一周期')).toBeNull()
++      JSON.parse(within(chart).getByTestId('chart-option').textContent!).series[0].data
++    ).toEqual([5, 1])
++    expect(screen.getByText('4', { selector: 'li span' })).toBeTruthy()
++    expect(reportingApi.fetchTrafficReport).toHaveBeenCalledTimes(1)
+   })
+-
+-  it('should show decreases and zero-baseline increases without percentages', async () => {
+-    server.use(
+-      http.get('*/admin/reporting/revenue', () =>
+-        HttpResponse.json({
+-          data: {
+-            ...report,
+-            currency: 'JPY',
+-            comparison: {
+-              ...report.comparison,
+-              metrics: { ...report.comparison.metrics, averageOrderValue: 0 },
+-            },
+-            current: {
+-              ...report.current,
+-              metrics: { ...report.current.metrics, netSales: -100, orderCount: 0 },
+-            },
+-          },
+-        })
+-      )
++  it('uses browser timezone fallback and keeps currency visible through financial failures, without reloading traffic', async () => {
++    rstest.spyOn(timeZones, 'resolveDefaultTimeZone').mockImplementation(() => {
++      throw new Error('unavailable')
++    })
++    rstest.mocked(reportingApi.fetchRevenueReport).mockRejectedValueOnce(new Error('offline'))
++    renderDashboard()
++    await screen.findAllByText('Reporting data is unavailable.')
++    expect(rstest.mocked(reportingApi.fetchRevenueReport).mock.calls[0]![0].timeZone).toBe('UTC')
++    expect(screen.getByRole('combobox', { name: 'Currency' }).closest('.ant-card')).toBe(
++      metric('Gross sales')
+     )
+-    renderInLocale(
+-      <MemoryRouter>
+-        <DashboardPage />
+-      </MemoryRouter>
++    expect(within(metric('Gross sales')).queryByTestId('metric-value')).toBeNull()
++    expect(within(metric('Unique visitors')).getByTestId('metric-value').textContent).toBe('1')
++    await select('Currency', 'JPY')
++    await screen.findByRole('button', { name: 'View underlying orders' })
++    expect(within(metric('Gross sales')).getByTestId('metric-value').textContent).toBe('¥3,500')
++    expect(reportingApi.fetchTrafficReport).toHaveBeenCalledTimes(1)
++    expect(rstest.mocked(reportingApi.fetchProductSalesReport).mock.calls.at(-1)![0].currency).toBe(
++      'JPY'
+     )
+-    const netCard = (await screen.findByText('Net sales (¥)')).closest('.ant-card')!
+-    expect(netCard.querySelector('.ant-statistic-content')?.textContent).toBe('-100')
+-    expect(netCard.querySelector('p')?.textContent?.trim()).toBe('2,000')
+-    expect(netCard.querySelector('p svg')?.getAttribute('data-icon')).toBe('arrow-down')
+-    expect(netCard.querySelector('p [role="img"]')?.getAttribute('aria-label')).toBe('Decrease')
+-    expect(
+-      screen
+-        .getAllByText('Paid orders')[0]
+-        ?.closest('.ant-card')
+-        ?.querySelector('p')
+-        ?.textContent?.trim()
+-    ).toBe('2')
+-    expect(screen.getAllByText('1,750').length).toBeGreaterThan(0)
+-    expect(screen.queryByText(/NaN|Infinity|%/)).toBeNull()
+   })
+-
+-  it('keeps filter edits as drafts until Query commits the complete scope', async () => {
+-    const requests: string[] = []
+-    server.use(
+-      http.get('*/admin/reporting/revenue', ({ request }) => {
+-        requests.push(request.url)
+-        return HttpResponse.json({ data: report })
+-      })
+-    )
++  it('remembers currency only for the authenticated identity and environment', async () => {
++    window.localStorage.setItem('shoppp.dashboard.currency:test:a', 'EUR')
++    window.localStorage.setItem('shoppp.dashboard.currency:production:a', 'USD')
++    const auth = authContextFixture({ session: sessionFixture('test', 'a') })
+     renderInLocale(
+-      <MemoryRouter>
+-        <DashboardPage />
+-      </MemoryRouter>
+-    )
+-    await screen.findByText('Gross sales ($)')
+-    expect(getQueryButton()).toBeTruthy()
+-    expect(new URL(requests[0]!).searchParams.get('currency')).toBe('CNY')
+-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Currency' }))
+-    fireEvent.click(await screen.findByText('EUR', { selector: '.ant-select-item-option-content' }))
+-    expect(requests).toHaveLength(1)
+-    expect(screen.getByText('Gross sales ($)')).toBeTruthy()
+-    const timeZone = screen.getByRole('combobox', { name: 'Time zone' })
+-    fireEvent.mouseDown(timeZone)
+-    fireEvent.change(timeZone, { target: { value: 'Europe/London' } })
+-    fireEvent.click(
+-      await screen.findByText('Europe/London', { selector: '.ant-select-item-option-content' })
++      <AuthContext.Provider value={auth}>
++        <MemoryRouter>
++          <DashboardPage />
++        </MemoryRouter>
++      </AuthContext.Provider>
+     )
+-    expect(requests).toHaveLength(1)
+-    expect(screen.getByText('Date range')).toBeTruthy()
+-    const dateRange = screen.getByPlaceholderText('Start date').closest('.ant-picker-range')
+-    expect(dateRange).toBe(screen.getByPlaceholderText('End date').closest('.ant-picker-range'))
+-    const dateRangeColumn = dateRange?.closest('.ant-form-item')?.parentElement
+-    expect(dateRangeColumn?.className).toContain('ant-col-md-16')
+-    expect(dateRangeColumn?.className).toContain('ant-col-xl-12')
+-    fireEvent.focus(screen.getByPlaceholderText('Start date'))
+-    fireEvent.change(screen.getByPlaceholderText('Start date'), {
+-      target: { value: '2026-07-01' },
+-    })
+-    fireEvent.keyDown(screen.getByPlaceholderText('Start date'), { key: 'Enter', code: 'Enter' })
+-    fireEvent.focus(screen.getByPlaceholderText('End date'))
+-    fireEvent.change(screen.getByPlaceholderText('End date'), {
+-      target: { value: '2026-07-30' },
+-    })
+-    fireEvent.keyDown(screen.getByPlaceholderText('End date'), { key: 'Enter', code: 'Enter' })
+-    fireEvent.blur(screen.getByPlaceholderText('End date'))
+-    expect(requests).toHaveLength(1)
+-    fireEvent.submit(getQueryButton().closest('form')!)
+-    await waitFor(() => expect(requests).toHaveLength(2))
+-    expect(new URL(requests[1]!).searchParams.get('currency')).toBe('EUR')
+-    expect(new URL(requests[1]!).searchParams.get('timeZone')).toBe('Europe/London')
+-    expect(new URL(requests[1]!).searchParams.get('startDate')).toBe('2026-07-01')
+-    expect(new URL(requests[1]!).searchParams.get('endDate')).toBe('2026-07-30')
+-    expect(getQueryButton()).toBeTruthy()
+-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+-    expect(screen.queryByRole('button', { name: 'View underlying orders' })).toBeNull()
+-    await waitFor(() => expect(requests).toHaveLength(3))
+-    expect(new URL(requests[2]!).searchParams.get('currency')).toBe('CNY')
+-    expect(
+-      screen.getByRole('combobox', { name: 'Currency' }).closest('.ant-select')?.textContent
+-    ).toContain('CNY')
++    await screen.findByRole('button', { name: 'View underlying orders' })
++    expect(rstest.mocked(reportingApi.fetchRevenueReport).mock.calls[0]![0].currency).toBe('EUR')
++    await select('Currency', 'GBP')
++    expect(window.localStorage.getItem('shoppp.dashboard.currency:test:a')).toBe('GBP')
++    expect(window.localStorage.getItem('shoppp.dashboard.currency:production:a')).toBe('USD')
+   })
+-
+-  it('rejects an empty date range without requesting or replacing the committed report', async () => {
+-    let requests = 0
+-    server.use(
+-      http.get('*/admin/reporting/revenue', () => {
+-        requests += 1
+-        return HttpResponse.json({ data: report })
++  it('reloads identity-scoped currency and discards pending results when the mounted session changes', async () => {
++    let resolveOld!: (report: RevenueReport) => void
++    rstest.mocked(reportingApi.fetchRevenueReport).mockReturnValueOnce(
++      new Promise((resolve) => {
++        resolveOld = resolve
+       })
+     )
+-    renderInLocale(
+-      <MemoryRouter>
+-        <DashboardPage />
+-      </MemoryRouter>
+-    )
+-    expect(getQueryButton()).toBeTruthy()
+-    fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
+-    fireEvent.submit(getQueryButton().closest('form')!)
+-    expect(await screen.findByText('Select a start and end date.')).toBeTruthy()
+-    expect(requests).toBe(1)
+-    expect(screen.getByText('Gross sales ($)')).toBeTruthy()
+-    expect(screen.getByRole('button', { name: 'View underlying orders' })).toBeTruthy()
++    window.localStorage.setItem('shoppp.dashboard.currency:test:a', 'EUR')
++    window.localStorage.setItem('shoppp.dashboard.currency:production:b', 'KWD')
++    const SessionFixture = () => {
++      const [changed, setChanged] = React.useState(false)
++      const auth = authContextFixture({
++        session: sessionFixture(changed ? 'production' : 'test', changed ? 'b' : 'a'),
++      })
++      return (
++        <AuthContext.Provider value={auth}>
++          <MemoryRouter>
++            <button onClick={() => setChanged(true)}>Switch session</button>
++            <DashboardPage />
++          </MemoryRouter>
++        </AuthContext.Provider>
++      )
++    }
++    renderInLocale(<SessionFixture />)
++    await waitFor(() => expect(reportingApi.fetchRevenueReport).toHaveBeenCalledTimes(1))
++    const old = rstest.mocked(reportingApi.fetchRevenueReport).mock.calls[0]![0]
++    fireEvent.click(screen.getByRole('button', { name: 'Switch session' }))
++    await screen.findByRole('button', { name: 'View underlying orders' })
++    expect(rstest.mocked(reportingApi.fetchRevenueReport).mock.calls[1]![0].currency).toBe('KWD')
++    expect(within(metric('Gross sales')).getByTestId('metric-value').textContent).toContain('3.500')
++    await act(async () => resolveOld(revenueFixture(old)))
++    expect(within(metric('Gross sales')).getByTestId('metric-value').textContent).toContain('KWD')
++    expect(reportingApi.fetchTrafficReport).toHaveBeenCalledTimes(2)
++    expect(window.localStorage.getItem('shoppp.dashboard.currency:test:a')).toBe('EUR')
+   })
+-
+-  it('clears the old report for a failed Query and retries the committed scope', async () => {
+-    const requests: string[] = []
+-    server.use(
+-      http.get('*/admin/reporting/revenue', ({ request }) => {
+-        const currency = new URL(request.url).searchParams.get('currency')!
+-        requests.push(request.url)
+-        return currency === 'EUR'
+-          ? new HttpResponse(null, { status: 500 })
+-          : HttpResponse.json({ data: report })
++  it('keeps sales available when only the product ranking fails', async () => {
++    rstest.mocked(reportingApi.fetchProductSalesReport).mockRejectedValueOnce(new Error('offline'))
++    renderDashboard()
++    await screen.findByRole('button', { name: 'View underlying orders' })
++    expect(within(metric('Gross sales')).getByTestId('metric-value').textContent).toBe('CN¥35.00')
++    expect(screen.getByText('Reporting data is unavailable.')).toBeTruthy()
++    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
++    await screen.findByRole('link', { name: 'Product A' })
++    expect(reportingApi.fetchTrafficReport).toHaveBeenCalledTimes(1)
++  })
++  it('automatically submits a preset once for all modules and keeps late responses out of the snapshot', async () => {
++    let resolveOld!: (report: RevenueReport) => void
++    rstest.mocked(reportingApi.fetchRevenueReport).mockReturnValueOnce(
++      new Promise((resolve) => {
++        resolveOld = resolve
+       })
+     )
+-    renderInLocale(
+-      <MemoryRouter>
+-        <DashboardPage />
+-      </MemoryRouter>
+-    )
+-    await screen.findByText('Gross sales ($)')
+-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Currency' }))
+-    fireEvent.click(await screen.findByText('EUR', { selector: '.ant-select-item-option-content' }))
+-    fireEvent.submit(getQueryButton().closest('form')!)
+-    await screen.findByText('Reporting data is unavailable.')
+-    expect(screen.queryByText('Gross sales ($)')).toBeNull()
+-    server.use(
+-      http.get('*/admin/reporting/revenue', ({ request }) => {
+-        requests.push(request.url)
+-        return HttpResponse.json({ data: { ...report, currency: 'EUR' } })
++    renderDashboard()
++    await waitFor(() => expect(reportingApi.fetchRevenueReport).toHaveBeenCalledTimes(1))
++    const old = rstest.mocked(reportingApi.fetchRevenueReport).mock.calls[0]![0]
++    await select('Date preset', 'Last 7 days')
++    await screen.findByRole('button', { name: 'View underlying orders' })
++    expect(reportingApi.fetchRevenueReport).toHaveBeenCalledTimes(2)
++    expect(reportingApi.fetchTrafficReport).toHaveBeenCalledTimes(2)
++    expect(reportingApi.fetchProductSalesReport).toHaveBeenCalledTimes(2)
++    await act(async () =>
++      resolveOld({
++        ...revenueFixture(old),
++        current: {
++          ...revenueFixture(old).current,
++          metrics: { ...revenueFixture(old).current.metrics, grossSales: 999999 },
++        },
+       })
+     )
+-    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+-    expect(await screen.findByText('Gross sales (€)')).toBeTruthy()
+-    expect(requests.map((url) => new URL(url).searchParams.get('currency'))).toEqual([
+-      'CNY',
+-      'EUR',
+-      'EUR',
+-    ])
+-    expect(Object.fromEntries(new URL(requests[2]!).searchParams)).toEqual(
+-      Object.fromEntries(new URL(requests[1]!).searchParams)
+-    )
+-  })
+-
+-  it('lets the latest started identical request win and Reset requests defaults once', async () => {
+-    let finishOld!: (value: RevenueReport) => void
+-    const oldRequest = new Promise<RevenueReport>((resolve) => {
+-      finishOld = resolve
+-    })
+-    const fetch = rstest
+-      .spyOn(reportingApi, 'fetchRevenueReport')
+-      .mockReturnValueOnce(oldRequest)
+-      .mockResolvedValueOnce({ ...report, currency: 'EUR' })
+-    renderInLocale(
+-      <MemoryRouter>
+-        <DashboardPage />
+-      </MemoryRouter>
++    expect(within(metric('Gross sales')).getByTestId('metric-value').textContent).toBe('CN¥35.00')
++    fireEvent.click(screen.getByRole('button', { name: 'View underlying orders' }))
++    const url = new URL(screen.getByLabelText('location').textContent!, 'https://admin.test')
++    expect(url.searchParams.get('startDate')).toBe(
++      rstest.mocked(reportingApi.fetchRevenueReport).mock.calls[1]![0].startDate
+     )
+-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1))
+-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
+-    expect(fetch.mock.calls[0]?.[0]).toEqual(fetch.mock.calls[1]?.[0])
+-    await screen.findByText('Gross sales (€)')
+-    await act(async () => {
+-      finishOld(report)
+-      await oldRequest
+-    })
+-    expect(screen.getByText('Gross sales (€)')).toBeTruthy()
+-    expect(screen.queryByText('Gross sales ($)')).toBeNull()
++    expect(url.searchParams.get('startDate')).not.toBe(old.startDate)
+   })
+-
+-  it('searches additional currency codes without requesting until native form submission', async () => {
+-    const requests: string[] = []
+-    server.use(
+-      http.get('*/admin/reporting/revenue', ({ request }) => {
+-        const currency = new URL(request.url).searchParams.get('currency')!
+-        requests.push(currency)
+-        return HttpResponse.json({ data: { ...report, currency } })
+-      })
++  it('shows a traffic error rather than a zero, retries its committed scope and keeps financial data', async () => {
++    rstest.mocked(reportingApi.fetchTrafficReport).mockRejectedValueOnce(new Error('offline'))
++    renderDashboard()
++    await screen.findByRole('button', { name: 'View underlying orders' })
++    expect(within(metric('Unique visitors')).queryByTestId('metric-value')).toBeNull()
++    fireEvent.click(within(metric('Unique visitors')).getByRole('button', { name: 'Retry' }))
++    await waitFor(() =>
++      expect(within(metric('Unique visitors')).getByTestId('metric-value').textContent).toBe('1')
+     )
+-    renderInLocale(
+-      <MemoryRouter>
+-        <DashboardPage />
+-      </MemoryRouter>
++    expect(reportingApi.fetchRevenueReport).toHaveBeenCalledTimes(1)
++    expect(rstest.mocked(reportingApi.fetchTrafficReport).mock.calls[0]).toEqual(
++      rstest.mocked(reportingApi.fetchTrafficReport).mock.calls[1]
+     )
+-    await screen.findByText('Gross sales (CN¥)')
+-    const currencyInput = screen.getByRole('combobox', { name: 'Currency' })
+-    expect(currencyInput.getAttribute('readonly')).toBeNull()
+-    expect(currencyInput.closest('.ant-select')?.querySelector('.ant-select-clear')).toBeNull()
+-    expect(
+-      screen
+-        .getByRole('combobox', { name: 'Time zone' })
+-        .closest('.ant-select')
+-        ?.querySelector('.ant-select-clear')
+-    ).toBeNull()
+-    fireEvent.change(currencyInput, { target: { value: 'twd' } })
+-    fireEvent.click(await screen.findByText('TWD', { selector: '.ant-select-item-option-content' }))
+-    expect(requests).toEqual(['CNY'])
+-    const queryButton = getQueryButton()
+-    fireEvent.submit(queryButton.closest('form')!)
+-    await screen.findByText('Gross sales (NT$)')
+-    expect(requests).toEqual(['CNY', 'TWD'])
+   })
+-
+-  it('keeps drill-down on the accepted report snapshot until a new report is accepted', async () => {
+-    let finishNext!: (value: RevenueReport) => void
+-    const nextRequest = new Promise<RevenueReport>((resolve) => {
+-      finishNext = resolve
+-    })
+-    const fetch = rstest
+-      .spyOn(reportingApi, 'fetchRevenueReport')
+-      .mockResolvedValueOnce(report)
+-      .mockReturnValueOnce(nextRequest)
++  it('shows a genuine empty result as zero and an empty ranking', async () => {
++    rstest.mocked(reportingApi.fetchTrafficReport).mockImplementation(async (query) => ({
++      ...trafficFixture(query),
++      uniqueVisitors: 0,
++      pageViews: 0,
++      series: [],
++      products: [],
++    }))
++    renderDashboard()
++    await screen.findByRole('button', { name: 'View underlying orders' })
++    expect(within(metric('Unique visitors')).getByTestId('metric-value').textContent).toBe('0')
++    fireEvent.click(screen.getByRole('tab', { name: 'Page views' }))
++    expect(screen.getByText('No product activity in this window.')).toBeTruthy()
++  })
++  it('localizes metric explanations and new analytics controls in Chinese', async () => {
+     renderInLocale(
+-      <MemoryRouter initialEntries={['/dashboard']}>
++      <MemoryRouter>
+         <DashboardPage />
+-        <LocationProbe />
+-      </MemoryRouter>
++      </MemoryRouter>,
++      'zh-CN'
+     )
+-    await screen.findByText('Gross sales ($)')
+-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Currency' }))
+-    fireEvent.click(await screen.findByText('EUR', { selector: '.ant-select-item-option-content' }))
+-    expect(fetch).toHaveBeenCalledTimes(1)
+-    fireEvent.click(screen.getByRole('button', { name: 'View underlying orders' }))
+-    expect(
+-      new URL(
+-        `https://example.test${screen.getByLabelText('location').textContent}`
+-      ).searchParams.get('currency')
+-    ).toBe('CNY')
+-    fireEvent.submit(getQueryButton().closest('form')!)
+-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
+-    expect(screen.queryByRole('button', { name: 'View underlying orders' })).toBeNull()
+-    await act(async () => {
+-      finishNext({ ...report, currency: 'EUR' })
+-      await nextRequest
+-    })
+-    fireEvent.click(await screen.findByRole('button', { name: 'View underlying orders' }))
+-    const location = screen.getByLabelText('location').textContent!
+-    expect(new URL(`https://example.test${location}`).searchParams.get('currency')).toBe('EUR')
++    await screen.findByRole('button', { name: '查看明细订单' })
++    fireEvent.focus(screen.getByRole('button', { name: '独立访客说明' }))
++    expect((await screen.findByRole('tooltip')).textContent).toContain('匿名浏览器')
++    expect(screen.getByRole('tab', { name: '访问量' })).toBeTruthy()
+   })
+ })
+diff --git a/apps/admin/src/services/reporting/api.ts b/apps/admin/src/services/reporting/api.ts
+index dff5d95b..ff9d9b20 100644
+--- a/apps/admin/src/services/reporting/api.ts
++++ b/apps/admin/src/services/reporting/api.ts
+@@ -1,6 +1,10 @@
++import { trafficReportSchema, productSalesReportSchema } from '@shoppp/contracts'
+ import type {
++  TrafficQuery,
++  TrafficReport,
++  ProductSalesReport,
+   ReportExport,
+   ReportExportRequest,
+   ReportOrderRow,
+   ReportingQuery,
+   RevenueReport,
+@@ -28,22 +32,32 @@ export const fetchReportOrders = async (
+     meta: { page: number; pageSize: number; total: number }
+   }>('/admin/reporting/orders', { params: filters })
+   return { data: response.data.data, ...response.data.meta }
+ }
+ 
+-export const createReportExport = async (
+-  input: ReportExportRequest
+-): Promise<ReportExport> => {
+-  const response = await apiClient.post<{ data: ReportExport }>(
+-    '/admin/reporting/exports',
+-    input,
+-    {
+-      headers: {
+-        'Idempotency-Key': `report-export-${crypto.randomUUID()}`,
+-      },
+-    }
+-  )
++export const createReportExport = async (input: ReportExportRequest): Promise<ReportExport> => {
++  const response = await apiClient.post<{ data: ReportExport }>('/admin/reporting/exports', input, {
++    headers: {
++      'Idempotency-Key': `report-export-${crypto.randomUUID()}`,
++    },
++  })
+   return response.data.data
+ }
+ 
+ export const reportExportDownloadUrl = (id: string): string =>
+   `/admin/reporting/exports/${encodeURIComponent(id)}/download`
++
++export const fetchTrafficReport = async (query: TrafficQuery): Promise<TrafficReport> => {
++  const response = await apiClient.get<{ data: TrafficReport }>('/admin/reporting/traffic', {
++    params: query,
++  })
++  return trafficReportSchema.parse(response.data.data)
++}
++
++export const fetchProductSalesReport = async (
++  query: ReportingQuery
++): Promise<ProductSalesReport> => {
++  const response = await apiClient.get<{ data: ProductSalesReport }>('/admin/reporting/products', {
++    params: query,
++  })
++  return productSalesReportSchema.parse(response.data.data)
++}
+diff --git a/apps/admin/src/shared/i18n/translations.ts b/apps/admin/src/shared/i18n/translations.ts
+index 05da14d9..ba3b8c3a 100644
+--- a/apps/admin/src/shared/i18n/translations.ts
++++ b/apps/admin/src/shared/i18n/translations.ts
+@@ -1,6 +1,33 @@
+ export const zhCNMessages: Record<string, string> = {
++  Sales: '销售额',
++  'Daily trend for {metric}': '{metric}每日趋势',
++  'Previous period unavailable': '暂无完整上期数据',
++  'Percentage unavailable': '无法计算变化比例',
++  'Distinct anonymous browsers across the selected period. Daily visitors are deduplicated separately.':
++    '所选时间范围内去重后的匿名浏览器数量。每日访客数量单独去重。',
++  'Date preset': '日期预设',
++  'Select an ordered date range of at most 367 days.':
++    '请选择先后顺序正确且不超过 367 天的日期范围。',
++  'Today is still in progress; comparisons include a partial day.':
++    '今天尚未结束，比较包含未完整的一天。',
++  'Daily gross sales': '每日销售总额',
++  'Daily page views': '每日访问量',
++  'Recorded since {date}': '自 {date} 开始记录',
++  'Top products by sales': '商品销售额排名',
++  'Top products by page views': '商品访问量排名',
++  'Product line totals, before refunds; excludes order-level adjustments.':
++    '按商品订单行金额排名，不扣退款，不含订单级调整。',
++  'No product activity in this window.': '所选时间范围内暂无商品记录。',
++  'Unique visitors': '独立访客',
++  'Page views': '访问量',
++  'Last 7 days': '最近 7 天',
++  'Last 30 days': '最近 30 天',
++  'This week': '本周',
++  'This month': '本月',
++  'This year': '本年',
++  'Custom': '自定义',
+   'Leave with unsaved Product changes?': '放弃未保存的商品更改？',
+   'Collection membership is edited separately. Continuing discards unsaved Product changes.':
+     '商品集合成员关系需单独编辑。继续操作将放弃未保存的商品更改。',
+   'Open Collection management': '打开商品集合管理',
+   'Every specification needs a unique label and a non-empty value.':
+diff --git a/apps/api/src/http/app.ts b/apps/api/src/http/app.ts
+index ea3c8c08..7972e6e5 100644
+--- a/apps/api/src/http/app.ts
++++ b/apps/api/src/http/app.ts
+@@ -35,10 +35,14 @@ import {
+   createAdminRoleRequestSchema,
+   fulfillmentTransitionRequestSchema,
+   inventoryAdjustmentRequestSchema,
+   reportExportRequestSchema,
+   reportingQuerySchema,
++  trafficEventSchema,
++  trafficIdentityRequestSchema,
++  trafficQuerySchema,
++  productSalesQuerySchema,
+   replayNotificationJobRequestSchema,
+   resendAdminInvitationRequestSchema,
+   revokeAdminInvitationRequestSchema,
+   refundRequestSchema,
+   shippingQuoteRequestSchema,
+@@ -204,10 +208,14 @@ import {
+   NotificationRecoveryError,
+   replayNotificationJob,
+ } from "../recovery/notification-jobs";
+ import { createReportExport, downloadReportExport, getReportExport } from "../reporting/export";
+ import { getRevenueReport, listReportOrders } from "../reporting/order-metrics";
++import { getProductSalesReport } from "../reporting/product-ranking";
++import { getTrafficReport } from "../reporting/traffic";
++import { initializeTraffic, recordTraffic } from "../analytics/service";
++import { protectTraffic } from "../analytics/protection";
+ import type { RateLimiter } from "../security/rate-limit";
+ import { protectCheckoutSubmission, protectReviewSubmission } from "../security/public-submission";
+ import { safeRequestId } from "../security/redaction";
+ import type { TurnstileVerifier } from "../security/turnstile";
+ import { getOperationalHealth } from "../observability/health";
+@@ -966,10 +974,19 @@ export function createApp(options: CreateAppOptions = {}) {
+     return context.json({
+       data: configuration,
+       meta: { requestId: context.get("requestId") },
+     });
+   });
++  app.post("/platform/traffic/identity", protectTraffic(), async (context) => {
++    const input = await parseJson(context, trafficIdentityRequestSchema);
++    const data = await initializeTraffic(context, input);
++    return context.json({ data, meta: { requestId: context.get("requestId") } });
++  });
++  app.post("/platform/traffic/events", protectTraffic(), async (context) => {
++    await recordTraffic(context, await parseJson(context, trafficEventSchema));
++    return context.body(null, 204);
++  });
+   app.post(
+     "/platform/events",
+     protectAnalyticsSubmission({
+       ...(options.analyticsRateLimiter ? { rateLimiter: options.analyticsRateLimiter } : {}),
+     }),
+@@ -2934,10 +2951,25 @@ export function createApp(options: CreateAppOptions = {}) {
+   );
+   app.get("/admin/orders", async (context) => {
+     await requirePermission(context, "orders.read", { type: "order" });
+     return context.json(await listOrders(context));
+   });
++  app.get("/admin/reporting/products", async (context) => {
++    await requirePermission(context, "reporting.read", { type: "commerce_report" });
++    const data = await getProductSalesReport(
++      context.env,
++      validatedQuery(context, productSalesQuerySchema),
++    );
++    context.header("Cache-Control", "no-store");
++    return context.json({ data, meta: { requestId: context.get("requestId") } });
++  });
++  app.get("/admin/reporting/traffic", async (context) => {
++    await requirePermission(context, "reporting.read", { type: "commerce_report" });
++    const data = await getTrafficReport(context.env, validatedQuery(context, trafficQuerySchema));
++    context.header("Cache-Control", "no-store");
++    return context.json({ data, meta: { requestId: context.get("requestId") } });
++  });
+   app.get("/admin/reporting/revenue", async (context) => {
+     await requirePermission(context, "reporting.read", { type: "commerce_report" });
+     const input = validatedQuery(context, reportingQuerySchema);
+     try {
+       return context.json({
+diff --git a/apps/api/src/http/context.ts b/apps/api/src/http/context.ts
+index 5abfcf7c..389c9da1 100644
+--- a/apps/api/src/http/context.ts
++++ b/apps/api/src/http/context.ts
+@@ -5,10 +5,14 @@ import type { Principal } from "../iam/permissions";
+ export interface ApiBindings {
+   AUTH_TOKEN_SECRET?: string;
+   ADMIN_ORIGIN: string;
+   ADMIN_DEVELOPMENT_ORIGIN?: string;
+   ANALYTICS_RATE_LIMITER?: RateLimit;
++  TRAFFIC_RATE_LIMITER?: RateLimit;
++  TRAFFIC_ENABLED?: string;
++  TRAFFIC_KEYS_JSON?: string;
++  TRAFFIC_ACTIVE_KEY_ID?: string;
+   BACKUP_BUCKET: R2Bucket;
+   BACKUP_WORKFLOW?: Workflow;
+   CHECKOUT_RATE_LIMITER?: RateLimit;
+   DB: D1Database;
+   MEDIA: R2Bucket;
+diff --git a/apps/api/src/index.ts b/apps/api/src/index.ts
+index 157b398b..a1adf546 100644
+--- a/apps/api/src/index.ts
++++ b/apps/api/src/index.ts
+@@ -1,5 +1,6 @@
++import { cleanupTraffic } from "./analytics/service";
+ import { createApp } from "./http/app";
+ import type { ApiBindings } from "./http/context";
+ import { expireDueReservations } from "./inventory/expiry";
+ import {
+   consumeNotificationQueue,
+@@ -25,10 +26,11 @@ export default {
+       await startScheduledD1Backup(env.BACKUP_WORKFLOW, controller.scheduledTime);
+       return;
+     }
+     await cleanupExpiredStorefrontPreviews(env, new Date(controller.scheduledTime));
+     await expireDueReservations(env.DB);
++    await cleanupTraffic(env.DB, controller.scheduledTime);
+     await cleanupExpiredAdminAuthState(env.DB, new Date(controller.scheduledTime));
+     if (env.NOTIFICATION_QUEUE) {
+       await dispatchPendingNotifications(env.DB, env.NOTIFICATION_QUEUE);
+     }
+   },
+diff --git a/apps/api/test/env.d.ts b/apps/api/test/env.d.ts
+index 26b4b7e5..e66fcaba 100644
+--- a/apps/api/test/env.d.ts
++++ b/apps/api/test/env.d.ts
+@@ -23,10 +23,12 @@ declare global {
+       PREVIEW_ORIGIN: string;
+       PREVIEW_SERVICE_TOKEN: string;
+       STRIPE_SECRET_KEY?: string;
+       STRIPE_WEBHOOK_SECRET?: string;
+       MEDIA: R2Bucket;
++      MEDIA_PUBLIC_ORIGIN: string;
++      TAX_MODE: "zero";
+       MEDIA_BUCKET_NAME?: string;
+       D1_DATABASE_ID?: string;
+       D1_DATABASE_NAME?: string;
+       CLOUDFLARE_ACCOUNT_ID?: string;
+       PRIVACY_EXPORTS: R2Bucket;
+diff --git a/apps/api/test/http/app.test.ts b/apps/api/test/http/app.test.ts
+index ed56d7a8..f35f43c8 100644
+--- a/apps/api/test/http/app.test.ts
++++ b/apps/api/test/http/app.test.ts
+@@ -175,10 +175,12 @@ const ADMIN_ROUTE_PERMISSIONS: readonly AdminRoutePermission[] = [
+     path: "/admin/inventory/:variantId/:warehouseId/adjustments",
+     permission: "inventory.adjust",
+   },
+   { method: "GET", path: "/admin/orders", permission: "orders.read" },
+   { method: "GET", path: "/admin/reporting/revenue", permission: "reporting.read" },
++  { method: "GET", path: "/admin/reporting/products", permission: "reporting.read" },
++  { method: "GET", path: "/admin/reporting/traffic", permission: "reporting.read" },
+   { method: "GET", path: "/admin/reporting/orders", permission: "reporting.read" },
+   { method: "POST", path: "/admin/reporting/exports", permission: "reporting.export" },
+   {
+     method: "GET",
+     path: "/admin/reporting/exports/:id",
+diff --git a/apps/api/test/reporting/reporting-api.test.ts b/apps/api/test/reporting/reporting-api.test.ts
+index beff5b50..1d5a5ab3 100644
+--- a/apps/api/test/reporting/reporting-api.test.ts
++++ b/apps/api/test/reporting/reporting-api.test.ts
+@@ -321,10 +321,32 @@ describe("commerce reporting API", () => {
+       .first<{ object_key: string; row_count: number; status: string }>();
+     expect(stored).toMatchObject({ row_count: 2, status: "ready" });
+     expect(await env.REPORT_EXPORTS.head(stored!.object_key)).not.toBeNull();
+   });
+ 
++  test("serves currency product sales and currency-free traffic under reporting permission", async () => {
++    const analyst = appFor("report-analyst");
++    const support = appFor("report-support");
++    for (const path of [
++      `/admin/reporting/products?${WINDOW_QUERY}`,
++      "/admin/reporting/traffic?startDate=2026-07-29&endDate=2026-07-29&timeZone=America%2FNew_York",
++    ]) {
++      const response = await analyst.fetch(request(path), env);
++      expect(response.status).toBe(200);
++      expect(response.headers.get("Cache-Control")).toContain("no-store");
++      expect(((await response.json()) as { data: { products: unknown[] } }).data.products).toEqual(
++        [],
++      );
++      expect((await support.fetch(request(path), env)).status).toBe(403);
++    }
++    const invalid = await analyst.fetch(
++      request("/admin/reporting/traffic?startDate=2026-07-30&endDate=2026-07-29&timeZone=UTC"),
++      env,
++    );
++    expect(invalid.status).toBe(422);
++  });
++
+   test("denies export creation and download without permission, then expires files", async () => {
+     const support = appFor("report-support");
+     expect(
+       (await support.fetch(request(`/admin/reporting/revenue?${WINDOW_QUERY}`), env)).status,
+     ).toBe(403);
+diff --git a/apps/api/wrangler.jsonc b/apps/api/wrangler.jsonc
+index a1923d68..d62022b5 100644
+--- a/apps/api/wrangler.jsonc
++++ b/apps/api/wrangler.jsonc
+@@ -3,10 +3,12 @@
+   "name": "shoppp-api-staging",
+   "main": "./src/index.ts",
+   "compatibility_date": "2026-07-22",
+   "vars": {
+     "ENVIRONMENT": "staging",
++    "TRAFFIC_ENABLED": "true",
++    "TRAFFIC_ACTIVE_KEY_ID": "v1",
+     "RESOURCE_NAMESPACE": "shoppp-staging",
+     "PUBLIC_ORIGIN": "https://shoppp-api-staging.hashencode.workers.dev",
+     "SERVICE_CREDENTIAL_REF": "secret://shoppp/test/admin-service",
+     "ADMIN_ORIGIN": "https://shoppp-admin-staging.hashencode.workers.dev",
+     "ADMIN_DEVELOPMENT_ORIGIN": "http://127.0.0.1:3000",
+@@ -63,10 +65,15 @@
+       "bucket_name": "shoppp-development-preview-artifacts",
+       "preview_bucket_name": "shoppp-development-preview-artifacts-preview",
+     },
+   ],
+   "ratelimits": [
++    {
++      "name": "TRAFFIC_RATE_LIMITER",
++      "namespace_id": "12012",
++      "simple": { "limit": 60, "period": 60 },
++    },
+     {
+       "name": "ANALYTICS_RATE_LIMITER",
+       "namespace_id": "12002",
+       "simple": {
+         "limit": 120,
+@@ -127,10 +134,12 @@
+   "env": {
+     "fashion-staging": {
+       "name": "shoppp-api-fashion-staging",
+       "vars": {
+         "ENVIRONMENT": "staging",
++        "TRAFFIC_ENABLED": "false",
++        "TRAFFIC_ACTIVE_KEY_ID": "v1",
+         "RESOURCE_NAMESPACE": "shoppp-fashion-staging",
+         "PUBLIC_ORIGIN": "https://shoppp-api-fashion-staging.hashencode.workers.dev",
+         "SERVICE_CREDENTIAL_REF": "secret://shoppp/fashion-staging/u13-service",
+         "ADMIN_ORIGIN": "https://shoppp-admin-fashion-staging.hashencode.workers.dev",
+         "ADMIN_DEVELOPMENT_ORIGIN": "http://127.0.0.1:3418",
+@@ -200,10 +209,12 @@
+       "triggers": {
+         "crons": ["*/5 * * * *", "0 0 * * *"],
+       },
+       "vars": {
+         "ENVIRONMENT": "staging",
++        "TRAFFIC_ENABLED": "true",
++        "TRAFFIC_ACTIVE_KEY_ID": "v1",
+         "RESOURCE_NAMESPACE": "shoppp-staging",
+         "PUBLIC_ORIGIN": "https://shoppp-api-staging.hashencode.workers.dev",
+         "SERVICE_CREDENTIAL_REF": "secret://shoppp/test/admin-service",
+         "ADMIN_ORIGIN": "https://shoppp-admin-staging.hashencode.workers.dev",
+         "ADMIN_DEVELOPMENT_ORIGIN": "http://127.0.0.1:3000",
+@@ -263,10 +274,15 @@
+           "bucket_name": "shoppp-storefront-preview-artifacts",
+           "preview_bucket_name": "shoppp-storefront-preview-artifacts-preview",
+         },
+       ],
+       "ratelimits": [
++        {
++          "name": "TRAFFIC_RATE_LIMITER",
++          "namespace_id": "12012",
++          "simple": { "limit": 60, "period": 60 },
++        },
+         {
+           "name": "ANALYTICS_RATE_LIMITER",
+           "namespace_id": "12002",
+           "simple": {
+             "limit": 120,
+@@ -330,10 +346,12 @@
+       "triggers": {
+         "crons": ["*/5 * * * *", "0 0 * * *"],
+       },
+       "vars": {
+         "ENVIRONMENT": "production",
++        "TRAFFIC_ENABLED": "true",
++        "TRAFFIC_ACTIVE_KEY_ID": "v1",
+         "RESOURCE_NAMESPACE": "shoppp-production",
+         "PUBLIC_ORIGIN": "https://api.example.invalid",
+         "SERVICE_CREDENTIAL_REF": "secret://shoppp/production/admin-service",
+         "ADMIN_ORIGIN": "https://shoppp-admin-production.hashencode.workers.dev",
+         "PREVIEW_ORIGIN": "https://preview.example.invalid",
+@@ -386,10 +404,15 @@
+           "bucket_name": "shoppp-production-preview-artifacts",
+           "preview_bucket_name": "shoppp-production-preview-artifacts-preview",
+         },
+       ],
+       "ratelimits": [
++        {
++          "name": "TRAFFIC_RATE_LIMITER",
++          "namespace_id": "13012",
++          "simple": { "limit": 60, "period": 60 },
++        },
+         {
+           "name": "ANALYTICS_RATE_LIMITER",
+           "namespace_id": "13002",
+           "simple": {
+             "limit": 120,
+diff --git a/docs/plans/2026-09-29-2128-feat-commerce-dashboard-analytics-plan.md b/docs/plans/2026-09-29-2128-feat-commerce-dashboard-analytics-plan.md
+new file mode 100644
+index 00000000..93bd4807
+--- /dev/null
++++ b/docs/plans/2026-09-29-2128-feat-commerce-dashboard-analytics-plan.md
+@@ -0,0 +1,285 @@
++---
++title: 商业仪表盘与访问统计 - Plan
++type: feat
++date: 2026-09-29
++artifact_contract: ce-unified-plan/v1
++product_contract_source: ce-plan-bootstrap
++execution: code
++plan_classification: independent-bounded-feature
++plan_alias: CDA
++---
++
++# 商业仪表盘与访问统计 - Plan
++
++## Goal Capsule
++
++将正式仪表盘改为参考 `/template/dashboard/analysis` 的商业分析页面：四张指标卡、销售额／访问量（PV）趋势和商品排名。顶部独立访客卡显示所选范围内去重后的 UV。货币选择放在第一张总销售额卡内；dashboard 默认跟随浏览器时区，不增加头像全局设置或时区选择器。
++
++用户已于本对话授权开始实施。正式开发在当前 checkout 进行；不创建 worktree，不自动创建 PR，不部署或调整候选范围。本文的 R/F/AE/KTD/U 标识仅属于 CDA，其他计划的同名标识不受影响。
++
++### 产品 authority 与继承边界
++
++- 上游产品导航：`docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md`；当前 active product plan 是 `docs/plans/2026-08-12-003-refactor-development-candidate-readiness-plan.md`（REL），执行 checkpoint 为 REL-Pre-DC。
++- 本计划是独立的有界功能，不成为 active product plan，不更改 master pointer、REL 当前单元、Candidate Template Matrix、DC 或 PG。是否纳入候选由 REL 单独裁定。
++- 继承 COM 的既有成交／退款／原币财务定义、报表权限、环境隔离和 R39 对敏感数据的保护；复用真实报表能力及共享 UI primitives。
++- 定向替代：正式 dashboard 的独立筛选栏、退款卡片、平均订单额卡片和逐日罗列表格；其他列表页继续遵循 `docs/plans/2026-09-20-1438-fix-admin-page-query-consistency-plan.md` 的手动查询规则。
++- 定向替代：`docs/plans/2026-09-21-1427-fix-dashboard-date-range-layout-plan.md` 的 dashboard 日期区域位置，保留成对日期边界；继续遵循 `docs/plans/2026-09-03-1553-fix-admin-i18n-completion-plan.md` 的浏览器时区默认及纯日期／UTC 语义，不迁移全后台时间消费者。
++- 新增自动 UV／PV 统计边界，保留 `docs/architecture/trust-boundaries.md` 中现有 identifier-free aggregate analytics 原样。本计划不新增统计同意、拒绝、撤回流程，不把旧 Cookie 通知作为统计开关；实施时如更新相关说明，必须真实描述行为。预览访问的 Cookie 隔离不变。
++- 并行 authority：REL 和既有独立修复计划各自拥有其范围。本计划的实现、验证和关闭尾项由 CDA U1–U8 拥有；实施时若与并行修改相撞，只协调文件和接口，不转移产品完成权。
++
++## Product Contract
++
++### Summary / Problem Frame
++
++当前正式页面主要罗列财务数字和日表，模板已有合适的布局和图表，但模板数据是固定示例。现有财务接口足以支持销售额、支付笔数和净销售额；没有可直接支持本需求的精确 UV 去重和商品 PV 报表。
++
++期望结果是用户在同一页面看清规模、变化和具体商品表现，并且切换日期、货币时看到一致的真实数据。模板提供布局参考，正式数据、状态和财务含义由本计划定义。
++
++### Requirements
++
++| ID | 需求 | 验收依据 |
++| --- | --- | --- |
++| R1 | 第一张总销售额卡内提供币种选择，控制全部财务指标；dashboard 默认使用浏览器时区，无头像全局设置或时区选择器 | AE1、AE2 |
++| R2 | 顶部依次为总销售额、独立访客（全期 UV）、支付笔数、净销售额；提供同口径真实迷你趋势和可计算的上期比较 | AE3、AE4 |
++| R3 | 主分析卡包含销售额／访问量 Tabs；右上角日期预设和日期范围控制全页 | AE5 |
++| R4 | 销售额 Tab 显示逐日总销售额趋势及商品销售额排名，不扣退款 | AE6 |
++| R5 | 访问量 Tab 显示逐日页面访问次数（PV）及商品页面 PV 排名；同一访客多次真实访问累计计数，规格合并到稳定 productId | AE7 |
++| R6 | 排名保留历史商品名称；有当前公开商城页面时可点击，否则显示纯文本 | AE8 |
++| R7 | Retired：热门搜索及全部搜索统计已取消，标识不复用 | AE9（Retired） |
++| R8 | 正式商城默认自动采集，不增加统计同意流程；预览和明确测试流量排除 | AE10 |
++| R9 | 财务与访问数据按同一查询时区归日；全期 UV 跨日去重；PV 汇总长期保存，不设固定 90 天删除；查询成功无记录显示 0，查询失败显示重试 | AE4、AE7、AE11 |
++| R10 | 保留权限、竞态保护、主题、国际化、加载／错误／空状态和订单报表入口；不展示渠道占比或热门搜索 | AE5、AE11、AE12 |
++
++### Key Decisions
++
++- **D1 — 货币和时区位置（已修订）。** `session-settled: user-directed`；Governs R1。后续决定替代原头像全局设置：币种位于第一张总销售额卡，影响财务查询而非业务定价；dashboard 默认浏览器时区，无全局偏好 Provider 或新时区选择器。
++- **D2 — UV 与 PV 分开（已修订）。** `session-settled: user-directed`；Governs R2、R5、R9。顶部卡是所选范围内独立访客 UV；主卡访问量趋势及商品访问排名是 PV。替代原“主卡也用 UV”的解释。
++- **D3 — 销售额排名。** `session-settled: user-directed`；Governs R4。商品按销售金额排名、不扣退款；净销售额仍扣退款。
++- **D4 — 页面构成。** `session-settled: user-directed`；Governs R2、R3、R6、R10。四张顶部卡及主卡 Tabs／日期／趋势／商品排名，不设独立筛选栏；访问指标遵循修订 D2，搜索部分由 D5 取消。
++- **D5 — 删除热门搜索。** `session-settled: user-directed`；Governs R7（退役）、R10。删除卡片及采集／存储／报表／验收，不新增替补卡。
++- **D6 — 自动统计与零值。** `session-settled: user-directed`；Governs R8、R9。默认统计，不增加同意交互；正常查询没有记录显示 0。不建设暂停管理或停采覆盖区间系统；接口失败仍是错误，不能伪装成 0。
++- **D7 — 汇总优先、取消固定 90 天。** `session-settled: user-directed`；Governs R9。PV 长期保存汇总，不长期存每次访问明细；顶部跨日 UV 保留必要匿名去重依据，不能只存每日人数再相加。取消旧的固定 90 天删除与相关不可用状态。
++
++### 实现假设与建议默认值
++
++1. 币种是交易币种筛选，不是汇率换算。默认沿用 CNY；记住上次选择时复用现有本地模式并按身份／环境隔离，不影响商品、运费、订单或编辑草稿的币种。
++2. dashboard 进入时读取有效浏览器 IANA 时区，失败回退 UTC。查询期间时区随已提交快照固定，不因浏览器状态变化悄悄重解释结果。订单报表保留现有查询能力；从 dashboard 进入时使用显式传入的日期、币种和时区。
++3. 默认最近 30 个本地日期，含今天；预设今天、最近 7 天、最近 30 天、本周、本月、本年及自定义，单次窗口继续遵循现有财务上限。单次查询上限不等于历史保存期限。
++4. PV 汇总与必要 UV 去重记录首版不设按 90 天自动删除。取消无用访问明细；匿名标识有效期、短期重试去重期限、汇总粒度和读写上限由 U1 依据查询能力确定，不把浏览器身份寿命等同于数据保留期。任何后续删除策略必须说明对历史查询的影响。
++5. 仅表示成功接收的匿名浏览器访问，不承诺自然人识别或完整捕获所有网络失败流量。采集开始前不回填历史；成功无记录按用户决定显示 0，可用简短“自某日开始记录”说明，不引入 coverage 状态系统。
++
++### 指标定义
++
++| 指标 | 明确口径 |
++| --- | --- |
++| 总销售额／销售趋势 | 沿用 grossSales：paid、partially_refunded、refunded 非测试订单，按订单 createdAt 归期，使用 grand total 和所选交易币种 |
++| 支付笔数 | 沿用 orderCount：符合上述条件的已支付订单每张一笔，不是支付尝试数；已退款订单仍计入 |
++| 净销售额 | grossSales 减窗口内成功退款，可为负，也可包含以前订单的退款 |
++| 商品销售额 | 按 productId 汇总不可变订单行 line_total_amount，合并规格、不扣退款；不分摊订单级运费／税／折扣，合计不要求等于总销售额 |
++| 全期 UV | 所选窗口内匿名浏览器标识去重，同一访客跨日仍只计 1；不等于每日 UV 之和 |
++| 每日 UV | 仅供顶部 UV 卡迷你趋势，每日各自去重；主卡不使用此序列 |
++| 全站 PV | 每次有效页面进入计 1；真实刷新、离开后重新进入计新访问。重复上报／重试不增加 PV；组件重渲染、仅切规格不自动成为新访问 |
++| 商品 PV | 商品详情页面的有效访问次数，按 productId 汇总规格；商品页面一次访问同时增加全站 PV 和该商品 PV 各 1，不能把两个事件重复计入全站 |
++| 上期比较 | 同长度紧邻之前的本地日期窗口；UV 对上期独立去重。零或负基线显示绝对变化／无法计算比例；今天未结束明确说明。跨采集起点不声称有完整历史比较 |
++
++### User Flows
++
++- **F1 币种：** 在第一张总销售额卡切换币种 → 金额、支付笔数、销售趋势及商品销售排名同步重查 → UV／PV 不因币种变化而变化。
++- **F2 趋势：** 打开 dashboard → 四卡 → 主卡选择日期或销售额／访问量 Tab → 同范围趋势和排名 → 点击当前公开商品。
++- **F3 追查销售：** 进入订单报表，携带已提交的 currency、timeZone、startDate、endDate；目标页保留这个显式范围。
++- **F4 自动采集：** 正式页面进入 → 建立或复用匿名统计身份 → 自动上报一次访问；不出现统计同意弹窗，失败不阻塞购物。
++- **F5 无记录／失败：** 成功查询无记录 → 0 和空排行；请求失败 → 相应模块重试；财务成功时可继续显示，不能混用不同日期的数据。
++
++### Acceptance Examples
++
++- **AE1：** 币种选择位于第一张销售卡；头像无新增全局设置，dashboard 无时区选择器；浏览器时区用于默认日期和查询边界，失败回退 UTC，drilldown 携带实际时区。
++- **AE2：** 切币种只改变财务范围，UV／PV 不变；JPY／KWD 精度正确，不重标原币、不改变业务定价或编辑草稿；纯日期不跨日转换。
++- **AE3：** 支付、部分／全额退款、旧订单当期退款、测试订单固定事实集验证三张财务卡；UV 用独立访问事实验证；负净销售额正常，无退款／平均订单额独立卡。
++- **AE4：** 财务迷你图用每日财务 series，UV 卡迷你图用每日 UV，主卡访问量图用每日 PV；不得互换，今日未结束和不可计算比较明确说明。
++- **AE5：** 完整有效日期或预设一次提交全页；非法／未完成范围不请求；旧响应不能覆盖新范围，Tab 不改日期，标签对应已提交快照。
++- **AE6：** 商品规格合并、金额相同按 productId 稳定排序，已退款订单金额保留；运费不混入商品排名。
++- **AE7：** 同一访客访问 A 三次、B 两次，UV=1、全站 PV=5、商品 A=3／B=2；次日再访问 A 一次，全期 UV 仍 1、两日 PV=6、每日 UV 各 1。网络重试同一次访问不多计，第二访客增加 UV；跨午夜／DST／半小时及 45 分钟偏移按查询时区归日。
++- **AE8：** 有 PV、从未成交、后下架的商品仍保留历史名称，链接为 null；当前成功公开页面才可点击，不泄漏 preview token 或拼任意外链。
++- **AE9 — Retired：** 搜索验收取消，标识不复用。
++- **AE10：** 无任何同意操作即可自动采集；不依赖旧 dismissed 状态；首次初始化、已有身份、多标签、真实刷新、SPA 页面进入、失败重试分别按定义计数；preview／明确测试流量不写入。
++- **AE11：** 查询成功无记录显示 0、空排行；接口失败显示重试，不展示假零；超过 90 天的已有 PV 和 UV 记录仍能查，按单次窗口上限查询；开始记录前无历史回填、不提供误导性比较。
++- **AE12：** reporting.read 拒绝时不能读财务或流量；明暗／system 主题、中英文、图表 resize、键盘和商品链接正常，不重复实现库焦点协议。
++
++### Scope / Non-goals
++
++- 范围：dashboard、必要的订单报表衔接；Fashion Store 正式商城自动 UV／PV；现有 reporting 权限下的查询。
++- 不纳入：头像全局偏好 Provider、全后台消费者迁移、新时区设置、统计同意／撤回流程、暂停管理／覆盖区间系统、热门搜索、渠道占比、外部统计平台、跨设备识别、指纹、归因、汇率换算、历史回填、生产部署。
++- Template 仍为演示；Decor Store 不扩大为本计划正式回归对象，跨模板回归归 DC3 冻结矩阵。
++
++## Planning Contract
++
++### Key Technical Decisions
++
++| ID | 方案、依据与边界 |
++| --- | --- |
++| KTD1 | 币种选择为 dashboard 局部控件，复用现有查询状态和本地保存模式；不创建 DisplayPreferences Provider，不迁移全后台消费者 |
++| KTD2 | 复用 format-currency.ts 精度和现有浏览器时区解析／报表 UTC 窗口转换；不改变其他页面的时间字段语义 |
++| KTD3 | 复用 ReactECharts／ECharts、Ant Design tokens 和模板布局；不引用 mock、不新增图表框架 |
++| KTD4 | 保留既有 identifier-free AE；新增独立访问契约／入口及现有环境 D1 表，不把采样事件当精确 UV／PV 来源 |
++| KTD5 | 自动初始化随机第一方统计身份；复用服务端签发 HttpOnly／Secure／SameSite=Lax Cookie 模式，存环境隔离 HMAC 摘要，不用购物车／账号／支付／preview token 识别访客。身份生命周期与数据保留分开；密钥轮换不能悄悄拆分同一有效身份 |
++| KTD6 | 服务端收取时间归期，事件随机 ID 支持有限重试；同一访问只增全站 PV 一次，商品维度同时更新。短期幂等键与计数原子提交；重试去重记录到期后，过期重试必须拒绝，不能重新增量。具体协议 U1 固定，不长期保存逐访问日志 |
++| KTD7 | PV 保存按时间桶／商品的计数汇总；UV 保存匿名摘要与必要时间桶的去重关联，同桶重复访问不重复存 UV。全期 UV 做 DISTINCT，不相加日人数。不存每次访问完整明细，不设置固定 90 天删除。时间桶必须能正确切分支持的浏览器时区日期边界，不能只存 UTC 每日整数后声称可任意时区重分组；U1 用最小可行粒度验证（分钟桶作为候选），再冻结表和索引 |
++| KTD8 | 名称与链接分开：链接只认当前成功公开部署路由及受控 origin；名称可取已验证公开的历史 manifest／订单行快照，无名称时明确“已下架商品（短 ID）”。PV 汇总保留解析名称所需的最小 release 引用，不建独立名称版本系统 |
++| KTD9 | 扩展现有 committed snapshot／请求序号保护；财务与流量按同一日期／时区分别加载，旧结果更新时隐藏或标更新，不造通用状态引擎。币种仅属于财务查询 key |
++| KTD10 | 显式 URL 范围优先于页面默认，drilldown 固定实际查询币种／日期／时区；订单报表保留手动查询语义，不增加全局偏好触发的自动重查 |
++
++### 数据流与边界
++
++```mermaid
++flowchart LR
++  Store[正式商城自动访问上报] --> Validate[来源与部署校验及重试去重]
++  Validate --> PV[PV 时间桶和商品计数]
++  Validate --> UV[匿名访客与时间桶去重关联]
++  PV --> Reports[同一日期时区的流量报表]
++  UV --> Reports
++  Orders[订单与退款] --> Finance[所选币种财务报表]
++  Reports --> View[UV 顶部卡和 PV 趋势排名]
++  Finance --> View
++```
++
++- traffic contract 返回 window、asOf、全期 UV、每日 UV（仅迷你图）、每日 PV、商品 PV 前 10 和比较结果。可附简单 collectionStartedAt；不引入 coverage 状态机。查询成功无记录为 0，错误和读量超限明确报错。
++- 公共入口与 `/platform/events` 分离，使用 exact storefront Origin、body cap、严格 schema、no-store 和专用限流。初始化和上报均受可信边缘来源配额约束，上报增加访客摘要配额；不能用未经验证 Authorization 换限流键。非 development 缺少必需 limiter binding 时停止新写入。
++- 只接收受控 route-class、productId、releaseId 等维度；不存原 URL、IP、原 Cookie、邮箱、自由文本。来源键只用于临时限流，不进事实／普通日志。reporting 读端仍需 reporting.read。
++- 正式部署来源和产品维度需服务端验证；preview 客户端与服务端双重排除，不信任自报 testMode。测试闭环使用隔离的正式形态本地配置，不污染正式流量。
++- 无同意状态机、设置弹窗、撤回端点或新增页脚入口。身份初始化失败不阻塞购物；无有效身份不伪造 UV。相关 Cookie／统计说明必须与自动采集一致，不声称用户已同意。
++- 短期幂等记录清理由现有 maintenance 有界批次完成；长期 PV 汇总和必要 UV 关联不随之删除。长期保存并非无限单次扫描：服务端限制查询成本，超限返回明确错误，不截断为看似精确的结果。
++
++### System-wide Impact / Risks
++
++- 取消全局显示偏好改造，代码影响收敛到报表及访问统计边界；订单／商品原币和其他后台时间显示沿用原规则。
++- 精确跨日 UV 必须保留去重信息，数量会随访客与时间桶增加，不能把“PV 只存汇总”解释成 UV 也只存一个数字。U1 先验证浏览器时区归日、存储规模和 DISTINCT 查询，U6 再做完整验证；不预先增加队列、缓存、近似算法或长期压测平台。
++- Cookie 清除／过期、多设备、机器人和请求丢失会影响统计，UV 是可识别匿名浏览器数；不宣称自然人或完整流量。自动采集是产品决定，不构成对任意部署地区和标识方式的法律结论。
++- 采集开始前没有历史数据，不回填；正常空结果显示 0，保留简单开始记录说明；不建设停采区间管理。
++- 公开链接与历史名称复用既有 publishing manifest；不得以 DB published 代替成功公开部署证据。
++
++### Open Questions
++
++无待用户选择的产品范围问题。U1 仍需通过有界技术验证固定时间桶、身份有效期、短期重试协议和读写上限；不得借机恢复已取消的全局设置、同意流程或 90 天删除策略。
++
++## Implementation Units
++
++### U1 — 契约、统计存储验证和部署 authority 核对
++
++- **依赖：** 无；当前下一步。**对应：** R1–R6、R8–R10、KTD1–KTD10。
++- **实施：** 重读 REL checkpoint；核对公开路由／历史名称依据。以代表性合成数据验证 PV 汇总、跨日 UV、时区／DST／非整小时偏移窗口与查询成本，再固定时间桶、索引、身份生命周期、短期幂等协议和容量上限。编写 reporting／独立 analytics contract。
++- **文件：** packages/contracts/src/reporting.ts、新 analytics contract、apps/api/src/publishing/ 相关来源；存储验证证据在 docs/progress/，不建立第二状态队列。
++- **验证：** schema 拒绝非法窗口／维度；UV 与 PV 明确区分；同一访问的原子幂等；能解析无订单历史商品名；验证时间桶能够支持承诺的日期精度。
++- **完成：** 后续可按确定契约实施，不把关键查询验证拖到采集上线后。
++
++### U2 — 销售卡币种与浏览器时区查询
++
++- **依赖：** U1。**对应：** R1、F1、AE1、AE2、KTD1、KTD2、KTD10。
++- **实施：** 第一张总销售额卡币种选择、局部记忆／有效默认、浏览器时区默认日期及固定查询快照；订单报表显式范围衔接。
++- **文件：** apps/admin/src/pages/dashboard/dashboard-page.tsx、必要的局部组件／查询 helper、pages/reports/order-report-page.tsx（仅衔接）、messages 和专项 tests。
++- **验证：** 切币种只更新财务；原币精度正确；浏览器跨午夜／DST／UTC 回退，drilldown 使用已提交参数，其他业务草稿不受影响。
++- **完成：** 不引入全局 Provider、头像设置、新时区选择或全后台消费者迁移。
++
++### U3 — 商品销售额排行与公开链接
++
++- **依赖：** U1。**对应：** R4、R6、F3、AE3、AE6、AE8、KTD8。
++- **实施：** `apps/api/src/reporting/product-ranking.ts`（新）复用既有窗口／支付状态／currency／environment／test_mode；按商品汇总订单行、稳定排序、返回前 10 名及公开名称／路径。公开 link resolver 同时供 U6 商品 PV 排名使用。
++- **文件：** reporting contract／service、`apps/api/src/reporting/order-metrics.ts` 共享条件、reporting routes、public deployment resolver 与对应 Worker tests。
++- **验证：** 多规格、退款、运费／税／折扣差异、历史名称、同额排序、非目标币种／环境／测试订单、未部署／下架 null link、reporting 权限；现有 revenue fixtures 仍满足财务定义。
++- **完成：** 金额与不可变订单行一致，排名与总销售额差异有说明，链接有成功公开部署证据。
++
++### U4 — 汇总存储、匿名身份与受控入口
++
++- **依赖：** U1。**对应：** R8、R9、AE7、AE10、AE11、KTD4–KTD7。
++- **实施：** D1 PV 汇总、UV 去重关联、短期幂等表及索引；自动身份初始化；原子去重／汇总写入、公开来源／环境／维度校验、可信限流、短期记录有界清理和日志保护。
++- **文件：** packages/db/migrations/、schema；apps/api/src/analytics/（新）、HTTP routes／context／配置及 maintenance；trust-boundaries 文档。
++- **验证：** migration、原子性、相同事件并发重试、过期重试拒绝、无／过期／伪造身份、密钥轮换、环境隔离、preview 排除、限流键绕过与 binding 缺失；清理不删除长期汇总／UV；敏感串不进日志。
++- **完成：** 不长期存逐访问明细，统计失败不影响交易，旧 AE 和 preview 边界保持。
++
++### U5 — 商城自动 UV／PV 埋点
++
++- **依赖：** U4。**对应：** R5、R8、F4、AE7、AE10。
++- **实施：** 正式页面自动初始化／复用身份，页面进入上报一次；商品维度从公开构建上下文取得；真实刷新／重新进入与重试区分，避免 hydration 和路由钩子重复计数。无新增同意交互。
++- **文件：** apps/storefront/app/plugins/funnel.client.ts／独立访问插件、公开商品上下文、interaction contract 与专项 tests；现有 Shell 如需改动仅为事实一致的说明。
++- **验证：** 首访、已有身份、并发标签首次初始化、路由切换、刷新、规格切换、重复发送、身份／网络失败、preview 不写入；无需点击同意即统计。
++- **完成：** 一次有效页面访问对全站只计一次，商品访问同时更新该商品；既有运维事件不重复计入。
++
++### U6 — UV 卡与 PV 趋势／商品排名报表
++
++- **依赖：** U3、U4、U5。**对应：** R2、R5、R9、F5、AE4、AE7、AE11、KTD7–KTD9。
++- **实施：** traffic reporting／Admin service；全期和每日 UV 独立去重，PV 时间桶按查询日期汇总，商品 PV 前 10；比较期独立计算，计数同额按 productId 稳定排序。
++- **验证：** AE7 数字例子、DST／非整小时偏移、重试不增 PV、正常空结果=0、读失败报错、超过 90 天记录仍可查、权限与代表规模查询；不把明细拉到 Admin。
++- **完成：** 主卡和排名为 PV，顶部为 UV，不以日 UV 相加替代范围 UV，不加入商品 UV 功能。
++
++### U7 — 参照模板组装正式商业仪表盘
++
++- **依赖：** U7.1 依赖 U2、U3；U7.2 依赖 U7.1、U6。**对应：** R2–R6、R10、F2、F3、F5、AE3–AE8、AE10–AE12、KTD3、KTD9。
++- **U7.1 财务与布局：** 四卡及主卡 Tabs／日期／销售图／销售榜，第一张卡含币种选择；可提前检查布局。尚未接入的 UV／PV 明确为开发中未接入，不用假零冒充已实现。
++- **U7.2 接入访问统计：** 顶部 UV 总数与每日 UV 迷你图，访问量 Tab 的每日 PV 和商品 PV 排名；完成分模块加载／失败／空结果／竞态保护。
++- **文件：** apps/admin/src/pages/dashboard/dashboard-page.tsx、必要局部组件、services/reporting/api.ts、messages、dashboard.test.tsx 和 BrowserMode tests。
++- **验证：** 0／负值／部分失败、完整日期提交、旧响应后到、币种不影响流量、Tab 不改范围、真实链接、窄屏／主题／语言／键盘，无 template mock。
++- **完成：** 两个子阶段均完成才可签收 U7；移除独立筛选栏、退款／平均订单额卡和长日表，不新增搜索或渠道卡，保留订单报表入口。
++
++### U8 — 集成验证、证据与关闭
++
++- **依赖：** U1–U7。**对应：** 全部有效 R/F/AE，排除 R7、AE9。
++- **实施：** 自动访问→UV/PV 写入→Admin 报表→公开商品链接真实闭环；focused progress evidence、interaction／安全文档与无遗留 mock 检查。
++- **完成：** DoD 全满足，更新本计划 checkpoint 并冻结；不推导 REL/DC/PG 状态。
++
++## Verification Contract
++
++### 当前计划交付（L0）
++
++仅检查文档结构、路径／authority 引用和 whitespace；不运行应用测试／构建，不修改应用代码。
++
++### 实施验证（L3，按已修改边界有序执行）
++
++| 边界 | 命令／证据与场景 |
++| --- | --- |
++| Contracts／DB | 各 workspace typecheck；`bun run --cwd packages/db test:workers test/migrations.test.ts` 及新统计仓储 tests；contracts 专项 schema tests（实施时核对现有 runner） |
++| API Worker | `bun run --cwd apps/api test:workers test/reporting/revenue.test.ts test/reporting/reporting-api.test.ts test/security/public-boundaries.test.ts test/security/redaction.test.ts`，加 U3/U4/U6 专项测试；不能用普通 bun test 代替 Worker 环境 |
++| Admin | `bun run --cwd apps/admin test src/pages/dashboard/dashboard.test.tsx`，加币种选择／日期默认／drilldown 专项测试；对应 BrowserMode tests 验证真实 Intl、时区、图表 resize／范围竞态，实施时核对 test:browser 的筛选参数 |
++| Storefront | `bun test apps/storefront/tests/analytics.test.ts apps/storefront/tests/preview-access.test.ts tools/environment-gateway.test.ts`，加自动 UV／PV 采集和 interaction contract tests |
++| 类型与格式 | 修改到的 admin／api／contracts／db／storefront workspace 分别执行 typecheck；lint 与 build 按实际影响面，不重复全仓验收 |
++| 真实闭环 | 只在仓库规定的本地构建 preview／显式候选环境使用隔离的正式形态统计测试配置和数据；验证 AE10 自动采集及 AE7 的 UV 去重／PV 累计可被后台读取、AE8 跳到公开商品。private preview 本身必须继续禁采，不用其成功上报当验收；不生成或输出凭据 |
++
++每项测试记录输入／动作／可观察结果，针对上面的 AE，不镜像内部实现。已有回归入口不足时在最近稳定交互边界补测试，不引入页面级 focus／announce 状态机。扩大测试只为解决具体剩余风险；正式跨模板回归仍归 DC3。
++
++## Definition of Done
++
++- 有效 R1–R6、R8–R10、F1–F5、AE1–AE8、AE10–AE12 均有可复核实现与验证证据，无未解释的范围偏差；退役 R7、AE9 不计入完成条件。
++- 币种选择位于总销售额卡，仅影响财务查询；dashboard 默认浏览器时区，drilldown 固定实际范围，原币／草稿不受影响。
++- 财务口径保持，商品金额排名不扣退款，安全公开链接可解析；四卡、趋势和排名都来自真实接口，页面不包含热门搜索或渠道占比卡。
++- 默认自动采集；顶部 UV 跨日去重，主卡／商品排名为 PV；PV 汇总及必要 UV 关联不按固定 90 天删除，短期重试记录有界清理；成功空结果为 0、错误可重试，旧 AE／preview 边界保持。
++- 局部测试、报表与采集边界 L3 验证、真实闭环与必要类型／构建 gates 通过；无保留阻断缺陷，统计部分失败状态可用。
++- 本计划 checkpoint 和 focused `docs/progress/` 证据与实现一致；master／REL 未因本独立计划被误改。
++- 落地策略：按仓库单开发者规则做本地验证和受治理的 branch/main 流程；提交／合入遵循当时用户授权，不自动开 PR、部署或创建 worktree。
++
++## Execution Checkpoint
++
++**用户已授权实施，U1／U2 已完成；U3–U7 实现已接入，正在联合验证。** 这是 CDA 唯一的当前单元／状态／下一步 authority；实施时按仓库规则在状态、顺序或下一步变化的同一变更中更新。progress 证据不另建 current-unit 队列。
++
++| 单元 | 状态 | 依赖 |
++| --- | --- | --- |
++| U1 契约与存储验证 | Complete | 无 |
++| U2 卡内币种与查询时区 | Complete | U1 |
++| U3 商品销售额与公开链接 | In progress | U1 |
++| U4 统计存储与端点 | In progress | U1 |
++| U5 商城自动采集 | In progress | U4 |
++| U6 统计报表 | In progress | U3、U4、U5 |
++| U7 仪表盘 UI（U7.1／U7.2） | In progress | U7.1：U2、U3；U7.2：U7.1、U6 |
++| U8 集成验证与关闭 | Not started | U1–U7 |
++
++- 当前单元：U7.2；U3／U4 验证修复和 U5／U6 集成同层进行，共享 checkout 文件所有权分离。
++- 阻断：无已证实的范围或技术阻断；此前 Q1 已由 D5 删除热门搜索解决。实施已获授权；本地验证不推导候选或部署授权。
++- 下一具体动作：完成 Worker 真实采集→报表链路、权限回归和仪表盘 Browser Mode 交互验证；U1 证据见 `docs/progress/2026-09-29-cda-u1-evidence.md`。
++- 实现顺序：U1 →（U2／U3／U4 文件分离并行）→ U7.1／U5 → U6 → U7.2 → U8。接口已固定后并行独立单元，主执行者统一集成及验证；不创建 worktree，子阶段不替代 U7 完成权。
++- Tail owner：CDA；REL 只拥有候选纳入和后续 DC/PG authority。
++
++## Sources
++
++- 用户原对话及本次修订：销售卡内币种、浏览器时区默认、UV 卡／PV 趋势与排名区分、自动统计、正常空结果为 0、取消固定 90 天保存；保留不扣退款排名、删除渠道／搜索、仅更新计划的边界。
++- 上述 master／REL、Admin `AGENTS.md`、`apps/admin/docs/ai/` recipes／rules／catalog、`apps/admin/docs/testing-standards.md` 与既有独立修复计划。
++- 正式 `apps/admin/src/pages/dashboard/dashboard-page.tsx`、参考 `pages/templates/dashboard/analysis-page.tsx`、reporting contracts／`apps/api/src/reporting/`、不可变 order_lines schema／订单创建链。
++- `apps/admin/src/shared/i18n/format-currency.ts`、`shared/utils/time-zones.ts` 和既有报表查询状态。
++- `apps/storefront/app/utils/analytics.ts`、`plugins/funnel.client.ts`、Fashion Store Shell、`apps/api/src/security/public-analytics.ts`、observability logger、`docs/architecture/trust-boundaries.md` 与 publishing manifest／release 链。
++- 既有计划选型参考：[Cloudflare sampling](https://developers.cloudflare.com/analytics/analytics-engine/sampling/)、[D1 indexes](https://developers.cloudflare.com/d1/best-practices/use-indexes/)。U1 需用本项目数据验证方案，引用不代表容量已验证。
+diff --git a/docs/progress/2026-09-29-cda-u1-evidence.md b/docs/progress/2026-09-29-cda-u1-evidence.md
+new file mode 100644
+index 00000000..aa7ef228
+--- /dev/null
++++ b/docs/progress/2026-09-29-cda-u1-evidence.md
+@@ -0,0 +1,26 @@
++# CDA U1 bounded contract and storage evidence
++
++Date: 2026-09-29. Scope: CDA only; REL-Pre-DC remains the active product checkpoint. No candidate, deployment or promotion is advanced.
++
++## Frozen interface and storage decisions
++
++- Endpoints: POST `/platform/traffic/identity` with `{releaseId}` returns `{ticket,expiresAt}`; POST `/platform/traffic/events`; GET `/admin/reporting/traffic`; GET `/admin/reporting/products`.
++- Identity: automatic random first-party HttpOnly, Secure, SameSite=Lax cookie, 365-day lifetime. Store only environment-scoped HMAC digest. Keep the signing/derivation key version available through existing identity expiry when rotating keys. Browser reset/new browser is a new anonymous visitor; UV is browser identity, not a claim to identify a human across devices.
++- Server-signed ticket binds identity, environment and expiry, valid for one hour. Event payload is immutable across retries, has random UUID and bounded release/route/product dimensions; never accepts raw URLs, email or account IDs. Reject expired tickets before writes. Dedup UUIDs are retained at least two hours and increment both PV dimensions atomically with the dedup insertion. A fresh ticket must not be substituted for retries of an old event. Reject timestamps/claims outside signed ticket authority.
++- Server receipt minute is the aggregation bucket. PV key `(minute, product dimension)`; increment site total once and product total once if applicable. Retain minimal historical public release reference for product-name resolution. UV primary key `(minute, visitor_digest)` merges repeated visits within the minute. Window UV uses DISTINCT, daily UV is calculated separately; never sum daily UV for full-window total. Summaries and UV associations have no fixed 90-day expiry.
++- Minute buckets support contemporary IANA midnight boundaries, including half-hour and quarter-hour offsets and DST. Data collection begins now; pre-collection historical second-offset zones cannot contain collected data. No historical timezone backfill is claimed.
++- Read window matches existing financial resolver: end-start <=366 days (367 inclusive dates). Top products <=10, event body <=4 KiB (HTTP layer), ticket <=2048 chars, IDs <=160 chars. Begin with 60 events/minute per visitor plus trusted network abuse limiting; respond with explicit throttling, never claim perfect counts for rejected abuse. Cleanup dedup in bounded batches of 500. These are initial operational guards, not measured hosted throughput guarantees.
++
++## Authority inspection
++
++`apps/api/src/publishing/releases.ts` saves manifest_json and distinguishes public publication. `apps/api/src/storefront-experience/catalog-resources.ts` parses saved release manifests; candidate releases are explicitly separate in `candidate-releases.ts`. Resolve current links from the latest successfully deployed public release in the current environment, sorted by deployment time and ID, before checking product membership. A product removed from that latest manifest has no current link even if an older manifest contains it. Resolve historical names from a verified public release referenced by aggregated traffic, then order-line snapshot, then explicit archived-product short ID fallback. Do not use a private candidate manifest as public-name/link authority. Report path is nullable and restricted to a relative route; storefrontOrigin comes from controlled server configuration.
++
++## Reproducible probe
++
++Run `python3 docs/progress/2026-09-29-cda-u1-probe.py` (stdlib SQLite and zoneinfo only). Local in-memory synthetic workload: 500,000 UV associations, 250,000 PV rows, 10,000 distinct visitor identities. Full tested-window distinct query: 109.09 ms in the initial run. SQLite uses a covering `(bucket,visitor)` index range and temporary DISTINCT B-tree. This establishes a viable small-store query shape, not D1 network latency or a production capacity benchmark; U6 must verify deployed query costs and representative store distribution before claiming capacity.
++
++Assertions passed: A three visits/B two visits yields UV=1/PV=5; next-day A yields range UV=1/PV=6, A=4/B=2; retry does not increment; injected transactional failure rolls back dedup and counts. Boundary checks: New York spring day 23h, autumn day 25h; Kolkata and Kathmandu minute-aligned 24h windows with half/quarter-hour UTC boundaries. Daily rows remain independently countable and no retention filter excludes >90-day data.
++
++## Contract red/green
++
++`bun test packages/contracts/test/analytics.test.ts`: initial red (missing analytics module), then green: 3 tests, 20 assertions. Covers invalid dates/time zones/windows, prohibited currency on traffic, product dimension consistency, prohibited raw fields, separate UV/PV and safe nullable public paths. Contract tests validate protocol shape; endpoint atomicity and expiry require U4 integration tests.
+diff --git a/docs/progress/2026-09-29-cda-u1-probe.py b/docs/progress/2026-09-29-cda-u1-probe.py
+new file mode 100644
+index 00000000..2ce63f7a
+--- /dev/null
++++ b/docs/progress/2026-09-29-cda-u1-probe.py
+@@ -0,0 +1,33 @@
++import sqlite3,time,json
++from datetime import datetime,timedelta
++from zoneinfo import ZoneInfo
++c=sqlite3.connect(':memory:')
++c.executescript('CREATE TABLE uv(bucket INTEGER,visitor TEXT,PRIMARY KEY(bucket,visitor)); CREATE TABLE pv(bucket INTEGER,product TEXT,count INTEGER,PRIMARY KEY(bucket,product)); CREATE TABLE dedup(id TEXT PRIMARY KEY,expires INTEGER);')
++t=time.perf_counter()
++c.executemany('INSERT INTO uv VALUES (?,?)', ((28000000+i//20,'v'+str(i%10000)) for i in range(500000)))
++c.executemany('INSERT INTO pv VALUES (?,?,?)', ((28000000+i//10,'p'+str(i%10),5) for i in range(250000)))
++c.commit()
++q='SELECT COUNT(DISTINCT visitor) FROM uv WHERE bucket >= ? AND bucket < ?'
++t=time.perf_counter(); uv=c.execute(q,(28000000,28025000)).fetchone()[0]; elapsed=time.perf_counter()-t
++assert uv==10000
++zones={}
++for zone,date,expected in [('America/New_York','2026-03-08',23),('America/New_York','2026-11-01',25),('Asia/Kolkata','2026-09-29',24),('Asia/Kathmandu','2026-09-29',24)]:
++ d=datetime.fromisoformat(date).replace(tzinfo=ZoneInfo(zone)); e=d+timedelta(days=1)
++ a,b=int(d.timestamp()),int(e.timestamp()); assert a%60==b%60==0 and (b-a)//3600==expected
++ zones[zone+' '+date]={'startMinute':a//60,'endMinute':b//60,'hours':expected}
++# AE7, same visitor across days; event-id insert and increments share transaction.
++c.executescript('DELETE FROM uv; DELETE FROM pv;')
++def ingest(id,bucket,visitor,product,fail=False):
++ try:
++  with c:
++   if not c.execute('INSERT OR IGNORE INTO dedup VALUES (?,?)',(id,999)).rowcount:return
++   c.execute('INSERT OR IGNORE INTO uv VALUES (?,?)',(bucket,visitor))
++   c.execute('INSERT INTO pv VALUES (?,?,1) ON CONFLICT(bucket,product) DO UPDATE SET count=count+1',(bucket,product))
++   if fail:raise RuntimeError()
++ except RuntimeError:pass
++for i,p in enumerate(['a','a','a','b','b']):ingest(str(i),0,'v1',p)
++ingest('5',1440,'v1','a');ingest('5',1440,'v1','a');ingest('rollback',1440,'v2','a',True)
++assert c.execute('SELECT COUNT(DISTINCT visitor) FROM uv').fetchone()[0]==1
++assert c.execute('SELECT SUM(count) FROM pv').fetchone()[0]==6
++assert c.execute('SELECT product,SUM(count) FROM pv GROUP BY product').fetchall()==[('a',4),('b',2)]
++print(json.dumps({'rows':{'uv':500000,'pv':250000},'distinctQueryMs':round(elapsed*1000,2),'plan':c.execute('EXPLAIN QUERY PLAN '+q,(28000000,28025000)).fetchall(),'boundaries':zones,'AE7_and_atomic_rollback':'pass'},indent=2))
+diff --git a/packages/contracts/src/analytics.ts b/packages/contracts/src/analytics.ts
+new file mode 100644
+index 00000000..df657183
+--- /dev/null
++++ b/packages/contracts/src/analytics.ts
+@@ -0,0 +1,116 @@
++import * as z from "zod";
++import { currencyCodeSchema, isoDateTimeSchema } from "./common";
++import { commerceFunnelPageRouteSchema } from "./platform";
++
++export const analyticsCalendarDateSchema = z.iso.date();
++export const analyticsTimeZoneSchema = z
++  .string()
++  .min(1)
++  .max(100)
++  .refine((value) => {
++    try {
++      new Intl.DateTimeFormat("en", { timeZone: value });
++      return true;
++    } catch {
++      return false;
++    }
++  }, "Expected a supported IANA time zone.");
++const windowShape = {
++  startDate: analyticsCalendarDateSchema,
++  endDate: analyticsCalendarDateSchema,
++  timeZone: analyticsTimeZoneSchema,
++};
++function validWindow(value: { startDate: string; endDate: string }): boolean {
++  const days = (Date.parse(value.endDate) - Date.parse(value.startDate)) / 86_400_000;
++  return days >= 0 && days <= 366;
++}
++export const trafficQuerySchema = z
++  .object(windowShape)
++  .strict()
++  .refine(validWindow, "Expected an ordered window of at most 367 days.");
++export const productSalesQuerySchema = z
++  .object({ ...windowShape, currency: currencyCodeSchema })
++  .strict()
++  .refine(validWindow, "Expected an ordered window of at most 367 days.");
++
++// No raw URL, account, order or visitor identifier crosses the ingestion boundary.
++export const trafficEventSchema = z
++  .object({
++    eventId: z.uuid(),
++    ticket: z.string().min(1).max(2048),
++    releaseId: z.string().min(1).max(160),
++    route: commerceFunnelPageRouteSchema,
++    productId: z.string().min(1).max(160).optional(),
++  })
++  .strict()
++  .refine(
++    (value) => (value.route === "product") === (value.productId !== undefined),
++    "Product routes require productId; other routes must omit it.",
++  );
++export const trafficIdentityRequestSchema = z
++  .object({ releaseId: z.string().min(1).max(160) })
++  .strict();
++export const trafficIdentitySchema = z
++  .object({ ticket: z.string().min(1).max(2048), expiresAt: isoDateTimeSchema })
++  .strict();
++
++export const analyticsProductPathSchema = z
++  .string()
++  .min(1)
++  .max(500)
++  .regex(/^\/(?!\/)[A-Za-z0-9_\-/]*$/)
++  .refine((value) => !value.includes(".."));
++export const analyticsStorefrontOriginSchema = z
++  .string()
++  .url()
++  .refine((value) => {
++    const url = new URL(value);
++    return url.protocol === "https:" && url.origin === value && !url.username && !url.password;
++  });
++const productShape = {
++  productId: z.string().min(1).max(160),
++  name: z.string().min(1),
++  path: analyticsProductPathSchema.nullable(),
++};
++const countsShape = { uniqueVisitors: z.int().nonnegative(), pageViews: z.int().nonnegative() };
++export const trafficReportSchema = z
++  .object({
++    ...windowShape,
++    ...countsShape,
++    asOf: isoDateTimeSchema,
++    collectionStartedAt: isoDateTimeSchema.nullable(),
++    storefrontOrigin: analyticsStorefrontOriginSchema.nullable(),
++    comparison: z
++      .object({
++        startDate: analyticsCalendarDateSchema,
++        endDate: analyticsCalendarDateSchema,
++        ...countsShape,
++        available: z.boolean(),
++      })
++      .strict(),
++    series: z
++      .array(z.object({ date: analyticsCalendarDateSchema, ...countsShape }).strict())
++      .max(367),
++    products: z
++      .array(z.object({ ...productShape, pageViews: z.int().nonnegative() }).strict())
++      .max(10),
++  })
++  .strict();
++export const productSalesReportSchema = z
++  .object({
++    ...windowShape,
++    currency: currencyCodeSchema,
++    storefrontOrigin: analyticsStorefrontOriginSchema.nullable(),
++    products: z
++      .array(z.object({ ...productShape, grossSales: z.int().nonnegative() }).strict())
++      .max(10),
++  })
++  .strict();
++export type TrafficQuery = z.infer<typeof trafficQuerySchema>;
++export type TrafficEvent = z.infer<typeof trafficEventSchema>;
++export type TrafficIdentity = z.infer<typeof trafficIdentitySchema>;
++export type TrafficReport = z.infer<typeof trafficReportSchema>;
++export type ProductSalesQuery = z.infer<typeof productSalesQuerySchema>;
++export type ProductSalesReport = z.infer<typeof productSalesReportSchema>;
++
++export type TrafficIdentityRequest = z.infer<typeof trafficIdentityRequestSchema>;
+diff --git a/packages/contracts/src/index.ts b/packages/contracts/src/index.ts
+index f80cf3a7..ff721148 100644
+--- a/packages/contracts/src/index.ts
++++ b/packages/contracts/src/index.ts
+@@ -1,5 +1,6 @@
++export * from "./analytics";
+ export * from "./admin";
+ export * from "./cart";
+ export * from "./catalog";
+ export * from "./checkout";
+ export * from "./common";
+diff --git a/packages/contracts/test/analytics.test.ts b/packages/contracts/test/analytics.test.ts
+new file mode 100644
+index 00000000..e0f5c0ab
+--- /dev/null
++++ b/packages/contracts/test/analytics.test.ts
+@@ -0,0 +1,83 @@
++import { expect, test } from "bun:test";
++import {
++  trafficQuerySchema,
++  trafficEventSchema,
++  trafficReportSchema,
++  productSalesReportSchema,
++} from "../src/analytics";
++const window = { startDate: "2026-09-01", endDate: "2026-09-29", timeZone: "Asia/Kathmandu" };
++test("traffic windows reject invalid dates, zones, reversed and excessive windows and currency", () => {
++  expect(trafficQuerySchema.safeParse(window).success).toBe(true);
++  for (const change of [
++    { startDate: "2026-02-30" },
++    { timeZone: "Fake/Zone" },
++    { startDate: "2026-10-01" },
++    { startDate: "2024-01-01" },
++    { currency: "USD" },
++  ]) {
++    expect(trafficQuerySchema.safeParse({ ...window, ...change }).success).toBe(false);
++  }
++});
++test("ingestion allows only bounded anonymous public dimensions", () => {
++  const event = {
++    eventId: crypto.randomUUID(),
++    ticket: "signed-ticket",
++    releaseId: "release-1",
++    route: "product",
++    productId: "product-1",
++  };
++  expect(trafficEventSchema.safeParse(event).success).toBe(true);
++  for (const change of [
++    { route: "search" },
++    { productId: undefined },
++    { route: "home" },
++    { url: "https://private.example/" },
++    { email: "x@example.com" },
++    { ticket: "" },
++  ]) {
++    expect(trafficEventSchema.safeParse({ ...event, ...change }).success).toBe(false);
++  }
++});
++test("UV and PV stay distinct, product paths cannot escape the public origin", () => {
++  const report = {
++    ...window,
++    asOf: "2026-09-29T12:00:00Z",
++    collectionStartedAt: null,
++    storefrontOrigin: "https://shop.example",
++    uniqueVisitors: 1,
++    pageViews: 6,
++    comparison: {
++      startDate: "2026-08-03",
++      endDate: "2026-08-31",
++      uniqueVisitors: 0,
++      pageViews: 0,
++      available: false,
++    },
++    series: [
++      { date: "2026-09-28", uniqueVisitors: 1, pageViews: 5 },
++      { date: "2026-09-29", uniqueVisitors: 1, pageViews: 1 },
++    ],
++    products: [{ productId: "a", name: "A", path: "/products/a", pageViews: 4 }],
++  };
++  expect(trafficReportSchema.parse(report).uniqueVisitors).toBe(1);
++  for (const path of [
++    "//evil.example",
++    "/\\evil",
++    "/products/../admin",
++    "/products/%2e%2e/admin",
++    "/products/a?token=x",
++  ]) {
++    expect(
++      trafficReportSchema.safeParse({ ...report, products: [{ ...report.products[0], path }] })
++        .success,
++    ).toBe(false);
++  }
++  expect(
++    productSalesReportSchema.safeParse({
++      ...window,
++      currency: "USD",
++      storefrontOrigin: null,
++      products: [{ productId: "a", name: "Archived A", path: null, grossSales: 100 }],
++    }).success,
++  ).toBe(true);
++});
+diff --git a/packages/db/src/schema/index.ts b/packages/db/src/schema/index.ts
+index 780367b1..36ec0a7d 100644
+--- a/packages/db/src/schema/index.ts
++++ b/packages/db/src/schema/index.ts
+@@ -1741,5 +1741,55 @@ export const storefrontPreviewSessions = sqliteTable(
+       table.snapshotId,
+       table.revokedAt,
+     ),
+   ],
+ );
++
++// Commerce analytics keeps minute aggregates and identity associations, never
++// persistent per-visit payloads. Migration 0039 owns the atomic insert trigger.
++export const trafficCollection = sqliteTable("traffic_collection", {
++  environment: text("environment").primaryKey(),
++  startedAt: text("started_at").notNull(),
++});
++
++export const trafficPvBuckets = sqliteTable(
++  "traffic_pv_buckets",
++  {
++    environment: text("environment").notNull(),
++    bucket: text("bucket").notNull(),
++    productId: text("product_id").notNull().default(""),
++    pageViews: integer("page_views").notNull(),
++    releaseId: text("release_id").notNull(),
++  },
++  (table) => [
++    primaryKey({ columns: [table.environment, table.bucket, table.productId] }),
++    index("traffic_pv_product_window").on(table.environment, table.productId, table.bucket),
++    check("traffic_pv_nonnegative", sql`${table.pageViews} >= 0`),
++  ],
++);
++
++export const trafficUvBuckets = sqliteTable(
++  "traffic_uv_buckets",
++  {
++    environment: text("environment").notNull(),
++    bucket: text("bucket").notNull(),
++    visitorDigest: text("visitor_digest").notNull(),
++  },
++  (table) => [primaryKey({ columns: [table.environment, table.bucket, table.visitorDigest] })],
++);
++
++export const trafficEventDedup = sqliteTable(
++  "traffic_event_dedup",
++  {
++    environment: text("environment").notNull(),
++    visitorDigest: text("visitor_digest").notNull(),
++    eventId: text("event_id").notNull(),
++    bucket: text("bucket").notNull(),
++    productId: text("product_id").notNull().default(""),
++    releaseId: text("release_id").notNull(),
++    expiresAt: integer("expires_at").notNull(),
++  },
++  (table) => [
++    primaryKey({ columns: [table.environment, table.visitorDigest, table.eventId] }),
++    index("traffic_event_dedup_expiry").on(table.expiresAt),
++  ],
++);
+diff --git a/packages/db/test/migrations.test.ts b/packages/db/test/migrations.test.ts
+index 3d4f765c..fa7b65ff 100644
+--- a/packages/db/test/migrations.test.ts
++++ b/packages/db/test/migrations.test.ts
+@@ -999,10 +999,14 @@ describe("D1 migrations", () => {
+         "storefront_experience_snapshots",
+         "storefront_experience_validations",
+         "storefront_preview_builds",
+         "storefront_preview_grants",
+         "storefront_preview_sessions",
++        "traffic_collection",
++        "traffic_pv_buckets",
++        "traffic_uv_buckets",
++        "traffic_event_dedup",
+       ]),
+     );
+ 
+     await seedLaunchFixture(env.DB);
+     const cartColumns = await env.DB.prepare("PRAGMA table_info(carts)").all<{ name: string }>();
+
+NEW FILE apps/admin/src/pages/dashboard/dashboard-chart.tsx
+import React from 'react'
+import ReactECharts from 'echarts-for-react'
+import { theme } from 'antd'
+import { useI18n } from '../../shared/contexts/i18n-context'
+import { formatMinorCurrency } from '../../shared/i18n/format-currency'
+
+void React
+
+export const DashboardChart = ({
+  series,
+  label,
+  currency,
+  mini = false,
+}: {
+  series: { date: string; value: number }[]
+  label: string
+  currency?: string
+  mini?: boolean
+}) => {
+  const { token } = theme.useToken()
+  const { locale } = useI18n()
+  const format = (value: number) =>
+    currency
+      ? formatMinorCurrency(value, currency, locale)
+      : new Intl.NumberFormat(locale).format(value)
+  return (
+    <div role="img" aria-label={label}>
+      <ReactECharts
+        notMerge
+        opts={{ renderer: 'svg' }}
+        style={{ height: mini ? 48 : 320 }}
+        option={{
+          backgroundColor: 'transparent',
+          animation: false,
+          textStyle: { color: token.colorTextSecondary },
+          tooltip: { trigger: 'axis', valueFormatter: (value: number) => format(value) },
+          grid: {
+            left: mini ? 2 : 0,
+            right: mini ? 2 : 16,
+            top: mini ? 4 : 24,
+            bottom: mini ? 4 : 8,
+            containLabel: !mini,
+          },
+          xAxis: {
+            type: 'category',
+            show: !mini,
+            data: series.map((row) => row.date),
+            axisLabel: { color: token.colorTextSecondary },
+            axisLine: { lineStyle: { color: token.colorBorderSecondary } },
+            axisTick: { show: false },
+          },
+          yAxis: {
+            type: 'value',
+            show: !mini,
+            axisLabel: { color: token.colorTextSecondary, formatter: format },
+            splitLine: { lineStyle: { color: token.colorSplit } },
+          },
+          series: [
+            {
+              name: label,
+              type: mini ? 'line' : 'bar',
+              data: series.map((row) => row.value),
+              showSymbol: series.length === 1,
+              symbolSize: 4,
+              lineStyle: { width: 2, color: token.colorPrimary },
+              itemStyle: { color: token.colorPrimary },
+              areaStyle: mini ? { color: token.colorPrimaryBg } : undefined,
+              barMaxWidth: 28,
+            },
+          ],
+        }}
+      />
+    </div>
+  )
+}
+
+NEW FILE apps/admin/src/pages/dashboard/dashboard-test-data.ts
+import type {
+  ReportingQuery,
+  RevenueReport,
+  TrafficQuery,
+  TrafficReport,
+  ProductSalesReport,
+} from '@shoppp/contracts'
+
+// Deliberately different UV/PV facts; used only by test suites.
+export const revenueFixture = (query: ReportingQuery): RevenueReport => ({
+  ...query,
+  comparison: {
+    startDate: '2026-01-01',
+    endDate: '2026-01-30',
+    metrics: {
+      grossSales: 2000,
+      netSales: -100,
+      orderCount: 0,
+      refundTotal: 2100,
+      averageOrderValue: 0,
+    },
+  },
+  current: {
+    startDate: query.startDate,
+    endDate: query.endDate,
+    metrics: {
+      grossSales: 3500,
+      netSales: -500,
+      orderCount: 2,
+      refundTotal: 4000,
+      averageOrderValue: 1750,
+    },
+    series: [
+      { date: query.startDate, grossSales: 1000, netSales: 1000, orderCount: 1, refundTotal: 0 },
+      { date: query.endDate, grossSales: 2500, netSales: -1500, orderCount: 1, refundTotal: 4000 },
+    ],
+  },
+  definitions: { grossSales: 'Paid orders', refundTotal: 'Completed refunds' },
+})
+export const trafficFixture = (query: TrafficQuery): TrafficReport => ({
+  ...query,
+  asOf: '2026-09-30T00:00:00Z',
+  collectionStartedAt: '2026-01-01T00:00:00Z',
+  storefrontOrigin: 'https://store.example.com',
+  uniqueVisitors: 1,
+  pageViews: 6,
+  comparison: {
+    startDate: '2026-01-01',
+    endDate: '2026-01-30',
+    uniqueVisitors: 0,
+    pageViews: 0,
+    available: false,
+  },
+  series: [
+    { date: query.startDate, uniqueVisitors: 1, pageViews: 5 },
+    { date: query.endDate, uniqueVisitors: 1, pageViews: 1 },
+  ],
+  products: [
+    { productId: 'a', name: 'Product A', path: '/products/a', pageViews: 4 },
+    { productId: 'b', name: 'Archived product B', path: null, pageViews: 2 },
+  ],
+})
+export const productsFixture = (query: ReportingQuery): ProductSalesReport => ({
+  ...query,
+  storefrontOrigin: 'https://store.example.com',
+  products: [
+    { productId: 'a', name: 'Product A', path: '/products/a', grossSales: 2500 },
+    { productId: 'b', name: 'Archived product B', path: null, grossSales: 1000 },
+  ],
+})
+
+NEW FILE apps/admin/src/pages/dashboard/dashboard.browser.test.tsx
+import React from 'react'
+import { afterEach, describe, expect, it } from '@rstest/core'
+import { page } from '@rstest/browser'
+import { cleanup, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+import { getInstanceByDom } from 'echarts'
+import type { ReportingQuery, TrafficQuery } from '@shoppp/contracts'
+import {
+  assertNativeBrowserAndCss,
+  assertWithinViewport,
+  installBrowserApi,
+  renderI18nBrowser,
+  switchBrowserLocale,
+} from '../../test/i18n-browser-fixture'
+import { DashboardPage } from './dashboard-page'
+import { revenueFixture, productsFixture, trafficFixture } from './dashboard-test-data'
+
+void React
+let transport: ReturnType<typeof installBrowserApi> | undefined
+afterEach(() => {
+  cleanup()
+  transport?.restore()
+  localStorage.clear()
+})
+const install = (failTraffic = false) =>
+  installBrowserApi((request) => {
+    if (request.url === '/admin/reporting/revenue')
+      return { data: { data: revenueFixture(request.params as ReportingQuery) } }
+    if (request.url === '/admin/reporting/products')
+      return { data: { data: productsFixture(request.params as ReportingQuery) } }
+    if (request.url === '/admin/reporting/traffic')
+      return failTraffic
+        ? { data: {}, status: 503 }
+        : { data: { data: trafficFixture(request.params as TrafficQuery) } }
+    throw new Error(`Unexpected endpoint: ${request.url}`)
+  })
+
+describe('Commerce analytics in a real browser', () => {
+  it('renders real charts, commits a complete date pair once, resizes and translates without refetching', async () => {
+    transport = install()
+    renderI18nBrowser(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+      ['reporting.read'],
+      'en-US'
+    )
+    await expect.element(page.getByRole('button', { name: 'View underlying orders' })).toBeVisible()
+    assertNativeBrowserAndCss()
+    const chartElement = document.querySelector(
+      '[aria-label="Daily gross sales"] .echarts-for-react'
+    ) as HTMLElement
+    const chart = getInstanceByDom(chartElement)!
+    expect(chart).toBeTruthy()
+    expect(chartElement.querySelector('svg')).toBeTruthy()
+    expect((chart.getOption().series as { data: number[] }[])[0]!.data).toEqual([1000, 2500])
+    assertWithinViewport(document.querySelector('.ant-picker-range')!)
+    await page.getByPlaceholder('Start date').click()
+    await page.getByPlaceholder('Start date').fill('2026-02-01')
+    await page.getByPlaceholder('Start date').press('Enter')
+    expect(transport.requests).toHaveLength(3)
+    await page.getByPlaceholder('End date').fill('2026-02-07')
+    await page.getByPlaceholder('End date').press('Enter')
+    await page.getByPlaceholder('End date').press('Tab')
+    await waitFor(() => expect(transport?.requests).toHaveLength(6))
+    for (const request of transport.requests.slice(3)) {
+      expect(request.params.startDate).toBe('2026-02-01')
+      expect(request.params.endDate).toBe('2026-02-07')
+    }
+    await page.getByRole('tab', { name: 'Page views' }).click()
+    await expect.element(page.getByText('Top products by page views')).toBeVisible()
+    const pvElement = document.querySelector(
+      '[aria-label="Daily page views"] .echarts-for-react'
+    ) as HTMLElement
+    const pvChart = getInstanceByDom(pvElement)!
+    expect((pvChart.getOption().series as { data: number[] }[])[0]!.data).toEqual([5, 1])
+    const width = pvElement.getBoundingClientRect().width
+    pvElement.style.width = `${width / 2}px`
+    window.dispatchEvent(new Event('resize'))
+    await waitFor(() => expect(pvChart.getWidth()).toBeLessThan(width))
+    await switchBrowserLocale()
+    await expect.element(page.getByRole('tab', { name: '访问量' })).toBeVisible()
+    expect(transport.requests).toHaveLength(6)
+  })
+  it('keeps real sales visible when traffic fails and exposes an actionable retry', async () => {
+    transport = install(true)
+    renderI18nBrowser(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+      ['reporting.read'],
+      'en-US'
+    )
+    await expect.element(page.getByRole('button', { name: 'View underlying orders' })).toBeVisible()
+    await page.getByRole('tab', { name: 'Page views' }).click()
+    const visitor = document.querySelector('[data-metric="Unique visitors"]')!
+    expect(visitor.querySelector('[data-testid="metric-value"]')).toBeNull()
+    expect(visitor.textContent).toContain('Retry')
+    transport.restore()
+    transport = install()
+    await page.getByRole('button', { name: 'Retry' }).first().click()
+    await expect.element(page.getByRole('link', { name: 'Product A' })).toBeVisible()
+    expect(transport.requests).toHaveLength(1)
+    expect(transport.requests[0]?.url).toBe('/admin/reporting/traffic')
+  })
+})
+
+NEW FILE apps/api/src/analytics/identity.ts
+import { getCookie, setCookie } from "hono/cookie";
+import type { Context } from "hono";
+import type { ApiBindings, ApiEnvironment } from "../http/context";
+import { ApiError } from "../http/errors";
+
+export const TRAFFIC_COOKIE = "__Host-shoppp-traffic";
+const IDENTITY_LIFETIME = 365 * 24 * 60 * 60 * 1000;
+export const TICKET_LIFETIME = 60 * 60 * 1000;
+const encoder = new TextEncoder();
+
+type Identity = {
+  kind: "identity";
+  id: string;
+  environment: string;
+  issuedAt: number;
+  expiresAt: number;
+};
+type Ticket = {
+  kind: "ticket";
+  visitorDigest: string;
+  releaseId: string;
+  environment: string;
+  issuedAt: number;
+  expiresAt: number;
+};
+type Claims = Identity | Ticket;
+
+function unavailable(): never {
+  throw new ApiError(503, "traffic_unavailable", "Traffic collection is unavailable.");
+}
+function keyring(env: ApiBindings): { keys: Record<string, string>; active: string } {
+  try {
+    const keys: unknown = JSON.parse(env.TRAFFIC_KEYS_JSON ?? "");
+    const active = env.TRAFFIC_ACTIVE_KEY_ID ?? "";
+    if (
+      !keys ||
+      typeof keys !== "object" ||
+      Array.isArray(keys) ||
+      !/^[A-Za-z0-9_-]{1,64}$/.test(active)
+    )
+      return unavailable();
+    for (const [id, key] of Object.entries(keys)) {
+      if (!/^[A-Za-z0-9_-]{1,64}$/.test(id) || typeof key !== "string" || key.length < 32)
+        return unavailable();
+    }
+    if (!Object.hasOwn(keys, active)) return unavailable();
+    return { keys: keys as Record<string, string>, active };
+  } catch {
+    return unavailable();
+  }
+}
+function encode(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes))
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replaceAll("=", "");
+}
+function decode(value: string): Uint8Array {
+  return Uint8Array.from(atob(value.replaceAll("-", "+").replaceAll("_", "/")), (c) =>
+    c.charCodeAt(0),
+  );
+}
+async function hmacKey(secret: string): Promise<CryptoKey> {
+  return crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign", "verify"],
+  );
+}
+async function sign(env: ApiBindings, claims: Claims): Promise<string> {
+  const { keys, active } = keyring(env);
+  const payload = `${active}.${encode(encoder.encode(JSON.stringify(claims)))}`;
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    await hmacKey(keys[active]!),
+    encoder.encode(payload),
+  );
+  return `${payload}.${encode(new Uint8Array(signature))}`;
+}
+async function verify(
+  env: ApiBindings,
+  token: string,
+  now: number,
+): Promise<{ claims: Claims; keyId: string } | null> {
+  const { keys } = keyring(env);
+  try {
+    if (token.length > 2048) return null;
+    const [keyId, payload, signature, extra] = token.split(".");
+    if (!keyId || !payload || !signature || extra !== undefined || !Object.hasOwn(keys, keyId))
+      return null;
+    if (
+      !(await crypto.subtle.verify(
+        "HMAC",
+        await hmacKey(keys[keyId]!),
+        new Uint8Array(decode(signature)).buffer,
+        encoder.encode(`${keyId}.${payload}`),
+      ))
+    )
+      return null;
+    const claims = JSON.parse(new TextDecoder().decode(decode(payload))) as Claims;
+    if (
+      !claims ||
+      claims.environment !== env.ENVIRONMENT ||
+      !Number.isSafeInteger(claims.issuedAt) ||
+      !Number.isSafeInteger(claims.expiresAt) ||
+      claims.issuedAt > now ||
+      claims.expiresAt <= now ||
+      claims.expiresAt <= claims.issuedAt
+    )
+      return null;
+    if (claims.kind === "identity") {
+      if (
+        typeof claims.id !== "string" ||
+        !/^[0-9a-f-]{36}$/.test(claims.id) ||
+        claims.expiresAt - claims.issuedAt > IDENTITY_LIFETIME
+      )
+        return null;
+    } else if (claims.kind === "ticket") {
+      if (
+        typeof claims.visitorDigest !== "string" ||
+        typeof claims.releaseId !== "string" ||
+        claims.expiresAt - claims.issuedAt > TICKET_LIFETIME
+      )
+        return null;
+    } else return null;
+    return { claims, keyId };
+  } catch {
+    return null;
+  }
+}
+async function digest(env: ApiBindings, identity: Identity, keyId: string): Promise<string> {
+  // Derive with the identity's original key, so rotation never changes its UV.
+  const { keys } = keyring(env);
+  const bytes = await crypto.subtle.sign(
+    "HMAC",
+    await hmacKey(keys[keyId]!),
+    encoder.encode(`traffic-visitor:${env.ENVIRONMENT}:${identity.id}`),
+  );
+  return encode(new Uint8Array(bytes));
+}
+export async function readTrafficIdentity(
+  context: Context<ApiEnvironment>,
+  now = Date.now(),
+): Promise<string | null> {
+  const token = getCookie(context, TRAFFIC_COOKIE);
+  if (!token) return null;
+  const verified = await verify(context.env, token, now);
+  return verified?.claims.kind === "identity"
+    ? digest(context.env, verified.claims, verified.keyId)
+    : null;
+}
+export async function issueTrafficTicket(
+  context: Context<ApiEnvironment>,
+  releaseId: string,
+  now = Date.now(),
+) {
+  let visitorDigest = await readTrafficIdentity(context, now);
+  if (!visitorDigest) {
+    const claims: Identity = {
+      kind: "identity",
+      id: crypto.randomUUID(),
+      environment: context.env.ENVIRONMENT,
+      issuedAt: now,
+      expiresAt: now + IDENTITY_LIFETIME,
+    };
+    const { active } = keyring(context.env);
+    const token = await sign(context.env, claims);
+    setCookie(context, TRAFFIC_COOKIE, token, {
+      path: "/",
+      httpOnly: true,
+      secure: true,
+      sameSite: "Lax",
+      maxAge: IDENTITY_LIFETIME / 1000,
+    });
+    visitorDigest = await digest(context.env, claims, active);
+  }
+  const expiresAt = now + TICKET_LIFETIME;
+  const ticket = await sign(context.env, {
+    kind: "ticket",
+    visitorDigest,
+    releaseId,
+    environment: context.env.ENVIRONMENT,
+    issuedAt: now,
+    expiresAt,
+  });
+  return { ticket, expiresAt: new Date(expiresAt).toISOString() };
+}
+export async function authorizeTrafficEvent(
+  context: Context<ApiEnvironment>,
+  ticket: string,
+  releaseId: string,
+  now = Date.now(),
+): Promise<string> {
+  const verified = await verify(context.env, ticket, now);
+  const visitorDigest = await readTrafficIdentity(context, now);
+  if (
+    !visitorDigest ||
+    verified?.claims.kind !== "ticket" ||
+    verified.claims.releaseId !== releaseId ||
+    verified.claims.visitorDigest !== visitorDigest
+  ) {
+    throw new ApiError(
+      403,
+      "traffic_identity_invalid",
+      "A valid traffic identity and ticket are required.",
+    );
+  }
+  return visitorDigest;
+}
+
+NEW FILE apps/api/src/analytics/protection.ts
+import type { Context, MiddlewareHandler } from "hono";
+import type { ApiEnvironment } from "../http/context";
+import { ApiError } from "../http/errors";
+import { sha256Hex } from "../orders/tokens";
+
+async function enforceQuota(context: Context<ApiEnvironment>, key: string): Promise<void> {
+  const limiter = context.env.TRAFFIC_RATE_LIMITER;
+  if (!limiter) {
+    if (context.env.ENVIRONMENT !== "development") {
+      throw new ApiError(
+        503,
+        "traffic_rate_limit_unavailable",
+        "Traffic collection is unavailable.",
+      );
+    }
+    return;
+  }
+  if (!(await limiter.limit({ key })).success) {
+    context.header("Retry-After", "60");
+    throw new ApiError(429, "traffic_rate_limited", "Too many traffic requests.");
+  }
+}
+export async function enforceTrafficVisitorQuota(
+  context: Context<ApiEnvironment>,
+  digest: string,
+): Promise<void> {
+  await enforceQuota(context, `traffic:visitor:${context.env.ENVIRONMENT}:${digest}`);
+}
+export function protectTraffic(): MiddlewareHandler<ApiEnvironment> {
+  return async (context, next) => {
+    context.header("Cache-Control", "no-store");
+    if (context.env.TRAFFIC_ENABLED !== "true") {
+      throw new ApiError(503, "traffic_disabled", "Traffic collection is unavailable.");
+    }
+    const origin = context.req.header("Origin");
+    if (
+      origin !== new URL(context.env.STOREFRONT_ORIGIN).origin ||
+      origin === new URL(context.env.PREVIEW_ORIGIN).origin ||
+      /(?:^|;\s*)__Host-shoppp-preview=/.test(context.req.header("Cookie") ?? "")
+    ) {
+      throw new ApiError(
+        403,
+        "traffic_origin_forbidden",
+        "Traffic collection is unavailable for this source.",
+      );
+    }
+    const tooLarge = () =>
+      new ApiError(413, "traffic_body_too_large", "Traffic request is too large.");
+    if (Number(context.req.header("Content-Length") ?? "0") > 4096) throw tooLarge();
+    const reader = context.req.raw.clone().body?.getReader();
+    if (reader) {
+      let size = 0;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          size += value.byteLength;
+          if (size > 4096) throw tooLarge();
+        }
+      } finally {
+        void reader.cancel();
+        reader.releaseLock();
+      }
+    }
+    // Cloudflare supplies this at the trusted edge. Never key on a user-chosen
+    // Authorization value, cookie, event ID or forwarded-for header.
+    const source = context.req.header("CF-Connecting-IP");
+    if (!source && context.env.ENVIRONMENT !== "development") {
+      throw new ApiError(403, "traffic_source_unavailable", "Traffic source is unavailable.");
+    }
+    const sourceDigest = await sha256Hex(source ?? "local-development");
+    await enforceQuota(context, `traffic:source:${context.env.ENVIRONMENT}:${sourceDigest}`);
+    await next();
+  };
+}
+
+NEW FILE apps/api/src/analytics/service.ts
+import type { TrafficEvent, TrafficIdentityRequest } from "@shoppp/contracts";
+import type { Context } from "hono";
+import type { ApiEnvironment } from "../http/context";
+import { ApiError } from "../http/errors";
+import { getPublicRelease, publicProductPath } from "../reporting/public-products";
+import { authorizeTrafficEvent, issueTrafficTicket } from "./identity";
+import { enforceTrafficVisitorQuota } from "./protection";
+
+export async function initializeTraffic(
+  context: Context<ApiEnvironment>,
+  input: TrafficIdentityRequest,
+) {
+  if (!(await getPublicRelease(context.env, input.releaseId))) {
+    throw new ApiError(403, "traffic_release_invalid", "A public storefront release is required.");
+  }
+  return issueTrafficTicket(context, input.releaseId);
+}
+export async function recordTraffic(
+  context: Context<ApiEnvironment>,
+  input: TrafficEvent,
+): Promise<void> {
+  const now = Date.now();
+  const visitorDigest = await authorizeTrafficEvent(context, input.ticket, input.releaseId, now);
+  await enforceTrafficVisitorQuota(context, visitorDigest);
+  const release = await getPublicRelease(context.env, input.releaseId);
+  if (
+    !release ||
+    (input.productId !== undefined && publicProductPath(release, input.productId) === null)
+  ) {
+    throw new ApiError(
+      403,
+      "traffic_release_invalid",
+      "A public storefront product or release is required.",
+    );
+  }
+  const bucket = new Date(Math.floor(now / 60_000) * 60_000).toISOString();
+  // Migration 0039 atomically updates site/product PV and minute UV on insertion.
+  // A duplicate does nothing; failure anywhere in the trigger rolls back all rows.
+  await context.env.DB.prepare(
+    `INSERT INTO traffic_event_dedup
+    (environment, visitor_digest, event_id, bucket, product_id, release_id, expires_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT (environment, visitor_digest, event_id) DO NOTHING`,
+  )
+    .bind(
+      context.env.ENVIRONMENT,
+      visitorDigest,
+      input.eventId,
+      bucket,
+      input.productId ?? "",
+      input.releaseId,
+      now + 2 * 60 * 60 * 1000,
+    )
+    .run();
+}
+export async function cleanupTraffic(db: D1Database, now = Date.now()): Promise<number> {
+  const result = await db
+    .prepare(
+      `DELETE FROM traffic_event_dedup WHERE rowid IN
+    (SELECT rowid FROM traffic_event_dedup WHERE expires_at <= ? ORDER BY expires_at LIMIT 500)`,
+    )
+    .bind(now)
+    .run();
+  return result.meta.changes;
+}
+
+NEW FILE apps/api/src/reporting/product-ranking.ts
+import type { ProductSalesQuery, ProductSalesReport } from "@shoppp/contracts";
+
+import type { ApiBindings } from "../http/context";
+import { ApiError } from "../http/errors";
+import {
+  getPublicRelease,
+  publicProductName,
+  publicProductPath,
+  publicStorefrontOrigin,
+} from "./public-products";
+import { resolveReportingWindow } from "./revenue-metrics";
+
+const MAX_PRODUCT_SALES_LINES = 50_000;
+
+export async function getProductSalesReport(
+  env: ApiBindings,
+  input: ProductSalesQuery,
+): Promise<ProductSalesReport> {
+  const window = resolveReportingWindow(input);
+  // Bound source lines, rather than silently truncating an already aggregated ranking.
+  const rows = await env.DB.prepare(
+    `SELECT l.product_id, l.product_name, l.line_total_amount
+       FROM orders o JOIN order_lines l ON l.order_id = o.id
+      WHERE o.environment = ? AND o.test_mode = 0 AND o.currency = ?
+        AND l.currency = o.currency
+        AND o.payment_status IN ('paid', 'partially_refunded', 'refunded')
+        AND o.created_at >= ? AND o.created_at < ?
+      ORDER BY o.created_at DESC, o.id DESC, l.id DESC LIMIT ?`,
+  )
+    .bind(
+      env.ENVIRONMENT,
+      input.currency,
+      window.startUtc,
+      window.endExclusiveUtc,
+      MAX_PRODUCT_SALES_LINES + 1,
+    )
+    .all<{ product_id: string; product_name: string; line_total_amount: number }>();
+  if (rows.results.length > MAX_PRODUCT_SALES_LINES) {
+    throw new ApiError(422, "reporting_dataset_too_large", "Choose a smaller reporting range.");
+  }
+  const totals = new Map<string, { productId: string; name: string; grossSales: number }>();
+  for (const row of rows.results) {
+    const product = totals.get(row.product_id) ?? {
+      productId: row.product_id,
+      name: row.product_name,
+      grossSales: 0,
+    };
+    product.grossSales += row.line_total_amount;
+    if (!Number.isSafeInteger(product.grossSales)) {
+      throw new ApiError(
+        422,
+        "reporting_dataset_too_large",
+        "The reporting total exceeds the supported range.",
+      );
+    }
+    totals.set(row.product_id, product);
+  }
+  const current = await getPublicRelease(env);
+  const storefrontOrigin = publicStorefrontOrigin(env);
+  const products = [...totals.values()]
+    .sort(
+      (a, b) =>
+        b.grossSales - a.grossSales ||
+        (a.productId < b.productId ? -1 : a.productId > b.productId ? 1 : 0),
+    )
+    .slice(0, 10)
+    .map((product) => ({
+      ...product,
+      name: publicProductName(current, product.productId) ?? product.name,
+      path: storefrontOrigin ? publicProductPath(current, product.productId) : null,
+    }));
+  return { ...input, storefrontOrigin, products };
+}
+
+NEW FILE apps/api/src/reporting/public-products.ts
+import {
+  analyticsProductPathSchema,
+  analyticsStorefrontOriginSchema,
+  canonicalCatalogReleaseSchema,
+  catalogReleaseV3Schema,
+  type CanonicalCatalogRelease,
+  type CatalogReleaseV3,
+} from "@shoppp/contracts";
+
+import type { ApiBindings } from "../http/context";
+
+export type PublicRelease = CanonicalCatalogRelease | CatalogReleaseV3;
+
+/** Select the current release before looking for a product: older routes are not live links. */
+export async function getPublicRelease(
+  env: ApiBindings,
+  releaseId?: string,
+): Promise<PublicRelease | null> {
+  const row = await env.DB.prepare(
+    `SELECT id, manifest_json FROM catalog_releases
+      WHERE status = 'deployed' AND purpose = 'public' AND environment = ?
+        AND deployed_at IS NOT NULL ${releaseId === undefined ? "" : "AND id = ?"}
+      ORDER BY deployed_at DESC, id DESC LIMIT 1`,
+  )
+    .bind(...(releaseId === undefined ? [env.ENVIRONMENT] : [env.ENVIRONMENT, releaseId]))
+    .first<{ id: string; manifest_json: string }>();
+  if (!row) return null;
+  let value: unknown;
+  try {
+    value = JSON.parse(row.manifest_json);
+  } catch {
+    return null;
+  }
+  const parsed = catalogReleaseV3Schema.or(canonicalCatalogReleaseSchema).safeParse(value);
+  if (!parsed.success || parsed.data.releaseId !== row.id) return null;
+  const release = parsed.data;
+  if (
+    release.schemaVersion === 3 &&
+    (release.environment !== env.ENVIRONMENT || release.purpose !== "public")
+  )
+    return null;
+  return release;
+}
+
+export function publicStorefrontOrigin(env: ApiBindings): string | null {
+  const parsed = analyticsStorefrontOriginSchema.safeParse(env.STOREFRONT_ORIGIN);
+  return parsed.success ? parsed.data : null;
+}
+
+export function publicProductPath(release: PublicRelease | null, productId: string): string | null {
+  const product = release?.products.find((item) => item.id === productId);
+  if (!product || product.status !== "published") return null;
+  const parsed = analyticsProductPathSchema.safeParse(`/products/${product.slug}`);
+  return parsed.success && release!.routes.includes(parsed.data) ? parsed.data : null;
+}
+
+export function publicProductName(release: PublicRelease | null, productId: string): string | null {
+  return release?.products.find((item) => item.id === productId)?.name ?? null;
+}
+
+NEW FILE apps/api/src/reporting/traffic.ts
+import { trafficReportSchema, type TrafficQuery, type TrafficReport } from "@shoppp/contracts";
+import type { ApiBindings } from "../http/context";
+import { ApiError } from "../http/errors";
+import { addCalendarDays, resolveReportingWindow } from "./revenue-metrics";
+import { getPublicRelease, publicProductPath, publicStorefrontOrigin } from "./public-products";
+
+const MAX_BUCKET_ROWS = 500_000;
+
+async function assertBounded(
+  db: D1Database,
+  table: "traffic_uv_buckets" | "traffic_pv_buckets",
+  environment: string,
+  start: string,
+  end: string,
+) {
+  const result = await db
+    .prepare(
+      `SELECT COUNT(*) AS count FROM
+    (SELECT 1 FROM ${table} WHERE environment = ? AND bucket >= ? AND bucket < ? LIMIT ?)`,
+    )
+    .bind(environment, start, end, MAX_BUCKET_ROWS + 1)
+    .first<{ count: number }>();
+  if ((result?.count ?? 0) > MAX_BUCKET_ROWS)
+    throw new ApiError(422, "reporting_dataset_too_large", "Choose a shorter reporting period.");
+}
+
+async function counts(env: ApiBindings, start: string, end: string) {
+  const [uv, pv] = await Promise.all([
+    env.DB.prepare(
+      "SELECT COUNT(DISTINCT visitor_digest) AS value FROM traffic_uv_buckets WHERE environment = ? AND bucket >= ? AND bucket < ?",
+    )
+      .bind(env.ENVIRONMENT, start, end)
+      .first<{ value: number }>(),
+    env.DB.prepare(
+      "SELECT COALESCE(SUM(page_views), 0) AS value FROM traffic_pv_buckets WHERE environment = ? AND product_id = '' AND bucket >= ? AND bucket < ?",
+    )
+      .bind(env.ENVIRONMENT, start, end)
+      .first<{ value: number }>(),
+  ]);
+  return { uniqueVisitors: uv?.value ?? 0, pageViews: pv?.value ?? 0 };
+}
+
+export async function getTrafficReport(
+  env: ApiBindings,
+  input: TrafficQuery,
+): Promise<TrafficReport> {
+  const window = resolveReportingWindow(input);
+  const days =
+    Math.round((Date.parse(input.endDate) - Date.parse(input.startDate)) / 86_400_000) + 1;
+  const previous = resolveReportingWindow({
+    ...input,
+    startDate: addCalendarDays(input.startDate, -days),
+    endDate: addCalendarDays(input.startDate, -1),
+  });
+  await Promise.all(
+    ["traffic_uv_buckets", "traffic_pv_buckets"].map((table) =>
+      assertBounded(
+        env.DB,
+        table as "traffic_uv_buckets" | "traffic_pv_buckets",
+        env.ENVIRONMENT,
+        previous.startUtc,
+        window.endExclusiveUtc,
+      ),
+    ),
+  );
+  const [current, comparison, collection, publicRelease] = await Promise.all([
+    counts(env, window.startUtc, window.endExclusiveUtc),
+    counts(env, previous.startUtc, previous.endExclusiveUtc),
+    env.DB.prepare("SELECT started_at FROM traffic_collection WHERE environment = ?")
+      .bind(env.ENVIRONMENT)
+      .first<{ started_at: string }>(),
+    getPublicRelease(env),
+  ]);
+  // Each local day has its own UTC endpoints, including short/long DST days.
+  // Query in bounded batches instead of loading visitor identities into the application.
+  const series: TrafficReport["series"] = [];
+  for (let offset = 0; offset < days; offset += 20) {
+    const dayWindows = Array.from({ length: Math.min(20, days - offset) }, (_, index) => {
+      const date = addCalendarDays(input.startDate, offset + index);
+      return resolveReportingWindow({ startDate: date, endDate: date, timeZone: input.timeZone });
+    });
+    const values = dayWindows.map(() => "(?, ?, ?)").join(",");
+    const chunk = await env.DB.prepare(
+      `WITH days(date, start_utc, end_utc) AS (VALUES ${values})
+      SELECT date,
+        (SELECT COUNT(DISTINCT visitor_digest) FROM traffic_uv_buckets
+         WHERE environment = ? AND bucket >= days.start_utc AND bucket < days.end_utc) AS uniqueVisitors,
+        (SELECT COALESCE(SUM(page_views),0) FROM traffic_pv_buckets
+         WHERE environment = ? AND product_id = '' AND bucket >= days.start_utc AND bucket < days.end_utc) AS pageViews
+      FROM days ORDER BY date`,
+    )
+      .bind(
+        ...dayWindows.flatMap((day) => [day.startDate, day.startUtc, day.endExclusiveUtc]),
+        env.ENVIRONMENT,
+        env.ENVIRONMENT,
+      )
+      .all<TrafficReport["series"][number]>();
+    series.push(...chunk.results);
+  }
+  const ranked = await env.DB.prepare(
+    `SELECT product_id, SUM(page_views) AS page_views, MAX(release_id) AS release_id
+    FROM traffic_pv_buckets WHERE environment = ? AND product_id <> '' AND bucket >= ? AND bucket < ?
+    GROUP BY product_id ORDER BY page_views DESC, product_id ASC LIMIT 10`,
+  )
+    .bind(env.ENVIRONMENT, window.startUtc, window.endExclusiveUtc)
+    .all<{ product_id: string; page_views: number; release_id: string }>();
+  const origin = publicStorefrontOrigin(env);
+  const historicalReleases = new Map<string, ReturnType<typeof getPublicRelease>>();
+  const historicalRelease = (id: string) => {
+    let release = historicalReleases.get(id);
+    if (!release) {
+      release = getPublicRelease(env, id);
+      historicalReleases.set(id, release);
+    }
+    return release;
+  };
+  const products = await Promise.all(
+    ranked.results.map(async (row) => {
+      const live = publicRelease?.products.find((product) => product.id === row.product_id);
+      const historical = live ? null : await historicalRelease(row.release_id);
+      const product = live ?? historical?.products.find((item) => item.id === row.product_id);
+      const path = publicProductPath(publicRelease, row.product_id);
+      return {
+        productId: row.product_id,
+        name: product?.name ?? `Archived product (${row.product_id.slice(0, 12)})`,
+        path,
+        pageViews: row.page_views,
+      };
+    }),
+  );
+  return trafficReportSchema.parse({
+    ...input,
+    ...current,
+    asOf: new Date().toISOString(),
+    collectionStartedAt: collection?.started_at ?? null,
+    storefrontOrigin: origin,
+    comparison: {
+      startDate: previous.startDate,
+      endDate: previous.endDate,
+      ...comparison,
+      available: !!collection && collection.started_at <= previous.startUtc,
+    },
+    series,
+    products,
+  });
+}
+
+NEW FILE apps/api/test/analytics/traffic.test.ts
+import { env } from "cloudflare:workers";
+import { Hono } from "hono";
+import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
+import type { ApiBindings, ApiEnvironment } from "../../src/http/context";
+import { ApiError } from "../../src/http/errors";
+import { getTrafficReport } from "../../src/reporting/traffic";
+import { protectTraffic } from "../../src/analytics/protection";
+import { cleanupTraffic, initializeTraffic, recordTraffic } from "../../src/analytics/service";
+import {
+  canonicalCatalogReleaseSchema,
+  trafficEventSchema,
+  trafficIdentityRequestSchema,
+} from "@shoppp/contracts";
+
+beforeAll(async () => {
+  const manifest = canonicalCatalogReleaseSchema.parse({
+    releaseId: "public-release",
+    schemaVersion: 2,
+    generatedAt: "2026-01-01T00:00:00.000Z",
+    collections: [],
+    redirects: [],
+    policies: [
+      {
+        description: "Privacy",
+        effectiveDate: "2026-01-01",
+        slug: "privacy",
+        title: "Privacy",
+        sections: [{ heading: "Privacy", body: "Policy" }],
+      },
+    ],
+    products: ["prd_00000000000000000001", "prd_00000000000000000002"].map((id) => ({
+      id,
+      name: id,
+      slug: id.replaceAll("_", "-"),
+      description: "Product",
+      collectionIds: [],
+      collectionSlugs: [],
+      media: [],
+      seoTitle: "Product",
+      seoDescription: "Product",
+      status: "published",
+      variants: [
+        {
+          id: crypto.randomUUID(),
+          sku: id,
+          title: "Default",
+          status: "active",
+          optionValues: {},
+          prices: [{ amount: 100, currency: "USD" }],
+          weightGrams: 0,
+        },
+      ],
+    })),
+    routes: [
+      "/policies/privacy",
+      "/products/prd-00000000000000000001",
+      "/products/prd-00000000000000000002",
+    ],
+    site: {
+      defaultCurrency: "USD",
+      freshnessHours: 24,
+      name: "Shop",
+      origin: env.STOREFRONT_ORIGIN,
+    },
+  });
+  await env.DB.prepare(
+    `INSERT INTO catalog_releases
+    (id, status, purpose, environment, manifest_json, approved_at, deployed_at, created_at, updated_at)
+    VALUES ('public-release', 'deployed', 'public', 'staging', ?, ?, ?, ?, ?)`,
+  )
+    .bind(
+      JSON.stringify(manifest),
+      manifest.generatedAt,
+      manifest.generatedAt,
+      manifest.generatedAt,
+      manifest.generatedAt,
+    )
+    .run();
+});
+const secret = "traffic-test-key-at-least-thirty-two-bytes-long";
+function bindings(extra: Partial<ApiBindings> = {}): ApiBindings {
+  return {
+    ...env,
+    MEDIA_PUBLIC_ORIGIN: "https://media.example.test",
+    TAX_MODE: "zero",
+    TRAFFIC_ENABLED: "true",
+    TRAFFIC_KEYS_JSON: JSON.stringify({ first: secret }),
+    TRAFFIC_ACTIVE_KEY_ID: "first",
+    TRAFFIC_RATE_LIMITER: { limit: async () => ({ success: true }) },
+    ...extra,
+  };
+}
+function app() {
+  const server = new Hono<ApiEnvironment>();
+  server.use("*", protectTraffic());
+  server.onError((error, c) =>
+    error instanceof ApiError
+      ? c.json({ code: error.code }, error.status)
+      : c.json({ code: "internal" }, 500),
+  );
+  server.post("/identity", async (c) =>
+    c.json(await initializeTraffic(c, trafficIdentityRequestSchema.parse(await c.req.json()))),
+  );
+  server.post("/events", async (c) => {
+    await recordTraffic(c, trafficEventSchema.parse(await c.req.json()));
+    return c.json({ ok: true });
+  });
+  return server;
+}
+async function request(
+  path: string,
+  body: unknown,
+  cookie = "",
+  runtime = bindings(),
+  extra: Record<string, string> = {},
+) {
+  return app().request(
+    `https://api.example.test${path}`,
+    {
+      method: "POST",
+      headers: {
+        Origin: runtime.STOREFRONT_ORIGIN,
+        "Content-Type": "application/json",
+        Cookie: cookie,
+        "CF-Connecting-IP": "203.0.113.10",
+        ...extra,
+      },
+      body: JSON.stringify(body),
+    },
+    runtime,
+  );
+}
+async function identity(runtime = bindings(), cookie = "") {
+  const response = await request("/identity", { releaseId: "public-release" }, cookie, runtime);
+  expect(response.status, await response.clone().text()).toBe(200);
+  return {
+    cookie: response.headers.get("Set-Cookie")?.split(";")[0] ?? cookie,
+    ...((await response.json()) as { ticket: string; expiresAt: string }),
+  };
+}
+function event(ticket: string, productId?: string) {
+  return {
+    eventId: crypto.randomUUID(),
+    ticket,
+    releaseId: "public-release",
+    route: productId ? "product" : "home",
+    ...(productId ? { productId } : {}),
+  };
+}
+async function totals() {
+  return (
+    await env.DB.prepare(
+      "SELECT product_id, SUM(page_views) AS pv FROM traffic_pv_buckets GROUP BY product_id ORDER BY product_id",
+    ).all()
+  ).results;
+}
+beforeEach(async () => {
+  await env.DB.batch(
+    ["traffic_event_dedup", "traffic_pv_buckets", "traffic_uv_buckets", "traffic_collection"].map(
+      (name) => env.DB.prepare(`DELETE FROM ${name}`),
+    ),
+  );
+});
+describe("automatic traffic collection", () => {
+  test("counts repeated visits while concurrent retries increment once and one identity remains one UV", async () => {
+    const id = await identity();
+    for (const product of [
+      "prd_00000000000000000001",
+      "prd_00000000000000000001",
+      "prd_00000000000000000001",
+      "prd_00000000000000000002",
+      "prd_00000000000000000002",
+    ]) {
+      const input = event(id.ticket, product);
+      const responses = await Promise.all([
+        request("/events", input, id.cookie),
+        request("/events", input, id.cookie),
+      ]);
+      expect(responses.map((r) => r.status)).toEqual([200, 200]);
+    }
+    expect(await totals()).toEqual([
+      { product_id: "", pv: 5 },
+      { product_id: "prd_00000000000000000001", pv: 3 },
+      { product_id: "prd_00000000000000000002", pv: 2 },
+    ]);
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(DISTINCT visitor_digest) AS uv FROM traffic_uv_buckets",
+      ).first("uv"),
+    ).toBe(1);
+    const date = new Date().toISOString().slice(0, 10);
+    const report = await getTrafficReport(bindings(), {
+      startDate: date,
+      endDate: date,
+      timeZone: "UTC",
+    });
+    expect({ uv: report.uniqueVisitors, pv: report.pageViews }).toEqual({ uv: 1, pv: 5 });
+    expect(
+      report.products.map((product) => ({
+        id: product.productId,
+        pv: product.pageViews,
+        path: product.path,
+      })),
+    ).toEqual([
+      { id: "prd_00000000000000000001", pv: 3, path: "/products/prd-00000000000000000001" },
+      { id: "prd_00000000000000000002", pv: 2, path: "/products/prd-00000000000000000002" },
+    ]);
+    const second = await identity();
+    expect((await request("/events", event(second.ticket), second.cookie)).status).toBe(200);
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(DISTINCT visitor_digest) AS uv FROM traffic_uv_buckets",
+      ).first("uv"),
+    ).toBe(2);
+  });
+  test("the collector/report chain keeps cross-day UV distinct and sums actual PV", async () => {
+    const clock = vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-09-28T23:59:45Z"));
+    try {
+      const first = await identity();
+      expect(
+        (await request("/events", event(first.ticket, "prd_00000000000000000001"), first.cookie))
+          .status,
+      ).toBe(200);
+      clock.mockReturnValue(Date.parse("2026-09-29T00:00:15Z"));
+      expect(
+        (await request("/events", event(first.ticket, "prd_00000000000000000001"), first.cookie))
+          .status,
+      ).toBe(200);
+      const report = await getTrafficReport(bindings(), {
+        startDate: "2026-09-28",
+        endDate: "2026-09-29",
+        timeZone: "UTC",
+      });
+      expect({ uv: report.uniqueVisitors, pv: report.pageViews }).toEqual({ uv: 1, pv: 2 });
+      expect(report.series.map((day) => day.uniqueVisitors)).toEqual([1, 1]);
+    } finally {
+      clock.mockRestore();
+    }
+  });
+  test("rejects absent, forged and mismatched cookies, wrong release and unpublished product", async () => {
+    const id = await identity();
+    const other = await identity();
+    for (const cookie of ["", "__Host-shoppp-traffic=forged", other.cookie]) {
+      expect((await request("/events", event(id.ticket), cookie)).status).toBe(403);
+    }
+    expect((await request("/identity", { releaseId: "preview-release" })).status).toBe(403);
+    expect((await request("/events", event(id.ticket, "private-product"), id.cookie)).status).toBe(
+      403,
+    );
+    expect(
+      (await request("/events", { ...event(id.ticket), releaseId: "another-release" }, id.cookie))
+        .status,
+    ).toBe(403);
+    expect(await totals()).toEqual([]);
+  });
+  test("key rotation preserves digest for an existing cookie and separates environment", async () => {
+    const first = await identity();
+    await request("/events", event(first.ticket), first.cookie);
+    const rotated = bindings({
+      TRAFFIC_KEYS_JSON: JSON.stringify({ first: secret, second: `${secret}-second` }),
+      TRAFFIC_ACTIVE_KEY_ID: "second",
+    });
+    const next = await identity(rotated, first.cookie);
+    await request("/events", event(next.ticket), next.cookie, rotated);
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(DISTINCT visitor_digest) AS uv FROM traffic_uv_buckets",
+      ).first("uv"),
+    ).toBe(1);
+    expect(
+      (
+        await request(
+          "/events",
+          event(first.ticket),
+          first.cookie,
+          bindings({ ENVIRONMENT: "production" }),
+        )
+      ).status,
+    ).toBe(403);
+  });
+  test("rejects expired tickets, cleans only short-lived rows and preserves old totals", async () => {
+    const clock = vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-01-01T00:00:00Z"));
+    try {
+      const id = await identity();
+      const input = event(id.ticket, "prd_00000000000000000001");
+      expect((await request("/events", input, id.cookie)).status).toBe(200);
+      clock.mockReturnValue(Date.parse("2026-09-29T00:00:00Z"));
+      await cleanupTraffic(env.DB, Date.now());
+      expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM traffic_event_dedup").first("n")).toBe(
+        0,
+      );
+      expect((await request("/events", input, id.cookie)).status).toBe(403);
+      expect(await totals()).toEqual([
+        { product_id: "", pv: 1 },
+        { product_id: "prd_00000000000000000001", pv: 1 },
+      ]);
+      expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM traffic_uv_buckets").first("n")).toBe(
+        1,
+      );
+    } finally {
+      clock.mockRestore();
+    }
+  });
+  test("expired browser identity is renewed, and forged tickets cannot write", async () => {
+    const clock = vi.spyOn(Date, "now").mockReturnValue(Date.parse("2025-01-01T00:00:00Z"));
+    try {
+      const old = await identity();
+      clock.mockReturnValue(Date.parse("2026-09-29T00:00:00Z"));
+      const fresh = await identity(bindings(), old.cookie);
+      expect(fresh.cookie).not.toBe(old.cookie);
+      expect((await request("/events", event(`${fresh.ticket}x`), fresh.cookie)).status).toBe(403);
+      expect((await request("/events", event(fresh.ticket), fresh.cookie)).status).toBe(200);
+    } finally {
+      clock.mockRestore();
+    }
+  });
+  test("cleanup caps a batch at 500 and never erases aggregates or UV", async () => {
+    await env.DB.prepare(
+      `WITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 501)
+      INSERT INTO traffic_event_dedup(environment, visitor_digest, event_id, bucket, product_id, release_id, expires_at)
+      SELECT 'staging', 'one-visitor', 'cleanup-' || n, '2026-01-01T00:00:00.000Z', '', 'public-release', 1 FROM seq`,
+    ).run();
+    expect(await cleanupTraffic(env.DB, 2)).toBe(500);
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM traffic_event_dedup").first("n")).toBe(
+      1,
+    );
+    expect(await totals()).toEqual([{ product_id: "", pv: 501 }]);
+    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM traffic_uv_buckets").first("n")).toBe(1);
+  });
+  test("a failed aggregate insert rolls back dedup, site and UV writes together", async () => {
+    const id = await identity();
+    await env.DB.exec(
+      "CREATE TRIGGER traffic_test_fail BEFORE INSERT ON traffic_pv_buckets WHEN NEW.product_id = 'prd_00000000000000000001' BEGIN SELECT RAISE(ABORT, 'injected'); END;",
+    );
+    try {
+      expect(
+        (await request("/events", event(id.ticket, "prd_00000000000000000001"), id.cookie)).status,
+      ).toBe(500);
+      expect(await totals()).toEqual([]);
+      expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM traffic_event_dedup").first("n")).toBe(
+        0,
+      );
+      expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM traffic_uv_buckets").first("n")).toBe(
+        0,
+      );
+    } finally {
+      await env.DB.exec("DROP TRIGGER traffic_test_fail;");
+    }
+  });
+  test("trusted source quota ignores Authorization and cookie changes; fails closed without binding", async () => {
+    const keys: string[] = [];
+    const runtime = bindings({
+      TRAFFIC_RATE_LIMITER: {
+        limit: async ({ key }) => {
+          keys.push(key);
+          return { success: false };
+        },
+      },
+    });
+    for (const authorization of ["Bearer attacker-a", "Bearer attacker-b"]) {
+      expect(
+        (
+          await request(
+            "/identity",
+            { releaseId: "public-release" },
+            crypto.randomUUID(),
+            runtime,
+            { Authorization: authorization },
+          )
+        ).status,
+      ).toBe(429);
+    }
+    expect(keys).toHaveLength(2);
+    expect(keys[0]).toBe(keys[1]);
+    expect(keys[0]).not.toContain("203.0.113.10");
+    const noLimiter = bindings({ ENVIRONMENT: "staging" });
+    delete noLimiter.TRAFFIC_RATE_LIMITER;
+    expect(
+      (await request("/identity", { releaseId: "public-release" }, "", noLimiter)).status,
+    ).toBe(503);
+  });
+  test("rejects preview, disabled, wrong-origin and oversized requests before writes", async () => {
+    expect(
+      (await request("/identity", { releaseId: "public-release" }, "__Host-shoppp-preview=secret"))
+        .status,
+    ).toBe(403);
+    expect(
+      (
+        await request(
+          "/identity",
+          { releaseId: "public-release" },
+          "",
+          bindings({ TRAFFIC_ENABLED: "false" }),
+        )
+      ).status,
+    ).toBe(503);
+    expect(
+      (
+        await request("/identity", { releaseId: "public-release" }, "", bindings(), {
+          Origin: "https://attacker.example",
+        })
+      ).status,
+    ).toBe(403);
+    expect((await request("/identity", { releaseId: "x".repeat(5000) })).status).toBe(413);
+    expect(await totals()).toEqual([]);
+  });
+});
+
+NEW FILE apps/api/test/reporting/product-ranking.test.ts
+import { env } from "cloudflare:workers";
+import { canonicalCatalogReleaseSchema } from "@shoppp/contracts";
+import { beforeAll, describe, expect, test } from "vitest";
+
+import { seedLaunchFixture } from "../../../../packages/db/seed/apply";
+import { getProductSalesReport } from "../../src/reporting/product-ranking";
+import {
+  getPublicRelease,
+  publicProductName,
+  publicProductPath,
+} from "../../src/reporting/public-products";
+
+function productId(slug: string): string {
+  return `prod_${slug.replaceAll("-", "").padEnd(24, "0")}`;
+}
+
+const NOW = "2026-09-29T12:00:00.000Z";
+const query = { currency: "USD", startDate: "2026-09-29", endDate: "2026-09-29", timeZone: "UTC" };
+
+async function order(
+  id: string,
+  productKey: string,
+  amount: number,
+  options: {
+    status?: string;
+    currency?: string;
+    environment?: string;
+    testMode?: number;
+    createdAt?: string;
+  } = {},
+) {
+  const currency = options.currency ?? "USD";
+  const environment = options.environment ?? "staging";
+  const createdAt = options.createdAt ?? NOW;
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO inventory_reservation_groups
+      (id, cart_id, idempotency_key, status, expires_at, created_at, updated_at)
+      VALUES (?, 'cart_fixture_0001', ?, 'active', ?, ?, ?)`,
+    ).bind(`irg_${id}`, `reservation_${id}`, NOW, NOW, NOW),
+    env.DB.prepare(
+      `INSERT INTO checkout_attempts
+      (id, cart_id, reservation_group_id, provider, environment, test_mode, idempotency_key,
+       currency, subtotal_amount, discount_amount, shipping_amount, tax_amount, grand_total_amount,
+       shipping_address_json, email, status, created_at, updated_at)
+      VALUES (?, 'cart_fixture_0001', ?, 'stripe', ?, ?, ?, ?, ?, 0, 900, 0, ?, '{}',
+              'ranking@example.test', 'completed', ?, ?)`,
+    ).bind(
+      `checkout_${id}`,
+      `irg_${id}`,
+      environment,
+      options.testMode ?? 0,
+      `checkout_key_${id}`,
+      currency,
+      amount,
+      amount + 900,
+      createdAt,
+      createdAt,
+    ),
+    env.DB.prepare(
+      `INSERT INTO orders
+      (id, public_reference, guest_access_token_hash, checkout_attempt_id, environment, test_mode,
+       email, currency, subtotal_amount, discount_amount, shipping_amount, tax_amount,
+       grand_total_amount, payment_status, order_status, fulfillment_status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, 'ranking@example.test', ?, ?, 0, 900, 0, ?, ?, 'confirmed',
+              'unfulfilled', ?, ?)`,
+    ).bind(
+      id,
+      `ORD-${id}`,
+      `hash_${id}`,
+      `checkout_${id}`,
+      environment,
+      options.testMode ?? 0,
+      currency,
+      amount,
+      amount + 900,
+      options.status ?? "paid",
+      createdAt,
+      createdAt,
+    ),
+    env.DB.prepare(
+      `INSERT INTO order_lines
+      (id, order_id, product_id, variant_id, sku, product_name, variant_name, option_values_json,
+       quantity, unit_price_amount, discount_amount, tax_amount, line_total_amount, currency)
+      VALUES (?, ?, ?, ?, ?, ?, 'Variant', '{}', 1, ?, 0, 0, ?, ?)`,
+    ).bind(
+      `line_${id}`,
+      id,
+      productId(productKey),
+      `var_${id.replaceAll("-", "").padEnd(24, "0")}`,
+      `sku_${id}`,
+      `Snapshot ${id}`,
+      amount,
+      amount,
+      currency,
+    ),
+  ]);
+}
+
+async function release(
+  id: string,
+  products: string[],
+  deployedAt: string,
+  options: {
+    status?: string;
+    purpose?: string;
+    environment?: string;
+  } = {},
+) {
+  const manifest = canonicalCatalogReleaseSchema.parse({
+    releaseId: id,
+    schemaVersion: 2,
+    generatedAt: NOW,
+    collections: [],
+    redirects: [],
+    policies: [
+      {
+        description: "Privacy",
+        effectiveDate: "2026-09-29",
+        slug: "privacy",
+        title: "Privacy",
+        sections: [{ heading: "Privacy", body: "Policy" }],
+      },
+    ],
+    products: products.map((productKey) => ({
+      id: productId(productKey),
+      name: `Public ${productKey}`,
+      slug: productKey,
+      description: "Product",
+      collectionIds: [],
+      collectionSlugs: [],
+      media: [],
+      seoTitle: "Product",
+      seoDescription: "Product",
+      status: "published",
+      variants: [
+        {
+          id: `var_${productKey.replaceAll("-", "").padEnd(24, "0")}`,
+          sku: productKey,
+          title: "Default",
+          status: "active",
+          optionValues: {},
+          prices: [{ amount: 100, currency: "USD" }],
+          weightGrams: 0,
+        },
+      ],
+    })),
+    routes: ["/policies/privacy", ...products.map((productId) => `/products/${productId}`)],
+    site: {
+      defaultCurrency: "USD",
+      freshnessHours: 24,
+      name: "Shop",
+      origin: env.STOREFRONT_ORIGIN,
+    },
+  });
+  await env.DB.prepare(
+    `INSERT INTO catalog_releases
+    (id, status, purpose, environment, manifest_json, approved_at, deployed_at, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(
+      id,
+      options.status ?? "deployed",
+      options.purpose ?? "public",
+      options.environment ?? "staging",
+      JSON.stringify(manifest),
+      NOW,
+      deployedAt,
+      NOW,
+      NOW,
+    )
+    .run();
+}
+
+beforeAll(async () => {
+  await seedLaunchFixture(env.DB);
+  await order("rank-a1", "rank-a", 300, { status: "partially_refunded" });
+  await order("rank-a2", "rank-a", 700, {
+    status: "refunded",
+    createdAt: "2026-09-29T13:00:00.000Z",
+  });
+  await order("rank-b", "rank-b", 1000);
+  await order("rank-test", "excluded-test", 9000, { testMode: 1 });
+  await order("rank-env", "excluded-env", 9000, { environment: "production" });
+  await order("rank-eur", "excluded-eur", 9000, { currency: "EUR" });
+  await order("rank-pending", "excluded-pending", 9000, { status: "pending" });
+  await order("rank-old", "excluded-old", 9000, { createdAt: "2026-09-28T23:59:59.000Z" });
+  await order("rank-next", "excluded-next", 9000, { createdAt: "2026-09-30T00:00:00.000Z" });
+  await release("rank-release-old", ["rank-a", "rank-b", "no-sales"], "2026-09-28T00:00:00.000Z");
+  await release("rank-release-current", ["rank-b"], NOW);
+  await release("rank-release-failed", ["rank-a"], "2026-09-30T00:00:00.000Z", {
+    status: "failed",
+  });
+  await release("rank-release-private", ["rank-a"], "2026-09-30T00:00:00.000Z", {
+    purpose: "private-preview",
+  });
+  await release("rank-release-other-env", ["rank-a"], "2026-09-30T00:00:00.000Z", {
+    environment: "production",
+  });
+});
+
+describe("product sales and public product resolution", () => {
+  test("merges variants, retains refunded sales, excludes order-level shipping and isolates facts", async () => {
+    const report = await getProductSalesReport(env, query);
+    expect(report).toEqual({
+      ...query,
+      storefrontOrigin: env.STOREFRONT_ORIGIN,
+      products: [
+        { productId: productId("rank-a"), name: "Snapshot rank-a2", grossSales: 1000, path: null },
+        {
+          productId: productId("rank-b"),
+          name: "Public rank-b",
+          grossSales: 1000,
+          path: "/products/rank-b",
+        },
+      ],
+    });
+  });
+
+  test("current release is selected before checking product membership; historical no-sale names survive", async () => {
+    const current = await getPublicRelease(env);
+    expect(current?.releaseId).toBe("rank-release-current");
+    expect(publicProductPath(current, productId("rank-a"))).toBeNull();
+    const historical = await getPublicRelease(env, "rank-release-old");
+    expect(publicProductName(historical, productId("no-sales"))).toBe("Public no-sales");
+    expect(publicProductPath(current, productId("no-sales"))).toBeNull();
+    for (const id of [
+      "rank-release-failed",
+      "rank-release-private",
+      "rank-release-other-env",
+      "missing",
+    ]) {
+      expect(await getPublicRelease(env, id)).toBeNull();
+    }
+  });
+
+  test("invalid configured origins suppress links without losing financial history", async () => {
+    const report = await getProductSalesReport(
+      { ...env, STOREFRONT_ORIGIN: "https://example.test/path" },
+      query,
+    );
+    expect(report.storefrontOrigin).toBeNull();
+    expect(report.products.every((product) => product.path === null)).toBe(true);
+    expect(report.products.map((product) => product.grossSales)).toEqual([1000, 1000]);
+  });
+
+  test("empty financial range returns an empty ranking", async () => {
+    expect(
+      (
+        await getProductSalesReport(env, {
+          ...query,
+          startDate: "2026-09-27",
+          endDate: "2026-09-27",
+        })
+      ).products,
+    ).toEqual([]);
+  });
+});
+
+NEW FILE apps/api/test/reporting/traffic.test.ts
+import { env } from "cloudflare:workers";
+import { beforeAll, describe, expect, test } from "vitest";
+import { getTrafficReport } from "../../src/reporting/traffic";
+
+beforeAll(async () => {
+  for (const [bucket, visitor, views] of [
+    ["2026-09-28T18:15:00.000Z", "visitor-a", 5],
+    ["2026-09-29T18:15:00.000Z", "visitor-a", 1],
+    ["2026-09-29T18:16:00.000Z", "visitor-b", 2],
+  ] as const) {
+    await env.DB.batch([
+      env.DB.prepare(
+        "INSERT INTO traffic_uv_buckets(environment,bucket,visitor_digest) VALUES ('staging',?,?)",
+      ).bind(bucket, visitor),
+      env.DB.prepare(
+        "INSERT INTO traffic_pv_buckets(environment,bucket,product_id,page_views,release_id) VALUES ('staging',?,'',?,'fixture')",
+      ).bind(bucket, views),
+    ]);
+  }
+  await env.DB.prepare(
+    "INSERT INTO traffic_collection(environment,started_at) VALUES ('staging','2026-01-01T00:00:00.000Z')",
+  ).run();
+});
+
+describe("traffic reports", () => {
+  test("separates range UV from summed daily UV and respects quarter-hour local midnights", async () => {
+    const result = await getTrafficReport(env, {
+      startDate: "2026-09-29",
+      endDate: "2026-09-30",
+      timeZone: "Asia/Kathmandu",
+    });
+    expect(result.uniqueVisitors).toBe(2);
+    expect(result.pageViews).toBe(8);
+    expect(result.series).toEqual([
+      { date: "2026-09-29", uniqueVisitors: 1, pageViews: 5 },
+      { date: "2026-09-30", uniqueVisitors: 2, pageViews: 3 },
+    ]);
+    expect(result.comparison).toMatchObject({ uniqueVisitors: 0, pageViews: 0, available: true });
+  });
+  test("returns genuine empty zero and keeps historical records beyond 90 days", async () => {
+    const empty = await getTrafficReport(env, {
+      startDate: "2026-01-05",
+      endDate: "2026-01-05",
+      timeZone: "UTC",
+    });
+    expect(empty.uniqueVisitors).toBe(0);
+    expect(empty.pageViews).toBe(0);
+    expect(empty.products).toEqual([]);
+    expect(empty.series).toEqual([{ date: "2026-01-05", uniqueVisitors: 0, pageViews: 0 }]);
+    await env.DB.prepare(
+      "INSERT INTO traffic_uv_buckets(environment,bucket,visitor_digest) VALUES ('staging','2025-01-01T00:00:00.000Z','old')",
+    ).run();
+    const old = await getTrafficReport(env, {
+      startDate: "2025-01-01",
+      endDate: "2025-01-01",
+      timeZone: "UTC",
+    });
+    expect(old.uniqueVisitors).toBe(1);
+    expect(old.comparison.available).toBe(false);
+  });
+  test("builds a daily series across DST and rejects invalid windows", async () => {
+    const result = await getTrafficReport(env, {
+      startDate: "2026-03-07",
+      endDate: "2026-03-09",
+      timeZone: "America/New_York",
+    });
+    expect(result.series.map((day) => day.date)).toEqual([
+      "2026-03-07",
+      "2026-03-08",
+      "2026-03-09",
+    ]);
+    await expect(
+      getTrafficReport(env, { startDate: "2026-09-30", endDate: "2026-09-29", timeZone: "UTC" }),
+    ).rejects.toThrow();
+  });
+});
+
+NEW FILE apps/storefront/app/plugins/traffic.client.ts
+import { defineNuxtPlugin } from "#app";
+import { createTrafficClient } from "~/utils/traffic";
+
+export default defineNuxtPlugin((nuxtApp) => {
+  const config = useRuntimeConfig().public;
+  if (!config.analyticsEnabled) return;
+  const client = createTrafficClient({
+    releaseId: String(config.releaseId),
+    initialize: (operation) =>
+      navigator.locks ? navigator.locks.request("shoppp-traffic-identity", operation) : operation(),
+  });
+  const visit = () => {
+    const path = nuxtApp.$router.currentRoute.value.path;
+    const slug = path.startsWith("/products/")
+      ? path.slice("/products/".length).replace(/\/$/, "")
+      : null;
+    const page = slug
+      ? (nuxtApp.payload.data[`catalog-product:${slug}`] as
+          { product?: { id?: string }; releaseId?: string } | undefined)
+      : undefined;
+    if (slug && page?.releaseId !== config.releaseId) return;
+    void client.visit(path, page?.product?.id);
+  };
+  nuxtApp.hook("app:mounted", visit);
+  nuxtApp.hook("page:finish", visit);
+});
+
+NEW FILE apps/storefront/app/utils/traffic.ts
+import type { TrafficEvent, TrafficIdentity } from "@shoppp/contracts";
+import { trafficIdentitySchema } from "@shoppp/contracts";
+import { classifyStorefrontRoute } from "./analytics";
+
+export function createTrafficClient(options: {
+  releaseId: string;
+  request?: typeof fetch;
+  initialize?: (operation: () => Promise<TrafficIdentity>) => Promise<TrafficIdentity>;
+}) {
+  const request = options.request ?? fetch;
+  let identity: TrafficIdentity | null = null;
+  let lastPath = "";
+  let pending = Promise.resolve();
+  async function identify(): Promise<TrafficIdentity> {
+    const response = await request("/api/platform/traffic/identity", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ releaseId: options.releaseId }),
+    });
+    if (!response.ok) throw new Error("Traffic unavailable");
+    const envelope = (await response.json()) as { data: unknown };
+    return trafficIdentitySchema.parse(envelope.data);
+  }
+  async function send(route: TrafficEvent["route"], productId?: string) {
+    try {
+      if (!identity || Date.parse(identity.expiresAt) <= Date.now() + 1000) {
+        identity = await (options.initialize ? options.initialize(identify) : identify());
+      }
+      const event: TrafficEvent = {
+        eventId: crypto.randomUUID(),
+        ticket: identity.ticket,
+        releaseId: options.releaseId,
+        route,
+        ...(productId ? { productId } : {}),
+      };
+      const body = JSON.stringify(event);
+      const expiresAt = Date.parse(identity.expiresAt);
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (expiresAt <= Date.now()) return;
+        try {
+          const result = await request("/api/platform/traffic/events", {
+            method: "POST",
+            credentials: "same-origin",
+            keepalive: true,
+            headers: { "Content-Type": "application/json" },
+            body,
+          });
+          if (result.status === 401 || result.status === 403) identity = null;
+          return; // Do not retry rejected or throttled events with a new identity/ticket.
+        } catch {
+          if (attempt === 1) return;
+        }
+      }
+    } catch {
+      /* Analytics never blocks shopping or exposes visitor credentials in logs. */
+    }
+  }
+  return {
+    visit(path: string, productId?: string): Promise<void> {
+      const route = classifyStorefrontRoute(path);
+      if (path === lastPath || (route === "product" && !productId)) return pending;
+      lastPath = path;
+      pending = pending.then(() => send(route, productId));
+      return pending;
+    },
+  };
+}
+
+NEW FILE apps/storefront/e2e/traffic.spec.ts
+import { expect, test } from "@playwright/test";
+
+test("public build automatically records page entries, refreshes and product context once", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name === "no-js-desktop");
+  const events: { eventId: string; route: string; productId?: string }[] = [];
+  let initializations = 0;
+  await page.route("**/api/platform/traffic/identity", async (route) => {
+    initializations++;
+    await route.fulfill({
+      json: {
+        data: {
+          ticket: "browser-fixture-ticket",
+          expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        },
+      },
+    });
+  });
+  await page.route("**/api/platform/traffic/events", async (route) => {
+    events.push(route.request().postDataJSON());
+    await route.fulfill({ status: 204 });
+  });
+  await page.goto("/products/atlas-carry-on");
+  await expect.poll(() => events.length).toBe(1);
+  expect(events[0]).toMatchObject({ route: "product", productId: expect.any(String) });
+  await page.waitForTimeout(250);
+  expect(events).toHaveLength(1);
+  await page.reload();
+  await expect.poll(() => events.length).toBe(2);
+  expect(events[0]?.eventId).not.toBe(events[1]?.eventId);
+  await page.goto("/");
+  await expect.poll(() => events.length).toBe(3);
+  expect(events[2]).toMatchObject({ route: "home" });
+  expect(events[2]?.productId).toBeUndefined();
+  expect(initializations).toBe(3);
+});
+
+NEW FILE apps/storefront/tests/traffic.test.ts
+import { describe, expect, test } from "bun:test";
+import { createTrafficClient } from "../app/utils/traffic";
+
+describe("automatic traffic", () => {
+  test("counts real route entries and retries one delivery without changing event identity", async () => {
+    const events: Record<string, unknown>[] = [];
+    let first = true;
+    const client = createTrafficClient({
+      releaseId: "public",
+      request: async (url, init) => {
+        if (url.endsWith("identity"))
+          return Response.json({
+            data: { ticket: "signed", expiresAt: new Date(Date.now() + 60000).toISOString() },
+          });
+        events.push(JSON.parse(String(init?.body)));
+        if (first) {
+          first = false;
+          throw new Error("network");
+        }
+        return new Response(null, { status: 204 });
+      },
+    });
+    await client.visit("/products/a", "a");
+    await client.visit("/products/a", "a");
+    await client.visit("/cart");
+    await client.visit("/products/a", "a");
+    expect(events).toHaveLength(4);
+    expect(events[0]).toEqual(events[1]);
+    expect(events[2]?.eventId).not.toBe(events[3]?.eventId);
+    expect(events[0]?.productId).toBe("a");
+    expect(JSON.stringify(events)).not.toContain("/products/a");
+  });
+  test("identity failure stays silent and an unknown product does not create false product traffic", async () => {
+    let requests = 0;
+    const client = createTrafficClient({
+      releaseId: "public",
+      request: async () => {
+        requests++;
+        throw new Error("offline");
+      },
+    });
+    await client.visit("/products/missing");
+    expect(requests).toBe(0);
+    await client.visit("/");
+    expect(requests).toBe(1);
+  });
+});
+
+NEW FILE docs/progress/2026-09-29-cda-runtime-setup.md
+# CDA runtime setup
+
+This is deployment preparation, not deployment evidence. No hosted database, Worker, secret, candidate, DC or PG state was changed during implementation.
+
+## Runtime requirements
+
+- Apply database migration `0039_commerce_analytics.sql` before enabling the new API build.
+- `TRAFFIC_ENABLED=true` enables automatic collection. This is an operational switch, not a shopper consent flow. Shared staging and production configuration default to enabled; the preview-only `fashion-staging` configuration remains disabled.
+- Provision `TRAFFIC_KEYS_JSON` as a Worker secret separately for each environment. It is a JSON object mapping key IDs to independently generated secret strings of at least 32 characters. The checked-in active ID is `v1` (`TRAFFIC_ACTIVE_KEY_ID`); no secret value belongs in Git or browser configuration.
+- `TRAFFIC_RATE_LIMITER` must exist in hosted environments. Missing signing keys or quota binding fails collection closed; shopping continues. The same-origin storefront gateway forwards the identity cookie and traffic calls to the API.
+- `STOREFRONT_ORIGIN` must be the public storefront origin, distinct from `PREVIEW_ORIGIN`. The release must already have a validated public, successfully deployed manifest. Preview traffic is rejected independently by the build flag, preview gateway and API.
+
+## Rotation and data lifecycle
+
+Add a new key to the secret object, then select its ID with `TRAFFIC_ACTIVE_KEY_ID`. Retain each previous key for at least 365 days after it last issued an identity cookie; existing cookies keep their original digest and therefore their UV identity. Removing a still-needed key changes affected browsers' identity and is not routine rotation.
+
+Identity cookies last 365 days, tickets one hour, retry records two hours. The scheduled handler removes at most 500 expired retry records per invocation. PV aggregates and the minimum UV/time associations have no automatic 90-day deletion. Cookie clearing, different devices, blocked requests and unrecognized bots affect browser-based counts; the dashboard does not identify natural persons or promise complete traffic.
+
+## Local verification boundary
+
+Worker tests provision isolated keys, manifests and rate-limit stubs; no production secret is needed. Built-storefront browser tests intercept traffic requests to verify hydration, page entry and refresh behavior. Collector-to-report tests use the real D1 migration and real manifest validation. Local SQLite scale probes are evidence of query shape and correctness, not hosted performance guarantees.
+
+NEW FILE packages/db/migrations/0039_commerce_analytics.sql
+-- Long-lived minimal aggregates; only retry dedup records expire.
+CREATE TABLE traffic_collection (
+  environment TEXT PRIMARY KEY NOT NULL,
+  started_at TEXT NOT NULL
+);
+CREATE TABLE traffic_pv_buckets (
+  environment TEXT NOT NULL,
+  bucket TEXT NOT NULL,
+  product_id TEXT NOT NULL DEFAULT '',
+  page_views INTEGER NOT NULL CHECK (page_views >= 0),
+  release_id TEXT NOT NULL,
+  PRIMARY KEY (environment, bucket, product_id)
+);
+CREATE INDEX traffic_pv_product_window ON traffic_pv_buckets (environment, product_id, bucket);
+CREATE TABLE traffic_uv_buckets (
+  environment TEXT NOT NULL,
+  bucket TEXT NOT NULL,
+  visitor_digest TEXT NOT NULL,
+  PRIMARY KEY (environment, bucket, visitor_digest)
+);
+CREATE TABLE traffic_event_dedup (
+  environment TEXT NOT NULL,
+  visitor_digest TEXT NOT NULL,
+  event_id TEXT NOT NULL,
+  bucket TEXT NOT NULL,
+  product_id TEXT NOT NULL DEFAULT '',
+  release_id TEXT NOT NULL,
+  expires_at INTEGER NOT NULL,
+  PRIMARY KEY (environment, visitor_digest, event_id)
+);
+CREATE INDEX traffic_event_dedup_expiry ON traffic_event_dedup (expires_at);
+-- A single inserted dedup row commits all increments, or none. DO NOTHING on
+-- a duplicate does not fire this trigger, including concurrent retry requests.
+CREATE TRIGGER traffic_event_aggregate AFTER INSERT ON traffic_event_dedup
+BEGIN
+  INSERT INTO traffic_collection (environment, started_at)
+    VALUES (NEW.environment, NEW.bucket)
+    ON CONFLICT (environment) DO NOTHING;
+  INSERT INTO traffic_pv_buckets (environment, bucket, product_id, page_views, release_id)
+    VALUES (NEW.environment, NEW.bucket, '', 1, NEW.release_id)
+    ON CONFLICT (environment, bucket, product_id) DO UPDATE
+      SET page_views = page_views + 1, release_id = excluded.release_id;
+  INSERT INTO traffic_pv_buckets (environment, bucket, product_id, page_views, release_id)
+    SELECT NEW.environment, NEW.bucket, NEW.product_id, 1, NEW.release_id
+    WHERE NEW.product_id <> ''
+    ON CONFLICT (environment, bucket, product_id) DO UPDATE
+      SET page_views = page_views + 1, release_id = excluded.release_id;
+  INSERT INTO traffic_uv_buckets (environment, bucket, visitor_digest)
+    VALUES (NEW.environment, NEW.bucket, NEW.visitor_digest)
+    ON CONFLICT (environment, bucket, visitor_digest) DO NOTHING;
+END;
+diff --git a/apps/admin/rstest.i18n-browser.config.ts b/apps/admin/rstest.i18n-browser.config.ts
+index b255d1a4..fe113dfe 100644
+--- a/apps/admin/rstest.i18n-browser.config.ts
++++ b/apps/admin/rstest.i18n-browser.config.ts
+@@ -5,6 +5,7 @@ const narrow = process.env.ADMIN_I18N_BROWSER_PROFILE === 'narrow'
+ 
+ export default defineConfig({
+   include: [
++    'src/pages/dashboard/dashboard.browser.test.tsx',
+     'src/pages/storefront/theme-editor-page.browser.test.tsx',
+     'src/pages/iam/iam-pages.browser.test.tsx',
+     'src/pages/orders/order-detail.browser.test.tsx',
+diff --git a/apps/api/src/testing/fashion-staging-catalog.ts b/apps/api/src/testing/fashion-staging-catalog.ts
+index 53fbf669..880956c1 100644
+--- a/apps/api/src/testing/fashion-staging-catalog.ts
++++ b/apps/api/src/testing/fashion-staging-catalog.ts
+@@ -43,6 +43,10 @@ export const FASHION_STAGING_REVIEWED_MANIFEST_DIGEST =
+ const BOOT_CRITICAL_TABLES = ["d1_migrations", "fashion_staging_catalog_reset_locks"] as const;
+ 
+ const DISPOSABLE_TABLES = [
++  "traffic_event_dedup",
++  "traffic_pv_buckets",
++  "traffic_uv_buckets",
++  "traffic_collection",
+   "audit_events",
+   "cart_lines",
+   "carts",

@@ -1,0 +1,9 @@
+{
+  "reviewer": "julik-frontend-races",
+  "findings": [],
+  "residual_risks": [],
+  "testing_gaps": [
+    "apps/admin/src/pages/dashboard/dashboard.test.tsx exercises late financial completion, but not the independent trafficRequest generation guard. Add a deferred traffic request, change the date preset, settle the newer traffic result, then settle or reject the older request and assert that the UV card, page-view chart, and traffic ranking retain the newer scope. The implementation has matching effect cleanup and request guards; this is a coverage gap, not a demonstrated defect.",
+    "apps/storefront/tests/traffic.test.ts awaits every visit sequentially. Add overlapping A -> B -> A visits while identity initialization or the first delivery is deferred, then release it and assert three distinct entry events in order with one identity initialization. This directly exercises the newly introduced pending queue and lastPath dedup interaction used by app:mounted/page:finish. Existing browser tests cover mount duplication and simultaneous tabs, but not rapid same-tab transitions."
+  ]
+}

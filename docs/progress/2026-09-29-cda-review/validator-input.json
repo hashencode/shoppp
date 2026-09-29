@@ -1,0 +1,211 @@
+{
+  "run_id": "2026-09-29-cda-review",
+  "run_dir": "/Users/studio/Documents/GitHub/shoppp/docs/progress/2026-09-29-cda-review",
+  "findings": [
+    {
+      "#": 1,
+      "autofix_class": "manual",
+      "confidence": 75,
+      "evidence": [
+        "apps/api/src/analytics/service.ts:60:     (SELECT rowid FROM traffic_event_dedup WHERE expires_at <= ? ORDER BY expires_at LIMIT 500)`,",
+        "apps/api/src/index.ts:31 calls cleanupTraffic once per non-backup scheduled invocation; apps/api/wrangler.jsonc:32 configures that invocation every five minutes.",
+        "apps/api/src/analytics/protection.ts keys quotas separately by source and visitor; no global ingestion ceiling restricts all traffic to the cleaner's 100 records/minute capacity.",
+        "apps/api/src/analytics/service.ts:52 sets expires_at to now + two hours, while migration 0039 retains visitor_digest, product_id and release_id on each dedup row until deletion.",
+        "apps/api/test/analytics/traffic.test.ts:317-330 verifies only that one cleanup leaves one of 501 expired rows; it does not exercise scheduled backlog continuation. docs/progress/2026-09-29-cda-runtime-setup.md:17 describes retry records as lasting two hours.",
+        "docs/plans/2026-09-29-2128-feat-commerce-dashboard-analytics-plan.md:125 KTD6 requires short-term idempotency and no long-lived per-visit logs; line 150 delegates cleanup to bounded maintenance batches. The capacity claim preserves this design and questions its drain rate, not the settled long-lived aggregate policy. Production incidence was not measured."
+      ],
+      "file": "apps/api/src/analytics/service.ts",
+      "first_evidence": "apps/api/src/analytics/service.ts:60:     (SELECT rowid FROM traffic_event_dedup WHERE expires_at <= ? ORDER BY expires_at LIMIT 500)`,",
+      "independent_reviewers": [
+        "adversarial"
+      ],
+      "line": 60,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "adversarial"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Keep bounded deletion batches, but drain or enqueue continuation while expired rows remain, using a bounded execution budget and a continuation mechanism when that budget is exhausted. Add a focused scheduler/cleanup test with several batches proving backlog progress exceeds supported ingestion and aggregates remain intact.",
+      "title": "Sustained traffic outpaces retry-record expiry cleanup",
+      "why_it_matters": "The collector accepts traffic independently across source and visitor quotas, but the scheduler removes only 500 expired events every five minutes. At 200 accepted page entries per minute (for example 200 independent visitors each opening one page), 1,000 records expire between runs while only 500 are removed. The expired backlog grows by 500 each cycle, retaining event-level visitor/product/release associations far beyond the documented two-hour retry window and eventually consuming database capacity. The deliberate per-query batch bound is reasonable, but there is no continuation or draining mechanism to keep retention bounded."
+    },
+    {
+      "#": 2,
+      "autofix_class": "gated_auto",
+      "confidence": 75,
+      "evidence": [
+        "apps/storefront/app/utils/traffic.ts:42-48: const result = await request(\"/api/platform/traffic/events\", {\n            method: \"POST\",\n            credentials: \"same-origin\",\n            keepalive: true,\n            headers: { \"Content-Type\": \"application/json\" },\n            body,\n          });",
+        "apps/storefront/app/utils/traffic.ts:64: pending = pending.then(() => send(route, productId));",
+        "apps/storefront/app/utils/traffic.ts:15-22: identity fetch and response.json() are awaited without an AbortSignal or deadline.",
+        "apps/storefront/app/plugins/traffic.client.ts:11: navigator.locks ? navigator.locks.request(\"shoppp-traffic-identity\", operation) : operation(),"
+      ],
+      "file": "apps/storefront/app/utils/traffic.ts",
+      "first_evidence": "apps/storefront/app/utils/traffic.ts:42-48: const result = await request(\"/api/platform/traffic/events\", {\n            method: \"POST\",\n            credentials: \"same-origin\",\n            keepalive: true,\n            headers: { \"Content-Type\": \"application/json\" },\n            body,\n          });",
+      "independent_reviewers": [
+        "reliability"
+      ],
+      "line": 42,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "reliability"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Give identity acquisition (including JSON body consumption) and each event attempt a finite AbortController deadline, clearing the timer in finally. A 10-second deadline is a defensible default for optional analytics. Let the existing catches release the queue and Web Lock after timeout, preserve the identical event ID/body for the existing bounded retry, and add a focused stalled-request test proving later visits can proceed.",
+      "title": "Bound traffic requests so one stall cannot stop collection",
+      "why_it_matters": "Integration point without a timeout: both identity and event requests use native fetch without a deadline, while every subsequent route entry waits on the same pending promise. If an identity response, response body, or event response stalls, the affected tab stops collecting every later route entry until that request eventually settles. An identity stall additionally holds the cross-tab Web Lock supplied by the plugin, preventing other tabs from initializing traffic. Shopping remains usable, so this loss is silent in the dashboard rather than a visible page failure."
+    }
+  ],
+  "selected_findings": [
+    {
+      "#": 1,
+      "autofix_class": "manual",
+      "confidence": 75,
+      "evidence": [
+        "apps/api/src/analytics/service.ts:60:     (SELECT rowid FROM traffic_event_dedup WHERE expires_at <= ? ORDER BY expires_at LIMIT 500)`,",
+        "apps/api/src/index.ts:31 calls cleanupTraffic once per non-backup scheduled invocation; apps/api/wrangler.jsonc:32 configures that invocation every five minutes.",
+        "apps/api/src/analytics/protection.ts keys quotas separately by source and visitor; no global ingestion ceiling restricts all traffic to the cleaner's 100 records/minute capacity.",
+        "apps/api/src/analytics/service.ts:52 sets expires_at to now + two hours, while migration 0039 retains visitor_digest, product_id and release_id on each dedup row until deletion.",
+        "apps/api/test/analytics/traffic.test.ts:317-330 verifies only that one cleanup leaves one of 501 expired rows; it does not exercise scheduled backlog continuation. docs/progress/2026-09-29-cda-runtime-setup.md:17 describes retry records as lasting two hours.",
+        "docs/plans/2026-09-29-2128-feat-commerce-dashboard-analytics-plan.md:125 KTD6 requires short-term idempotency and no long-lived per-visit logs; line 150 delegates cleanup to bounded maintenance batches. The capacity claim preserves this design and questions its drain rate, not the settled long-lived aggregate policy. Production incidence was not measured."
+      ],
+      "file": "apps/api/src/analytics/service.ts",
+      "first_evidence": "apps/api/src/analytics/service.ts:60:     (SELECT rowid FROM traffic_event_dedup WHERE expires_at <= ? ORDER BY expires_at LIMIT 500)`,",
+      "independent_reviewers": [
+        "adversarial"
+      ],
+      "line": 60,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "adversarial"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Keep bounded deletion batches, but drain or enqueue continuation while expired rows remain, using a bounded execution budget and a continuation mechanism when that budget is exhausted. Add a focused scheduler/cleanup test with several batches proving backlog progress exceeds supported ingestion and aggregates remain intact.",
+      "title": "Sustained traffic outpaces retry-record expiry cleanup",
+      "why_it_matters": "The collector accepts traffic independently across source and visitor quotas, but the scheduler removes only 500 expired events every five minutes. At 200 accepted page entries per minute (for example 200 independent visitors each opening one page), 1,000 records expire between runs while only 500 are removed. The expired backlog grows by 500 each cycle, retaining event-level visitor/product/release associations far beyond the documented two-hour retry window and eventually consuming database capacity. The deliberate per-query batch bound is reasonable, but there is no continuation or draining mechanism to keep retention bounded."
+    },
+    {
+      "#": 2,
+      "autofix_class": "gated_auto",
+      "confidence": 75,
+      "evidence": [
+        "apps/storefront/app/utils/traffic.ts:42-48: const result = await request(\"/api/platform/traffic/events\", {\n            method: \"POST\",\n            credentials: \"same-origin\",\n            keepalive: true,\n            headers: { \"Content-Type\": \"application/json\" },\n            body,\n          });",
+        "apps/storefront/app/utils/traffic.ts:64: pending = pending.then(() => send(route, productId));",
+        "apps/storefront/app/utils/traffic.ts:15-22: identity fetch and response.json() are awaited without an AbortSignal or deadline.",
+        "apps/storefront/app/plugins/traffic.client.ts:11: navigator.locks ? navigator.locks.request(\"shoppp-traffic-identity\", operation) : operation(),"
+      ],
+      "file": "apps/storefront/app/utils/traffic.ts",
+      "first_evidence": "apps/storefront/app/utils/traffic.ts:42-48: const result = await request(\"/api/platform/traffic/events\", {\n            method: \"POST\",\n            credentials: \"same-origin\",\n            keepalive: true,\n            headers: { \"Content-Type\": \"application/json\" },\n            body,\n          });",
+      "independent_reviewers": [
+        "reliability"
+      ],
+      "line": 42,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "reliability"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Give identity acquisition (including JSON body consumption) and each event attempt a finite AbortController deadline, clearing the timer in finally. A 10-second deadline is a defensible default for optional analytics. Let the existing catches release the queue and Web Lock after timeout, preserve the identical event ID/body for the existing bounded retry, and add a focused stalled-request test proving later visits can proceed.",
+      "title": "Bound traffic requests so one stall cannot stop collection",
+      "why_it_matters": "Integration point without a timeout: both identity and event requests use native fetch without a deadline, while every subsequent route entry waits on the same pending promise. If an identity response, response body, or event response stalls, the affected tab stops collecting every later route entry until that request eventually settles. An identity stall additionally holds the cross-tab Web Lock supplied by the plugin, preventing other tabs from initializing traffic. Shopping remains usable, so this loss is silent in the dashboard rather than a visible page failure."
+    }
+  ],
+  "selected_count": 2,
+  "skip_count": 0,
+  "shortcut_skipped_count": 0,
+  "skip_evidence_basis": "No adversarial provider with independence_verified:true; same-model agreement grants no shortcut.",
+  "scope": {
+    "mode": "standalone",
+    "base": "05d0fe68^",
+    "diff_a": "0b24241dd6e023a62d8a399a067b38e952659808",
+    "diff_b": null,
+    "pr": {
+      "number": null,
+      "url": null,
+      "title": null,
+      "body": null,
+      "base_ref_name": null,
+      "head_ref_oid": null,
+      "head_ref": null,
+      "base_ref": null,
+      "has_prior_comments": false
+    },
+    "branch": "codex/fix-new-arrival-icon",
+    "head_sha": "05d0fe68f710f3c1578f76c02bee2c0f3e9fce28",
+    "files": "/Users/studio/Documents/GitHub/shoppp/docs/progress/2026-09-29-cda-review/files.txt",
+    "diff": "/Users/studio/Documents/GitHub/shoppp/docs/progress/2026-09-29-cda-review/full.diff",
+    "tree_is_reviewed_head": true,
+    "untracked_excluded": []
+  },
+  "scope_context": {
+    "mode": "standalone",
+    "base": "05d0fe68^",
+    "diff_a": "0b24241dd6e023a62d8a399a067b38e952659808",
+    "diff_b": null,
+    "pr": {
+      "number": null,
+      "url": null,
+      "title": null,
+      "body": null,
+      "base_ref_name": null,
+      "head_ref_oid": null,
+      "head_ref": null,
+      "base_ref": null,
+      "has_prior_comments": false
+    },
+    "branch": "codex/fix-new-arrival-icon",
+    "head_sha": "05d0fe68f710f3c1578f76c02bee2c0f3e9fce28",
+    "files": "/Users/studio/Documents/GitHub/shoppp/docs/progress/2026-09-29-cda-review/files.txt",
+    "diff": "/Users/studio/Documents/GitHub/shoppp/docs/progress/2026-09-29-cda-review/full.diff",
+    "tree_is_reviewed_head": true,
+    "untracked_excluded": []
+  },
+  "diff": "/Users/studio/Documents/GitHub/shoppp/docs/progress/2026-09-29-cda-review/full.diff",
+  "constraints": [
+    "CDA work only including current dirty and untracked CDA files; exclude all earlier branch commits.",
+    "Read-only except review artifacts under governed docs root. Do not change source, checkout, create worktree, git commit, push or run heavy test suites (root owns).",
+    "U8 evidence and checkpoint closure are ongoing in parent task; distinguish pending closure from missing implemented behavior."
+  ],
+  "plan": {
+    "path": "docs/plans/2026-09-29-2128-feat-commerce-dashboard-analytics-plan.md",
+    "source": "explicit",
+    "requirements": [
+      "| R1 | \u7b2c\u4e00\u5f20\u603b\u9500\u552e\u989d\u5361\u5185\u63d0\u4f9b\u5e01\u79cd\u9009\u62e9\uff0c\u63a7\u5236\u5168\u90e8\u8d22\u52a1\u6307\u6807\uff1bdashboard \u9ed8\u8ba4\u4f7f\u7528\u6d4f\u89c8\u5668\u65f6\u533a\uff0c\u65e0\u5934\u50cf\u5168\u5c40\u8bbe\u7f6e\u6216\u65f6\u533a\u9009\u62e9\u5668 | AE1\u3001AE2 |",
+      "| R2 | \u9876\u90e8\u4f9d\u6b21\u4e3a\u603b\u9500\u552e\u989d\u3001\u72ec\u7acb\u8bbf\u5ba2\uff08\u5168\u671f UV\uff09\u3001\u652f\u4ed8\u7b14\u6570\u3001\u51c0\u9500\u552e\u989d\uff1b\u63d0\u4f9b\u540c\u53e3\u5f84\u771f\u5b9e\u8ff7\u4f60\u8d8b\u52bf\u548c\u53ef\u8ba1\u7b97\u7684\u4e0a\u671f\u6bd4\u8f83 | AE3\u3001AE4 |",
+      "| R3 | \u4e3b\u5206\u6790\u5361\u5305\u542b\u9500\u552e\u989d\uff0f\u8bbf\u95ee\u91cf Tabs\uff1b\u53f3\u4e0a\u89d2\u65e5\u671f\u9884\u8bbe\u548c\u65e5\u671f\u8303\u56f4\u63a7\u5236\u5168\u9875 | AE5 |",
+      "| R4 | \u9500\u552e\u989d Tab \u663e\u793a\u9010\u65e5\u603b\u9500\u552e\u989d\u8d8b\u52bf\u53ca\u5546\u54c1\u9500\u552e\u989d\u6392\u540d\uff0c\u4e0d\u6263\u9000\u6b3e | AE6 |",
+      "| R5 | \u8bbf\u95ee\u91cf Tab \u663e\u793a\u9010\u65e5\u9875\u9762\u8bbf\u95ee\u6b21\u6570\uff08PV\uff09\u53ca\u5546\u54c1\u9875\u9762 PV \u6392\u540d\uff1b\u540c\u4e00\u8bbf\u5ba2\u591a\u6b21\u771f\u5b9e\u8bbf\u95ee\u7d2f\u8ba1\u8ba1\u6570\uff0c\u89c4\u683c\u5408\u5e76\u5230\u7a33\u5b9a productId | AE7 |",
+      "| R6 | \u6392\u540d\u4fdd\u7559\u5386\u53f2\u5546\u54c1\u540d\u79f0\uff1b\u6709\u5f53\u524d\u516c\u5f00\u5546\u57ce\u9875\u9762\u65f6\u53ef\u70b9\u51fb\uff0c\u5426\u5219\u663e\u793a\u7eaf\u6587\u672c | AE8 |",
+      "| R8 | \u6b63\u5f0f\u5546\u57ce\u9ed8\u8ba4\u81ea\u52a8\u91c7\u96c6\uff0c\u4e0d\u589e\u52a0\u7edf\u8ba1\u540c\u610f\u6d41\u7a0b\uff1b\u9884\u89c8\u548c\u660e\u786e\u6d4b\u8bd5\u6d41\u91cf\u6392\u9664 | AE10 |",
+      "| R9 | \u8d22\u52a1\u4e0e\u8bbf\u95ee\u6570\u636e\u6309\u540c\u4e00\u67e5\u8be2\u65f6\u533a\u5f52\u65e5\uff1b\u5168\u671f UV \u8de8\u65e5\u53bb\u91cd\uff1bPV \u6c47\u603b\u957f\u671f\u4fdd\u5b58\uff0c\u4e0d\u8bbe\u56fa\u5b9a 90 \u5929\u5220\u9664\uff1b\u67e5\u8be2\u6210\u529f\u65e0\u8bb0\u5f55\u663e\u793a 0\uff0c\u67e5\u8be2\u5931\u8d25\u663e\u793a\u91cd\u8bd5 | AE4\u3001AE7\u3001AE11 |",
+      "| R10 | \u4fdd\u7559\u6743\u9650\u3001\u7ade\u6001\u4fdd\u62a4\u3001\u4e3b\u9898\u3001\u56fd\u9645\u5316\u3001\u52a0\u8f7d\uff0f\u9519\u8bef\uff0f\u7a7a\u72b6\u6001\u548c\u8ba2\u5355\u62a5\u8868\u5165\u53e3\uff1b\u4e0d\u5c55\u793a\u6e20\u9053\u5360\u6bd4\u6216\u70ed\u95e8\u641c\u7d22 | AE5\u3001AE11\u3001AE12 |"
+    ],
+    "implementation_units": [
+      "### U1 \u2014 \u5951\u7ea6\u3001\u7edf\u8ba1\u5b58\u50a8\u9a8c\u8bc1\u548c\u90e8\u7f72 authority \u6838\u5bf9",
+      "### U2 \u2014 \u9500\u552e\u5361\u5e01\u79cd\u4e0e\u6d4f\u89c8\u5668\u65f6\u533a\u67e5\u8be2",
+      "### U3 \u2014 \u5546\u54c1\u9500\u552e\u989d\u6392\u884c\u4e0e\u516c\u5f00\u94fe\u63a5",
+      "### U4 \u2014 \u6c47\u603b\u5b58\u50a8\u3001\u533f\u540d\u8eab\u4efd\u4e0e\u53d7\u63a7\u5165\u53e3",
+      "### U5 \u2014 \u5546\u57ce\u81ea\u52a8 UV\uff0fPV \u57cb\u70b9",
+      "### U6 \u2014 UV \u5361\u4e0e PV \u8d8b\u52bf\uff0f\u5546\u54c1\u6392\u540d\u62a5\u8868",
+      "### U7 \u2014 \u53c2\u7167\u6a21\u677f\u7ec4\u88c5\u6b63\u5f0f\u5546\u4e1a\u4eea\u8868\u76d8",
+      "### U8 \u2014 \u96c6\u6210\u9a8c\u8bc1\u3001\u8bc1\u636e\u4e0e\u5173\u95ed"
+    ],
+    "settled_decisions": [
+      "- **D1 \u2014 \u8d27\u5e01\u548c\u65f6\u533a\u4f4d\u7f6e\uff08\u5df2\u4fee\u8ba2\uff09\u3002** `session-settled: user-directed`\uff1bGoverns R1\u3002\u540e\u7eed\u51b3\u5b9a\u66ff\u4ee3\u539f\u5934\u50cf\u5168\u5c40\u8bbe\u7f6e\uff1a\u5e01\u79cd\u4f4d\u4e8e\u7b2c\u4e00\u5f20\u603b\u9500\u552e\u989d\u5361\uff0c\u5f71\u54cd\u8d22\u52a1\u67e5\u8be2\u800c\u975e\u4e1a\u52a1\u5b9a\u4ef7\uff1bdashboard \u9ed8\u8ba4\u6d4f\u89c8\u5668\u65f6\u533a\uff0c\u65e0\u5168\u5c40\u504f\u597d Provider \u6216\u65b0\u65f6\u533a\u9009\u62e9\u5668\u3002",
+      "- **D2 \u2014 UV \u4e0e PV \u5206\u5f00\uff08\u5df2\u4fee\u8ba2\uff09\u3002** `session-settled: user-directed`\uff1bGoverns R2\u3001R5\u3001R9\u3002\u9876\u90e8\u5361\u662f\u6240\u9009\u8303\u56f4\u5185\u72ec\u7acb\u8bbf\u5ba2 UV\uff1b\u4e3b\u5361\u8bbf\u95ee\u91cf\u8d8b\u52bf\u53ca\u5546\u54c1\u8bbf\u95ee\u6392\u540d\u662f PV\u3002\u66ff\u4ee3\u539f\u201c\u4e3b\u5361\u4e5f\u7528 UV\u201d\u7684\u89e3\u91ca\u3002",
+      "- **D3 \u2014 \u9500\u552e\u989d\u6392\u540d\u3002** `session-settled: user-directed`\uff1bGoverns R4\u3002\u5546\u54c1\u6309\u9500\u552e\u91d1\u989d\u6392\u540d\u3001\u4e0d\u6263\u9000\u6b3e\uff1b\u51c0\u9500\u552e\u989d\u4ecd\u6263\u9000\u6b3e\u3002",
+      "- **D4 \u2014 \u9875\u9762\u6784\u6210\u3002** `session-settled: user-directed`\uff1bGoverns R2\u3001R3\u3001R6\u3001R10\u3002\u56db\u5f20\u9876\u90e8\u5361\u53ca\u4e3b\u5361 Tabs\uff0f\u65e5\u671f\uff0f\u8d8b\u52bf\uff0f\u5546\u54c1\u6392\u540d\uff0c\u4e0d\u8bbe\u72ec\u7acb\u7b5b\u9009\u680f\uff1b\u8bbf\u95ee\u6307\u6807\u9075\u5faa\u4fee\u8ba2 D2\uff0c\u641c\u7d22\u90e8\u5206\u7531 D5 \u53d6\u6d88\u3002",
+      "- **D5 \u2014 \u5220\u9664\u70ed\u95e8\u641c\u7d22\u3002** `session-settled: user-directed`\uff1bGoverns R7\uff08\u9000\u5f79\uff09\u3001R10\u3002\u5220\u9664\u5361\u7247\u53ca\u91c7\u96c6\uff0f\u5b58\u50a8\uff0f\u62a5\u8868\uff0f\u9a8c\u6536\uff0c\u4e0d\u65b0\u589e\u66ff\u8865\u5361\u3002",
+      "- **D6 \u2014 \u81ea\u52a8\u7edf\u8ba1\u4e0e\u96f6\u503c\u3002** `session-settled: user-directed`\uff1bGoverns R8\u3001R9\u3002\u9ed8\u8ba4\u7edf\u8ba1\uff0c\u4e0d\u589e\u52a0\u540c\u610f\u4ea4\u4e92\uff1b\u6b63\u5e38\u67e5\u8be2\u6ca1\u6709\u8bb0\u5f55\u663e\u793a 0\u3002\u4e0d\u5efa\u8bbe\u6682\u505c\u7ba1\u7406\u6216\u505c\u91c7\u8986\u76d6\u533a\u95f4\u7cfb\u7edf\uff1b\u63a5\u53e3\u5931\u8d25\u4ecd\u662f\u9519\u8bef\uff0c\u4e0d\u80fd\u4f2a\u88c5\u6210 0\u3002",
+      "- **D7 \u2014 \u6c47\u603b\u4f18\u5148\u3001\u53d6\u6d88\u56fa\u5b9a 90 \u5929\u3002** `session-settled: user-directed`\uff1bGoverns R9\u3002PV \u957f\u671f\u4fdd\u5b58\u6c47\u603b\uff0c\u4e0d\u957f\u671f\u5b58\u6bcf\u6b21\u8bbf\u95ee\u660e\u7ec6\uff1b\u9876\u90e8\u8de8\u65e5 UV \u4fdd\u7559\u5fc5\u8981\u533f\u540d\u53bb\u91cd\u4f9d\u636e\uff0c\u4e0d\u80fd\u53ea\u5b58\u6bcf\u65e5\u4eba\u6570\u518d\u76f8\u52a0\u3002\u53d6\u6d88\u65e7\u7684\u56fa\u5b9a 90 \u5929\u5220\u9664\u4e0e\u76f8\u5173\u4e0d\u53ef\u7528\u72b6\u6001\u3002"
+    ]
+  },
+  "verdicts_path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/2026-09-29-cda-review/validator-verdicts.json"
+}

@@ -7,6 +7,7 @@ product_contract_source: ce-plan-bootstrap
 execution: code
 plan_classification: independent-bounded-feature
 plan_alias: CDA
+status: completed
 ---
 
 # 商业仪表盘与访问统计 - Plan
@@ -256,24 +257,24 @@ flowchart LR
 
 ## Execution Checkpoint
 
-**用户已授权实施，U1 已完成，U2／U3／U4 在互不重叠的文件范围内执行。** 这是 CDA 唯一的当前单元／状态／下一步 authority；实施时按仓库规则在状态、顺序或下一步变化的同一变更中更新。progress 证据不另建 current-unit 队列。
+**U1–U8 已完成（2026-09-29）；执行正文冻结为交付历史。** 这是 CDA 唯一的当前单元／状态／下一步 authority；实施时按仓库规则在状态、顺序或下一步变化的同一变更中更新。progress 证据不另建 current-unit 队列。
 
 | 单元 | 状态 | 依赖 |
 | --- | --- | --- |
 | U1 契约与存储验证 | Complete | 无 |
-| U2 卡内币种与查询时区 | In progress | U1 |
-| U3 商品销售额与公开链接 | In progress | U1 |
-| U4 统计存储与端点 | In progress | U1 |
-| U5 商城自动采集 | Not started | U4 |
-| U6 统计报表 | Not started | U3、U4、U5 |
-| U7 仪表盘 UI（U7.1／U7.2） | Not started | U7.1：U2、U3；U7.2：U7.1、U6 |
-| U8 集成验证与关闭 | Not started | U1–U7 |
+| U2 卡内币种与查询时区 | Complete | U1 |
+| U3 商品销售额与公开链接 | Complete | U1 |
+| U4 统计存储与端点 | Complete | U1 |
+| U5 商城自动采集 | Complete | U4 |
+| U6 统计报表 | Complete | U3、U4、U5 |
+| U7 仪表盘 UI（U7.1／U7.2） | Complete | U7.1：U2、U3；U7.2：U7.1、U6 |
+| U8 集成验证与关闭 | Complete | U1–U7 |
 
-- 当前单元：U2；U3／U4 同层并行实现，共享 checkout 文件所有权分离。
-- 阻断：无已证实的范围或技术阻断；此前 Q1 已由 D5 删除热门搜索解决。实施已获授权；本地验证不推导候选或部署授权。
-- 下一具体动作：接入销售卡币种、商品销售排行和汇总采集入口；U1 证据见 `docs/progress/2026-09-29-cda-u1-evidence.md`。
+- 当前单元：无，计划已完成。
+- 阻断：无。独立审查两项 P2 均修复并验证；本地验证不推导候选或部署授权。
+- 下一具体动作：无实施尾项。证据：`docs/progress/2026-09-29-cda-implementation-evidence.md`；审查：`docs/progress/2026-09-29-cda-review/review.json`。上线迁移／密钥配置说明见 `docs/progress/2026-09-29-cda-runtime-setup.md`，部署不属本计划。
 - 实现顺序：U1 →（U2／U3／U4 文件分离并行）→ U7.1／U5 → U6 → U7.2 → U8。接口已固定后并行独立单元，主执行者统一集成及验证；不创建 worktree，子阶段不替代 U7 完成权。
-- Tail owner：CDA；REL 只拥有候选纳入和后续 DC/PG authority。
+- Tail owner：CDA 已关闭本地实现／验证尾项；REL 仍单独拥有候选纳入和后续 DC/PG authority。
 
 ## Sources
 

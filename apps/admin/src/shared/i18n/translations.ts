@@ -1,4 +1,31 @@
 export const zhCNMessages: Record<string, string> = {
+  Sales: '销售额',
+  'Daily trend for {metric}': '{metric}每日趋势',
+  'Previous period unavailable': '暂无完整上期数据',
+  'Percentage unavailable': '无法计算变化比例',
+  'Distinct anonymous browsers across the selected period. Daily visitors are deduplicated separately.':
+    '所选时间范围内去重后的匿名浏览器数量。每日访客数量单独去重。',
+  'Date preset': '日期预设',
+  'Select an ordered date range of at most 367 days.':
+    '请选择先后顺序正确且不超过 367 天的日期范围。',
+  'Today is still in progress; comparisons include a partial day.':
+    '今天尚未结束，比较包含未完整的一天。',
+  'Daily gross sales': '每日销售总额',
+  'Daily page views': '每日访问量',
+  'Recorded since {date}': '自 {date} 开始记录',
+  'Top products by sales': '商品销售额排名',
+  'Top products by page views': '商品访问量排名',
+  'Product line totals, before refunds; excludes order-level adjustments.':
+    '按商品订单行金额排名，不扣退款，不含订单级调整。',
+  'No product activity in this window.': '所选时间范围内暂无商品记录。',
+  'Unique visitors': '独立访客',
+  'Page views': '访问量',
+  'Last 7 days': '最近 7 天',
+  'Last 30 days': '最近 30 天',
+  'This week': '本周',
+  'This month': '本月',
+  'This year': '本年',
+  'Custom': '自定义',
   'Leave with unsaved Product changes?': '放弃未保存的商品更改？',
   'Collection membership is edited separately. Continuing discards unsaved Product changes.':
     '商品集合成员关系需单独编辑。继续操作将放弃未保存的商品更改。',

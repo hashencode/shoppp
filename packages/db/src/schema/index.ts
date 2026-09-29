@@ -1743,3 +1743,53 @@ export const storefrontPreviewSessions = sqliteTable(
     ),
   ],
 );
+
+// Commerce analytics keeps minute aggregates and identity associations, never
+// persistent per-visit payloads. Migration 0039 owns the atomic insert trigger.
+export const trafficCollection = sqliteTable("traffic_collection", {
+  environment: text("environment").primaryKey(),
+  startedAt: text("started_at").notNull(),
+});
+
+export const trafficPvBuckets = sqliteTable(
+  "traffic_pv_buckets",
+  {
+    environment: text("environment").notNull(),
+    bucket: text("bucket").notNull(),
+    productId: text("product_id").notNull().default(""),
+    pageViews: integer("page_views").notNull(),
+    releaseId: text("release_id").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.environment, table.bucket, table.productId] }),
+    index("traffic_pv_product_window").on(table.environment, table.productId, table.bucket),
+    check("traffic_pv_nonnegative", sql`${table.pageViews} >= 0`),
+  ],
+);
+
+export const trafficUvBuckets = sqliteTable(
+  "traffic_uv_buckets",
+  {
+    environment: text("environment").notNull(),
+    bucket: text("bucket").notNull(),
+    visitorDigest: text("visitor_digest").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.environment, table.bucket, table.visitorDigest] })],
+);
+
+export const trafficEventDedup = sqliteTable(
+  "traffic_event_dedup",
+  {
+    environment: text("environment").notNull(),
+    visitorDigest: text("visitor_digest").notNull(),
+    eventId: text("event_id").notNull(),
+    bucket: text("bucket").notNull(),
+    productId: text("product_id").notNull().default(""),
+    releaseId: text("release_id").notNull(),
+    expiresAt: integer("expires_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.environment, table.visitorDigest, table.eventId] }),
+    index("traffic_event_dedup_expiry").on(table.expiresAt),
+  ],
+);

@@ -1001,6 +1001,10 @@ describe("D1 migrations", () => {
         "storefront_preview_builds",
         "storefront_preview_grants",
         "storefront_preview_sessions",
+        "traffic_collection",
+        "traffic_pv_buckets",
+        "traffic_uv_buckets",
+        "traffic_event_dedup",
       ]),
     );
 

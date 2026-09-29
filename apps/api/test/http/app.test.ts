@@ -177,6 +177,8 @@ const ADMIN_ROUTE_PERMISSIONS: readonly AdminRoutePermission[] = [
   },
   { method: "GET", path: "/admin/orders", permission: "orders.read" },
   { method: "GET", path: "/admin/reporting/revenue", permission: "reporting.read" },
+  { method: "GET", path: "/admin/reporting/products", permission: "reporting.read" },
+  { method: "GET", path: "/admin/reporting/traffic", permission: "reporting.read" },
   { method: "GET", path: "/admin/reporting/orders", permission: "reporting.read" },
   { method: "POST", path: "/admin/reporting/exports", permission: "reporting.export" },
   {

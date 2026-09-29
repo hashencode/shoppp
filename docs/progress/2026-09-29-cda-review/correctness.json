@@ -1,0 +1,10 @@
+{
+  "reviewer": "correctness",
+  "findings": [],
+  "residual_risks": [
+    "Expired event retention depends on traffic volume: cleanupTraffic deletes at most 500 expired records and the scheduled handler invokes it once every five minutes, giving a sustained drain capacity of 100 events/minute. Above that aggregate ingestion rate the expired backlog grows indefinitely. No expected production traffic volume was available to establish whether this is a current operational defect."
+  ],
+  "testing_gaps": [
+    "The storefront browser test covers direct navigation and reload with mocked identity/event endpoints, but does not exercise client-side product navigation via router links. A focused SPA navigation case should verify that page:finish observes the matching catalog-product payload and emits one product event, including returning to a previously visited product."
+  ]
+}

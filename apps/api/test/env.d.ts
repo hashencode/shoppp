@@ -25,6 +25,8 @@ declare global {
       STRIPE_SECRET_KEY?: string;
       STRIPE_WEBHOOK_SECRET?: string;
       MEDIA: R2Bucket;
+      MEDIA_PUBLIC_ORIGIN: string;
+      TAX_MODE: "zero";
       MEDIA_BUCKET_NAME?: string;
       D1_DATABASE_ID?: string;
       D1_DATABASE_NAME?: string;

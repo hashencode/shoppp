@@ -1,0 +1,13 @@
+{
+  "residual_risks": [
+    "Hosted D1 latency and query resource consumption at the configured 500,000-bucket reporting boundary remain unverified. The source uses indexed window predicates, bounds source rows, and batches daily SQL without transferring UV identities, so this review found no demonstrated runtime performance defect at expected usage."
+  ],
+  "testing_gaps": [
+    "apps/storefront/app/utils/traffic.ts:28-49 introduces expiry renewal and 401/403 identity invalidation, but apps/storefront/tests/traffic.test.ts exercises only a fresh successful ticket, one network retry, and identity network failure. Add fake-clock cases for a later route visit after ticket expiry and a rejected event followed by a later visit; assert renewal, no retry of the rejected event, and a fresh event ID. This proves that ordinary long-lived shopper sessions resume collection without repeatedly submitting a rejected ticket.",
+    "apps/admin/src/pages/dashboard/dashboard-page.tsx:254-268 has a separate traffic response generation guard, while dashboard.test.tsx:201-231 defers only revenue for its stale-response test. Defer an old fetchTrafficReport, change the range, resolve the new response, then resolve and reject the old request in separate cases; assert that current UV, PV chart and ranking remain present. Revenue's shared financial guard coverage does not exercise this independent success/error guard.",
+    "apps/storefront/tests/traffic.test.ts awaits every visit sequentially. Add overlapping A -> B -> A visits while identity initialization or the first delivery is deferred, then release it and assert three distinct entry events in order with one identity initialization. This directly exercises the newly introduced pending queue and lastPath dedup interaction used by app:mounted/page:finish. Existing browser tests cover mount duplication and simultaneous tabs, but not rapid same-tab transitions."
+  ],
+  "learnings": [],
+  "agent_native_gaps": [],
+  "deployment_notes": []
+}
