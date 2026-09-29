@@ -112,20 +112,19 @@ for (const viewport of [
       `${appBase}/storefront/themes?from=setup-guide`
     )
     await expect(
-      page.getByText('Preview the storefront and confirm the brand content and policy text.')
+      page.getByText(/Manually preview the storefront to confirm brand content and policy text/)
     ).toBeVisible()
     await page.getByText('6. Review before launch').click()
     await expect(
       page.getByText(
-        'Place a test order in the test storefront to verify delivery, payment and order confirmation. Review the resulting order in Admin.'
+        /Manually place a test order in the test storefront to verify delivery, payment and order confirmation/
       )
     ).toBeVisible()
     await expect(
       page
         .getByText(
-          'Place a test order in the test storefront to verify delivery, payment and order confirmation. Review the resulting order in Admin.'
+          /Manually place a test order in the test storefront to verify delivery, payment and order confirmation/
         )
-        .locator('..')
         .getByRole('link', { name: 'Orders' })
     ).toHaveAttribute('href', `${appBase}/orders?from=setup-guide`)
     await page.getByRole('link', { name: 'Go to Products' }).click()

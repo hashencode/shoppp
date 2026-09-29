@@ -54,13 +54,14 @@ const STEPS: { key: Step; title: string; description: string }[] = [
   {
     key: 'storefront',
     title: 'Storefront and policies',
-    description: 'Check policy links and approval, then verify the customer-facing storefront.',
+    description:
+      'Manually preview the storefront to confirm brand content and policy text; also check policy links and approval.',
   },
   {
     key: 'review',
     title: 'Review before launch',
     description:
-      'Review inventory and runtime settings. Production release follows the existing process.',
+      'Manually place a test order in the test storefront to verify delivery, payment and order confirmation; review the result in Admin. Production release follows the existing process.',
   },
 ]
 const CHECK_LABEL: Record<SetupGuideCheck['id'], string> = {
@@ -387,6 +388,12 @@ export const WelcomePage = () => {
         onChange={(keys) => setExpanded(typeof keys === 'string' ? [keys] : keys)}
         items={STEPS.map((step, index) => {
           const stepChecks = checks.filter((check) => check.step === step.key)
+          const guidanceDestinations =
+            step.key === 'storefront'
+              ? ['themes', 'policies']
+              : step.key === 'review'
+                ? ['orders']
+                : []
           const stepStatus = (
             ['unavailable', 'restricted', 'needs_action', 'passed'] as const
           ).find((status) => stepChecks.some((check) => check.status === status))
@@ -396,7 +403,16 @@ export const WelcomePage = () => {
             extra: statusIcon(stepStatus),
             children: (
               <div className="space-y-3">
-                <Typography.Paragraph>{t(step.description)}</Typography.Paragraph>
+                <Typography.Paragraph className="!mb-0">
+                  {t(step.description)}{' '}
+                  {availableDestinations
+                    .filter((destination) => guidanceDestinations.includes(destination.id))
+                    .map((destination) => (
+                      <span className="mr-4 inline-block" key={destination.id}>
+                        <DestinationLink destination={destination} />
+                      </span>
+                    ))}
+                </Typography.Paragraph>
                 <ul className="m-0 list-disc space-y-3 pl-5">
                   {stepChecks.map((check) => {
                     const target =
@@ -459,45 +475,6 @@ export const WelcomePage = () => {
                     )
                   })}
                 </ul>
-                {step.key === 'storefront' || step.key === 'review' ? (
-                  <section aria-label={t('Manual verification (not counted in automatic checks)')}>
-                    <Typography.Text strong>
-                      {t('Manual verification (not counted in automatic checks)')}
-                    </Typography.Text>
-                    {step.key === 'storefront' ? (
-                      <div className="mt-2">
-                        <Typography.Paragraph className="!mb-1">
-                          {t(
-                            'Preview the storefront and confirm the brand content and policy text.'
-                          )}
-                        </Typography.Paragraph>
-                        <div className="flex flex-wrap gap-x-4 gap-y-1">
-                          {availableDestinations
-                            .filter(
-                              (destination) =>
-                                destination.id === 'themes' || destination.id === 'policies'
-                            )
-                            .map((destination) => (
-                              <DestinationLink key={destination.id} destination={destination} />
-                            ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mt-2">
-                        <Typography.Paragraph className="!mb-1">
-                          {t(
-                            'Place a test order in the test storefront to verify delivery, payment and order confirmation. Review the resulting order in Admin.'
-                          )}
-                        </Typography.Paragraph>
-                        {availableDestinations
-                          .filter((destination) => destination.id === 'orders')
-                          .map((destination) => (
-                            <DestinationLink key={destination.id} destination={destination} />
-                          ))}
-                      </div>
-                    )}
-                  </section>
-                ) : null}
               </div>
             ),
           }

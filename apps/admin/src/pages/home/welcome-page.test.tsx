@@ -211,32 +211,24 @@ describe('WelcomePage setup guide', () => {
     expect(screen.queryByRole('link', { name: 'Go to Commercial settings' })).toBeNull()
   })
 
-  it('places manual tasks in their steps with only truthful destination links', async () => {
+  it('keeps manual guidance compact in its step with only truthful destination links', async () => {
     renderGuide()
 
     expect(await screen.findByText('Passed automatic checks')).toBeTruthy()
     fireEvent.click(screen.getByText('5. Storefront and policies'))
     const preview = screen.getByText(
-      'Preview the storefront and confirm the brand content and policy text.'
+      /Manually preview the storefront to confirm brand content and policy text/
     )
-    expect(preview.closest('section')?.textContent).toContain(
-      'Manual verification (not counted in automatic checks)'
-    )
-    expect(
-      preview.closest('section')?.querySelector('a[href="/storefront/themes?from=setup-guide"]')
-    ).toBeTruthy()
-    expect(
-      preview.closest('section')?.querySelector('a[href="/settings/policies?from=setup-guide"]')
-    ).toBeTruthy()
+    expect(screen.queryByText('Manual verification (not counted in automatic checks)')).toBeNull()
+    expect(preview.querySelector('a[href="/storefront/themes?from=setup-guide"]')).toBeTruthy()
+    expect(preview.querySelector('a[href="/settings/policies?from=setup-guide"]')).toBeTruthy()
 
     fireEvent.click(screen.getByText('6. Review before launch'))
     const testOrder = screen.getByText(
-      'Place a test order in the test storefront to verify delivery, payment and order confirmation. Review the resulting order in Admin.'
+      /Manually place a test order in the test storefront to verify delivery, payment and order confirmation/
     )
-    expect(
-      testOrder.closest('section')?.querySelector('a[href="/orders?from=setup-guide"]')
-    ).toBeTruthy()
-    expect(testOrder.closest('section')?.querySelectorAll('a')).toHaveLength(1)
+    expect(testOrder.querySelector('a[href="/orders?from=setup-guide"]')).toBeTruthy()
+    expect(testOrder.querySelectorAll('a')).toHaveLength(1)
   })
 
   it('sends actionable checks to the relevant section of the authorized editor', async () => {

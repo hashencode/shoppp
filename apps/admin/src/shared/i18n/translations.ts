@@ -536,11 +536,11 @@ export const zhCNMessages: Record<string, string> = {
   'Configuration checks cover credential formats and the environment payment mode. They do not verify a payment or webhook delivery.':
     '配置检查涵盖凭证格式和当前环境的支付模式，不验证实际支付或回调送达。',
   'Storefront and policies': '店面与政策',
-  'Check policy links and approval, then verify the customer-facing storefront.':
-    '检查政策链接与确认状态，并核验面向顾客的店面内容。',
+  'Manually preview the storefront to confirm brand content and policy text; also check policy links and approval.':
+    '人工预览店面，确认品牌内容与政策正文，并检查政策链接与确认状态。',
   'Review before launch': '上线前复核',
-  'Review inventory and runtime settings. Production release follows the existing process.':
-    '复核库存与运行配置。正式发布仍按现有流程进行。',
+  'Manually place a test order in the test storefront to verify delivery, payment and order confirmation; review the result in Admin. Production release follows the existing process.':
+    '在测试店面人工试单，核验配送、支付和订单确认，并在后台查看结果。正式发布仍按现有流程进行。',
   'Commercial configuration saved': '商业配置已保存',
   'Contact email formats': '联系邮箱格式',
   'Public contact channel confirmed': '已确认公开联系渠道',
@@ -688,11 +688,6 @@ export const zhCNMessages: Record<string, string> = {
   'Checking…': '正在检查…',
   'Ask the deployment maintainer to configure the environment credentials.':
     '请由部署维护者配置当前环境的凭证。',
-  'Preview the storefront and confirm the brand content and policy text.':
-    '预览店面并确认品牌内容与政策正文。',
-  'Manual verification (not counted in automatic checks)': '人工核验（不计入自动检查）',
-  'Place a test order in the test storefront to verify delivery, payment and order confirmation. Review the resulting order in Admin.':
-    '在测试店面完成试单，核验配送、支付和订单确认；随后在后台查看该订单。',
   Welcome: '欢迎',
   'Commerce dashboard': '商业仪表盘',
   'Revenue report': '收入报表',
