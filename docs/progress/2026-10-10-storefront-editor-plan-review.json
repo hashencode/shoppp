@@ -1,0 +1,85 @@
+{
+  "artifact": "docs/plans/2026-10-10-1950-refactor-shopify-style-storefront-editor-plan.md",
+  "mode": "non-interactive",
+  "initial_returns": [
+    {
+      "reviewer": "coherence",
+      "findings": [],
+      "residual_risks": [],
+      "deferred_questions": []
+    },
+    {
+      "reviewer": "feasibility",
+      "findings": [
+        {
+          "title": "发布适配缺少生产 Snapshot 消费合同",
+          "severity": "P1",
+          "section": "U7 — Integrate Governed Release Requests and Status",
+          "why_it_matters": "已批准装修版本无法通过当前发布工作流成为线上店面，增加请求与状态记录也不能解决这一点。现有 deploy.yml 只接收 Catalog Release 和源码身份；experience-build-input.ts 的 production 输入不允许 Snapshot，prepare-experience.ts 明确拒绝非 Preview 的 Experience 输入，并生成 activeExperienceSnapshot 为 null 的生产 fallback，相关测试还要求生产不导入主题。U7（发布请求与状态接入）因此依赖一个尚不存在的生产 Experience 构建与回执合同，不能只把问题归为请求身份映射。",
+          "finding_type": "omission",
+          "autofix_class": "gated_auto",
+          "suggested_fix": "在 Current Evidence 中记录生产构建目前不消费 Experience Snapshot 的事实，并把 REL 拥有的生产 Experience 交付合同列为 U7（发布请求与状态接入）的明确前置依赖。该合同须贯通 approved Snapshot、精确 package/schema、Catalog Release、生产构建输入、验证产物与目标激活回执；将 prepare-experience.ts、experience-build-input.ts 及现有 production fallback 测试列入该依赖的影响范围。要求激活前确认此依赖的归属与交付顺序，完成依赖后再验证 U7 的真实集成。",
+          "confidence": 100,
+          "evidence": [
+            "编辑器先复用正式校验、private Preview、approve，再以最小 request/status 适配接入现有 protected release 工作流。",
+            "若现有 release model 不能映射目标 Snapshot，U7 必须报告具体阻塞并修正 adapter 合同，不能以 UI mock 或提交成功结束。",
+            "建议产品顺序：评审本提案 → 激活 THEME-E1 的 U1 → U8 完成后回到 REL 的 capability/deferral reconciliation。",
+            "发布 request/status 接入权威交付而非 mock；缺少资格时真实阻塞，成功只由目标 receipt 确认。"
+          ]
+        }
+      ],
+      "residual_risks": [],
+      "deferred_questions": []
+    },
+    {
+      "reviewer": "scope-guardian",
+      "findings": [],
+      "residual_risks": [],
+      "deferred_questions": []
+    },
+    {
+      "reviewer": "design-lens",
+      "findings": [],
+      "residual_risks": [],
+      "deferred_questions": []
+    },
+    {
+      "reviewer": "product-lens",
+      "findings": [],
+      "residual_risks": [],
+      "deferred_questions": []
+    },
+    {
+      "reviewer": "security-lens",
+      "findings": [],
+      "residual_risks": [],
+      "deferred_questions": []
+    },
+    {
+      "reviewer": "adversarial",
+      "findings": [],
+      "residual_risks": [],
+      "deferred_questions": []
+    }
+  ],
+  "resolved_followup": {
+    "reviewer": "feasibility",
+    "status": "resolved",
+    "finding": "发布适配缺少生产 Snapshot 消费合同",
+    "verification": "修正已明确记录现有生产 fallback 限制，并由 THEME-E1 的 U7.1 承接 production input、生成模块/provider、exact tuple、digest、staging proof 与激活回执合同；U7.2 严格依赖 U7.1。REL 保留资格、DC/PG 与实际交付权威，消除了原有归属缺口及执行顺序死锁。无目标 fallback、有目标禁止静默回退及生产隔离 Preview credential/bridge 均有验收要求，DoD 也要求生产实际消费批准配置。该问题在计划层面已解决，未推定实施完成或获得激活授权。",
+    "findings": [],
+    "residual_risks": [],
+    "deferred_questions": []
+  },
+  "resolved_counts": {
+    "fixes_applied": 1,
+    "proposed_fixes_count": 0,
+    "decisions_count": 0,
+    "fyi_count": 0
+  },
+  "cross_model": {
+    "ran": false,
+    "reason": "No installed attested different-provider route"
+  },
+  "final_artifact_sha256": "d71fe7744b21c4a2e717a4bb35bc0ced5f26f8f549b71442a42c589969b96a91"
+}
