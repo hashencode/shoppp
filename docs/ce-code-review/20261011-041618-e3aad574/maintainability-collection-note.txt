@@ -1,0 +1,1 @@
+Reviewer terminal-adjacent correction: supporting references for two deployment baseline capture steps are deploy.yml:1070 and :1181, replacing :1090/:1176. Primary quote at 961 and 937-to-1249 line count verified. Full artifact preserved unchanged under its single-write contract.

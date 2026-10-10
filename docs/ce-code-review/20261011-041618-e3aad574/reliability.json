@@ -1,0 +1,47 @@
+{
+  "reviewer": "reliability",
+  "findings": [
+    {
+      "title": "Formal publication invokes an incompatible staging proof gate",
+      "severity": "P1",
+      "file": ".github/workflows/deploy.yml",
+      "line": 1111,
+      "why_it_matters": "Formal staging publication and rollback cannot finish, and production publication cannot pass its staging prerequisite: the proof command invokes a latency gate that explicitly requires CI-GH rollback-rehearsal authority, while formal publication preflight forbids rehearsal and this job supplies none of the required CI_GH variables. The preceding full legacy E2E suite also requires buyer and synthetic failure fixtures that this job never prepares. Any such failure restores the captured baseline instead of activating the approved version; the existing workflow tests only assert command substrings and ordering, so they pass without exercising this incompatible context.",
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "confidence": 100,
+      "evidence": [
+        ".github/workflows/deploy.yml:1111 --             --proof-command 'bunx playwright test --config e2e/playwright.config.ts && bun tools/verify-release-staging-latency.ts'",
+        "tools/verify-release-staging-latency.ts:76-80 requires CI_GH_STAGING_REHEARSAL === 'true' and CI_GH_PRODUCTION_PROMOTION === 'false'; publication-staging does not supply these or CI_GH_VALIDATED_SOURCE_SHA.",
+        ".github/workflows/deploy.yml:91-94 formal-publication preflight requires REHEARSE_STAGING_ROLLBACK to be false.",
+        "e2e/support.ts:29 requires E2E_BUYER_EMAIL; e2e/publication.spec.ts:10 requires E2E_FAILED_CATALOG_RELEASE_ID, and checks the synthetic failed revision. publication-staging lacks the corresponding variables and setup provided by prove-staging.",
+        "tools/storefront-publication.ts:802-806 runs proof-command before the activation callback; its catch path restores baseline on proof failure. tools/deploy-workflow.test.ts:1268 asserts only that the Playwright command string is present."
+      ],
+      "pre_existing": false,
+      "suggested_fix": "Give formal publication a staging proof entry point with its actual run/commit authority and prepared Commerce inputs. Reuse the latency probe implementation behind a formal-publication authority check instead of invoking the rehearsal-only CLI or spoofing rehearsal flags; select/setup the relevant E2E scenarios with all required run-scoped variables and fixtures. Add an executable workflow-context check that runs the selected proof command's authority/configuration path with publication-staging's real environment."
+    },
+    {
+      "title": "Input artifact failure leaves publication permanently building",
+      "severity": "P2",
+      "file": ".github/workflows/deploy.yml",
+      "line": 1008,
+      "why_it_matters": "A transient failure retaining the authorized-input artifact leaves the request marked building even though delivery never starts. The failure callback step occurs before this upload, and the downstream failure job requires publication-request to have succeeded, so neither handles this error. Repeating publication returns the existing pending intent without redispatch, while rerunning the workflow has a different attempt and is rejected by the producer; the environment remains blocked until an operator manually sends the original run's failure callback.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "confidence": 75,
+      "evidence": [
+        ".github/workflows/deploy.yml:1008 --       - name: Retain the run-bound authorized input without credentials",
+        "tools/storefront-publication.ts:616 --     await publicationCallback(source, { ...run, status: \"building\" });",
+        ".github/workflows/deploy.yml:1003-1007 runs the failure handler before the final artifact upload, so it is skipped while the job is still successful.",
+        ".github/workflows/deploy.yml:1226 publication-failure requires needs.publication-request.result == 'success'; an artifact-upload failure makes that prerequisite false.",
+        "apps/api/src/publishing/storefront-publications.ts:323-326 returns a matching pending intent without invoking the build hook; recordStorefrontPublicationResult rejects a changed run attempt. packages/db/migrations/0039_storefront_publications.sql retains a unique pending request per environment."
+      ],
+      "pre_existing": false,
+      "suggested_fix": "Move the publication-request failure callback after the final artifact-retention step, retaining the steps.publication.outcome == 'success' guard so the original run is known and no storefront mutation has occurred. Distinguish input-retention failure from missing production gates. Verify an injected upload failure produces a failed request and permits an explicit new publication attempt."
+    }
+  ],
+  "residual_risks": [],
+  "testing_gaps": []
+}

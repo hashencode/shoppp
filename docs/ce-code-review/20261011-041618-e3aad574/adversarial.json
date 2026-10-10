@@ -1,0 +1,90 @@
+{
+  "reviewer": "adversarial",
+  "findings": [
+    {
+      "title": "Approved live builds fail the fixture-only browser gate",
+      "severity": "P1",
+      "file": "tools/release-validate.ts",
+      "line": 256,
+      "why_it_matters": "A merchant's valid approved public build cannot pass hosted full validation when its catalog or origin differs from the committed fallback fixture. The new public input survives production-builds/static-output, but the following browser gate reuses that output with the unchanged suite that requires Atlas Carry-on, Fixture variants, Select variant, and shop.example.invalid URLs. A browser gate selected from the same immutable public input would validate the actual frozen content without replacing it with a fixture build.",
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Add a public-build browser configuration/suite that derives product routes, names and canonical origin from the retained approved input, and select it for publication validation while reusing the exact generated output. Preserve the public input/theme selector for that gate; keep the existing fixture-specific fallback tests on their own fixture build, rather than rebuilding the delivery artifact to satisfy them. Verify this with an approved input whose product slug and site.origin differ from the committed fixture.",
+      "confidence": 100,
+      "evidence": [
+        "tools/release-validate.ts:256 -- if (![\"production-builds\", \"static-output\"].includes(gateName)) {",
+        "tools/release-validate.ts:257-265 deletes STOREFRONT_BUILD_MODE/STOREFRONT_EXPERIENCE_FILE for browser-journeys and sets STOREFRONT_REUSE_VALIDATED_BUILD = \"1\"; RELEASE_GATES selects the unchanged bun run test:e2e after production-builds and static-output.",
+        "apps/storefront/playwright.config.ts:38-47 uses scripts/serve-static.ts instead of rebuilding when STOREFRONT_REUSE_VALIDATED_BUILD is 1, so it serves the newly generated public artifact.",
+        "apps/storefront/e2e/storefront.spec.ts:5-15 -- the active no-js-desktop test requests /products/atlas-carry-on and requires Atlas Carry-on, $129.00, Fixture variants, Select variant and https://shop.example.invalid/products/atlas-carry-on; line 27 also requires Select variant for the mobile project.",
+        "apps/storefront/scripts/prepare-release.ts:52-73 compiles liveExperienceInput.catalogRelease, while StorefrontExperience.vue:258-272 creates its canonical link from liveRelease.site.origin. Construct an otherwise valid approved Catalog whose only product has a different slug or whose origin is the real configured store: build/static checks can pass, then the selected fixture browser test fails, validate never produces a passed attestation, and publication-staging cannot start."
+      ],
+      "pre_existing": false
+    },
+    {
+      "title": "Public staging proof selects fallback and private-journey tests",
+      "severity": "P1",
+      "file": ".github/workflows/deploy.yml",
+      "line": 1111,
+      "why_it_matters": "Even after validation is repaired, a correctly deployed public Fashion Store cannot pass the selected hosted purchase proof. The root suite's mandatory purchase project clicks the fallback Add to bag button and expects automatic navigation to /cart, while the public live page uses Add to cart and keeps the customer on the product page. Its Fashion purchase project is a private-preview journey that skips without FASHION_U12_PHASE, and the remaining root operations tests require fixture variables that this job never supplies; the delivery runner therefore restores the old version instead of recording activation.",
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Select a hosted public-live purchase proof for this job, binding it to the retained Catalog/Snapshot and using the Fashion Store's actual option selection, Add to cart action and cart navigation. Supply/prepare only the staging Commerce data and required operational fixture variables that the selected tests need, under the existing REL staging authority. Do not use the private-preview FASHION_U12 grant flow or the fallback-specific purchase project as proof of public publication; add a workflow integration check covering the selected configuration and its required environment.",
+      "confidence": 100,
+      "evidence": [
+        ".github/workflows/deploy.yml:1111 -- --proof-command 'bunx playwright test --config e2e/playwright.config.ts && bun tools/verify-release-staging-latency.ts'",
+        "e2e/playwright.config.ts:26-41 always selects provider-purchase from storefront-purchase.spec.ts, selects fashion-provider-purchase separately, and makes release-operations depend on the fallback provider-purchase project.",
+        "e2e/storefront-purchase.spec.ts:16-17 -- await page.getByRole(\"button\", { name: \"Add to bag\" }).click(); await expect(page).toHaveURL(/\\/cart\\/?$/);",
+        "apps/storefront/scripts/prepare-experience.ts:119-145 selects FashionStoreProductPage.vue for the public live snapshot; FashionStoreProductPage.vue:637 renders Add to cart, and addToCart at lines 322-359 updates runtimeState without navigating to /cart.",
+        "e2e/fashion-store-purchase.spec.ts:118 -- test.skip(phase !== \"journey\", \"Runs only inside the locked destructive journey phase.\"); publication-staging does not set FASHION_U12_PHASE, so that project provides no public purchase proof.",
+        "e2e/publication.spec.ts:10, e2e/payment-recovery.spec.ts:14 and e2e/admin-fulfillment.spec.ts:12 require E2E_FAILED_CATALOG_RELEASE_ID, E2E_EXHAUSTED_NOTIFICATION_ID and E2E_BUYER_EMAIL respectively; publication-staging's job/step environment at deploy.yml:1026-1040 and 1095-1106 supplies none of them. The old prove-staging job prepares these fixtures, but it is excluded for publication requests.",
+        "tools/storefront-publication.ts:806-852 executes this proof before completeStorefrontPublication and restores the retained baseline on a proof exception. Thus this incompatible suite prevents a successful receipt for a healthy public deployment."
+      ],
+      "pre_existing": false
+    },
+    {
+      "title": "Every publication fails the rehearsal-only latency authority check",
+      "severity": "P1",
+      "file": ".github/workflows/deploy.yml",
+      "line": 1111,
+      "why_it_matters": "Any publication that reaches the latency command is rejected before a latency request is made. That tool requires the protected CI-GH rollback-rehearsal authority, including CI_GH_STAGING_REHEARSAL=true, CI_GH_PRODUCTION_PROMOTION=false and the validated SHA; the new publication job supplies none of these, and publication preflight explicitly forbids a rollback rehearsal. This rolls back a successful staging publication and blocks every production publication's staging proof.",
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Provide a dedicated formal-publication entry point for the shared latency probe, with authority checks for the protected deploy workflow, exact validated SHA, staging activation target, publication identity and same run. Invoke that entry point from publication-staging while leaving the existing CI-GH rehearsal-only entry point and its guards intact; do not fabricate rehearsal flags to bypass its intentionally different authority. Add a non-network authority test using the actual publication job environment.",
+      "confidence": 100,
+      "evidence": [
+        ".github/workflows/deploy.yml:1111 -- --proof-command 'bunx playwright test --config e2e/playwright.config.ts && bun tools/verify-release-staging-latency.ts'",
+        "tools/verify-release-staging-latency.ts:76-84 requires CI_GH_STAGING_REHEARSAL === \"true\", CI_GH_PRODUCTION_PROMOTION === \"false\" and CI_GH_VALIDATED_SOURCE_SHA; its CLI calls assertReleaseStagingLatencyAuthority at line 244 before runReleaseStagingLatencyProbe.",
+        ".github/workflows/deploy.yml:94-101 requires REHEARSE_STAGING_ROLLBACK to be false for every formal publication, and publication-staging at 1026-1040/1095-1106 provides no CI_GH authority variables. The only CI_GH variables belong to the separate old prove-staging job at 386-388.",
+        "Non-mutating reproduction: importing assertReleaseStagingLatencyAuthority and calling it with GitHub Actions=true, repository=hashencode/shoppp, workflow_dispatch, the protected deploy.yml@refs/heads/main workflow ref and reviewed SHA, but the publication job's absent CI_GH variables, throws \"CI-GH staging rollback rehearsal must be enabled\" before network I/O.",
+        "tools/storefront-publication.ts:806-852 places this command between actual version deployment/observation and the activation callback, so its deterministic rejection invokes baseline restoration; production-source proof remains failed and publication-production's dependency condition cannot pass."
+      ],
+      "pre_existing": false
+    },
+    {
+      "title": "Pre-delivery job failure permanently strands the pending publication",
+      "severity": "P2",
+      "file": ".github/workflows/deploy.yml",
+      "line": 1226,
+      "why_it_matters": "An ordinary job failure before delivery, such as a staging browser installation failure or a production backup rejection, leaves the request marked building although no storefront mutation occurred. The workflow's finalizer excludes staging-source publication-staging failures and any publication-production failure, while the runner's recovery catch begins only after baseline loading/rechecking. Admin consequently keeps showing publishing and refuses another request because the environment's unique pending row never becomes failed; cases before capture also lack the baseline required by the documented recovery command.",
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Give the capture/deliver steps explicit IDs and finalize unsuccessful publication jobs that never entered a mutation-capable delivery step, using the same-run failed callback and the producer's existing current-storefront verification. Cover publication-staging for staging-source requests and publication-production pre-delivery failures; keep post-mutation/unknown outcomes on the existing retained-baseline unresolved recovery path. Add workflow/state integration scenarios for browser-install failure, backup rejection and baseline-capture failure, verifying that a safely failed request permits a new attempt and an unverifiable storefront remains unresolved.",
+      "confidence": 100,
+      "evidence": [
+        ".github/workflows/deploy.yml:1226 -- if: ${{ always() && inputs.publication_id != '' && needs.publication-request.result == 'success' && needs.publication-production.result == 'skipped' && (needs.validate.result == 'failure' || needs.verify-deployment-inputs.result == 'failure' || needs.approve-human-access.result == 'failure' || needs.approve-production.result == 'failure' || (inputs.source_environment == 'production' && needs.publication-staging.result == 'failure')) }}",
+        "tools/storefront-publication.ts:616 sends the building callback in publication-request's fetch step, before the separate publication-staging/production job starts.",
+        "Scenario A: validation and attestation verification succeed for a staging request; deploy.yml:1069 browser installation fails. capture and deliver are skipped, publication-staging is failure, publication-production is skipped, and the finalizer predicate's staging failure branch is disabled because source_environment is staging. The producer row remains building.",
+        "Scenario B: production staging proof and approvals succeed, but the ready/recent backup query at deploy.yml:1163-1180 rejects the supplied backup. publication-production is failure, capture/deliver never start, and finalization is skipped because it requires publication-production to be skipped.",
+        "tools/storefront-publication.ts:711-746 performs capture, retained-baseline read and pre-mutation baseline recheck outside the mutation recovery try, so those exceptions also cannot submit a failed result themselves.",
+        "packages/db/migrations/0039_storefront_publications.sql:37-38 reserves one pending row per environment for queued/building/unresolved; apps/api/src/publishing/storefront-publications.ts:324-330 returns/rejects against that pending row. Admin's panel at lines 162-175 disables publishing while such a row exists. Recovery CLI at tools/storefront-publication.ts:719 requires a retained baseline, which is unavailable for a failure before capture."
+      ],
+      "pre_existing": false
+    }
+  ],
+  "residual_risks": [],
+  "testing_gaps": []
+}

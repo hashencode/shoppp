@@ -5,6 +5,7 @@ date: 2026-10-10
 artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
 execution: code
+status: completed
 ---
 
 # Shoppp 管理后台商家任务与发布流程重构
@@ -13,15 +14,15 @@ execution: code
 
 **Objective:** 商家能按经营任务找到已有功能，并在操作前判断修改何时影响顾客、预览包含什么、上线还差哪一步。
 
-**Means:** 沿用现有页面与业务服务，重组菜单、整理动作和状态、收拢店铺预览入口，最后对接有真实部署证据的发布流程（KTD1–KTD6）。
+**Means:** 沿用现有页面与业务服务，重组菜单、整理动作和状态、收拢店铺预览入口，最后对接有真实部署证据的发布流程（KTD1–KTD7）。
 
-**Authority:** 用户本次约束 → 本计划 Product Contract → 现行产品 master / REL 发布权限 → 已完成功能计划及代码事实。用户已指示开始执行；本文件现为 active product plan，拥有管理后台 U1–U7。REL 的候选与生产权限保持独立。
+**Authority:** 用户本次约束 → 本计划 Product Contract → 现行产品 master / REL 发布权限 → 已完成功能计划及代码事实。用户已指示开始执行；本计划已完成管理后台 U1–U7，保留其实现合同与完成证据；产品执行回交 REL-Pre-DC。REL 的候选与生产权限保持独立。
 
-**Execution profile:** 实施使用当前 checkout；U1–U6 核心已完成。用户于 2026-10-11 授权补齐 REL 正式发布生产者合同并完成 U7，保持 R2 不变。单开发者本地验证与现有分支流程，无默认 PR、worktree、生产部署或候选冻结。
+**Execution profile:** 实施使用当前 checkout；U1–U7 于 2026-10-11 完成本地实现与验证。用户同日授权的 REL 正式发布生产者合同已补齐，R2 保持。单开发者本地验证与现有分支流程，无默认 PR、worktree、生产部署或候选冻结。
 
 **Stop conditions:** 涉及 R2 两个受保护页面内部变化，先单独申请；U7 的授权、接口或环境证据不成立时停在明确的待发布状态。不能以预览或审批成功代替线上生效。
 
-**Tail owner:** 本计划拥有 U7 发布合同实现、管理后台消费、本地回归与文档收尾；REL 拥有合同的发布政策、真实环境操作、DC/PG 与生产发布证据。新增生产者代码不转移生产权限。
+**Tail owner:** 本计划的发布合同实现、管理后台消费、本地回归与文档尾部已结束；REL 接收 Pre-DC 交接，拥有合同的发布政策、真实环境操作、DC/PG 与生产发布证据。新增生产者代码不转移生产权限。
 
 ---
 
@@ -278,12 +279,13 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 
 本节按仓库规则仅维护本计划自身执行状态。状态以实际代码与验证证据为准，REL 当前队列不在这里复制。
 
-- **Plan:** 已激活；管理后台核心完成，正式发布接入实施中。
-- **Current unit:** U7.2 — 接入管理后台的精确发布、当前状态与回滚。
-- **Next concrete action:** 消费已验证的生产者合同，补齐重载恢复、权限和失效保护，再完成 U7.3 的浏览器与共享消费者验证。
-- **Order:** U1–U6 完成 → U7.1 生产者与交付合同 → U7.2 Admin 消费 → U7.3 focused/integration 验证。
-- **Blocker:** 无本地实施阻塞；真实环境操作仍需配置既有 hook/工作流并满足 REL 门禁。
-- **Unit status:** U1–U6 已完成；U7 实施中。全计划未完成，候选未冻结，DC/PG 未开始。
+- **Plan:** Completed — U1–U7 本地实现、审查与验证完成，执行体冻结为历史基线。
+- **Current unit:** U7 — Completed，包含 U7.1、U7.2、U7.3；本计划无待实施单元。
+- **Next concrete action:** 无本计划实施尾部；产品执行已回交 REL-Pre-DC 的 capability/identity reconciliation。
+- **Order:** U1–U6 → U7.1 生产者与交付合同 → U7.2 Admin 消费 → U7.3 focused/integration 验证，全部完成。
+- **Blocker:** 无本计划本地阻塞；真实环境配置、部署与候选门禁仍由 REL 授权和验证。
+- **Unit status:** U1–U7 及 U7.1/U7.2/U7.3 均完成；候选未冻结，DC/PG 未开始。
+- **Evidence:** [后台核心验收](../progress/2026-10-10-admin-merchant-workflows-verification.md)、[正式发布闭包及审查问题收尾](../progress/2026-10-11-admin-formal-storefront-publication-verification.md)。
 - **Update rule:** U 状态、当前/下一步、顺序或 tail 改变时，同一变更更新本节；只有产品级指针变化才同步 master。集中验证证据放 `docs/progress/`，不建立第二执行队列。
 
 ---
@@ -410,7 +412,7 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 
 **Requirements:** R8/R12；F5；AE8。**Dependencies:** U6；用户 2026-10-11 的生产者实现授权。U7.1 建立合同后，U7.2 才接入操作。
 
-**Files:** `docs/architecture/storefront-publication.md`；`packages/contracts/src/{storefront-publication,admin,index}.ts`；`packages/db/migrations/0039_storefront_publications.sql` 与必要 schema；`apps/api/src/publishing/{storefront-publications,candidate-releases,releases}.ts`、`http/app.ts`、`storefront-experience/catalog-resources.ts`；`apps/api/test/catalog/storefront-publication.test.ts`、现有 candidate/security/commerce tests；`apps/storefront/scripts/{experience-build-input,prepare-experience,prepare-release,resolve-prerender-routes,verify-static}.ts`、`nuxt.config.ts`、`worker/index.ts` 与对应 tests；`tools/{storefront-publication,release-validate,deploy-workflow}.test.ts` 和实现；`.github/workflows/{deploy,full-validation}.yml`；`apps/admin/src/pages/storefront/{themes-page,theme-editor-page}.tsx`、局部发布组件及 tests、`services/storefront/api.ts`、`shared/i18n/translations.ts`。复用既有 workflow/凭据，不新增候选 ledger。
+**Files:** `docs/architecture/storefront-publication.md`；`packages/contracts/src/{storefront-publication,admin,index}.ts`；`packages/db/migrations/0039_storefront_publications.sql` 与必要 schema；`apps/api/src/publishing/{storefront-publications,candidate-releases,releases}.ts`、`http/app.ts`、`storefront-experience/catalog-resources.ts`；`apps/api/test/catalog/storefront-publication.test.ts`、现有 candidate/security/commerce tests；`apps/storefront/scripts/{experience-build-input,prepare-experience,prepare-release,resolve-prerender-routes,verify-static}.ts`、`nuxt.config.ts`、`worker/index.ts` 与对应 tests；`tools/{storefront-publication,release-validate,deploy-workflow}.test.ts` 和实现；`.github/workflows/{deploy,full-validation}.yml`；`tools/verify-release-staging-latency{,.test}.ts`、`e2e/formal-publication-*` 与正式/本地 Playwright 配置；公开 `browser/a11y/performance` 消费者及测试；Cart/Checkout 的实际无障碍与首屏跳动修正；`apps/admin/src/pages/storefront/{themes-page,theme-editor-page}.tsx`、局部发布组件及 tests、`services/storefront/api.ts`、`shared/i18n/translations.ts`。复用既有 workflow/凭据，不新增候选 ledger。
 
 **Approach:** KTD6/KTD7。保持 REL knowledge-work 的 DC/PG 责任，不把其 validation-only 计划改成实现队列；本 U 是当前唯一实施 owner。
 
@@ -441,7 +443,7 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 
 原规划阶段按 L0 检查文档结构、引用、ID/依赖和 diff；当前实施按下述等级验证。
 
-实施已读 `apps/admin/AGENTS.md` 及其指定 README、ai-rules、page-recipes、component-catalog、`docs/testing-standards.md`。先确定消费者闭包，再选最小有效集合：U2/U5/U6 为 L3；U3/U4 按实际变化 L2 或 L3；U7 根据真实接口选择跨层/发布验证，不提前扩大运行范围。
+实施已读 `apps/admin/AGENTS.md` 及其指定 README、ai-rules、page-recipes、component-catalog、`apps/admin/docs/testing-standards.md`。先确定消费者闭包，再选最小有效集合：U2/U5/U6 为 L3；U3/U4 按实际变化 L2 或 L3；U7 根据真实接口选择跨层/发布验证，不提前扩大运行范围。
 
 | 验证层 | 可用命令模式 / 完成条件 |
 | --- | --- |

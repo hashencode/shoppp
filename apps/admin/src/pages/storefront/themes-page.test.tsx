@@ -54,10 +54,10 @@ describe('ThemesPage', () => {
     expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(1)
     expect(await screen.findByRole('button', { name: 'New experience draft' })).toBeTruthy()
     expect(
-      screen.getByText(
+      screen.queryByText(
         'Saving or approving a design does not update the storefront. Approved designs await formal release.'
       )
-    ).toBeTruthy()
+    ).toBeNull()
     expect(
       screen.queryByText(
         'Configure fixture-backed Fashion and Decor experiences. Production keeps its current theme.'

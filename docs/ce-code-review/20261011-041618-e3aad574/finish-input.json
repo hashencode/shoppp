@@ -1,0 +1,354 @@
+{
+  "run_id": "20261011-041618-e3aad574",
+  "run_dir": "/Users/studio/Documents/GitHub/shoppp/docs/ce-code-review/20261011-041618-e3aad574",
+  "skill_dir": "/Users/studio/.codex/plugins/cache/compound-engineering-plugin/compound-engineering/3.30.4/skills/ce-code-review",
+  "docs_root": "docs",
+  "mode": {
+    "agent": true,
+    "apply_local": false,
+    "grouping": "auto",
+    "depth": "auto"
+  },
+  "invocation": {
+    "arguments": "mode:agent base:6cd04e6b plan:docs/plans/2026-10-10-2307-refactor-admin-merchant-workflows-plan.md",
+    "constraints": [
+      "No apply token, readonly. Default depth:auto, let the skill self-size.",
+      "Include committed U7 changes plus current settled unstaged changes and the new untracked publication panel/test/evidence file. This is local-aligned scope; no old U6 receipt satisfies this gate.",
+      "No project mutation while you review, except root may finish documentation evidence. Preserve faithful dirty/untracked reviewed source.",
+      "Mutation testing if selected is SCRATCH COPY ONLY, never shared checkout or worktree.",
+      "No Git/index edits, branch switches, installs, deployments, external product writes, candidate freeze, DC/PG, push/PR, task launch or worktree creation. Reviewer artifacts only in skill-resolved artifact root.",
+      "User prohibits any worktree without exact prior confirmation; none given.",
+      "User goal: complete U7 formal release interfaces and actual activation receipts locally; Guide and Dashboard content unchanged. Active plan owns U7 implementation only. REL remains validation-only and owns real deployment/Pre-DC/DC/PG.",
+      "Read plan R8/R12/F5/AE8, KTD6/KTD7 session-settled structure pins, U7 and Verification/DoD; older U1-U6 already completed baseline, not new review work.",
+      "Architecture: docs/architecture/storefront-publication.md. Validate human themes.publish separate from machine build credential; exact raw Catalog+approved Snapshot+Contact+Theme binding; async idempotent job/CAS; authoritative runtime observations and current pointer distinct from historical success; source versus activation environment separation; original same-run baseline retained before mutation; protected production PG; exact rollback no rebuild or database/data rollback; receipt-loss reconciliation and unresolved failure recovery.",
+      "UI uses native AntD and no new page/menu. R2 protected Guide/Dashboard files and original metadata/translations must stay unchanged. Existing a11y primitives own modal/focus behavior, do not demand hypothetical extra screenreader protocols.",
+      "Do not count synthetic local fixtures as hosted/candidate/production proof.",
+      "Host capacity4 includes root and you, so at most2 reviewer children active concurrently. Select entire required roster, dispatch bounded independent batches and collect ALL terminal outcomes in turn; capacity backpressure is not failure and must not silently drop reviewers.",
+      "Finish pipeline strict: after all reviewer results, read finish-input.md, write actual input/artifacts, launch MERGE leaf seeded finish-review.md (you must NOT open finish-review.md), collect; launch/collect its selected validator if applicable; launch REPORT leaf seeded finish-review.md, collect terminal JSON and emit verbatim. No direct synthesis or harness findings tool substitute.",
+      "Honor the top-level sole-location rule for durable review artifacts, e.g. docs/ce-code-review/20261011-041618-e3aad574, preserving current run ID/stage log and recording that the scratch example was overridden."
+    ]
+  },
+  "scope": {
+    "mode": "local-aligned",
+    "base": "6cd04e6b18b4fac62c5bec704190f0113b03b2e9",
+    "diff_a": "6cd04e6b18b4fac62c5bec704190f0113b03b2e9",
+    "diff_b": null,
+    "pr": {
+      "number": null,
+      "url": null,
+      "title": null,
+      "body": null,
+      "base_ref_name": null,
+      "head_ref_oid": null,
+      "head_ref": null,
+      "base_ref": null,
+      "has_prior_comments": false
+    },
+    "branch": "codex/fix-new-arrival-icon",
+    "head_sha": "36701cde3cd1cefdc7c316ecedc4cc741c09dbbc",
+    "files": "/Users/studio/Documents/GitHub/shoppp/docs/ce-code-review/20261011-041618-e3aad574/files.txt",
+    "diff": "/Users/studio/Documents/GitHub/shoppp/docs/ce-code-review/20261011-041618-e3aad574/full.diff",
+    "tree_is_reviewed_head": true,
+    "untracked_excluded": []
+  },
+  "intent": {
+    "summary": "Complete U7 formal publication locally: an authorized human publishes the exact approved Catalog + Snapshot + Contact + Theme bytes through the existing protected delivery workflow, and Admin shows Online only from freshly verified activation evidence. Preserve immutable private origin identity, source/activation environment isolation, idempotency/CAS, exact rollback and unresolved recovery; protected Guide/Dashboard content stays unchanged. Hosted deployment, candidate freeze and DC/PG remain REL-owned.",
+    "confidence": "explicit"
+  },
+  "plan": {
+    "path": "docs/plans/2026-10-10-2307-refactor-admin-merchant-workflows-plan.md",
+    "source": "explicit",
+    "requirements": [
+      {
+        "id": "R1",
+        "text": "现有功能各有一个主要菜单归属；七组结构见下表，不创建占位业务模块。",
+        "scope": "completed inherited U1-U6 baseline"
+      },
+      {
+        "id": "R2",
+        "text": "`/welcome` 开店指南与 `/dashboard` 商业仪表盘只允许移动侧栏位置；保留页面名称、标题、面包屑、内容、布局、指标、动作、状态、数据和逻辑，含共享组件的间接影响。任何内部改动必须另获用户批准。",
+        "scope": "U7 affected behavior"
+      },
+      {
+        "id": "R3",
+        "text": "保留 route key、URL、权限键、直接访问授权、登录落点、query/hash、浏览器返回与开店指南回程；隐藏表单/详情仍归属其主要任务。",
+        "scope": "completed inherited U1-U6 baseline"
+      },
+      {
+        "id": "R4",
+        "text": "保存反馈按实际服务结果表达；不能将即时配置写入称为草稿，也不能将来源 published 或任意历史部署记录称为顾客当前看到的版本。",
+        "scope": "U7 affected behavior"
+      },
+      {
+        "id": "R5",
+        "text": "库存、交易配置、订单/退款/履约、权限、隐私操作和任务重试继续按现有业务规则执行；不受装修发布控制，也不被宣传为可撤销的预览彩排。",
+        "scope": "U7 affected behavior"
+      },
+      {
+        "id": "R6",
+        "text": "店铺预览入口位于在线商店，默认自动准备允许使用的来源并保留精确版本绑定；普通用户无需手填或选择技术版本 ID。",
+        "scope": "completed inherited U1-U6 baseline"
+      },
+      {
+        "id": "R7",
+        "text": "预览说明实际包含范围；未保存装修、内容草稿、新商品草稿及尚不支持的修改不能静默丢失、自动发布或假装已进入完整店铺预览。",
+        "scope": "completed inherited U1-U6 baseline"
+      },
+      {
+        "id": "R8",
+        "text": "私有预览、审核批准、公开构建与线上激活各有真实结果；只有目标环境的实际激活证据允许显示“已上线”。",
+        "scope": "U7 affected behavior"
+      },
+      {
+        "id": "R9",
+        "text": "设置按实际任务排列和划分表单区块，保留现有唯一写入者、原子提交、版本冲突与审批要求，不新增重复配置来源。",
+        "scope": "completed inherited U1-U6 baseline"
+      },
+      {
+        "id": "R10",
+        "text": "常用操作在决策处显示一次必要后果；版本 ID、digest、build attempt 等进入可展开详情，保留错误恢复和必要审计信息。",
+        "scope": "U7 affected behavior"
+      },
+      {
+        "id": "R11",
+        "text": "保留现有 UI recipes、列表查询、库组件交互与无障碍所有权；不为本次改造新建全局状态、导航或焦点框架。",
+        "scope": "U7 affected behavior"
+      },
+      {
+        "id": "R12",
+        "text": "分阶段交付；管理后台核心改善可先完成，正式发布接入受具名前置条件约束，不能因界面改名推定发布能力已完成。",
+        "scope": "U7 affected behavior"
+      }
+    ],
+    "implementation_units": [
+      {
+        "id": "U1",
+        "title": "固定功能归属与操作结果基线",
+        "status": "completed inherited baseline",
+        "review_obligation": "review inherited preservation only"
+      },
+      {
+        "id": "U2",
+        "title": "重组侧栏，保留原页面和链接",
+        "status": "completed inherited baseline",
+        "review_obligation": "review inherited preservation only"
+      },
+      {
+        "id": "U3",
+        "title": "统一动作表达与真实状态",
+        "status": "completed inherited baseline",
+        "review_obligation": "review inherited preservation only"
+      },
+      {
+        "id": "U4",
+        "title": "整理设置任务和同页保存边界",
+        "status": "completed inherited baseline",
+        "review_obligation": "review inherited preservation only"
+      },
+      {
+        "id": "U5",
+        "title": "将私有候选融入在线商店预览",
+        "status": "completed inherited baseline",
+        "review_obligation": "review inherited preservation only"
+      },
+      {
+        "id": "U6",
+        "title": "验收后台核心与批准后的交接",
+        "status": "completed inherited baseline",
+        "review_obligation": "review inherited preservation only"
+      },
+      {
+        "id": "U7",
+        "title": "对接 REL 的正式发布与当前线上回执",
+        "status": "U7.1/U7.2 completed; U7.3 local verification and this review gate underway",
+        "review_obligation": "formal producer/consumer/activation receipt/local closure; hosted/DC/PG excluded"
+      }
+    ],
+    "settled_decisions": [
+      {
+        "id": "Product Key Decision",
+        "decision": "按商家任务组织后台，复用现有能力",
+        "class": "user-approved",
+        "rejected_alternative": "仅解释私有预览或孤立调整该勾选项",
+        "annotation": "session-settled: user-approved"
+      }
+    ]
+  },
+  "roster": {
+    "selected": [
+      {
+        "reviewer": "correctness",
+        "tier": "session",
+        "reason": "always-on behavioral correctness"
+      },
+      {
+        "reviewer": "project-standards",
+        "tier": "mid-tier:gpt-6.1-sol",
+        "reason": "governing root and admin AGENTS instruction criteria; successful no-CODING_STANDARDS fallback"
+      },
+      {
+        "reviewer": "testing",
+        "tier": "mid-tier:gpt-6.1-sol",
+        "reason": "changed multi-layer tests, fixture transport and CI/runtime guard fidelity"
+      },
+      {
+        "reviewer": "maintainability",
+        "tier": "mid-tier:gpt-6.1-sol",
+        "reason": "2786 executable non-test changed lines and substantial new cross-layer publication modules"
+      },
+      {
+        "reviewer": "learnings",
+        "tier": "mid-tier:gpt-6.1-sol",
+        "reason": "cheap live corpus path/title search matched release-resilience learning"
+      },
+      {
+        "reviewer": "security",
+        "tier": "session",
+        "reason": "human themes.publish vs build credential; public/machine endpoints and production gating"
+      },
+      {
+        "reviewer": "performance",
+        "tier": "mid-tier:gpt-6.1-sol",
+        "reason": "Commerce hot-path publication qualification query and staging current-Worker network fallback"
+      },
+      {
+        "reviewer": "api-contract",
+        "tier": "mid-tier:gpt-6.1-sol",
+        "reason": "externally consumed human/machine routes, strict shared schemas and runtime marker contract"
+      },
+      {
+        "reviewer": "data-migration",
+        "tier": "mid-tier:gpt-6.1-sol",
+        "reason": "new 0039 publication request/active pointer/immutability/retention migration and schema"
+      },
+      {
+        "reviewer": "reliability",
+        "tier": "mid-tier:gpt-6.1-sol",
+        "reason": "async delivery, retries, observed activation, same-run recovery, uncertain callbacks"
+      },
+      {
+        "reviewer": "adversarial",
+        "tier": "session",
+        "reason": "auth/persistence/concurrency/external deployment and silent-pass guard; only local fallback route available"
+      },
+      {
+        "reviewer": "julik-frontend-races",
+        "tier": "mid-tier:gpt-6.1-sol",
+        "reason": "Admin asynchronous refresh/reload, late responses, confirmation/submission and local mutation guards"
+      }
+    ],
+    "standards": {
+      "criteria": [
+        {
+          "path": "AGENTS.md",
+          "changed_paths": [
+            ".github/workflows/deploy.yml",
+            ".github/workflows/full-validation.yml",
+            ".gitignore",
+            "apps/admin/src/pages/storefront/theme-editor-page.browser.test.tsx",
+            "apps/admin/src/pages/storefront/theme-editor-page.test.tsx",
+            "apps/admin/src/pages/storefront/theme-editor-page.tsx",
+            "apps/admin/src/pages/storefront/themes-page.test.tsx",
+            "apps/admin/src/pages/storefront/themes-page.tsx",
+            "apps/admin/src/services/storefront/api.ts",
+            "apps/admin/src/shared/i18n/translations.ts",
+            "apps/api/src/cart/service.ts",
+            "apps/api/src/http/app.ts",
+            "apps/api/src/publishing/candidate-releases.ts",
+            "apps/api/src/publishing/releases.ts",
+            "apps/api/src/publishing/storefront-publications.ts",
+            "apps/api/src/storefront-experience/catalog-resources.ts",
+            "apps/api/src/storefront-experience/service.ts",
+            "apps/api/test/catalog/storefront-publication.test.ts",
+            "apps/api/test/storefront-experience/experience-api.test.ts",
+            "apps/storefront/app/StorefrontExperience.vue",
+            "apps/storefront/nuxt.config.ts",
+            "apps/storefront/scripts/experience-build-input.ts",
+            "apps/storefront/scripts/prepare-experience.ts",
+            "apps/storefront/scripts/prepare-release.ts",
+            "apps/storefront/scripts/resolve-prerender-routes.ts",
+            "apps/storefront/scripts/verify-static.ts",
+            "apps/storefront/tests/storefront-publication.test.ts",
+            "apps/storefront/worker/index.ts",
+            "apps/storefront/wrangler.jsonc",
+            "docs/architecture/storefront-publication.md",
+            "docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md",
+            "docs/plans/2026-10-10-2307-refactor-admin-merchant-workflows-plan.md",
+            "packages/contracts/src/admin.ts",
+            "packages/contracts/src/index.ts",
+            "packages/contracts/src/storefront-publication.ts",
+            "packages/contracts/test/storefront-publication.test.ts",
+            "packages/db/migrations/0039_storefront_publications.sql",
+            "packages/db/src/schema/index.ts",
+            "tools/deploy-workflow.test.ts",
+            "tools/release-validate.test.ts",
+            "tools/release-validate.ts",
+            "tools/storefront-publication.test.ts",
+            "tools/storefront-publication.ts",
+            "apps/admin/src/pages/storefront/storefront-publication-panel.test.tsx",
+            "apps/admin/src/pages/storefront/storefront-publication-panel.tsx",
+            "docs/progress/2026-10-11-admin-formal-storefront-publication-verification.md"
+          ]
+        },
+        {
+          "path": "apps/admin/AGENTS.md",
+          "changed_paths": [
+            "apps/admin/src/pages/storefront/theme-editor-page.browser.test.tsx",
+            "apps/admin/src/pages/storefront/theme-editor-page.test.tsx",
+            "apps/admin/src/pages/storefront/theme-editor-page.tsx",
+            "apps/admin/src/pages/storefront/themes-page.test.tsx",
+            "apps/admin/src/pages/storefront/themes-page.tsx",
+            "apps/admin/src/services/storefront/api.ts",
+            "apps/admin/src/shared/i18n/translations.ts",
+            "apps/admin/src/pages/storefront/storefront-publication-panel.test.tsx",
+            "apps/admin/src/pages/storefront/storefront-publication-panel.tsx"
+          ]
+        }
+      ],
+      "fallback_named": true,
+      "not_run_reason": null
+    },
+    "packs": {
+      "roots": [],
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "collection": {
+    "returns": "/Users/studio/Documents/GitHub/shoppp/docs/ce-code-review/20261011-041618-e3aad574/raw-returns.json",
+    "unstructured_returns": [
+      {
+        "reviewer": "learnings-researcher",
+        "path": "/Users/studio/Documents/GitHub/shoppp/docs/ce-code-review/20261011-041618-e3aad574/learnings-researcher.md"
+      }
+    ],
+    "failed_reviewers": [],
+    "bound_exceeded": [],
+    "fast_pass": {
+      "emitted_preliminary": false,
+      "candidates": []
+    }
+  },
+  "peer": {
+    "selected": true,
+    "target": null,
+    "route": null,
+    "preference_source": "default",
+    "outcome": "in-process-fallback",
+    "artifact": null,
+    "coverage": "Cross-model pass: not run. Current Codex-family host probe found only same-family Codex CLI; claude, grok, cursor-agent and opencode were absent. No review content left the machine; adversarial lens ran in-process."
+  },
+  "coverage_notes": [
+    "Depth: full, owned gate floor from migration and large executable scope; exec_nontest_lines=2786, changed_lines=6095, size_band=large. Scope helper tracked counts exclude explicitly included untracked panel/test/evidence.",
+    "Scope: local-aligned current tree against completed U6 base 6cd04e6b18b4fac62c5bec704190f0113b03b2e9, including committed U7, settled tracked dirty files and 3 untracked files by explicit invocation override. No untracked source was excluded. A bare base: invocation ordinarily labels this standalone; caller explicitly named local-aligned current-tree scope; both tree-is-reviewed-head semantics are identical.",
+    "Project standards: root AGENTS.md and apps/admin/AGENTS.md instruction-file fallback; no governing CODING_STANDARDS.md found.",
+    "Artifact root: unset docs_root resolved docs; top-level SKILL.md sole-location rule overrides scope.md scratch example. Initial run was moved before dispatch to docs/ce-code-review with original ID/stage log.",
+    "All 12 selected local lenses collected terminal outcomes in this turn under host-capacity backpressure; 11 structured artifacts plus learnings-researcher prose. No reviewer failed or exceeded its 20-minute/40-call bound.",
+    "No external peer route started; no egress or detached job obligation exists.",
+    "No source/index/Git change, worktree, deployment, install, push/PR or candidate/DC/PG operation performed. Root may finish documentation evidence; final source drift check retained exact production source and staged diff.",
+    "Maintainability reviewer supplied supporting-offset correction preserved in /Users/studio/Documents/GitHub/shoppp/docs/ce-code-review/20261011-041618-e3aad574/maintainability-collection-note.txt. Primary quotes and full artifact remained unchanged.",
+    "Admin AntD default accessibility semantics remain library-owned; hypothetical extra live/focus protocols are outside scope.",
+    "Existing verification claims are local only; not hosted/candidate/production evidence.",
+    "Skipped conditional lenses: {\"agent-native\": \"No changed agent integration/tool registry or requirement for agent access; publication authorization is intentionally human-only. New runner is protected environment orchestration, not an agent tool.\", \"previous-comments\": \"No PR metadata/target.\", \"swift-ios\": \"No Swift/iOS runtime surface.\", \"deployment-verification\": \"0039 adds new tables/guards and permission seed; no destructive DDL, backfill, existing-row NOT NULL, rename/drop.\"}"
+  ]
+}

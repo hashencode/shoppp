@@ -1,0 +1,1222 @@
+diff --git a/apps/admin/src/pages/storefront/storefront-publication-panel.test.tsx b/apps/admin/src/pages/storefront/storefront-publication-panel.test.tsx
+new file mode 100644
+index 00000000..fee67f3c
+--- /dev/null
++++ b/apps/admin/src/pages/storefront/storefront-publication-panel.test.tsx
+@@ -0,0 +1,505 @@
++import React, { useState } from 'react'
++import type {
++  AdminPermission,
++  StorefrontPublication,
++  StorefrontPublicationContext,
++} from '@shoppp/contracts'
++import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
++import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
++import { http, HttpResponse } from 'msw'
++import { setupServer } from 'msw/node'
++import { AuthTestProvider } from '../../test/auth-context-fixture'
++import { renderInLocale } from '../../test/render-in-locale'
++import { useI18n } from '../../shared/contexts/i18n-context'
++import type { StorefrontExperienceDraft } from '../../services/storefront/api'
++import { StorefrontPublicationPanel } from './storefront-publication-panel'
++
++void React
++
++window.ResizeObserver = class {
++  observe() {}
++  unobserve() {}
++  disconnect() {}
++} as unknown as typeof ResizeObserver
++
++const identity = {
++  catalogReleaseId: 'catalog-approved',
++  catalogManifestDigest: 'a'.repeat(64),
++  catalogSourceDigest: 'b'.repeat(64),
++  experienceSnapshotId: 'snapshot-approved',
++  snapshotDigest: 'c'.repeat(64),
++  contactVersion: 'd'.repeat(64),
++  experienceVersion: 2,
++  themeId: 'fashion-store',
++  themeVersion: '1.0.0',
++  platformContractVersion: '1.0.0',
++}
++const draft: StorefrontExperienceDraft = {
++  id: 'draft-approved',
++  experienceId: 'storefront-approved',
++  themeId: 'fashion-store',
++  themeVersion: '1.0.0',
++  configurationSchemaVersion: 1,
++  presetId: 'editorial',
++  overrides: [],
++  bindings: [],
++  version: 2,
++  createdAt: '2026-10-11T00:00:00.000Z',
++  updatedAt: '2026-10-11T00:00:00.000Z',
++  createdBy: 'operator',
++  updatedBy: 'operator',
++  validation: null,
++  validations: [
++    {
++      id: 'validation-approved',
++      catalogReleaseId: identity.catalogReleaseId,
++      draftVersion: 2,
++      status: 'valid',
++      issues: [],
++      createdAt: '2026-10-11T00:00:00.000Z',
++      validatedBy: 'operator',
++    },
++  ],
++}
++const publication = (overrides: Partial<StorefrontPublication> = {}): StorefrontPublication => ({
++  id: 'publication-request',
++  environment: 'staging',
++  identity,
++  operation: 'publish',
++  status: 'queued',
++  expectedActivePublicationId: null,
++  rollbackOf: null,
++  restoreWorkerVersionId: null,
++  createdAt: draft.createdAt,
++  updatedAt: draft.updatedAt,
++  createdBy: 'operator',
++  reason: 'Publish reviewed design',
++  correlationId: null,
++  failureCode: null,
++  runId: null,
++  runAttempt: null,
++  sourceCommit: null,
++  receipt: null,
++  ...overrides,
++})
++const succeeded = (overrides: Partial<StorefrontPublication> = {}) =>
++  publication({
++    status: 'succeeded',
++    receipt: {
++      environment: 'staging',
++      identity: overrides.identity ?? identity,
++      workerVersionId: 'worker-live',
++      deploymentId: 'deployment-live',
++      artifactDigest: 'e'.repeat(64),
++      reportDigest: 'f'.repeat(64),
++      observedAt: draft.createdAt,
++    },
++    ...overrides,
++  })
++const context = (): StorefrontPublicationContext => ({
++  environment: 'staging',
++  approval: {
++    id: identity.experienceSnapshotId,
++    sourceDraftId: draft.id,
++    sourceDraftVersion: draft.version,
++    sourceValidationId: draft.validations[0].id,
++    contentDigest: identity.snapshotDigest,
++    identity,
++  },
++  active: { publication: null, verification: 'none', checkedAt: draft.createdAt },
++  publications: [],
++})
++let current = context()
++let reads = 0
++let body: Record<string, unknown> | null = null
++let mutationHeaders: Headers | null = null
++const server = setupServer(
++  http.get('*/admin/storefront-experiences/drafts/:id/publication-context', () => {
++    reads += 1
++    return HttpResponse.json({ data: current })
++  }),
++  http.post('*/admin/storefront-publications', async ({ request }) => {
++    body = (await request.json()) as Record<string, unknown>
++    mutationHeaders = request.headers
++    const queued = publication()
++    current = { ...current, publications: [queued] }
++    return HttpResponse.json({ data: queued }, { status: 202 })
++  })
++)
++beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
++afterAll(() => server.close())
++afterEach(() => {
++  cleanup()
++  server.resetHandlers()
++  current = context()
++  reads = 0
++  body = null
++  mutationHeaders = null
++})
++
++const renderPanel = (
++  props: Partial<React.ComponentProps<typeof StorefrontPublicationPanel>> = {},
++  permissions: readonly AdminPermission[] = ['themes.read', 'themes.publish']
++) =>
++  renderInLocale(
++    <AuthTestProvider permissions={permissions}>
++      <StorefrontPublicationPanel
++        draft={draft}
++        selectedReleaseId={identity.catalogReleaseId}
++        dirty={false}
++        busy={false}
++        refreshToken={0}
++        {...props}
++      />
++    </AuthTestProvider>
++  )
++const confirmPublish = async () => {
++  fireEvent.click(await screen.findByRole('button', { name: 'Publish storefront' }))
++  const dialog = await screen.findByRole('dialog')
++  fireEvent.change(within(dialog).getByRole('textbox', { name: 'Publication reason' }), {
++    target: { value: 'Publish reviewed design' },
++  })
++  fireEvent.click(within(dialog).getByRole('button', { name: 'Confirm publication' }))
++}
++
++describe('formal storefront publication', () => {
++  it('restores the exact approval on reload and submits a queued request without claiming online', async () => {
++    renderPanel()
++    await screen.findByText('Approved, awaiting formal release')
++    await confirmPublish()
++    await screen.findAllByText('Publication queued')
++    expect(body).toEqual({
++      draftId: draft.id,
++      expectedVersion: 2,
++      identity,
++      expectedActivePublicationId: null,
++      reason: 'Publish reviewed design',
++    })
++    expect(mutationHeaders?.get('Idempotency-Key')).toMatch(/^storefront-publish-/)
++    expect(screen.queryByText('This design is online')).toBeNull()
++    expect(
++      screen.getByRole('button', { name: 'Publish storefront' }).hasAttribute('disabled')
++    ).toBe(true)
++  })
++
++  it('shows online only after explicit refresh verifies the actual current identity', async () => {
++    current.publications = [succeeded()]
++    renderPanel()
++    await screen.findByText('No formal publication yet')
++    expect(screen.queryByText('This design is online')).toBeNull()
++    current.active = {
++      publication: current.publications[0],
++      verification: 'verified',
++      checkedAt: draft.createdAt,
++    }
++    fireEvent.click(screen.getByRole('button', { name: 'Refresh publication status' }))
++    await screen.findByText('This design is online')
++    expect(
++      screen.getByRole('button', { name: 'Publish storefront' }).hasAttribute('disabled')
++    ).toBe(true)
++  })
++
++  it.each(['unavailable', 'mismatch'] as const)(
++    'does not treat a historical success as online when verification is %s',
++    async (verification) => {
++      current = {
++        ...current,
++        active: { publication: succeeded(), verification, checkedAt: draft.createdAt },
++        publications: [succeeded()],
++      }
++      renderPanel()
++      await screen.findByText('Online version could not be verified')
++      expect(screen.queryByText('This design is online')).toBeNull()
++      expect(
++        screen.getByRole('button', { name: 'Publish storefront' }).hasAttribute('disabled')
++      ).toBe(true)
++      fireEvent.click(screen.getByText('Publication history'))
++      await screen.findByText('Previously published')
++    }
++  )
++
++  it('labels another verified design as the current storefront and sends an exact rollback request', async () => {
++    const old = succeeded({
++      id: 'publication-old',
++      identity: { ...identity, experienceSnapshotId: 'snapshot-old' },
++    })
++    const live = succeeded({
++      id: 'publication-live',
++      identity: { ...identity, experienceSnapshotId: 'snapshot-other-draft' },
++    })
++    current = {
++      ...current,
++      active: { publication: live, verification: 'verified', checkedAt: draft.createdAt },
++      publications: [old],
++    }
++    server.use(
++      http.post('*/admin/storefront-publications/rollback', async ({ request }) => {
++        body = (await request.json()) as Record<string, unknown>
++        mutationHeaders = request.headers
++        const queued = publication({
++          operation: 'rollback',
++          identity: old.identity,
++          rollbackOf: old.id,
++          expectedActivePublicationId: live.id,
++        })
++        current.publications = [queued, old]
++        return HttpResponse.json({ data: queued }, { status: 202 })
++      })
++    )
++    renderPanel()
++    await screen.findByText('Current storefront version is verified')
++    expect(screen.queryByText('This design is online')).toBeNull()
++    fireEvent.click(screen.getByText('Publication history'))
++    fireEvent.click(await screen.findByRole('button', { name: 'Restore version publication-old' }))
++    const dialog = await screen.findByRole('dialog')
++    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Publication reason' }), {
++      target: { value: 'Restore reviewed old version' },
++    })
++    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirm rollback' }))
++    await screen.findAllByText('Publication queued')
++    expect(body).toEqual({
++      targetPublicationId: old.id,
++      expectedActivePublicationId: live.id,
++      reason: 'Restore reviewed old version',
++    })
++    expect(mutationHeaders?.get('Idempotency-Key')).toMatch(/^storefront-rollback-/)
++    expect(screen.queryByText('This design is online')).toBeNull()
++  })
++
++  it('allows a failed publication to retry with the current exact approval', async () => {
++    current.publications = [publication({ status: 'failed', failureCode: 'build_hook_failed' })]
++    renderPanel()
++    await screen.findByText('Publication failed')
++    expect(
++      screen.getByText(
++        'Publication could not start. Retry after the delivery service is available.'
++      )
++    ).toBeTruthy()
++    fireEvent.click(screen.getByRole('button', { name: 'Retry publication' }))
++    const dialog = await screen.findByRole('dialog')
++    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Publication reason' }), {
++      target: { value: 'Delivery fixed' },
++    })
++    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirm publication' }))
++    await screen.findAllByText('Publication queued')
++    expect(body).toMatchObject({ identity, reason: 'Delivery fixed' })
++  })
++
++  it('explains the actual missing delivery configuration failure', async () => {
++    current.publications = [
++      publication({ status: 'failed', failureCode: 'build_hook_not_configured' }),
++    ]
++    renderPanel()
++    await screen.findByText('Ask an administrator to configure storefront delivery, then retry.')
++    expect(screen.queryByText('This design is online')).toBeNull()
++  })
++
++  it('retries a failed rollback against its original target and the current online pointer', async () => {
++    const old = succeeded({
++      id: 'publication-old',
++      identity: { ...identity, experienceSnapshotId: 'snapshot-old' },
++    })
++    const live = succeeded({ id: 'publication-live' })
++    current.active = { publication: live, verification: 'verified', checkedAt: draft.createdAt }
++    current.publications = [
++      publication({
++        id: 'publication-failed-restore',
++        operation: 'rollback',
++        status: 'failed',
++        rollbackOf: old.id,
++        failureCode: 'build_hook_failed',
++      }),
++      old,
++    ]
++    server.use(
++      http.post('*/admin/storefront-publications/rollback', async ({ request }) => {
++        body = (await request.json()) as Record<string, unknown>
++        const queued = publication({ operation: 'rollback', rollbackOf: old.id })
++        current.publications = [queued, old]
++        return HttpResponse.json({ data: queued }, { status: 202 })
++      })
++    )
++    renderPanel()
++    fireEvent.click(await screen.findByRole('button', { name: 'Retry rollback' }))
++    const dialog = await screen.findByRole('dialog')
++    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Publication reason' }), {
++      target: { value: 'Retry the reviewed restore' },
++    })
++    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirm rollback' }))
++    await screen.findAllByText('Publication queued')
++    expect(body).toEqual({
++      targetPublicationId: old.id,
++      expectedActivePublicationId: live.id,
++      reason: 'Retry the reviewed restore',
++    })
++  })
++
++  it('keeps an unresolved publication blocked while its actual state is unknown', async () => {
++    current.publications = [publication({ status: 'unresolved' })]
++    renderPanel()
++    await screen.findByText('Publication needs verification')
++    expect(
++      screen.getByRole('button', { name: 'Publish storefront' }).hasAttribute('disabled')
++    ).toBe(true)
++    fireEvent.click(screen.getByRole('button', { name: 'Publish storefront' }))
++    expect(body).toBeNull()
++    expect(screen.queryByRole('dialog')).toBeNull()
++  })
++
++  it.each(['dirty', 'source', 'version', 'validation', 'contact'] as const)(
++    'blocks publishing when the exact approval becomes stale through %s',
++    async (kind) => {
++      if (kind === 'contact') current.approval = null
++      const props =
++        kind === 'dirty'
++          ? { dirty: true }
++          : kind === 'source'
++            ? { selectedReleaseId: 'other-release' }
++            : kind === 'version'
++              ? { draft: { ...draft, version: 3 } }
++              : kind === 'validation'
++                ? { draft: { ...draft, validations: [] } }
++                : {}
++      renderPanel(props)
++      await screen.findByText('No formal publication yet')
++      expect(
++        screen.getByRole('button', { name: 'Publish storefront' }).hasAttribute('disabled')
++      ).toBe(true)
++      expect(screen.queryByText('Approved, awaiting formal release')).toBeNull()
++    }
++  )
++
++  it('uses the approval validation for a publisher without edit, preview, approve or source-selector permission', async () => {
++    renderPanel({ selectedReleaseId: undefined }, ['themes.read', 'themes.publish'])
++    await confirmPublish()
++    await screen.findAllByText('Publication queued')
++    expect(body).toMatchObject({ identity })
++  })
++
++  it('does not infer publish permission from the admin role or approval permission', async () => {
++    renderPanel({}, ['themes.read', 'themes.approve', 'themes.write'])
++    await screen.findByText('Approved, awaiting formal release')
++    expect(screen.queryByRole('button', { name: 'Publish storefront' })).toBeNull()
++    expect(body).toBeNull()
++  })
++
++  it('rejects a late context response after permission loss', async () => {
++    let release!: (value: Response) => void
++    server.use(
++      http.get(
++        '*/admin/storefront-experiences/drafts/:id/publication-context',
++        () =>
++          new Promise<Response>((resolve) => {
++            release = resolve
++          })
++      )
++    )
++    const permissions: readonly AdminPermission[] = ['themes.read', 'themes.publish']
++    const Harness = () => {
++      const [allowed, setAllowed] = useState(true)
++      return (
++        <>
++          <button onClick={() => setAllowed(false)}>Revoke access</button>
++          <AuthTestProvider permissions={allowed ? permissions : []}>
++            <StorefrontPublicationPanel draft={draft} dirty={false} busy={false} refreshToken={0} />
++          </AuthTestProvider>
++        </>
++      )
++    }
++    renderInLocale(<Harness />)
++    await waitFor(() => expect(release).toBeDefined())
++    fireEvent.click(screen.getByRole('button', { name: 'Revoke access' }))
++    await act(async () => {
++      release(HttpResponse.json({ data: current }))
++      await new Promise((resolve) => setTimeout(resolve, 20))
++    })
++    expect(screen.queryByRole('button', { name: 'Publish storefront' })).toBeNull()
++    expect(screen.queryByText('Approved, awaiting formal release')).toBeNull()
++  })
++
++  it('invalidates the confirmation when selected sources change', async () => {
++    const Harness = () => {
++      const [source, setSource] = useState(identity.catalogReleaseId)
++      return (
++        <>
++          <button onClick={() => setSource('changed-release')}>Change source</button>
++          <AuthTestProvider permissions={['themes.read', 'themes.publish']}>
++            <StorefrontPublicationPanel
++              draft={draft}
++              selectedReleaseId={source}
++              dirty={false}
++              busy={false}
++              refreshToken={0}
++            />
++          </AuthTestProvider>
++        </>
++      )
++    }
++    renderInLocale(<Harness />)
++    fireEvent.click(await screen.findByRole('button', { name: 'Publish storefront' }))
++    const dialog = await screen.findByRole('dialog')
++    fireEvent.click(screen.getByRole('button', { name: 'Change source' }))
++    await waitFor(() =>
++      expect(
++        within(dialog).getByRole('button', { name: 'Confirm publication' }).hasAttribute('disabled')
++      ).toBe(true)
++    )
++    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirm publication' }))
++    expect(body).toBeNull()
++  })
++
++  it('keeps confirmation input and request count unchanged when language changes', async () => {
++    const LocaleSwitch = () => {
++      const { setLocale } = useI18n()
++      return <button onClick={() => setLocale('zh-CN')}>Switch language</button>
++    }
++    renderInLocale(
++      <AuthTestProvider permissions={['themes.read', 'themes.publish']}>
++        <LocaleSwitch />
++        <StorefrontPublicationPanel draft={draft} dirty={false} busy={false} refreshToken={0} />
++      </AuthTestProvider>
++    )
++    fireEvent.click(await screen.findByRole('button', { name: 'Publish storefront' }))
++    const dialog = await screen.findByRole('dialog')
++    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Publication reason' }), {
++      target: { value: 'Keep review reason' },
++    })
++    const before = reads
++    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
++    expect(
++      within(dialog).getByRole('textbox', { name: '发布原因' }).getAttribute('value') ??
++        (within(dialog).getByRole('textbox', { name: '发布原因' }) as HTMLTextAreaElement).value
++    ).toBe('Keep review reason')
++    await act(async () => {
++      await new Promise((resolve) => setTimeout(resolve, 20))
++    })
++    expect(reads).toBe(before)
++    fireEvent.click(within(dialog).getByRole('button', { name: '确认发布' }))
++    await screen.findByText('发布已提交')
++    expect(body).toMatchObject({ reason: 'Keep review reason' })
++  })
++
++  it('localizes submission conflicts and never exposes server prose', async () => {
++    server.use(
++      http.post('*/admin/storefront-publications', () =>
++        HttpResponse.json(
++          {
++            error: {
++              code: 'storefront_publication_contact_stale',
++              message: 'PRIVATE SERVER SENTENCE',
++            },
++          },
++          { status: 409 }
++        )
++      )
++    )
++    renderPanel()
++    await confirmPublish()
++    const dialog = await screen.findByRole('dialog')
++    await within(dialog).findByText(
++      'Store contact details changed. Prepare a new preview and approve it before publishing.'
++    )
++    expect(screen.queryByText('PRIVATE SERVER SENTENCE')).toBeNull()
++    expect(screen.queryByText('This design is online')).toBeNull()
++  })
++})
+diff --git a/apps/admin/src/pages/storefront/storefront-publication-panel.tsx b/apps/admin/src/pages/storefront/storefront-publication-panel.tsx
+new file mode 100644
+index 00000000..1dd4e8b0
+--- /dev/null
++++ b/apps/admin/src/pages/storefront/storefront-publication-panel.tsx
+@@ -0,0 +1,641 @@
++import React, { useEffect, useRef, useState } from 'react'
++import { ReloadOutlined } from '@ant-design/icons'
++import {
++  sameStorefrontPublicationIdentity,
++  type StorefrontPublication,
++  type StorefrontPublicationContext,
++  type StorefrontPublicationIdentity,
++} from '@shoppp/contracts'
++import {
++  Alert,
++  Button,
++  Card,
++  Collapse,
++  Descriptions,
++  Form,
++  Input,
++  Modal,
++  Space,
++  Spin,
++  Tag,
++  Typography,
++} from 'antd'
++import { hasPermission } from '../../infrastructure/auth/permissions'
++import { useAuth } from '../../infrastructure/auth/use-auth'
++import {
++  fetchStorefrontPublicationContext,
++  publishStorefront,
++  rollbackStorefrontPublication,
++  type StorefrontExperienceDraft,
++  type StorefrontExperienceSnapshot,
++} from '../../services/storefront/api'
++import { useI18n } from '../../shared/contexts/i18n-context'
++import { localizeApiError } from '../../shared/i18n/api-error'
++import { themeErrorCode } from './theme-feedback'
++
++void React
++
++type Props = {
++  draft: StorefrontExperienceDraft
++  selectedReleaseId?: string
++  dirty: boolean
++  busy: boolean
++  refreshToken: number
++  retainedApproval?: StorefrontExperienceSnapshot | null
++}
++type Confirmation =
++  | { kind: 'publish'; identity: StorefrontPublicationIdentity; expectedActiveId: string | null }
++  | { kind: 'rollback'; targetId: string; expectedActiveId: string }
++
++const statusMessages: Record<StorefrontPublication['status'], string> = {
++  queued: 'Publication queued',
++  building: 'Publishing storefront',
++  succeeded: 'Previously published',
++  failed: 'Publication failed',
++  unresolved: 'Publication needs verification',
++}
++const failureMessages: Record<string, string> = {
++  storefront_publication_pending:
++    'Another publication is in progress. Refresh its status before continuing.',
++  storefront_publication_active_changed:
++    'The online version changed. Refresh and review it before continuing.',
++  storefront_publication_approval_stale:
++    'The approved design changed. Reload the draft and approve the current version.',
++  storefront_publication_approval_invalid:
++    'The approved design is unavailable. Reload the draft and approve the current version.',
++  storefront_publication_identity_mismatch:
++    'The approved sources changed. Reload the draft before publishing.',
++  storefront_publication_source_changed:
++    'The approved sources changed. Reload the draft before publishing.',
++  storefront_publication_contact_stale:
++    'Store contact details changed. Prepare a new preview and approve it before publishing.',
++  storefront_publication_candidate_unavailable:
++    'The preview sources expired. Prepare a new preview and approve it before publishing.',
++  storefront_publication_live_required:
++    'Approve a design with published store sources before publishing.',
++  storefront_publication_rollback_invalid:
++    'This version cannot be restored. Refresh and choose a previously published version.',
++  build_hook_failed: 'Publication could not start. Retry after the delivery service is available.',
++  build_hook_not_configured: 'Ask an administrator to configure storefront delivery, then retry.',
++  production_gate_required:
++    'Production approval is required. Ask an administrator to complete the release approvals.',
++}
++
++export const StorefrontPublicationPanel = ({
++  draft,
++  selectedReleaseId,
++  dirty,
++  busy,
++  refreshToken,
++  retainedApproval,
++}: Props) => {
++  const { t, locale } = useI18n()
++  const { role, permissions, principalKind } = useAuth()
++  const canRead = principalKind === 'human' && hasPermission(role, 'themes.read', permissions)
++  const canPublish = canRead && hasPermission(role, 'themes.publish', permissions)
++  const scope = `${draft.id}:${draft.version}:${canRead}:${canPublish}`
++  const [loaded, setLoaded] = useState<{
++    scope: string
++    context: StorefrontPublicationContext
++  } | null>(null)
++  const [loading, setLoading] = useState(false)
++  const [error, setError] = useState<unknown>(null)
++  const [refresh, setRefresh] = useState(0)
++  const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
++  const [reason, setReason] = useState('')
++  const [submitting, setSubmitting] = useState(false)
++  const request = useRef(0)
++  const mutationBusy = useRef(false)
++
++  useEffect(() => {
++    const sequence = ++request.current
++    const controller = new AbortController()
++    const timer = window.setTimeout(() => {
++      setLoaded(null)
++      setError(null)
++      setConfirmation(null)
++      setReason('')
++      setSubmitting(false)
++      setLoading(canRead)
++      if (!canRead) return
++      void fetchStorefrontPublicationContext(draft.id, controller.signal)
++        .then((context) => {
++          if (request.current === sequence && !controller.signal.aborted)
++            setLoaded({ scope, context })
++        })
++        .catch((cause: unknown) => {
++          if (request.current === sequence && !controller.signal.aborted) setError(cause)
++        })
++        .finally(() => {
++          if (request.current === sequence && !controller.signal.aborted) setLoading(false)
++        })
++    }, 0)
++    return () => {
++      window.clearTimeout(timer)
++      controller.abort()
++      request.current += 1
++    }
++  }, [canRead, draft.id, scope, refresh, refreshToken])
++
++  const context = canRead && loaded?.scope === scope ? loaded.context : null
++  const approval = context?.approval
++  const validation = draft.validations.find(({ id }) => id === approval?.sourceValidationId)
++  const approvalCurrent = Boolean(
++    approval &&
++    approval.sourceDraftId === draft.id &&
++    approval.sourceDraftVersion === draft.version &&
++    validation?.status === 'valid' &&
++    validation.draftVersion === draft.version &&
++    (!selectedReleaseId || selectedReleaseId === approval.identity.catalogReleaseId) &&
++    !dirty
++  )
++  const active = context?.active
++  const activeVerified = active?.verification === 'verified' && Boolean(active.publication?.receipt)
++  const thisDesignOnline = Boolean(
++    activeVerified &&
++    approvalCurrent &&
++    approval &&
++    active?.publication &&
++    sameStorefrontPublicationIdentity(approval.identity, active.publication.identity)
++  )
++  const publications = context?.publications ?? []
++  const pending = publications.find(({ status }) =>
++    ['queued', 'building', 'unresolved'].includes(status)
++  )
++  const latest = publications[0]
++  const activeReady = active?.verification === 'none' || activeVerified
++  const eligible = Boolean(
++    canPublish &&
++    approvalCurrent &&
++    activeReady &&
++    !pending &&
++    !busy &&
++    !loading &&
++    !submitting &&
++    !thisDesignOnline
++  )
++  const rollbackTargets =
++    activeVerified && !pending && !dirty && !busy && !loading && canPublish
++      ? publications.filter(
++          (item) =>
++            item.status === 'succeeded' &&
++            item.receipt &&
++            item.environment === context?.environment &&
++            item.id !== active?.publication?.id
++        )
++      : []
++  const confirmationCurrent = Boolean(
++    confirmation &&
++    context &&
++    canPublish &&
++    !dirty &&
++    !busy &&
++    !loading &&
++    !pending &&
++    (confirmation.kind === 'publish'
++      ? activeReady &&
++        approvalCurrent &&
++        approval &&
++        !thisDesignOnline &&
++        sameStorefrontPublicationIdentity(confirmation.identity, approval.identity) &&
++        confirmation.expectedActiveId === (active?.publication?.id ?? null)
++      : activeVerified &&
++        confirmation.expectedActiveId === active?.publication?.id &&
++        rollbackTargets.some(({ id }) => id === confirmation.targetId))
++  )
++  useEffect(() => {
++    if (!confirmation || confirmationCurrent || submitting) return
++    const timer = window.setTimeout(() => {
++      setConfirmation(null)
++      setReason('')
++    }, 0)
++    return () => window.clearTimeout(timer)
++  }, [confirmation, confirmationCurrent, submitting])
++
++  const openPublish = () => {
++    if (!eligible || !approval) return
++    setError(null)
++    setReason('')
++    setConfirmation({
++      kind: 'publish',
++      identity: approval.identity,
++      expectedActiveId: active?.publication?.id ?? null,
++    })
++  }
++  const openRollback = (targetId: string) => {
++    if (!active?.publication || !rollbackTargets.some(({ id }) => id === targetId)) return
++    setError(null)
++    setReason('')
++    setConfirmation({ kind: 'rollback', targetId, expectedActiveId: active.publication.id })
++  }
++  const submit = async () => {
++    if (
++      !confirmation ||
++      !confirmationCurrent ||
++      mutationBusy.current ||
++      !reason.trim() ||
++      reason.trim().length > 500
++    )
++      return
++    const sequence = request.current
++    mutationBusy.current = true
++    setSubmitting(true)
++    setError(null)
++    try {
++      const result =
++        confirmation.kind === 'publish'
++          ? await publishStorefront({
++              draftId: draft.id,
++              expectedVersion: draft.version,
++              identity: confirmation.identity,
++              expectedActivePublicationId: confirmation.expectedActiveId,
++              reason: reason.trim(),
++            })
++          : await rollbackStorefrontPublication({
++              targetPublicationId: confirmation.targetId,
++              expectedActivePublicationId: confirmation.expectedActiveId,
++              reason: reason.trim(),
++            })
++      if (request.current !== sequence) return
++      setLoaded({
++        scope,
++        context: {
++          ...context!,
++          publications: [result, ...publications.filter(({ id }) => id !== result.id)],
++        },
++      })
++      setConfirmation(null)
++      setReason('')
++      setRefresh((value) => value + 1)
++    } catch (cause) {
++      if (request.current === sequence) setError(cause)
++    } finally {
++      mutationBusy.current = false
++      if (request.current === sequence) setSubmitting(false)
++    }
++  }
++  const failureText = (code?: string | null) =>
++    code && Object.hasOwn(failureMessages, code)
++      ? t(failureMessages[code])
++      : t('Publication did not complete. Refresh its status before retrying.')
++  const errorCode = themeErrorCode(error)
++  const details = approval ?? retainedApproval
++  const retryPublish =
++    latest?.status === 'failed' &&
++    latest.operation === 'publish' &&
++    approval &&
++    sameStorefrontPublicationIdentity(latest.identity, approval.identity)
++  if (!canRead) return null
++
++  return (
++    <Card title={t('Publish storefront')} className="min-w-0">
++      <Space orientation="vertical" className="w-full min-w-0">
++        {loading ? (
++          <Space>
++            <Spin size="small" />
++            <span>{t('Checking publication status')}</span>
++          </Space>
++        ) : null}
++        {error && !confirmationCurrent ? (
++          <Alert
++            type="error"
++            showIcon
++            title={t('Publication status could not be updated')}
++            description={
++              errorCode && Object.hasOwn(failureMessages, errorCode)
++                ? t(failureMessages[errorCode])
++                : localizeApiError(error, t)
++            }
++          />
++        ) : null}
++        {context ? (
++          <>
++            {activeVerified ? (
++              <Space wrap>
++                <Tag color="success">{t('Online')}</Tag>
++                <span>
++                  {t(
++                    thisDesignOnline
++                      ? 'This design is online'
++                      : 'Current storefront version is verified'
++                  )}
++                </span>
++              </Space>
++            ) : active?.verification === 'none' ? (
++              <Typography.Text type="secondary">{t('No formal publication yet')}</Typography.Text>
++            ) : (
++              <Alert
++                type="warning"
++                showIcon
++                title={t('Online version could not be verified')}
++                description={t(
++                  active?.verification === 'mismatch'
++                    ? 'The storefront differs from its activation receipt. Ask an administrator to verify delivery, then refresh.'
++                    : 'The storefront could not be reached. Refresh to check the online version again.'
++                )}
++              />
++            )}
++            {pending ? (
++              <Alert
++                type={pending.status === 'unresolved' ? 'warning' : 'info'}
++                showIcon
++                title={t(statusMessages[pending.status])}
++                description={
++                  pending.status === 'unresolved'
++                    ? t(
++                        'Ask an administrator to verify or restore the storefront, then refresh. New publications are paused.'
++                      )
++                    : undefined
++                }
++              />
++            ) : null}
++            {!pending && latest?.status === 'failed' ? (
++              <Alert
++                type="error"
++                showIcon
++                title={t('Publication failed')}
++                description={failureText(latest.failureCode)}
++              />
++            ) : null}
++            {approvalCurrent && !pending && !thisDesignOnline ? (
++              <Tag>{t('Approved, awaiting formal release')}</Tag>
++            ) : null}
++            {!approvalCurrent && !pending ? (
++              <Typography.Text type="secondary">
++                {t(
++                  dirty
++                    ? 'Save or discard edits before publishing.'
++                    : 'Approve the current saved design before publishing.'
++                )}
++              </Typography.Text>
++            ) : null}
++            <Space wrap>
++              {canPublish ? (
++                <Button type="primary" disabled={!eligible} onClick={openPublish}>
++                  {t(retryPublish ? 'Retry publication' : 'Publish storefront')}
++                </Button>
++              ) : null}
++              {canPublish &&
++              latest?.status === 'failed' &&
++              latest.operation === 'rollback' &&
++              latest.rollbackOf ? (
++                <Button
++                  disabled={!rollbackTargets.some(({ id }) => id === latest.rollbackOf)}
++                  onClick={() => openRollback(latest.rollbackOf!)}
++                >
++                  {t('Retry rollback')}
++                </Button>
++              ) : null}
++              <Button
++                icon={<ReloadOutlined aria-hidden />}
++                loading={loading}
++                disabled={submitting || busy}
++                onClick={() => setRefresh((value) => value + 1)}
++              >
++                {t('Refresh publication status')}
++              </Button>
++            </Space>
++            {publications.length || active?.publication ? (
++              <Collapse
++                items={[
++                  {
++                    key: 'versions',
++                    label: t('Publication history'),
++                    children: (
++                      <Space orientation="vertical" className="w-full min-w-0">
++                        {active?.publication ? (
++                          <Descriptions
++                            size="small"
++                            column={1}
++                            items={[
++                              {
++                                key: 'current',
++                                label: t('Current version'),
++                                children: (
++                                  <Typography.Text className="break-all">
++                                    {active.publication.id}
++                                  </Typography.Text>
++                                ),
++                              },
++                            ]}
++                          />
++                        ) : null}
++                        {publications.map((item) => (
++                          <div key={item.id} className="w-full min-w-0">
++                            <Space wrap>
++                              <Typography.Text>
++                                {new Date(item.createdAt).toLocaleString(locale)}
++                              </Typography.Text>
++                              <Tag>
++                                {t(
++                                  activeVerified && active?.publication?.id === item.id
++                                    ? 'Online'
++                                    : statusMessages[item.status]
++                                )}
++                              </Tag>
++                            </Space>
++                            <Descriptions
++                              size="small"
++                              column={1}
++                              items={[
++                                {
++                                  key: 'id',
++                                  label: t('Publication ID'),
++                                  children: <span className="break-all">{item.id}</span>,
++                                },
++                                {
++                                  key: 'catalog',
++                                  label: t('Catalog version'),
++                                  children: (
++                                    <span className="break-all">
++                                      {item.identity.catalogReleaseId}
++                                    </span>
++                                  ),
++                                },
++                                {
++                                  key: 'snapshot',
++                                  label: t('Approved design'),
++                                  children: (
++                                    <span className="break-all">
++                                      {item.identity.experienceSnapshotId}
++                                    </span>
++                                  ),
++                                },
++                                {
++                                  key: 'digest',
++                                  label: t('Content digest'),
++                                  children: (
++                                    <span className="break-all">
++                                      {item.identity.snapshotDigest}
++                                    </span>
++                                  ),
++                                },
++                                {
++                                  key: 'contact',
++                                  label: t('Contact version'),
++                                  children: (
++                                    <span className="break-all">
++                                      {item.identity.contactVersion}
++                                    </span>
++                                  ),
++                                },
++                                {
++                                  key: 'theme',
++                                  label: t('Theme version'),
++                                  children: `${item.identity.themeId} ${item.identity.themeVersion}`,
++                                },
++                                { key: 'reason', label: t('Reason'), children: item.reason },
++                              ]}
++                            />
++                            {canPublish &&
++                            item.status === 'succeeded' &&
++                            item.receipt &&
++                            item.environment === context.environment &&
++                            item.id !== active?.publication?.id ? (
++                              <Button
++                                aria-label={t('Restore version {id}', { id: item.id })}
++                                disabled={!rollbackTargets.some(({ id }) => id === item.id)}
++                                onClick={() => openRollback(item.id)}
++                              >
++                                {t('Restore this version')}
++                              </Button>
++                            ) : null}
++                          </div>
++                        ))}
++                      </Space>
++                    ),
++                  },
++                ]}
++              />
++            ) : null}
++          </>
++        ) : !loading ? (
++          <Button
++            icon={<ReloadOutlined aria-hidden />}
++            onClick={() => setRefresh((value) => value + 1)}
++          >
++            {t('Refresh publication status')}
++          </Button>
++        ) : null}
++        {details ? (
++          <Collapse
++            items={[
++              {
++                key: 'approval',
++                label: t('Approval details'),
++                forceRender: true,
++                children: (
++                  <Space orientation="vertical" className="w-full min-w-0">
++                    <Typography.Text className="break-all">
++                      {t('{id} · source draft v{version} · audit succeeded', {
++                        id: details.id,
++                        version: details.sourceDraftVersion,
++                      })}
++                    </Typography.Text>
++                    {approval ? (
++                      <Descriptions
++                        size="small"
++                        column={1}
++                        items={[
++                          {
++                            key: 'catalog',
++                            label: t('Catalog version'),
++                            children: (
++                              <span className="break-all">
++                                {approval.identity.catalogReleaseId}
++                              </span>
++                            ),
++                          },
++                          {
++                            key: 'digest',
++                            label: t('Content digest'),
++                            children: <span className="break-all">{approval.contentDigest}</span>,
++                          },
++                          {
++                            key: 'contact',
++                            label: t('Contact version'),
++                            children: (
++                              <span className="break-all">{approval.identity.contactVersion}</span>
++                            ),
++                          },
++                          {
++                            key: 'theme',
++                            label: t('Theme version'),
++                            children: `${approval.identity.themeId} ${approval.identity.themeVersion}`,
++                          },
++                        ]}
++                      />
++                    ) : null}
++                  </Space>
++                ),
++              },
++            ]}
++          />
++        ) : null}
++      </Space>
++      <Modal
++        open={confirmationCurrent}
++        title={t(
++          confirmation?.kind === 'rollback'
++            ? 'Restore previous storefront version?'
++            : 'Publish this approved design?'
++        )}
++        okText={t(confirmation?.kind === 'rollback' ? 'Confirm rollback' : 'Confirm publication')}
++        cancelText={t('Cancel')}
++        confirmLoading={submitting}
++        closable={!submitting}
++        mask={{ closable: !submitting }}
++        cancelButtonProps={{ disabled: submitting }}
++        okButtonProps={{ disabled: !confirmationCurrent || !reason.trim() }}
++        onCancel={() => {
++          setConfirmation(null)
++          setReason('')
++        }}
++        onOk={() => void submit()}
++        destroyOnHidden
++      >
++        {error ? (
++          <Alert
++            type="error"
++            showIcon
++            title={t('Publication could not be submitted')}
++            description={
++              errorCode && Object.hasOwn(failureMessages, errorCode)
++                ? t(failureMessages[errorCode])
++                : localizeApiError(error, t)
++            }
++          />
++        ) : null}
++        <Typography.Paragraph>
++          {t('Publishing environment: {environment}', {
++            environment:
++              context?.environment === 'production'
++                ? t('Production')
++                : context?.environment === 'staging'
++                  ? t('Staging')
++                  : t('Development'),
++          })}
++        </Typography.Paragraph>
++        <Typography.Paragraph>
++          {t(
++            confirmation?.kind === 'rollback'
++              ? 'Delivery will restore the selected version after verification. Current transactions remain in place.'
++              : 'Delivery will replace the storefront with this approved design and its frozen content after verification.'
++          )}
++        </Typography.Paragraph>
++        <Form layout="vertical">
++          <Form.Item label={t('Publication reason')} required>
++            <Input.TextArea
++              aria-label={t('Publication reason')}
++              rows={3}
++              maxLength={500}
++              value={reason}
++              disabled={submitting}
++              onChange={(event) => setReason(event.target.value)}
++            />
++          </Form.Item>
++        </Form>
++      </Modal>
++    </Card>
++  )
++}
+diff --git a/docs/progress/2026-10-11-admin-formal-storefront-publication-verification.md b/docs/progress/2026-10-11-admin-formal-storefront-publication-verification.md
+new file mode 100644
+index 00000000..98ebfdcb
+--- /dev/null
++++ b/docs/progress/2026-10-11-admin-formal-storefront-publication-verification.md
+@@ -0,0 +1,58 @@
++# 管理后台正式发布验证证据
++
++Owning plan: [管理后台商家任务与发布流程重构](../plans/2026-10-10-2307-refactor-admin-merchant-workflows-plan.md)，U7 / R8、R12 / F5 / AE8。实现基线为 `6cd04e6b`；合同提交 `9ae900cd`，生产者与交付提交 `36701cde`。本文件记录验证证据，不维护执行队列。
++
++## 合同与实际行为
++
++- 人类发布权限 `themes.publish` 独立于保存、预览和批准；机器 build credential 不能创建人类授权。发布绑定批准的 Catalog 原始字节、Snapshot、Contact 和 Theme 身份，保留私有 manifest 的用途与摘要。
++- API 持久化精确请求后 dispatch；重复请求不重复交付。queued/building、failed、unresolved 与已核实的当前线上版本分别处理。成功历史记录自身不能证明现在在线。
++- 公开 compiler 消费已批准的 live Snapshot，生成同一不可变身份和原始 Catalog 字节；公开产物不含私有预览凭据、fixture 或预览 noindex。Worker 观察接口加入实际运行版本，生产者核对配置的真实店铺后才接受激活回执。
++- source environment 与 activation environment 保持分离。production 来源的 staging 证明不回调生产激活、不复制生产 D1；staging Commerce 仅可核对当前公开 Worker 的精确目录产物，production 不使用该旁路。
++- 交付前将旧 Worker 基线保存在同次受保护任务的产物中。交付或回执失败恢复并核对旧版本；无法确认恢复时保留 unresolved。强制终止后的恢复使用保留基线并另需环境操作授权。
++- 授权回滚恢复旧成功回执中的精确 Worker，不重新构建、不回滚交易数据或数据库迁移。已成功激活的 Catalog 可继续供现有购物车使用，不依赖原私有预览租期。
++
++## 生产者、公开消费者与交付验证
++
++| 边界 | 命令与结果 | 证明范围 |
++| --- | --- | --- |
++| Shared contracts | `bun run --cwd packages/contracts test`：72 pass；contracts、db typecheck 通过 | 发布 identity、角色权限、回执、环境与严格输入合同 |
++| API/D1 正式发布 | `bun run --cwd apps/api test:workers test/catalog/storefront-publication.test.ts test/security/redaction.test.ts`：16 pass | 真实路由、D1 状态、授权、过期私有来源、幂等/CAS、乱序回调、实际 observation、失败与回滚 |
++| 既有 API 消费者 | candidate-release、cart、experience-api、retirement-policy、public-boundaries、audit-reason 六个文件：首次 96 pass / 1 fail / 1 skip；关闭失败后 experience-api 全文件 42/42 pass | 候选、安全、审批审计与 Commerce 兼容；外部 U9 handshake 未配置的既有 skip 不算通过 |
++| Storefront 与 gateway | `bun test apps/storefront/tests/storefront-publication.test.ts apps/storefront/tests/theme-engine.test.ts apps/storefront/tests/generation.test.ts apps/storefront/tests/catalog-release-source.test.ts tools/environment-gateway.test.ts`：87 pass | 精确编译输入、公开/private/fallback 分支、运行身份、原始 Catalog、source/environment 边界 |
++| Runner / release / workflow | `bun test tools/storefront-publication.test.ts tools/release-validate.test.ts tools/deploy-workflow.test.ts`：95 pass | 同一产物证明、生产门禁、基线保存顺序、恢复、回执丢失与终态重读、exact rollback；两份 workflow YAML 解析通过 |
++| 实际公开构建 | `STOREFRONT_BUILD_MODE=public STOREFRONT_EXPERIENCE_FILE=/tmp/shoppp-u7-public-input.json bun run --cwd apps/storefront build`，随后同输入 `verify:static`：通过 | 实际 Nuxt generation、Vue 类型检查、276 assets、Wrangler dry-run 和公开静态检查；未部署 |
++
++API、工具和 Storefront 的 scoped lint/type checks 通过。构建产生的 tracked generated/public 文件在核验后恢复至构建前版本，临时构建和截图产物不提交。
++
++## 复验发现与关闭
++
++- 宽 API 回归发现旧审计脱敏把部分合法 Snapshot ID 判为银行卡数据，审批重试返回 `fashion_u8_operator_approval_conflict`。先确定性复现，再仅让审批权威审计完整保留固定非敏感身份字段；通用日志脱敏保持。相关 experience-api 42/42 通过。
++- 实际公开构建发现合法空 collections 被生成成 `never[]`，使 Storefront 类型检查失败。生成器显式输出 readonly compact Catalog collection 类型，原始内容和摘要不变；随后真实 build/static verification 通过。
++- 上下文原先按草稿过滤发布记录，但 active 与 pending 约束均为环境级，导致切换装修后看不到其他草稿的进度和恢复目标。真实 API/D1 先复现空记录，再去掉该 draft join/filter；当前批准仍精确绑定草稿，跨环境记录仍排除。修改后的完整 publication suite 13/13、API typecheck 和局部 ESLint 通过。
++- 构建输入是本地代表性 fixture，包含有效 live binding、商品/集合和冻结 Contact。它用于编译闭包验证，不是候选或任何真实环境批准记录。
++
++## Admin 共享消费者闭包
++
++按 Admin L3 验证。`rg` 引用搜索及 workspace metadata 确认 `@shoppp/contracts` 的权限目录由 IAM permission-checklist、权限策略和 i18n provider 消费；新增发布服务由主题编辑器的局部发布面板消费。没有新增路由、菜单或共享表单框架。
++
++- `bun run --cwd apps/admin test src/pages/iam/iam-pages.test.tsx src/shared/contexts/i18n-context.test.tsx src/test/permissions.test.ts --pool.maxWorkers 2`：44/44 pass，覆盖权威权限集合、新目录项双语标签、IAM 交互和语言切换。
++- `bun test tools/check-admin-i18n.test.ts`：8/8 pass，覆盖生产调用、注册目录、插值和未知错误句子的边界。
++- `bun run --cwd apps/admin test src/pages/storefront/storefront-publication-panel.test.tsx src/pages/storefront/theme-editor-page.test.tsx src/pages/storefront/themes-page.test.tsx`：91/91 pass，3 files、无 skip。覆盖重载恢复、精确发布、独立权限、dirty/source/Contact 失效、迟到响应、真实当前身份、失败恢复、回滚 CAS 与语言切换；旧预览/批准消费者完整复验。
++- 复验修正了保留批准详情在 context 重载时消失的问题，历史详情继续可见但不能授予发布资格。实际 hook 错误 `build_hook_failed` / `build_hook_not_configured` 分别提供服务恢复与管理员配置动作。
++- jsdom 复验曾因 AntD 退出动画断言、重复状态选择器和重型全页 role 重试查询失败；改为确认失效后不 dispatch、就近状态断言及明确标签/操作文本查询。长流程采用该文件既有的 20 秒模式，业务、安全和语言状态断言保留；临时请求诊断及无收益的 session fixture 修改移除。
++- R2 基线检查：7 个受保护页面/测试文件、31 项 route 元数据及 1556 条既有翻译保持；无意外移除。仅 U5 已批准的 10 个旧候选面板专用 key 被移除。开店指南和商业仪表盘的内容不变。
++- 最后新增 failed rollback 的原目标/current pointer 重试断言后，仅 panel test file 再验：20/20 pass。该变更没有改生产代码、editor 或 Themes tests。
++- 原生 Browser Mode 完整 ThemeEditor file：desktop en-US / Asia/Shanghai 12/12 pass；390px narrow zh-CN / UTC 12/12 pass，均无 skip。只替换 HTTP transport，实际 AntD、CSS、reason/confirm/refresh/rollback 控件、语言状态及历史详情 viewport 检查通过。Modal 关闭动画和遮罩行为由 AntD 保持；语言切换 fixture 通过 provider 事件触发，不尝试穿透原生遮罩点击背景控件。
++- `bun run --cwd apps/admin typecheck` 通过；9 个 Admin 变更文件的 scoped Prettier、ESLint 通过，`git diff --check` 通过。
++
++## 简化与质量检查
++
++三个独立简化 reviewer 均完成：复用 2 项、质量 1 项、效率 0 项，共应用 3 项，没有未采纳的 finding。API 审批沿用完全等价的 shared canonical serializer；静态输出沿用既有 identity 比较；两个发布去重分支复用局部纯 predicate。安全检查、比较顺序、错误、数据库操作及部署观察顺序保持。
++
++- 简化后 `bun run --cwd apps/api test:workers test/catalog/storefront-publication.test.ts test/storefront-experience/experience-api.test.ts`：55/55 pass；API typecheck 与三个修改文件的 scoped ESLint、Prettier 通过。
++- 简化后相同 public input 的实际 `build` 与 `verify:static` 再验通过；构建没有部署，12 个 tracked generated/public 文件再次恢复到构建前 HEAD。
++- Admin 最后仅修改测试后的 typecheck 再验通过。
++
++## 验证边界
++
++本次完成本地实现和验证，没有执行真实 staging/production 部署、候选冻结、DC 或 PG。现有 hook 仍须转发 publication/source environment，运行环境须应用 migration `0039` 并满足既有受保护发布门禁；配置与强制终止恢复见 [正式发布架构](../architecture/storefront-publication.md)。本地测试不会产生生产操作许可或线上验收回执。

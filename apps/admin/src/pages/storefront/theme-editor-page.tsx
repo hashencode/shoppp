@@ -88,6 +88,7 @@ import {
 import { CatalogMediaPicker } from './catalog-media-picker'
 import { StorefrontResourcePicker } from './storefront-resource-picker'
 import { StorefrontLinkEditor, type StorefrontEditorResource } from './storefront-link-editor'
+import { StorefrontPublicationPanel } from './storefront-publication-panel'
 
 void React
 
@@ -431,6 +432,7 @@ export const ThemeEditorPage = ({
   const canReadIdentity = hasPermission(role, 'identity.read', permissions)
   const canReadPolicies = hasPermission(role, 'policies.read', permissions)
   const canApprove = hasPermission(role, 'themes.approve', permissions)
+  const canPublish = hasPermission(role, 'themes.publish', permissions)
   const [draft, setDraft] = useState<StorefrontExperienceDraft | null>(null)
   const [operatorRun, setOperatorRun] = useState<FashionStagingOperatorRun | null>(null)
   const [theme, setTheme] = useState<AdminStorefrontTheme | null>(null)
@@ -465,6 +467,7 @@ export const ThemeEditorPage = ({
   const [approvedSnapshot, setApprovedSnapshot] = useState<StorefrontExperienceSnapshot | null>(
     null
   )
+  const [publicationRefresh, setPublicationRefresh] = useState(0)
   const [migration, setMigration] = useState<StorefrontExperienceMigration | null>(null)
   const [conflict, setConflict] = useState<DraftConflict | null>(null)
   const [upgradeThemeKey, setUpgradeThemeKey] = useState('')
@@ -1047,12 +1050,6 @@ export const ThemeEditorPage = ({
   ])
   const validationCurrent =
     currentValidation?.status === 'valid' && currentValidation.draftVersion === draft?.version
-  const approvalCurrent =
-    !dirty &&
-    validationCurrent &&
-    approvedSnapshot?.sourceDraftId === draft?.id &&
-    approvedSnapshot?.sourceDraftVersion === draft?.version &&
-    approvedSnapshot?.sourceValidationId === currentValidation?.id
   const previewContextCurrent =
     build?.status === 'deployed' &&
     previewSnapshot?.id === build.snapshotId &&
@@ -1421,7 +1418,7 @@ export const ThemeEditorPage = ({
           }
         />
       ) : null}
-      {!canWrite ? (
+      {!canWrite && !canPublish ? (
         <Alert
           type="info"
           showIcon
@@ -2726,6 +2723,7 @@ export const ThemeEditorPage = ({
                   )
                   if (selectedReleaseIdRef.current !== releaseId) return
                   setApprovedSnapshot(snapshot)
+                  setPublicationRefresh((value) => value + 1)
                   if (operatorRun) {
                     setOperatorRun(null)
                     try {
@@ -2742,29 +2740,17 @@ export const ThemeEditorPage = ({
             >
               {t('Approve exact draft v{version}', { version: draft.version })}
             </Button>
-            {approvedSnapshot ? (
-              <>
-                {approvalCurrent ? (
-                  <Alert type="success" showIcon title={t('Approved, awaiting formal release')} />
-                ) : null}
-                <Collapse
-                  items={[
-                    {
-                      key: 'approval-details',
-                      label: t('Approval details'),
-                      forceRender: true,
-                      children: t('{id} · source draft v{version} · audit succeeded', {
-                        id: approvedSnapshot.id,
-                        version: approvedSnapshot.sourceDraftVersion,
-                      }),
-                    },
-                  ]}
-                />
-              </>
-            ) : null}
           </Space>
         </Card>
       ) : null}
+      <StorefrontPublicationPanel
+        draft={draft}
+        selectedReleaseId={canPreview && canReadCatalog ? selectedReleaseId : undefined}
+        dirty={dirty}
+        busy={busy}
+        refreshToken={publicationRefresh}
+        retainedApproval={approvedSnapshot?.sourceDraftId === draft.id ? approvedSnapshot : null}
+      />
     </main>
   )
 }

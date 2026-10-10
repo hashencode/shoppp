@@ -1,0 +1,49 @@
+[
+  {
+    "action": "rejected",
+    "reviewer": "maintainability",
+    "original_primary_number": 5,
+    "title": "File-size regression: deployment workflow crosses 1,000 lines",
+    "reason": "The quoted declarations and file lengths establish growth, but no project-scoped 1,000-line rule, broken contract, user-facing defect, or measured maintenance failure. Module/action/test repartition is an optional structural preference. Keep the settled KTD6/KTD7 publication architecture; file size alone does not justify a high-severity gate or an extra abstraction in this bounded U7 review.",
+    "severity_calibration": "P1 -> P2 (maintainability concern only)"
+  },
+  {
+    "action": "rejected",
+    "reviewer": "maintainability",
+    "original_primary_number": 6,
+    "title": "File-size regression: publication API suite exceeds 1,000 lines",
+    "reason": "The quoted declarations and file lengths establish growth, but no project-scoped 1,000-line rule, broken contract, user-facing defect, or measured maintenance failure. Module/action/test repartition is an optional structural preference. Keep the settled KTD6/KTD7 publication architecture; file size alone does not justify a high-severity gate or an extra abstraction in this bounded U7 review.",
+    "severity_calibration": "P1 -> P2 (maintainability concern only)"
+  },
+  {
+    "action": "rejected",
+    "reviewer": "maintainability",
+    "original_primary_number": 9,
+    "title": "File-size regression: release validator crosses 1,000 lines",
+    "reason": "The quoted declarations and file lengths establish growth, but no project-scoped 1,000-line rule, broken contract, user-facing defect, or measured maintenance failure. Module/action/test repartition is an optional structural preference. Keep the settled KTD6/KTD7 publication architecture; file size alone does not justify a high-severity gate or an extra abstraction in this bounded U7 review.",
+    "severity_calibration": "P1 -> P2 (maintainability concern only)"
+  },
+  {
+    "action": "rejected",
+    "reviewer": "maintainability",
+    "original_primary_number": 12,
+    "title": "File-size regression: editor browser suite grows by 297 lines",
+    "reason": "The quoted declarations and file lengths establish growth, but no project-scoped 1,000-line rule, broken contract, user-facing defect, or measured maintenance failure. Module/action/test repartition is an optional structural preference. Keep the settled KTD6/KTD7 publication architecture; file size alone does not justify a high-severity gate or an extra abstraction in this bounded U7 review.",
+    "severity_calibration": "P2 unchanged"
+  },
+  {
+    "action": "semantic-merge",
+    "source_numbers": [8, 10],
+    "reason": "Same public release validation consumer and same input-derived browser-suite fix path."
+  },
+  {
+    "action": "semantic-factor-and-merge",
+    "source_numbers": [1, 2, 3, 4],
+    "reason": "The two broad staging-proof claims contain both browser-contract incompatibility and rehearsal-only latency authority failure. These are separate failure modes with separate test/entry-point fixes, retained separately and corroborated by correctness, reliability and the in-process adversarial lens."
+  },
+  {
+    "action": "semantic-merge",
+    "source_numbers": [11, 14],
+    "reason": "Same missing pre-delivery callback, same predicate and same local protected-job finalizer fix path; artifact-input upload failure remains separate because its request-job ordering fix differs."
+  }
+]

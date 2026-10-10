@@ -1,4 +1,74 @@
 export const zhCNMessages: Record<string, string> = {
+  'Publish storefront': '发布店铺',
+  'Publishing environment: {environment}': '发布环境：{environment}',
+  'Publish approved storefront snapshots and restore previously activated versions.':
+    '发布已批准的店铺版本，并恢复此前已上线的版本。',
+  'Publication queued': '发布已提交',
+  'Publishing storefront': '正在发布店铺',
+  'Previously published': '曾发布成功',
+  'Publication failed': '发布失败',
+  'Publication needs verification': '发布状态待核实',
+  'Checking publication status': '正在核对发布状态',
+  'Publication status could not be updated': '无法更新发布状态',
+  'Publication could not be submitted': '发布未能提交',
+  Online: '已上线',
+  'This design is online': '此装修已上线',
+  'Current storefront version is verified': '当前店铺版本已核实',
+  'No formal publication yet': '尚未正式发布',
+  'Online version could not be verified': '无法确认线上版本',
+  'The storefront differs from its activation receipt. Ask an administrator to verify delivery, then refresh.':
+    '店铺当前版本与上线回执不符，请管理员核实交付后刷新。',
+  'The storefront could not be reached. Refresh to check the online version again.':
+    '暂时无法访问店铺，请刷新后重新核对线上版本。',
+  'Ask an administrator to verify or restore the storefront, then refresh. New publications are paused.':
+    '请管理员核实或恢复店铺后刷新，期间无法提交新发布。',
+  'Save or discard edits before publishing.': '发布前，请先保存或放弃当前修改。',
+  'Approve the current saved design before publishing.': '发布前，请先批准当前已保存的装修。',
+  'Retry publication': '重试发布',
+  'Retry rollback': '重试恢复',
+  'Refresh publication status': '刷新发布状态',
+  'Publication history': '发布记录',
+  'Current version': '当前版本',
+  'Publication ID': '发布编号',
+  'Catalog version': '内容版本',
+  'Approved design': '已批准装修',
+  'Contact version': '联系方式版本',
+  'Restore version {id}': '恢复版本 {id}',
+  'Restore this version': '恢复此版本',
+  'Restore previous storefront version?': '恢复此前的店铺版本？',
+  'Publish this approved design?': '发布此已批准装修？',
+  'Confirm rollback': '确认恢复',
+  'Confirm publication': '确认发布',
+  'Delivery will restore the selected version after verification. Current transactions remain in place.':
+    '交付核验通过后，将恢复所选店铺版本，当前交易数据会保留。',
+  'Delivery will replace the storefront with this approved design and its frozen content after verification.':
+    '交付核验通过后，店铺将更新为此已批准装修及其确定的内容。',
+  'Another publication is in progress. Refresh its status before continuing.':
+    '已有发布正在进行，请刷新状态后继续。',
+  'The online version changed. Refresh and review it before continuing.':
+    '线上版本已变化，请刷新并核对后继续。',
+  'The approved design changed. Reload the draft and approve the current version.':
+    '已批准装修发生变化，请重新加载草稿并批准当前版本。',
+  'The approved design is unavailable. Reload the draft and approve the current version.':
+    '已批准装修不可用，请重新加载草稿并批准当前版本。',
+  'The approved sources changed. Reload the draft before publishing.':
+    '已批准内容来源发生变化，请重新加载草稿后再发布。',
+  'Store contact details changed. Prepare a new preview and approve it before publishing.':
+    '店铺联系方式已变化，请准备新预览并批准后再发布。',
+  'The preview sources expired. Prepare a new preview and approve it before publishing.':
+    '预览来源已过期，请准备新预览并批准后再发布。',
+  'Approve a design with published store sources before publishing.':
+    '请先批准使用已发布店铺来源的装修。',
+  'This version cannot be restored. Refresh and choose a previously published version.':
+    '此版本无法恢复，请刷新并选择曾发布成功的版本。',
+  'Publication could not start. Retry after the delivery service is available.':
+    '无法开始发布，请在交付服务恢复后重试。',
+  'Ask an administrator to configure storefront delivery, then retry.':
+    '请管理员配置店铺交付服务后重试。',
+  'Production approval is required. Ask an administrator to complete the release approvals.':
+    '需要生产发布批准，请管理员完成发布审批。',
+  'Publication did not complete. Refresh its status before retrying.':
+    '发布未完成，请刷新状态后再重试。',
   'Preview error details': '预览错误详情',
   'Approval details': '批准详情',
   'Preview store': '预览店铺',

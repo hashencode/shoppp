@@ -1,0 +1,103 @@
+{
+  "reviewer": "correctness",
+  "findings": [
+    {
+      "title": "Validate public artifacts with their live renderer browser contract",
+      "severity": "P1",
+      "file": "tools/release-validate.ts",
+      "line": 257,
+      "why_it_matters": "An approved public storefront cannot obtain a passing hosted validation attestation even when compilation and static verification succeed. The workflow builds the live renderer, but the subsequent browser gate removes the public mode and reuses that output with the existing fallback suite, which requires fixture-only controls and the fixed shop.example.invalid canonical URL. The retained actual public build lacks all three required values. Selecting a browser contract for the approved public artifact preserves validation of the same bytes while keeping the separate fallback contract intact.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Keep the public build mode and approved-input identity available to browser/accessibility/performance consumers, and select a public-artifact test configuration that derives routes and assertions from that input. Retain the existing fallback suite for fallback artifacts; do not reuse its Fixture variants, Select variant or fixed-origin assertions against public live output. Add a release-gate integration check that serves a compiled public artifact and exercises the selected browser contract.",
+      "confidence": 75,
+      "evidence": [
+        "tools/release-validate.ts:257 -- delete scopedEnvironment.STOREFRONT_BUILD_MODE;",
+        "tools/release-validate.ts:265 -- scopedEnvironment.STOREFRONT_REUSE_VALIDATED_BUILD = \"1\";",
+        ".github/workflows/full-validation.yml:199 -- printf 'STOREFRONT_BUILD_MODE=public\\n' >> \"$GITHUB_ENV\"",
+        "tools/release-validate.ts:80 -- { name: \"browser-journeys\", command: [\"bun\", \"run\", \"test:e2e\"] },",
+        "apps/storefront/playwright.config.ts uses the default ./e2e suite and serves the validated .output/public without rebuilding when STOREFRONT_REUSE_VALIDATED_BUILD is 1.",
+        "apps/storefront/e2e/storefront.spec.ts:9 -- await expect(page.getByText(\"Fixture variants\")).toBeVisible();",
+        "apps/storefront/e2e/storefront.spec.ts:10 -- await expect(page.getByRole(\"button\", { name: \"Select variant\" })).toBeVisible();",
+        "apps/storefront/e2e/storefront.spec.ts:14 -- \"https://shop.example.invalid/products/atlas-carry-on\",",
+        "Read-only inspection of retained apps/storefront/.output/public: marker themeId=fashion-store; products/atlas-carry-on/index.html exists; Fixture variants=false, Select variant=false, shop.example.invalid/products/atlas-carry-on=false."
+      ],
+      "pre_existing": false
+    },
+    {
+      "title": "Give formal staging proof a matching execution context",
+      "severity": "P1",
+      "file": ".github/workflows/deploy.yml",
+      "line": 1111,
+      "why_it_matters": "Every formal staging publish or rollback fails its post-deployment proof and restores the old Worker instead of activating the requested version; production publishes consequently cannot advance. The new job runs the legacy staging suite without its buyer/failure-fixture variables or provisioning, then invokes a latency verifier that only accepts a CI-GH rollback rehearsal, which formal-publication preflight explicitly forbids. Even if the browser suite were supplied externally, the latency authority check still fails. A formal proof mode must validate this run's public artifact with its own authorized staging context.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Replace the borrowed proof command with a formal-publication staging proof entry point/configuration. Supply run-bound buyer and any required failure-fixture inputs with corresponding staging preparation/cleanup, or scope the suite to publication-relevant journeys that do not require those legacy fixtures. Add an explicit protected formal-publication authority path to the latency wrapper, retaining exact source/target/run checks and the existing rehearsal restrictions rather than setting a false rehearsal flag. Verify both staging-source activation and production-source proof-only restoration using the actual job environment.",
+      "confidence": 100,
+      "evidence": [
+        ".github/workflows/deploy.yml:1111 -- --proof-command 'bunx playwright test --config e2e/playwright.config.ts && bun tools/verify-release-staging-latency.ts'",
+        ".github/workflows/deploy.yml:1019 selects publication-staging for a publish, or staging rollback; its job/step env at 1026-1040 and 1095-1106 supplies no CI_GH_STAGING_REHEARSAL, CI_GH_PRODUCTION_PROMOTION, CI_GH_VALIDATED_SOURCE_SHA, E2E_BUYER_EMAIL, E2E_FAILED_CATALOG_RELEASE_ID or E2E_EXHAUSTED_NOTIFICATION_ID.",
+        ".github/workflows/deploy.yml:101 -- test \"$REHEARSE_STAGING_ROLLBACK\" = \"false\"",
+        "tools/verify-release-staging-latency.ts:76 -- if (environment.CI_GH_STAGING_REHEARSAL !== \"true\") {",
+        "tools/verify-release-staging-latency.ts:77 -- throw new Error(\"CI-GH staging rollback rehearsal must be enabled\");",
+        "Read-only pure-function reproduction using the publication job's environment and an exact checkout SHA throws: CI-GH staging rollback rehearsal must be enabled.",
+        "e2e/publication.spec.ts:10 -- const failedReleaseId = requiredEnvironment(\"E2E_FAILED_CATALOG_RELEASE_ID\");",
+        "e2e/support.ts:29 -- await page.getByLabel(\"Email\").fill(requiredEnvironment(\"E2E_BUYER_EMAIL\"));",
+        ".github/workflows/deploy.yml:359 the legacy prove-staging job is selected only when inputs.publication_id == ''; that job normally supplies and seeds the required fixtures at 381-388 and 443-490.",
+        "tools/storefront-publication.ts:806-807 executes the proof command before the activation callback; 834-851 restores the retained baseline when this command fails."
+      ],
+      "pre_existing": false
+    },
+    {
+      "title": "Preserve existing public carts when the storefront changes",
+      "severity": "P1",
+      "file": "apps/storefront/worker/index.ts",
+      "line": 66,
+      "why_it_matters": "Publishing or rolling back from catalog A to B makes shoppers' existing A carts unavailable even though A has a retained successful activation. Every public API request receives B in the private-preview release header, so the existing cart guard returns cart_release_conflict on GET /cart and checkout. The storefront treats that error as terminal, deletes the stored cart token and starts an empty cart. Separating public catalog observation from private preview isolation lets retained public carts continue while preserving the preview guard.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Use a distinct public-storefront catalog header for the compiled marker, and consume it for public product lookup and current-release new-line qualification. Reserve X-Preview-Catalog-Release and assertUsableCart's strict release equality for actual private preview sessions; allow existing public CartToken reads, updates and checkout to keep their already-qualified historical catalog. Add a Worker-to-API regression covering an A cart after B activation and after rollback, and retain the private preview cross-release rejection test.",
+      "confidence": 100,
+      "evidence": [
+        "apps/storefront/worker/index.ts:66 -- headers.set(\"X-Preview-Catalog-Release\", marker.identity.catalogReleaseId);",
+        "apps/api/src/cart/service.ts:148 -- const authorizedReleaseId = context.req.header(\"x-preview-catalog-release\");",
+        "apps/api/src/cart/service.ts:150 -- if (authorizedReleaseId && cartReleaseId && authorizedReleaseId !== cartReleaseId) {",
+        "apps/api/src/cart/service.ts:153 -- \"cart_release_conflict\",",
+        "apps/api/src/http/app.ts:1101 -- const cart = await requireCart(context);",
+        "apps/api/src/http/app.ts:1172 also requires the cart before creating a checkout session, so this is not limited to adding a product from a newer catalog.",
+        "apps/storefront/app/features/cart/use-guest-cart.ts:51 -- response.data?.error?.code === \"cart_release_conflict\" ||",
+        "apps/storefront/app/features/cart/use-guest-cart.ts:83 -- localStorage.removeItem(TOKEN_KEY);",
+        "apps/storefront/app/features/cart/use-guest-cart.ts:134-138 creates a replacement cart after this terminal error and reports that the previous cart is no longer available.",
+        "docs/architecture/storefront-publication.md: Retention and Commerce explicitly retains historical activated catalogs for existing carts; the added API retention test calls the API directly without a new public Worker header."
+      ],
+      "pre_existing": false
+    },
+    {
+      "title": "Close ordinary failures before storefront mutation begins",
+      "severity": "P2",
+      "file": ".github/workflows/deploy.yml",
+      "line": 1226,
+      "why_it_matters": "A production request with an expired or unavailable approved backup remains building forever after backup verification fails, blocking all later publications in that environment. The request was already bound to building, but the delivery runner never starts and the final failure job only runs when publication-production was skipped, not when it failed. No production baseline exists yet for the documented interrupted-delivery recovery. Recording a same-run failure specifically before any mutation starts makes the promised retry path usable without falsely claiming a restoration.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "suggested_fix": "Give the delivery step an ID and add a same-run failure callback inside each protected publication deployment job when an earlier step fails and the delivery step was skipped. Use the existing fail command only for this proven pre-mutation case; preserve the runner's restoration/unresolved handling once delivery started. Cover an expired production backup and a failed pre-delivery baseline/artifact step, asserting that the producer leaves building and permits a new request after verified safe failure.",
+      "confidence": 75,
+      "evidence": [
+        ".github/workflows/deploy.yml:1226 -- if: ${{ always() && inputs.publication_id != '' && needs.publication-request.result == 'success' && needs.publication-production.result == 'skipped' && (needs.validate.result == 'failure' || needs.verify-deployment-inputs.result == 'failure' || needs.approve-human-access.result == 'failure' || needs.approve-production.result == 'failure' || (inputs.source_environment == 'production' && needs.publication-staging.result == 'failure')) }}",
+        "tools/storefront-publication.ts:616 -- await publicationCallback(source, { ...run, status: \"building\" });",
+        ".github/workflows/deploy.yml:1175 selects only a ready production backup completed within 24 hours; jq --exit-status at 1177-1180 fails when none matches.",
+        ".github/workflows/deploy.yml:1181 baseline capture follows backup verification, and the deliver call at 1212 is skipped after that earlier failure; neither job has a local pre-delivery failure callback.",
+        "packages/db/migrations/0039_storefront_publications.sql:38 -- ON storefront_publications(environment) WHERE status IN ('queued', 'building', 'unresolved');",
+        "apps/api/src/publishing/storefront-publications.ts:326 -- if (matchesPendingIntent(pending, input)) return pending;",
+        "tools/storefront-publication.ts:593-599 already provides a same-run failed callback for verified pre-mutation failures; the protected workflow can use it before deliver begins."
+      ],
+      "pre_existing": false
+    }
+  ],
+  "residual_risks": [],
+  "testing_gaps": []
+}

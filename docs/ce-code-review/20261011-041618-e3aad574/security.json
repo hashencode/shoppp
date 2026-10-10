@@ -1,0 +1,8 @@
+{
+  "reviewer": "security",
+  "findings": [],
+  "residual_risks": [
+    "Hosted publication execution remains unverified: docs/progress/2026-10-11-admin-formal-storefront-publication-verification.md explicitly limits its evidence to local API/D1, compiler, runner and browser checks. The existing build-hook dispatcher must forward publicationId/sourceEnvironment, migration 0039 must be applied, and protected source/activation environments and production approvals must be verified by REL before operational use; this review performed no deployment or external configuration inspection."
+  ],
+  "testing_gaps": []
+}

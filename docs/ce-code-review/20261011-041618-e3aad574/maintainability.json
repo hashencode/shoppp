@@ -1,0 +1,84 @@
+{
+  "reviewer": "maintainability",
+  "findings": [
+    {
+      "title": "File-size regression: release validator crosses 1,000 lines",
+      "severity": "P1",
+      "file": "tools/release-validate.ts",
+      "line": 841,
+      "why_it_matters": "Maintainers now need to navigate a 1,081-line release gate runner to change publication input validation, compared with 960 lines at the reviewed base. The new publication parser is also consumed by the delivery runner, coupling that runner to the entire release orchestration module. Separating the publication evidence boundary gives both consumers one focused implementation and satisfies the persona's explicit 1,000-line regression criterion.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "confidence": 100,
+      "suggested_fix": "Extract the publication evidence type, parsePublicationEvidence, assertPublicBuildInput and the public-input file loading/evidence construction block into a focused publication-validation module. Import that module from release-validate.ts and storefront-publication.ts; preserve the current assertion order and errors, and remove enough publication-specific code to return the orchestration file below 1,000 lines.",
+      "evidence": [
+        "tools/release-validate.ts:841 -- export function parsePublicationEvidence(",
+        "Measured complete files: git show 6cd04e6b18b4fac62c5bec704190f0113b03b2e9:tools/release-validate.ts has 960 lines; reviewed tools/release-validate.ts has 1081 lines (+121).",
+        "tools/storefront-publication.ts:5 -- import { parsePublicationEvidence } from \"./release-validate\";",
+        "tools/release-validate.ts:934-958 contains public input loading, source ownership checks and publication evidence construction alongside general release orchestration.",
+        "provenance: 36701cde Codex Validation 2026-10-11 - feat(publishing): activate approved storefront versions with verified receipts (U7)"
+      ],
+      "pre_existing": false
+    },
+    {
+      "title": "File-size regression: deployment workflow crosses 1,000 lines",
+      "severity": "P1",
+      "file": ".github/workflows/deploy.yml",
+      "line": 961,
+      "why_it_matters": "Release maintainers must now audit a 1,249-line workflow containing both the inherited commerce deployment and a second publication delivery path, up from 937 lines. The added staging and production paths repeat checkout, artifact handling, baseline capture and retention around different credential scopes. This exceeds the persona's explicit file-size threshold and makes the protected publication path harder to inspect as a single unit.",
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "confidence": 100,
+      "suggested_fix": "Keep the protected job graph, environment approvals, concurrency and credential selection in deploy.yml, but move the new publication request and target delivery step bodies into local composite actions with explicit inputs. Deduplicate the common capture/retain/deliver sequence while retaining its required pre-mutation artifact upload and distinct staging proof/production options; remove at least 250 lines from the entry workflow and recheck the workflow contract tests.",
+      "evidence": [
+        ".github/workflows/deploy.yml:961 --   publication-request:",
+        "Measured complete files: git show 6cd04e6b18b4fac62c5bec704190f0113b03b2e9:.github/workflows/deploy.yml has 937 lines; reviewed .github/workflows/deploy.yml has 1249 lines (+312).",
+        ".github/workflows/deploy.yml:1090 and :1176 repeat the named Capture exact storefront baseline before mutation step; both target jobs also repeat preservation before delivery.",
+        "provenance: 36701cde Codex Validation 2026-10-11 - feat(publishing): activate approved storefront versions with verified receipts (U7)"
+      ],
+      "pre_existing": false
+    },
+    {
+      "title": "File-size regression: publication API suite exceeds 1,000 lines",
+      "severity": "P1",
+      "file": "apps/api/test/catalog/storefront-publication.test.ts",
+      "line": 748,
+      "why_it_matters": "Publication authorization, callback/CAS recovery and Commerce qualification now live in one new 1,073-line suite with a shared publication setup. The retained-Commerce case alone introduces a separate inventory, price and cart fixture surface into the producer tests. Splitting that existing boundary lets maintainers locate and run the Commerce proof without navigating the complete publication producer suite, and addresses the explicit 1,000-line criterion.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "confidence": 100,
+      "suggested_fix": "Move the retained activated Catalog/Commerce scenario beginning at line 748 into a dedicated publication-commerce test file. Share only the existing approval/publication/activation fixture functions needed by both files, preserve DB cleanup and human seeding in each suite, and keep the original producer suite below 1,000 lines.",
+      "evidence": [
+        "apps/api/test/catalog/storefront-publication.test.ts:748 --   test(\"allows retained activated catalogs after the preview lease expires, but never across environments\", async () => {",
+        "The file is absent at reviewed base 6cd04e6b18b4fac62c5bec704190f0113b03b2e9 and has 1073 lines in the reviewed snapshot.",
+        "apps/api/test/catalog/storefront-publication.test.ts:756-809 adds products, variants, price lists, prices, warehouses, inventory and cart setup inside the publication producer suite.",
+        "provenance: 36701cde Codex Validation 2026-10-11 - feat(publishing): activate approved storefront versions with verified receipts (U7)"
+      ],
+      "pre_existing": false
+    },
+    {
+      "title": "File-size regression: editor browser suite grows by 297 lines",
+      "severity": "P2",
+      "file": "apps/admin/src/pages/storefront/theme-editor-page.browser.test.tsx",
+      "line": 160,
+      "why_it_matters": "Maintainers of the editor browser suite now navigate 1,297 lines instead of 1,000, including two new tests that render StorefrontPublicationPanel directly. Their independent HTTP fixture and publication-specific interactions are embedded before the editor's own fixture definitions. Moving those tests beside the panel's existing unit suite keeps component ownership visible and removes the substantial growth from the already-large editor suite.",
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "confidence": 100,
+      "suggested_fix": "Move publicationBrowserFixture and the formal publication native-browser describe block into storefront-publication-panel.browser.test.tsx. Give that file a small explicit valid draft fixture or reuse an existing test fixture; keep the actual editor integration/browser tests in theme-editor-page.browser.test.tsx and run both existing desktop/narrow locale configurations.",
+      "evidence": [
+        "apps/admin/src/pages/storefront/theme-editor-page.browser.test.tsx:160 -- describe('formal publication in a native browser', () => {",
+        "Measured complete files: git show 6cd04e6b18b4fac62c5bec704190f0113b03b2e9:apps/admin/src/pages/storefront/theme-editor-page.browser.test.tsx has 1000 lines; reviewed file has 1297 lines (+297).",
+        "apps/admin/src/pages/storefront/theme-editor-page.browser.test.tsx:27 begins publicationBrowserFixture; the new describe at lines 160-291 renders the panel directly rather than the full editor.",
+        "provenance: git blame line 160 is Not Committed Yet; the exact new block is included in the supplied reviewed full.diff."
+      ],
+      "pre_existing": false
+    }
+  ],
+  "residual_risks": [],
+  "testing_gaps": []
+}

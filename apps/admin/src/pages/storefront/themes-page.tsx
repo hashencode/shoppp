@@ -130,9 +130,6 @@ export const ThemesPage = () => {
           <Typography.Title id="theme-packages-heading" level={5}>
             {t('Approved packages')}
           </Typography.Title>
-          <Typography.Paragraph type="secondary">
-            {t('Saving or approving a design does not update the storefront. Approved designs await formal release.')}
-          </Typography.Paragraph>
           <Row gutter={[16, 16]}>
             {themes.map((theme) => (
               <Col xs={24} lg={12} key={themeKey(theme)}>

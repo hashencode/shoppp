@@ -5,8 +5,8 @@ date: 2026-08-13
 topic: shoppp-product-master-plan
 execution: knowledge-work
 plan_role: product-master
-current_plan: 2026-10-10-2307-refactor-admin-merchant-workflows-plan.md
-current_unit: U7.2
+current_plan: 2026-08-12-003-refactor-development-candidate-readiness-plan.md
+current_unit: REL-Pre-DC
 ---
 
 # Shoppp Product Master Plan
@@ -45,11 +45,11 @@ template-specific repair does not change product membership or candidate scope b
 
 ## Current execution pointer
 
-- **Active product plan:** [管理后台商家任务与发布流程重构](2026-10-10-2307-refactor-admin-merchant-workflows-plan.md) — 用户已授权实施的产品后继。
-- **Current unit:** U7.2 — 正式发布生产者与公开构建已具本地证据，接入管理后台操作。
-- **Next action:** 接入精确发布、状态刷新与回滚，完成 U7.3 的共享消费者和浏览器验证。
-- **Blockers:** 无本地实现阻塞；真实部署仍按 REL 环境权限。候选未冻结，DC/PG 未开始。
-- **Tail ownership:** 管理后台计划拥有本地实施、回归与交接；REL 保留 candidate readiness、候选冻结、正式部署、DC/PG 权限。FS-F14 完成基线继续有效。
+- **Active product plan:** [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) — knowledge-work，validation-only。
+- **Current unit:** REL-Pre-DC — capability/identity reconciliation。
+- **Next action:** 明确本次候选所需能力及已批准延期，按 owner 核对完成证据，并补齐 validator 的完整 candidate identity 约束。
+- **Blockers:** REL 的能力范围审计、owner reconciliation 与 candidate identity 门禁仍待完成；候选未冻结，DC/PG 未开始。
+- **Tail ownership:** REL 拥有 Pre-DC、候选冻结、真实环境部署及 DC/PG；管理后台本地实施尾部已结束，FS-F14 完成基线保持。
 
 The active child plan is authoritative if this summary and its execution checkpoint temporarily
 disagree. Repair this pointer in the same documentation change; do not copy the child plan's full
@@ -57,8 +57,8 @@ checkpoint here.
 
 ## Product-level sequence
 
-1. 管理后台 U1–U6 的菜单、真实操作表达、设置与私有店铺预览已完成。
-2. 管理后台 U7 内补齐 REL 发布合同并接入后台，完成后回交 REL 的 Pre-DC capability/identity reconciliation。
+1. REL 核对已完成实现基线与选定能力范围，包括管理后台正式发布接入。
+2. 完成 Pre-DC capability/identity reconciliation。
 3. 仅由 REL 选择和冻结不可变候选，再按具名人工与生产权限执行 DC/PG。
 
 No candidate is currently frozen. DC and PG have not begun.

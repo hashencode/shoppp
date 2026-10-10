@@ -1,0 +1,11 @@
+{
+  "reviewer": "testing",
+  "findings": [],
+  "residual_risks": [
+    "Inspected local verification evidence and test assertions across all six risk divisions; did not repeat documented green gates or perform hosted execution. Actual dispatcher forwarding, protected-environment deployment and production PG remain REL-owned and are not established by these local fixtures."
+  ],
+  "testing_gaps": [
+    "tools/storefront-publication.ts:588-884 contains the executable capture/deliver/recover composition, including report/input binding, a fresh same-run owner check, proof-only restoration and the special uncertain-receipt recovery branch. tools/storefront-publication.test.ts exercises the helpers individually, while tools/deploy-workflow.test.ts:1225-1304 checks workflow strings/order. A scratch CLI harness with fake transport/commands would add distinct protection: assert no deployment on mismatched report/input or changed owner, no producer callback during proof-only delivery, and no restore after an accepted receipt or uncertain outcome. These composition properties are consequential and are not proved by helper assertions alone.",
+    "apps/storefront/tests/storefront-publication.test.ts:347 combines a missing compiled asset with missing runtime metadata. Since either condition independently yields 404, it does not isolate the missing-runtime-version guard in worker/index.ts:56. Add a valid compiled marker with CF_VERSION_METADATA omitted and assert the observation remains 404 and cannot return a runtime-less online claim."
+  ]
+}

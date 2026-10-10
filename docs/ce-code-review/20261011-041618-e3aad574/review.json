@@ -1,0 +1,821 @@
+{
+  "status": "complete",
+  "verdict": "Ready with fixes",
+  "verdict_reason": "Four confirmed P1 defects block normal formal publication or discard retained public carts; two confirmed P2 failure paths strand the environment pending request. Resolve #4, #2 and #1 for exact public-artifact proof, #3 for cart retention, then #6 and #5 for safe failure finalization. U7 is not complete. Existing U1-U6 completion and REL hosted/DC/PG ownership remain unchanged.",
+  "scope": {
+    "mode": "local-aligned",
+    "base": "6cd04e6b18b4fac62c5bec704190f0113b03b2e9",
+    "branch": "codex/fix-new-arrival-icon",
+    "head_sha": "36701cde3cd1cefdc7c316ecedc4cc741c09dbbc",
+    "pr_url": null,
+    "files_changed": 46,
+    "includes_untracked": true,
+    "untracked_excluded": []
+  },
+  "intent": "Complete U7 formal publication locally: an authorized human publishes the exact approved Catalog + Snapshot + Contact + Theme bytes through the existing protected delivery workflow, and Admin shows Online only from freshly verified activation evidence. Preserve immutable private origin identity, source/activation environment isolation, idempotency/CAS, exact rollback and unresolved recovery; protected Guide/Dashboard content stays unchanged. Hosted deployment, candidate freeze and DC/PG remain REL-owned.",
+  "intent_confidence": "explicit",
+  "mode": "agent report-only",
+  "reviewers": [
+    "correctness",
+    "project-standards",
+    "testing",
+    "maintainability",
+    "learnings",
+    "security",
+    "performance",
+    "api-contract",
+    "data-migration",
+    "reliability",
+    "adversarial",
+    "julik-frontend-races"
+  ],
+  "reviewer_selection": [
+    {
+      "reviewer": "correctness",
+      "tier": "session",
+      "reason": "always-on behavioral correctness"
+    },
+    {
+      "reviewer": "project-standards",
+      "tier": "mid-tier:gpt-6.1-sol",
+      "reason": "governing root and admin AGENTS instruction criteria; successful no-CODING_STANDARDS fallback"
+    },
+    {
+      "reviewer": "testing",
+      "tier": "mid-tier:gpt-6.1-sol",
+      "reason": "changed multi-layer tests, fixture transport and CI/runtime guard fidelity"
+    },
+    {
+      "reviewer": "maintainability",
+      "tier": "mid-tier:gpt-6.1-sol",
+      "reason": "2786 executable non-test changed lines and substantial new cross-layer publication modules"
+    },
+    {
+      "reviewer": "learnings",
+      "tier": "mid-tier:gpt-6.1-sol",
+      "reason": "cheap live corpus path/title search matched release-resilience learning"
+    },
+    {
+      "reviewer": "security",
+      "tier": "session",
+      "reason": "human themes.publish vs build credential; public/machine endpoints and production gating"
+    },
+    {
+      "reviewer": "performance",
+      "tier": "mid-tier:gpt-6.1-sol",
+      "reason": "Commerce hot-path publication qualification query and staging current-Worker network fallback"
+    },
+    {
+      "reviewer": "api-contract",
+      "tier": "mid-tier:gpt-6.1-sol",
+      "reason": "externally consumed human/machine routes, strict shared schemas and runtime marker contract"
+    },
+    {
+      "reviewer": "data-migration",
+      "tier": "mid-tier:gpt-6.1-sol",
+      "reason": "new 0039 publication request/active pointer/immutability/retention migration and schema"
+    },
+    {
+      "reviewer": "reliability",
+      "tier": "mid-tier:gpt-6.1-sol",
+      "reason": "async delivery, retries, observed activation, same-run recovery, uncertain callbacks"
+    },
+    {
+      "reviewer": "adversarial",
+      "tier": "session",
+      "reason": "auth/persistence/concurrency/external deployment and silent-pass guard; only local fallback route available"
+    },
+    {
+      "reviewer": "julik-frontend-races",
+      "tier": "mid-tier:gpt-6.1-sol",
+      "reason": "Admin asynchronous refresh/reload, late responses, confirmation/submission and local mutation guards"
+    }
+  ],
+  "findings": [
+    {
+      "#": 1,
+      "title": "Formal publication fails the rehearsal-only latency authority check",
+      "severity": "P1",
+      "file": ".github/workflows/deploy.yml",
+      "line": 1111,
+      "confidence": 100,
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Provide a dedicated formal-publication entry point for the shared latency probe, with authority checks for the protected deploy workflow, exact validated SHA, staging activation target, publication identity and same run. Invoke that entry point from publication-staging while leaving the existing CI-GH rehearsal-only entry point and its guards intact; do not fabricate rehearsal flags to bypass its intentionally different authority. Add a non-network authority test using the actual publication job environment.",
+      "first_evidence": ".github/workflows/deploy.yml:1111 -- --proof-command 'bunx playwright test --config e2e/playwright.config.ts && bun tools/verify-release-staging-latency.ts'",
+      "why_it_matters": "Any publication that reaches the latency command is rejected before a latency request is made. That tool requires the protected CI-GH rollback-rehearsal authority, including CI_GH_STAGING_REHEARSAL=true, CI_GH_PRODUCTION_PROMOTION=false and the validated SHA; the new publication job supplies none of these, and publication preflight explicitly forbids a rollback rehearsal. This rolls back a successful staging publication and blocks every production publication's staging proof.",
+      "evidence": [
+        ".github/workflows/deploy.yml:1111 -- --proof-command 'bunx playwright test --config e2e/playwright.config.ts && bun tools/verify-release-staging-latency.ts'",
+        "tools/verify-release-staging-latency.ts:76-84 requires CI_GH_STAGING_REHEARSAL === \"true\", CI_GH_PRODUCTION_PROMOTION === \"false\" and CI_GH_VALIDATED_SOURCE_SHA; its CLI calls assertReleaseStagingLatencyAuthority at line 244 before runReleaseStagingLatencyProbe.",
+        ".github/workflows/deploy.yml:94-101 requires REHEARSE_STAGING_ROLLBACK to be false for every formal publication, and publication-staging at 1026-1040/1095-1106 provides no CI_GH authority variables. The only CI_GH variables belong to the separate old prove-staging job at 386-388.",
+        "Non-mutating reproduction: importing assertReleaseStagingLatencyAuthority and calling it with GitHub Actions=true, repository=hashencode/shoppp, workflow_dispatch, the protected deploy.yml@refs/heads/main workflow ref and reviewed SHA, but the publication job's absent CI_GH variables, throws \"CI-GH staging rollback rehearsal must be enabled\" before network I/O.",
+        "tools/storefront-publication.ts:806-852 places this command between actual version deployment/observation and the activation callback, so its deterministic rejection invokes baseline restoration; production-source proof remains failed and publication-production's dependency condition cannot pass."
+      ],
+      "reviewers": ["adversarial", "correctness", "reliability"],
+      "independent_reviewers": ["adversarial", "correctness", "reliability"],
+      "validation_status": "confirmed",
+      "validation_reason": "For a formal publication reaching the newly added deploy.yml:1111 proof command, the job supplies none of the CI_GH authority variables required at verify-release-staging-latency.ts:76-84, and a read-only Bun 1.3.5 call using the reviewed 36701cde SHA and publication environment threw the rehearsal-required error before network I/O, which storefront-publication.ts:806-852 treats as delivery failure and restores the baseline; hosted incidence was not measured.",
+      "protected_subject": "authorization-authentication"
+    },
+    {
+      "#": 2,
+      "title": "Formal staging proof selects fallback and private-preview journeys",
+      "severity": "P1",
+      "file": ".github/workflows/deploy.yml",
+      "line": 1111,
+      "confidence": 100,
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Select a hosted public-live purchase proof for this job, binding it to the retained Catalog/Snapshot and using the Fashion Store's actual option selection, Add to cart action and cart navigation. Supply/prepare only the staging Commerce data and required operational fixture variables that the selected tests need, under the existing REL staging authority. Do not use the private-preview FASHION_U12 grant flow or the fallback-specific purchase project as proof of public publication; add a workflow integration check covering the selected configuration and its required environment.",
+      "first_evidence": ".github/workflows/deploy.yml:1111 -- --proof-command 'bunx playwright test --config e2e/playwright.config.ts && bun tools/verify-release-staging-latency.ts'",
+      "why_it_matters": "Even after validation is repaired, a correctly deployed public Fashion Store cannot pass the selected hosted purchase proof. The root suite's mandatory purchase project clicks the fallback Add to bag button and expects automatic navigation to /cart, while the public live page uses Add to cart and keeps the customer on the product page. Its Fashion purchase project is a private-preview journey that skips without FASHION_U12_PHASE, and the remaining root operations tests require fixture variables that this job never supplies; the delivery runner therefore restores the old version instead of recording activation.",
+      "evidence": [
+        ".github/workflows/deploy.yml:1111 -- --proof-command 'bunx playwright test --config e2e/playwright.config.ts && bun tools/verify-release-staging-latency.ts'",
+        "e2e/playwright.config.ts:26-41 always selects provider-purchase from storefront-purchase.spec.ts, selects fashion-provider-purchase separately, and makes release-operations depend on the fallback provider-purchase project.",
+        "e2e/storefront-purchase.spec.ts:16-17 -- await page.getByRole(\"button\", { name: \"Add to bag\" }).click(); await expect(page).toHaveURL(/\\/cart\\/?$/);",
+        "apps/storefront/scripts/prepare-experience.ts:119-145 selects FashionStoreProductPage.vue for the public live snapshot; FashionStoreProductPage.vue:637 renders Add to cart, and addToCart at lines 322-359 updates runtimeState without navigating to /cart.",
+        "e2e/fashion-store-purchase.spec.ts:118 -- test.skip(phase !== \"journey\", \"Runs only inside the locked destructive journey phase.\"); publication-staging does not set FASHION_U12_PHASE, so that project provides no public purchase proof.",
+        "e2e/publication.spec.ts:10, e2e/payment-recovery.spec.ts:14 and e2e/admin-fulfillment.spec.ts:12 require E2E_FAILED_CATALOG_RELEASE_ID, E2E_EXHAUSTED_NOTIFICATION_ID and E2E_BUYER_EMAIL respectively; publication-staging's job/step environment at deploy.yml:1026-1040 and 1095-1106 supplies none of them. The old prove-staging job prepares these fixtures, but it is excluded for publication requests.",
+        "tools/storefront-publication.ts:806-852 executes this proof before completeStorefrontPublication and restores the retained baseline on a proof exception. Thus this incompatible suite prevents a successful receipt for a healthy public deployment."
+      ],
+      "reviewers": ["adversarial", "correctness", "reliability"],
+      "independent_reviewers": ["adversarial", "correctness", "reliability"],
+      "validation_status": "confirmed",
+      "validation_reason": "For an approved public fashion-store publication reaching the newly added proof step, prepare-experience.ts:119-145 selects the live page whose button is Add to cart at FashionStoreProductPage.vue:637, while the mandatory provider-purchase test requires Add to bag and automatic cart navigation at storefront-purchase.spec.ts:16-17, the Fashion test skips without FASHION_U12_PHASE, and required buyer/failure-fixture variables are absent from deploy.yml:1026-1040 and 1095-1106, so this selected suite cannot complete; hosted incidence was not measured."
+    },
+    {
+      "#": 3,
+      "title": "Preserve existing public carts when the storefront changes",
+      "severity": "P1",
+      "file": "apps/storefront/worker/index.ts",
+      "line": 66,
+      "confidence": 100,
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Use a distinct public-storefront catalog header for the compiled marker, and consume it for public product lookup and current-release new-line qualification. Reserve X-Preview-Catalog-Release and assertUsableCart's strict release equality for actual private preview sessions; allow existing public CartToken reads, updates and checkout to keep their already-qualified historical catalog. Add a Worker-to-API regression covering an A cart after B activation and after rollback, and retain the private preview cross-release rejection test.",
+      "first_evidence": "apps/storefront/worker/index.ts:66 -- headers.set(\"X-Preview-Catalog-Release\", marker.identity.catalogReleaseId);",
+      "why_it_matters": "Publishing or rolling back from catalog A to B makes shoppers' existing A carts unavailable even though A has a retained successful activation. Every public API request receives B in the private-preview release header, so the existing cart guard returns cart_release_conflict on GET /cart and checkout. The storefront treats that error as terminal, deletes the stored cart token and starts an empty cart. Separating public catalog observation from private preview isolation lets retained public carts continue while preserving the preview guard.",
+      "evidence": [
+        "apps/storefront/worker/index.ts:66 -- headers.set(\"X-Preview-Catalog-Release\", marker.identity.catalogReleaseId);",
+        "apps/api/src/cart/service.ts:148 -- const authorizedReleaseId = context.req.header(\"x-preview-catalog-release\");",
+        "apps/api/src/cart/service.ts:150 -- if (authorizedReleaseId && cartReleaseId && authorizedReleaseId !== cartReleaseId) {",
+        "apps/api/src/cart/service.ts:153 -- \"cart_release_conflict\",",
+        "apps/api/src/http/app.ts:1101 -- const cart = await requireCart(context);",
+        "apps/api/src/http/app.ts:1172 also requires the cart before creating a checkout session, so this is not limited to adding a product from a newer catalog.",
+        "apps/storefront/app/features/cart/use-guest-cart.ts:51 -- response.data?.error?.code === \"cart_release_conflict\" ||",
+        "apps/storefront/app/features/cart/use-guest-cart.ts:83 -- localStorage.removeItem(TOKEN_KEY);",
+        "apps/storefront/app/features/cart/use-guest-cart.ts:134-138 creates a replacement cart after this terminal error and reports that the previous cart is no longer available.",
+        "docs/architecture/storefront-publication.md: Retention and Commerce explicitly retains historical activated catalogs for existing carts; the added API retention test calls the API directly without a new public Worker header."
+      ],
+      "reviewers": ["correctness"],
+      "independent_reviewers": ["correctness"],
+      "validation_status": "confirmed",
+      "validation_reason": "For a still-active CartToken bound to catalog A after publication or rollback installs catalog B, the newly added public Worker header at index.ts:66 supplies B on GET /api/cart and checkout, assertUsableCart at cart/service.ts:148-155 rejects A with cart_release_conflict before those handlers proceed, and use-guest-cart.ts:51 and 83 deletes the token despite the documented historical-catalog retention contract; the existing retention test calls the API without this changed Worker header and real shopper incidence was not measured.",
+      "protected_subject": "authorization-authentication"
+    },
+    {
+      "#": 4,
+      "title": "Approved public builds fail the fixture-only browser gate",
+      "severity": "P1",
+      "file": "tools/release-validate.ts",
+      "line": 256,
+      "confidence": 100,
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Add a public-build browser configuration/suite that derives product routes, names and canonical origin from the retained approved input, and select it for publication validation while reusing the exact generated output. Preserve the public input/theme selector for that gate; keep the existing fixture-specific fallback tests on their own fixture build, rather than rebuilding the delivery artifact to satisfy them. Verify this with an approved input whose product slug and site.origin differ from the committed fixture. Keep the same approved identity available to accessibility and performance consumers where their selected assertions depend on renderer or frozen content.",
+      "first_evidence": "tools/release-validate.ts:256 -- if (![\"production-builds\", \"static-output\"].includes(gateName)) {",
+      "why_it_matters": "A merchant's valid approved public build cannot pass hosted full validation when its catalog or origin differs from the committed fallback fixture. The new public input survives production-builds/static-output, but the following browser gate reuses that output with the unchanged suite that requires Atlas Carry-on, Fixture variants, Select variant, and shop.example.invalid URLs. A browser gate selected from the same immutable public input would validate the actual frozen content without replacing it with a fixture build.",
+      "evidence": [
+        "tools/release-validate.ts:256 -- if (![\"production-builds\", \"static-output\"].includes(gateName)) {",
+        "tools/release-validate.ts:257-265 deletes STOREFRONT_BUILD_MODE/STOREFRONT_EXPERIENCE_FILE for browser-journeys and sets STOREFRONT_REUSE_VALIDATED_BUILD = \"1\"; RELEASE_GATES selects the unchanged bun run test:e2e after production-builds and static-output.",
+        "apps/storefront/playwright.config.ts:38-47 uses scripts/serve-static.ts instead of rebuilding when STOREFRONT_REUSE_VALIDATED_BUILD is 1, so it serves the newly generated public artifact.",
+        "apps/storefront/e2e/storefront.spec.ts:5-15 -- the active no-js-desktop test requests /products/atlas-carry-on and requires Atlas Carry-on, $129.00, Fixture variants, Select variant and https://shop.example.invalid/products/atlas-carry-on; line 27 also requires Select variant for the mobile project.",
+        "apps/storefront/scripts/prepare-release.ts:52-73 compiles liveExperienceInput.catalogRelease, while StorefrontExperience.vue:258-272 creates its canonical link from liveRelease.site.origin. Construct an otherwise valid approved Catalog whose only product has a different slug or whose origin is the real configured store: build/static checks can pass, then the selected fixture browser test fails, validate never produces a passed attestation, and publication-staging cannot start.",
+        "apps/storefront/e2e/storefront.spec.ts:14 -- \"https://shop.example.invalid/products/atlas-carry-on\","
+      ],
+      "reviewers": ["adversarial", "correctness"],
+      "independent_reviewers": ["adversarial", "correctness"],
+      "validation_status": "confirmed",
+      "validation_reason": "For an authorized public build produced through the new full-validation.yml:191-207 path, release-validate.ts:256-265 reuses that exact output with the unchanged default browser suite, whose storefront.spec.ts:5-15 requires fallback-specific Fixture variants, Select variant and shop.example.invalid canonical content, and read-only inspection of the retained fashion-store public marker and product HTML found all three requirements absent, establishing the newly exposed gate incompatibility without executing hosted validation; hosted incidence was not measured."
+    },
+    {
+      "#": 5,
+      "title": "Pre-delivery failures strand the pending publication",
+      "severity": "P2",
+      "file": ".github/workflows/deploy.yml",
+      "line": 1226,
+      "confidence": 100,
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Give the capture/deliver steps explicit IDs and finalize unsuccessful publication jobs that never entered a mutation-capable delivery step, using the same-run failed callback and the producer's existing current-storefront verification. Cover publication-staging for staging-source requests and publication-production pre-delivery failures; keep post-mutation/unknown outcomes on the existing retained-baseline unresolved recovery path. Add workflow/state integration scenarios for browser-install failure, backup rejection and baseline-capture failure, verifying that a safely failed request permits a new attempt and an unverifiable storefront remains unresolved.",
+      "first_evidence": ".github/workflows/deploy.yml:1226 -- if: ${{ always() && inputs.publication_id != '' && needs.publication-request.result == 'success' && needs.publication-production.result == 'skipped' && (needs.validate.result == 'failure' || needs.verify-deployment-inputs.result == 'failure' || needs.approve-human-access.result == 'failure' || needs.approve-production.result == 'failure' || (inputs.source_environment == 'production' && needs.publication-staging.result == 'failure')) }}",
+      "why_it_matters": "An ordinary job failure before delivery, such as a staging browser installation failure or a production backup rejection, leaves the request marked building although no storefront mutation occurred. The workflow's finalizer excludes staging-source publication-staging failures and any publication-production failure, while the runner's recovery catch begins only after baseline loading/rechecking. Admin consequently keeps showing publishing and refuses another request because the environment's unique pending row never becomes failed; cases before capture also lack the baseline required by the documented recovery command.",
+      "evidence": [
+        ".github/workflows/deploy.yml:1226 -- if: ${{ always() && inputs.publication_id != '' && needs.publication-request.result == 'success' && needs.publication-production.result == 'skipped' && (needs.validate.result == 'failure' || needs.verify-deployment-inputs.result == 'failure' || needs.approve-human-access.result == 'failure' || needs.approve-production.result == 'failure' || (inputs.source_environment == 'production' && needs.publication-staging.result == 'failure')) }}",
+        "tools/storefront-publication.ts:616 sends the building callback in publication-request's fetch step, before the separate publication-staging/production job starts.",
+        "Scenario A: validation and attestation verification succeed for a staging request; deploy.yml:1069 browser installation fails. capture and deliver are skipped, publication-staging is failure, publication-production is skipped, and the finalizer predicate's staging failure branch is disabled because source_environment is staging. The producer row remains building.",
+        "Scenario B: production staging proof and approvals succeed, but the ready/recent backup query at deploy.yml:1163-1180 rejects the supplied backup. publication-production is failure, capture/deliver never start, and finalization is skipped because it requires publication-production to be skipped.",
+        "tools/storefront-publication.ts:711-746 performs capture, retained-baseline read and pre-mutation baseline recheck outside the mutation recovery try, so those exceptions also cannot submit a failed result themselves.",
+        "packages/db/migrations/0039_storefront_publications.sql:37-38 reserves one pending row per environment for queued/building/unresolved; apps/api/src/publishing/storefront-publications.ts:324-330 returns/rejects against that pending row. Admin's panel at lines 162-175 disables publishing while such a row exists. Recovery CLI at tools/storefront-publication.ts:719 requires a retained baseline, which is unavailable for a failure before capture.",
+        "tools/storefront-publication.ts:616 -- await publicationCallback(source, { ...run, status: \"building\" });",
+        ".github/workflows/deploy.yml:1175 selects only a ready production backup completed within 24 hours; jq --exit-status at 1177-1180 fails when none matches.",
+        ".github/workflows/deploy.yml:1181 baseline capture follows backup verification, and the deliver call at 1212 is skipped after that earlier failure; neither job has a local pre-delivery failure callback.",
+        "packages/db/migrations/0039_storefront_publications.sql:38 -- ON storefront_publications(environment) WHERE status IN ('queued', 'building', 'unresolved');",
+        "apps/api/src/publishing/storefront-publications.ts:326 -- if (matchesPendingIntent(pending, input)) return pending;",
+        "tools/storefront-publication.ts:593-599 already provides a same-run failed callback for verified pre-mutation failures; the protected workflow can use it before deliver begins."
+      ],
+      "reviewers": ["adversarial", "correctness"],
+      "independent_reviewers": ["adversarial", "correctness"],
+      "validation_status": "confirmed",
+      "validation_reason": "After fetch marks the request building at storefront-publication.ts:616, a staging-source rollback allowed by deploy.yml:1019 can fail browser installation or capture before delivery, while a production job can fail its backup check before capture, but deploy.yml:1226 excludes staging-source staging failure and every production-job failure and storefront-publication.ts:711-746 has no pre-delivery recovery catch, leaving the unique pending row at migration 0039:37-38 to block new intents through storefront-publications.ts:324-330; failure incidence was not measured.",
+      "protected_subject": "concurrency"
+    },
+    {
+      "#": 6,
+      "title": "Input artifact failure leaves publication permanently building",
+      "severity": "P2",
+      "file": ".github/workflows/deploy.yml",
+      "line": 1008,
+      "confidence": 75,
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Move the publication-request failure callback after the final artifact-retention step, retaining the steps.publication.outcome == 'success' guard so the original run is known and no storefront mutation has occurred. Distinguish input-retention failure from missing production gates. Verify an injected upload failure produces a failed request and permits an explicit new publication attempt.",
+      "first_evidence": ".github/workflows/deploy.yml:1008 --       - name: Retain the run-bound authorized input without credentials",
+      "why_it_matters": "A transient failure retaining the authorized-input artifact leaves the request marked building even though delivery never starts. The failure callback step occurs before this upload, and the downstream failure job requires publication-request to have succeeded, so neither handles this error. Repeating publication returns the existing pending intent without redispatch, while rerunning the workflow has a different attempt and is rejected by the producer; the environment remains blocked until an operator manually sends the original run's failure callback.",
+      "evidence": [
+        ".github/workflows/deploy.yml:1008 --       - name: Retain the run-bound authorized input without credentials",
+        "tools/storefront-publication.ts:616 --     await publicationCallback(source, { ...run, status: \"building\" });",
+        ".github/workflows/deploy.yml:1003-1007 runs the failure handler before the final artifact upload, so it is skipped while the job is still successful.",
+        ".github/workflows/deploy.yml:1226 publication-failure requires needs.publication-request.result == 'success'; an artifact-upload failure makes that prerequisite false.",
+        "apps/api/src/publishing/storefront-publications.ts:323-326 returns a matching pending intent without invoking the build hook; recordStorefrontPublicationResult rejects a changed run attempt. packages/db/migrations/0039_storefront_publications.sql retains a unique pending request per environment."
+      ],
+      "reviewers": ["reliability"],
+      "independent_reviewers": ["reliability"],
+      "validation_status": "confirmed",
+      "validation_reason": "If the newly added publication-request artifact upload at deploy.yml:1008-1015 fails after the successful fetch has recorded building at storefront-publication.ts:616, the only local failure callback at deploy.yml:1003-1007 has already been evaluated and the downstream finalizer at line 1226 requires that failed job to have succeeded, while storefront-publications.ts:324-326 returns the pending intent without redispatch and lines 587-605 reject a changed run attempt, so the request remains blocked until an original-run callback resolves it; upload-failure incidence was not measured.",
+      "protected_subject": "concurrency"
+    }
+  ],
+  "actionable_findings": [
+    {
+      "#": 1,
+      "title": "Formal publication fails the rehearsal-only latency authority check",
+      "severity": "P1",
+      "file": ".github/workflows/deploy.yml",
+      "line": 1111,
+      "confidence": 100,
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Provide a dedicated formal-publication entry point for the shared latency probe, with authority checks for the protected deploy workflow, exact validated SHA, staging activation target, publication identity and same run. Invoke that entry point from publication-staging while leaving the existing CI-GH rehearsal-only entry point and its guards intact; do not fabricate rehearsal flags to bypass its intentionally different authority. Add a non-network authority test using the actual publication job environment.",
+      "first_evidence": ".github/workflows/deploy.yml:1111 -- --proof-command 'bunx playwright test --config e2e/playwright.config.ts && bun tools/verify-release-staging-latency.ts'",
+      "why_it_matters": "Any publication that reaches the latency command is rejected before a latency request is made. That tool requires the protected CI-GH rollback-rehearsal authority, including CI_GH_STAGING_REHEARSAL=true, CI_GH_PRODUCTION_PROMOTION=false and the validated SHA; the new publication job supplies none of these, and publication preflight explicitly forbids a rollback rehearsal. This rolls back a successful staging publication and blocks every production publication's staging proof.",
+      "evidence": [
+        ".github/workflows/deploy.yml:1111 -- --proof-command 'bunx playwright test --config e2e/playwright.config.ts && bun tools/verify-release-staging-latency.ts'",
+        "tools/verify-release-staging-latency.ts:76-84 requires CI_GH_STAGING_REHEARSAL === \"true\", CI_GH_PRODUCTION_PROMOTION === \"false\" and CI_GH_VALIDATED_SOURCE_SHA; its CLI calls assertReleaseStagingLatencyAuthority at line 244 before runReleaseStagingLatencyProbe.",
+        ".github/workflows/deploy.yml:94-101 requires REHEARSE_STAGING_ROLLBACK to be false for every formal publication, and publication-staging at 1026-1040/1095-1106 provides no CI_GH authority variables. The only CI_GH variables belong to the separate old prove-staging job at 386-388.",
+        "Non-mutating reproduction: importing assertReleaseStagingLatencyAuthority and calling it with GitHub Actions=true, repository=hashencode/shoppp, workflow_dispatch, the protected deploy.yml@refs/heads/main workflow ref and reviewed SHA, but the publication job's absent CI_GH variables, throws \"CI-GH staging rollback rehearsal must be enabled\" before network I/O.",
+        "tools/storefront-publication.ts:806-852 places this command between actual version deployment/observation and the activation callback, so its deterministic rejection invokes baseline restoration; production-source proof remains failed and publication-production's dependency condition cannot pass."
+      ],
+      "reviewers": ["adversarial", "correctness", "reliability"],
+      "independent_reviewers": ["adversarial", "correctness", "reliability"],
+      "validation_status": "confirmed",
+      "validation_reason": "For a formal publication reaching the newly added deploy.yml:1111 proof command, the job supplies none of the CI_GH authority variables required at verify-release-staging-latency.ts:76-84, and a read-only Bun 1.3.5 call using the reviewed 36701cde SHA and publication environment threw the rehearsal-required error before network I/O, which storefront-publication.ts:806-852 treats as delivery failure and restores the baseline; hosted incidence was not measured.",
+      "protected_subject": "authorization-authentication"
+    },
+    {
+      "#": 2,
+      "title": "Formal staging proof selects fallback and private-preview journeys",
+      "severity": "P1",
+      "file": ".github/workflows/deploy.yml",
+      "line": 1111,
+      "confidence": 100,
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Select a hosted public-live purchase proof for this job, binding it to the retained Catalog/Snapshot and using the Fashion Store's actual option selection, Add to cart action and cart navigation. Supply/prepare only the staging Commerce data and required operational fixture variables that the selected tests need, under the existing REL staging authority. Do not use the private-preview FASHION_U12 grant flow or the fallback-specific purchase project as proof of public publication; add a workflow integration check covering the selected configuration and its required environment.",
+      "first_evidence": ".github/workflows/deploy.yml:1111 -- --proof-command 'bunx playwright test --config e2e/playwright.config.ts && bun tools/verify-release-staging-latency.ts'",
+      "why_it_matters": "Even after validation is repaired, a correctly deployed public Fashion Store cannot pass the selected hosted purchase proof. The root suite's mandatory purchase project clicks the fallback Add to bag button and expects automatic navigation to /cart, while the public live page uses Add to cart and keeps the customer on the product page. Its Fashion purchase project is a private-preview journey that skips without FASHION_U12_PHASE, and the remaining root operations tests require fixture variables that this job never supplies; the delivery runner therefore restores the old version instead of recording activation.",
+      "evidence": [
+        ".github/workflows/deploy.yml:1111 -- --proof-command 'bunx playwright test --config e2e/playwright.config.ts && bun tools/verify-release-staging-latency.ts'",
+        "e2e/playwright.config.ts:26-41 always selects provider-purchase from storefront-purchase.spec.ts, selects fashion-provider-purchase separately, and makes release-operations depend on the fallback provider-purchase project.",
+        "e2e/storefront-purchase.spec.ts:16-17 -- await page.getByRole(\"button\", { name: \"Add to bag\" }).click(); await expect(page).toHaveURL(/\\/cart\\/?$/);",
+        "apps/storefront/scripts/prepare-experience.ts:119-145 selects FashionStoreProductPage.vue for the public live snapshot; FashionStoreProductPage.vue:637 renders Add to cart, and addToCart at lines 322-359 updates runtimeState without navigating to /cart.",
+        "e2e/fashion-store-purchase.spec.ts:118 -- test.skip(phase !== \"journey\", \"Runs only inside the locked destructive journey phase.\"); publication-staging does not set FASHION_U12_PHASE, so that project provides no public purchase proof.",
+        "e2e/publication.spec.ts:10, e2e/payment-recovery.spec.ts:14 and e2e/admin-fulfillment.spec.ts:12 require E2E_FAILED_CATALOG_RELEASE_ID, E2E_EXHAUSTED_NOTIFICATION_ID and E2E_BUYER_EMAIL respectively; publication-staging's job/step environment at deploy.yml:1026-1040 and 1095-1106 supplies none of them. The old prove-staging job prepares these fixtures, but it is excluded for publication requests.",
+        "tools/storefront-publication.ts:806-852 executes this proof before completeStorefrontPublication and restores the retained baseline on a proof exception. Thus this incompatible suite prevents a successful receipt for a healthy public deployment."
+      ],
+      "reviewers": ["adversarial", "correctness", "reliability"],
+      "independent_reviewers": ["adversarial", "correctness", "reliability"],
+      "validation_status": "confirmed",
+      "validation_reason": "For an approved public fashion-store publication reaching the newly added proof step, prepare-experience.ts:119-145 selects the live page whose button is Add to cart at FashionStoreProductPage.vue:637, while the mandatory provider-purchase test requires Add to bag and automatic cart navigation at storefront-purchase.spec.ts:16-17, the Fashion test skips without FASHION_U12_PHASE, and required buyer/failure-fixture variables are absent from deploy.yml:1026-1040 and 1095-1106, so this selected suite cannot complete; hosted incidence was not measured."
+    },
+    {
+      "#": 3,
+      "title": "Preserve existing public carts when the storefront changes",
+      "severity": "P1",
+      "file": "apps/storefront/worker/index.ts",
+      "line": 66,
+      "confidence": 100,
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Use a distinct public-storefront catalog header for the compiled marker, and consume it for public product lookup and current-release new-line qualification. Reserve X-Preview-Catalog-Release and assertUsableCart's strict release equality for actual private preview sessions; allow existing public CartToken reads, updates and checkout to keep their already-qualified historical catalog. Add a Worker-to-API regression covering an A cart after B activation and after rollback, and retain the private preview cross-release rejection test.",
+      "first_evidence": "apps/storefront/worker/index.ts:66 -- headers.set(\"X-Preview-Catalog-Release\", marker.identity.catalogReleaseId);",
+      "why_it_matters": "Publishing or rolling back from catalog A to B makes shoppers' existing A carts unavailable even though A has a retained successful activation. Every public API request receives B in the private-preview release header, so the existing cart guard returns cart_release_conflict on GET /cart and checkout. The storefront treats that error as terminal, deletes the stored cart token and starts an empty cart. Separating public catalog observation from private preview isolation lets retained public carts continue while preserving the preview guard.",
+      "evidence": [
+        "apps/storefront/worker/index.ts:66 -- headers.set(\"X-Preview-Catalog-Release\", marker.identity.catalogReleaseId);",
+        "apps/api/src/cart/service.ts:148 -- const authorizedReleaseId = context.req.header(\"x-preview-catalog-release\");",
+        "apps/api/src/cart/service.ts:150 -- if (authorizedReleaseId && cartReleaseId && authorizedReleaseId !== cartReleaseId) {",
+        "apps/api/src/cart/service.ts:153 -- \"cart_release_conflict\",",
+        "apps/api/src/http/app.ts:1101 -- const cart = await requireCart(context);",
+        "apps/api/src/http/app.ts:1172 also requires the cart before creating a checkout session, so this is not limited to adding a product from a newer catalog.",
+        "apps/storefront/app/features/cart/use-guest-cart.ts:51 -- response.data?.error?.code === \"cart_release_conflict\" ||",
+        "apps/storefront/app/features/cart/use-guest-cart.ts:83 -- localStorage.removeItem(TOKEN_KEY);",
+        "apps/storefront/app/features/cart/use-guest-cart.ts:134-138 creates a replacement cart after this terminal error and reports that the previous cart is no longer available.",
+        "docs/architecture/storefront-publication.md: Retention and Commerce explicitly retains historical activated catalogs for existing carts; the added API retention test calls the API directly without a new public Worker header."
+      ],
+      "reviewers": ["correctness"],
+      "independent_reviewers": ["correctness"],
+      "validation_status": "confirmed",
+      "validation_reason": "For a still-active CartToken bound to catalog A after publication or rollback installs catalog B, the newly added public Worker header at index.ts:66 supplies B on GET /api/cart and checkout, assertUsableCart at cart/service.ts:148-155 rejects A with cart_release_conflict before those handlers proceed, and use-guest-cart.ts:51 and 83 deletes the token despite the documented historical-catalog retention contract; the existing retention test calls the API without this changed Worker header and real shopper incidence was not measured.",
+      "protected_subject": "authorization-authentication"
+    },
+    {
+      "#": 4,
+      "title": "Approved public builds fail the fixture-only browser gate",
+      "severity": "P1",
+      "file": "tools/release-validate.ts",
+      "line": 256,
+      "confidence": 100,
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Add a public-build browser configuration/suite that derives product routes, names and canonical origin from the retained approved input, and select it for publication validation while reusing the exact generated output. Preserve the public input/theme selector for that gate; keep the existing fixture-specific fallback tests on their own fixture build, rather than rebuilding the delivery artifact to satisfy them. Verify this with an approved input whose product slug and site.origin differ from the committed fixture. Keep the same approved identity available to accessibility and performance consumers where their selected assertions depend on renderer or frozen content.",
+      "first_evidence": "tools/release-validate.ts:256 -- if (![\"production-builds\", \"static-output\"].includes(gateName)) {",
+      "why_it_matters": "A merchant's valid approved public build cannot pass hosted full validation when its catalog or origin differs from the committed fallback fixture. The new public input survives production-builds/static-output, but the following browser gate reuses that output with the unchanged suite that requires Atlas Carry-on, Fixture variants, Select variant, and shop.example.invalid URLs. A browser gate selected from the same immutable public input would validate the actual frozen content without replacing it with a fixture build.",
+      "evidence": [
+        "tools/release-validate.ts:256 -- if (![\"production-builds\", \"static-output\"].includes(gateName)) {",
+        "tools/release-validate.ts:257-265 deletes STOREFRONT_BUILD_MODE/STOREFRONT_EXPERIENCE_FILE for browser-journeys and sets STOREFRONT_REUSE_VALIDATED_BUILD = \"1\"; RELEASE_GATES selects the unchanged bun run test:e2e after production-builds and static-output.",
+        "apps/storefront/playwright.config.ts:38-47 uses scripts/serve-static.ts instead of rebuilding when STOREFRONT_REUSE_VALIDATED_BUILD is 1, so it serves the newly generated public artifact.",
+        "apps/storefront/e2e/storefront.spec.ts:5-15 -- the active no-js-desktop test requests /products/atlas-carry-on and requires Atlas Carry-on, $129.00, Fixture variants, Select variant and https://shop.example.invalid/products/atlas-carry-on; line 27 also requires Select variant for the mobile project.",
+        "apps/storefront/scripts/prepare-release.ts:52-73 compiles liveExperienceInput.catalogRelease, while StorefrontExperience.vue:258-272 creates its canonical link from liveRelease.site.origin. Construct an otherwise valid approved Catalog whose only product has a different slug or whose origin is the real configured store: build/static checks can pass, then the selected fixture browser test fails, validate never produces a passed attestation, and publication-staging cannot start.",
+        "apps/storefront/e2e/storefront.spec.ts:14 -- \"https://shop.example.invalid/products/atlas-carry-on\","
+      ],
+      "reviewers": ["adversarial", "correctness"],
+      "independent_reviewers": ["adversarial", "correctness"],
+      "validation_status": "confirmed",
+      "validation_reason": "For an authorized public build produced through the new full-validation.yml:191-207 path, release-validate.ts:256-265 reuses that exact output with the unchanged default browser suite, whose storefront.spec.ts:5-15 requires fallback-specific Fixture variants, Select variant and shop.example.invalid canonical content, and read-only inspection of the retained fashion-store public marker and product HTML found all three requirements absent, establishing the newly exposed gate incompatibility without executing hosted validation; hosted incidence was not measured."
+    },
+    {
+      "#": 5,
+      "title": "Pre-delivery failures strand the pending publication",
+      "severity": "P2",
+      "file": ".github/workflows/deploy.yml",
+      "line": 1226,
+      "confidence": 100,
+      "autofix_class": "manual",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Give the capture/deliver steps explicit IDs and finalize unsuccessful publication jobs that never entered a mutation-capable delivery step, using the same-run failed callback and the producer's existing current-storefront verification. Cover publication-staging for staging-source requests and publication-production pre-delivery failures; keep post-mutation/unknown outcomes on the existing retained-baseline unresolved recovery path. Add workflow/state integration scenarios for browser-install failure, backup rejection and baseline-capture failure, verifying that a safely failed request permits a new attempt and an unverifiable storefront remains unresolved.",
+      "first_evidence": ".github/workflows/deploy.yml:1226 -- if: ${{ always() && inputs.publication_id != '' && needs.publication-request.result == 'success' && needs.publication-production.result == 'skipped' && (needs.validate.result == 'failure' || needs.verify-deployment-inputs.result == 'failure' || needs.approve-human-access.result == 'failure' || needs.approve-production.result == 'failure' || (inputs.source_environment == 'production' && needs.publication-staging.result == 'failure')) }}",
+      "why_it_matters": "An ordinary job failure before delivery, such as a staging browser installation failure or a production backup rejection, leaves the request marked building although no storefront mutation occurred. The workflow's finalizer excludes staging-source publication-staging failures and any publication-production failure, while the runner's recovery catch begins only after baseline loading/rechecking. Admin consequently keeps showing publishing and refuses another request because the environment's unique pending row never becomes failed; cases before capture also lack the baseline required by the documented recovery command.",
+      "evidence": [
+        ".github/workflows/deploy.yml:1226 -- if: ${{ always() && inputs.publication_id != '' && needs.publication-request.result == 'success' && needs.publication-production.result == 'skipped' && (needs.validate.result == 'failure' || needs.verify-deployment-inputs.result == 'failure' || needs.approve-human-access.result == 'failure' || needs.approve-production.result == 'failure' || (inputs.source_environment == 'production' && needs.publication-staging.result == 'failure')) }}",
+        "tools/storefront-publication.ts:616 sends the building callback in publication-request's fetch step, before the separate publication-staging/production job starts.",
+        "Scenario A: validation and attestation verification succeed for a staging request; deploy.yml:1069 browser installation fails. capture and deliver are skipped, publication-staging is failure, publication-production is skipped, and the finalizer predicate's staging failure branch is disabled because source_environment is staging. The producer row remains building.",
+        "Scenario B: production staging proof and approvals succeed, but the ready/recent backup query at deploy.yml:1163-1180 rejects the supplied backup. publication-production is failure, capture/deliver never start, and finalization is skipped because it requires publication-production to be skipped.",
+        "tools/storefront-publication.ts:711-746 performs capture, retained-baseline read and pre-mutation baseline recheck outside the mutation recovery try, so those exceptions also cannot submit a failed result themselves.",
+        "packages/db/migrations/0039_storefront_publications.sql:37-38 reserves one pending row per environment for queued/building/unresolved; apps/api/src/publishing/storefront-publications.ts:324-330 returns/rejects against that pending row. Admin's panel at lines 162-175 disables publishing while such a row exists. Recovery CLI at tools/storefront-publication.ts:719 requires a retained baseline, which is unavailable for a failure before capture.",
+        "tools/storefront-publication.ts:616 -- await publicationCallback(source, { ...run, status: \"building\" });",
+        ".github/workflows/deploy.yml:1175 selects only a ready production backup completed within 24 hours; jq --exit-status at 1177-1180 fails when none matches.",
+        ".github/workflows/deploy.yml:1181 baseline capture follows backup verification, and the deliver call at 1212 is skipped after that earlier failure; neither job has a local pre-delivery failure callback.",
+        "packages/db/migrations/0039_storefront_publications.sql:38 -- ON storefront_publications(environment) WHERE status IN ('queued', 'building', 'unresolved');",
+        "apps/api/src/publishing/storefront-publications.ts:326 -- if (matchesPendingIntent(pending, input)) return pending;",
+        "tools/storefront-publication.ts:593-599 already provides a same-run failed callback for verified pre-mutation failures; the protected workflow can use it before deliver begins."
+      ],
+      "reviewers": ["adversarial", "correctness"],
+      "independent_reviewers": ["adversarial", "correctness"],
+      "validation_status": "confirmed",
+      "validation_reason": "After fetch marks the request building at storefront-publication.ts:616, a staging-source rollback allowed by deploy.yml:1019 can fail browser installation or capture before delivery, while a production job can fail its backup check before capture, but deploy.yml:1226 excludes staging-source staging failure and every production-job failure and storefront-publication.ts:711-746 has no pre-delivery recovery catch, leaving the unique pending row at migration 0039:37-38 to block new intents through storefront-publications.ts:324-330; failure incidence was not measured.",
+      "protected_subject": "concurrency"
+    },
+    {
+      "#": 6,
+      "title": "Input artifact failure leaves publication permanently building",
+      "severity": "P2",
+      "file": ".github/workflows/deploy.yml",
+      "line": 1008,
+      "confidence": 75,
+      "autofix_class": "gated_auto",
+      "owner": "downstream-resolver",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Move the publication-request failure callback after the final artifact-retention step, retaining the steps.publication.outcome == 'success' guard so the original run is known and no storefront mutation has occurred. Distinguish input-retention failure from missing production gates. Verify an injected upload failure produces a failed request and permits an explicit new publication attempt.",
+      "first_evidence": ".github/workflows/deploy.yml:1008 --       - name: Retain the run-bound authorized input without credentials",
+      "why_it_matters": "A transient failure retaining the authorized-input artifact leaves the request marked building even though delivery never starts. The failure callback step occurs before this upload, and the downstream failure job requires publication-request to have succeeded, so neither handles this error. Repeating publication returns the existing pending intent without redispatch, while rerunning the workflow has a different attempt and is rejected by the producer; the environment remains blocked until an operator manually sends the original run's failure callback.",
+      "evidence": [
+        ".github/workflows/deploy.yml:1008 --       - name: Retain the run-bound authorized input without credentials",
+        "tools/storefront-publication.ts:616 --     await publicationCallback(source, { ...run, status: \"building\" });",
+        ".github/workflows/deploy.yml:1003-1007 runs the failure handler before the final artifact upload, so it is skipped while the job is still successful.",
+        ".github/workflows/deploy.yml:1226 publication-failure requires needs.publication-request.result == 'success'; an artifact-upload failure makes that prerequisite false.",
+        "apps/api/src/publishing/storefront-publications.ts:323-326 returns a matching pending intent without invoking the build hook; recordStorefrontPublicationResult rejects a changed run attempt. packages/db/migrations/0039_storefront_publications.sql retains a unique pending request per environment."
+      ],
+      "reviewers": ["reliability"],
+      "independent_reviewers": ["reliability"],
+      "validation_status": "confirmed",
+      "validation_reason": "If the newly added publication-request artifact upload at deploy.yml:1008-1015 fails after the successful fetch has recorded building at storefront-publication.ts:616, the only local failure callback at deploy.yml:1003-1007 has already been evaluated and the downstream finalizer at line 1226 requires that failed job to have succeeded, while storefront-publications.ts:324-326 returns the pending intent without redispatch and lines 587-605 reject a changed run attempt, so the request remains blocked until an original-run callback resolves it; upload-failure incidence was not measured.",
+      "protected_subject": "concurrency"
+    }
+  ],
+  "triage_groups": [
+    {
+      "title": "Validate the approved public storefront",
+      "findings": [1, 2, 4],
+      "context": "The local artifact browser contract, hosted purchase suite and hosted latency authority currently reject the public-live publication path for different reasons.",
+      "preferred_resolution": "Fix #4 first so the exact public artifact can obtain validation; select the public purchase proof in #2 and provide the protected formal-publication latency entry point in #1. Preserve the same artifact and existing source/activation and PG guards.",
+      "why": "Each gate must exercise the artifact and authority it receives; repairing only one leaves another deterministic blocker.",
+      "type": "apply-queue"
+    },
+    {
+      "title": "Finalize safe failures before delivery",
+      "findings": [5, 6],
+      "context": "Pending requests can remain building when a protected target job fails before delivery or when the request job cannot retain its input.",
+      "preferred_resolution": "Handle #6 after the request job's final upload, then #5 in each protected target job with explicit delivery-step ownership. Keep all started or uncertain mutations on retained-baseline recovery.",
+      "why": "These distinct finalizer paths unblock explicit retries without claiming an unverified restoration.",
+      "type": "apply-queue"
+    }
+  ],
+  "pre_existing_findings": [],
+  "requirements_completeness": {
+    "plan_path": "docs/plans/2026-10-10-2307-refactor-admin-merchant-workflows-plan.md",
+    "plan_source": "explicit",
+    "scope_note": "Current U7 implementation with U1-U6 completed baseline preservation. U7 is partially addressed pending the retained code/test defects; hosted execution and DC/PG are intentionally excluded. Finishing delivery documentation is held for post-gate closure, not a new missing feature.",
+    "requirements": [
+      {
+        "id": "R1",
+        "status": "met",
+        "scope": "completed inherited U1-U6 baseline",
+        "note": "The completed menu-ownership baseline is preserved; U7 adds no page, menu group or placeholder module.",
+        "findings": []
+      },
+      {
+        "id": "R2",
+        "status": "met",
+        "scope": "U7 affected behavior",
+        "note": "Guide and Dashboard content, route metadata and existing translations remain unchanged. Publication translations are additive and scoped to storefront actions.",
+        "findings": []
+      },
+      {
+        "id": "R3",
+        "status": "met",
+        "scope": "completed inherited U1-U6 baseline",
+        "note": "The completed route, deep-link, permission and return-navigation baseline is preserved; new publication endpoints enforce their separate human permission.",
+        "findings": []
+      },
+      {
+        "id": "R4",
+        "status": "met",
+        "scope": "U7 affected behavior",
+        "note": "Admin distinguishes saved or approved sources, queued/building requests, historical success and a freshly verified active receipt.",
+        "findings": []
+      },
+      {
+        "id": "R5",
+        "status": "partially addressed",
+        "scope": "U7 affected behavior",
+        "note": "Business operations retain their existing services, but the new public Worker release header invalidates retained shopper carts on publication or rollback.",
+        "findings": [3]
+      },
+      {
+        "id": "R6",
+        "status": "met",
+        "scope": "completed inherited U1-U6 baseline",
+        "note": "The completed online-store preview entry and exact identity binding are preserved; U7 does not reintroduce manual technical-version selection.",
+        "findings": []
+      },
+      {
+        "id": "R7",
+        "status": "met",
+        "scope": "completed inherited U1-U6 baseline",
+        "note": "The completed preview inclusion and draft boundaries are preserved; approval remains tied to exact frozen bytes.",
+        "findings": []
+      },
+      {
+        "id": "R8",
+        "status": "partially addressed",
+        "scope": "U7 affected behavior",
+        "note": "Producer, public compiler, activation observation and Admin receipt consumption exist, but the selected browser and latency proof gates prevent valid formal publication from completing.",
+        "findings": [1, 2, 4]
+      },
+      {
+        "id": "R9",
+        "status": "met",
+        "scope": "completed inherited U1-U6 baseline",
+        "note": "The completed settings ownership, atomic writes and conflict boundaries remain outside this U7 change.",
+        "findings": []
+      },
+      {
+        "id": "R10",
+        "status": "partially addressed",
+        "scope": "U7 affected behavior",
+        "note": "Publication consequences and technical details are localized, but pre-delivery failure paths leave no usable retry state.",
+        "findings": [5, 6]
+      },
+      {
+        "id": "R11",
+        "status": "met",
+        "scope": "U7 affected behavior",
+        "note": "Admin composes existing AntD controls and local request guards; no new navigation, global state or focus framework was introduced.",
+        "findings": []
+      },
+      {
+        "id": "R12",
+        "status": "partially addressed",
+        "scope": "U7 affected behavior",
+        "note": "The phased U1-U6 baseline and REL authority are preserved, but U7 cannot close until the public proof and safe-failure defects are fixed and locally verified.",
+        "findings": [1, 2, 3, 4, 5, 6]
+      }
+    ],
+    "implementation_units": [
+      {
+        "id": "U1",
+        "status": "met",
+        "scope": "review inherited preservation only",
+        "note": "Completed inherited ownership and operation-result baseline is preserved.",
+        "findings": []
+      },
+      {
+        "id": "U2",
+        "status": "met",
+        "scope": "review inherited preservation only",
+        "note": "Completed sidebar, original-page and direct-link baseline is preserved.",
+        "findings": []
+      },
+      {
+        "id": "U3",
+        "status": "met",
+        "scope": "review inherited preservation only",
+        "note": "Completed action wording and truthful state baseline is preserved by the separate publication states.",
+        "findings": []
+      },
+      {
+        "id": "U4",
+        "status": "met",
+        "scope": "review inherited preservation only",
+        "note": "Completed settings-task and same-page save boundaries are preserved.",
+        "findings": []
+      },
+      {
+        "id": "U5",
+        "status": "met",
+        "scope": "review inherited preservation only",
+        "note": "Completed private-preview entry, source qualification and fixed identity baseline is preserved.",
+        "findings": []
+      },
+      {
+        "id": "U6",
+        "status": "met",
+        "scope": "review inherited preservation only",
+        "note": "Completed Admin-core evidence remains inherited; it is not used as this U7 review receipt.",
+        "findings": []
+      },
+      {
+        "id": "U7",
+        "status": "partially addressed",
+        "scope": "formal producer/consumer/activation receipt/local closure; hosted/DC/PG excluded",
+        "note": "Producer and consumer work is present. The four P1 and two P2 defects prevent local closure; hosted activation and DC/PG remain intentionally outside this implementation review.",
+        "findings": [1, 2, 3, 4, 5, 6]
+      }
+    ],
+    "unaddressed": [],
+    "unrequested_behavior_rules": [],
+    "reverse_check": "The reviewed behavior is within authorized U7 and settled KTD6/KTD7. The #3 cart regression conflicts with the existing-cart preservation contract and is already actionable; no additional intentional behavior rule or product-scope expansion was retained. Finishing documentation/checkpoint updates are expected caller work after this gate."
+  },
+  "learnings": [
+    {
+      "type": "known_pattern",
+      "title": "github-first-release-resilience-for-solo-maintainers-2026-08-28",
+      "citation": "docs/solutions/workflow-issues/github-first-release-resilience-for-solo-maintainers-2026-08-28.md",
+      "note": "Keep protected exact-run artifacts and original recovery baseline before mutation; distinguish local checks from hosted release evidence. Current architecture permits authorized exact-version rollback without rebuilding or rolling back D1."
+    },
+    {
+      "type": "known_pattern",
+      "title": "html-source-parity-reconstruction-workflow-2026-08-06",
+      "citation": "docs/solutions/workflow-issues/html-source-parity-reconstruction-workflow-2026-08-06.md",
+      "note": "Generated markup and source similarity do not prove stateful capability chains. Exercise public live Commerce and runtime revalidation with observable outcomes inside U7 scope."
+    }
+  ],
+  "agent_native_gaps": [],
+  "deployment_notes": [],
+  "residual_risks": [
+    "Hosted operation remains unverified and REL-owned: apply migration 0039, forward publicationId/sourceEnvironment through the existing dispatcher, and verify protected source/activation environments, staging Commerce preparation and production approvals before operational use. Local fixtures and workflow definitions do not establish hosted, candidate or production evidence."
+  ],
+  "testing_gaps": [
+    "tools/storefront-publication.ts:588-853 composes report/input binding, a fresh same-run owner check, proof-only restoration and receipt-loss recovery. Existing tests cover helpers and workflow strings. A scratch CLI harness with fake transport/commands should exercise that composition: no deployment after mismatched input/report or changed owner, no producer callback for proof-only delivery, and no restore after an accepted receipt or uncertain callback outcome.",
+    "apps/storefront/tests/storefront-publication.test.ts:347 supplies both a missing compiled asset and missing runtime metadata, so its 404 does not isolate apps/storefront/worker/index.ts:52. Add a valid compiled marker with CF_VERSION_METADATA omitted and assert that no runtime-less online observation is returned."
+  ],
+  "coverage": {
+    "depth": "full",
+    "scope_signals": {
+      "exec_nontest_lines": 2786,
+      "changed_lines": 6095,
+      "size_band": "large",
+      "untracked_source_files_included": 3
+    },
+    "reviewers_selected": 12,
+    "reviewers_terminal": 12,
+    "failed_reviewers": [],
+    "bound_exceeded": [],
+    "project_standards": {
+      "criteria": [
+        {
+          "path": "AGENTS.md",
+          "changed_paths": [
+            ".github/workflows/deploy.yml",
+            ".github/workflows/full-validation.yml",
+            ".gitignore",
+            "apps/admin/src/pages/storefront/theme-editor-page.browser.test.tsx",
+            "apps/admin/src/pages/storefront/theme-editor-page.test.tsx",
+            "apps/admin/src/pages/storefront/theme-editor-page.tsx",
+            "apps/admin/src/pages/storefront/themes-page.test.tsx",
+            "apps/admin/src/pages/storefront/themes-page.tsx",
+            "apps/admin/src/services/storefront/api.ts",
+            "apps/admin/src/shared/i18n/translations.ts",
+            "apps/api/src/cart/service.ts",
+            "apps/api/src/http/app.ts",
+            "apps/api/src/publishing/candidate-releases.ts",
+            "apps/api/src/publishing/releases.ts",
+            "apps/api/src/publishing/storefront-publications.ts",
+            "apps/api/src/storefront-experience/catalog-resources.ts",
+            "apps/api/src/storefront-experience/service.ts",
+            "apps/api/test/catalog/storefront-publication.test.ts",
+            "apps/api/test/storefront-experience/experience-api.test.ts",
+            "apps/storefront/app/StorefrontExperience.vue",
+            "apps/storefront/nuxt.config.ts",
+            "apps/storefront/scripts/experience-build-input.ts",
+            "apps/storefront/scripts/prepare-experience.ts",
+            "apps/storefront/scripts/prepare-release.ts",
+            "apps/storefront/scripts/resolve-prerender-routes.ts",
+            "apps/storefront/scripts/verify-static.ts",
+            "apps/storefront/tests/storefront-publication.test.ts",
+            "apps/storefront/worker/index.ts",
+            "apps/storefront/wrangler.jsonc",
+            "docs/architecture/storefront-publication.md",
+            "docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md",
+            "docs/plans/2026-10-10-2307-refactor-admin-merchant-workflows-plan.md",
+            "packages/contracts/src/admin.ts",
+            "packages/contracts/src/index.ts",
+            "packages/contracts/src/storefront-publication.ts",
+            "packages/contracts/test/storefront-publication.test.ts",
+            "packages/db/migrations/0039_storefront_publications.sql",
+            "packages/db/src/schema/index.ts",
+            "tools/deploy-workflow.test.ts",
+            "tools/release-validate.test.ts",
+            "tools/release-validate.ts",
+            "tools/storefront-publication.test.ts",
+            "tools/storefront-publication.ts",
+            "apps/admin/src/pages/storefront/storefront-publication-panel.test.tsx",
+            "apps/admin/src/pages/storefront/storefront-publication-panel.tsx",
+            "docs/progress/2026-10-11-admin-formal-storefront-publication-verification.md"
+          ]
+        },
+        {
+          "path": "apps/admin/AGENTS.md",
+          "changed_paths": [
+            "apps/admin/src/pages/storefront/theme-editor-page.browser.test.tsx",
+            "apps/admin/src/pages/storefront/theme-editor-page.test.tsx",
+            "apps/admin/src/pages/storefront/theme-editor-page.tsx",
+            "apps/admin/src/pages/storefront/themes-page.test.tsx",
+            "apps/admin/src/pages/storefront/themes-page.tsx",
+            "apps/admin/src/services/storefront/api.ts",
+            "apps/admin/src/shared/i18n/translations.ts",
+            "apps/admin/src/pages/storefront/storefront-publication-panel.test.tsx",
+            "apps/admin/src/pages/storefront/storefront-publication-panel.tsx"
+          ]
+        }
+      ],
+      "fallback_named": true,
+      "not_run_reason": null
+    },
+    "compound_packs": {
+      "roots": [],
+      "errors": [],
+      "warnings": []
+    },
+    "peer_outcome": "in-process-fallback",
+    "cross_model": "Cross-model pass: not run. Current Codex-family host probe found only same-family Codex CLI; claude, grok, cursor-agent and opencode were absent. No review content left the machine; adversarial lens ran in-process.",
+    "validator": {
+      "outcome": "verdicts",
+      "selected": 6,
+      "confirmed": 6,
+      "rejected": 0,
+      "unresolved": 0,
+      "malformed": 0,
+      "failed": 0,
+      "shortcut_skipped": 0,
+      "shortcut_evidence_basis": "No verified independent serving-family adversarial peer; every primary P1 and actionable P2 requires validation.",
+      "bound_exceeded": false,
+      "verdicts_file": "/Users/studio/Documents/GitHub/shoppp/docs/ce-code-review/20261011-041618-e3aad574/validator-verdicts.json",
+      "verdicts": [
+        {
+          "#": 1,
+          "status": "confirmed",
+          "protected_subject": "authorization-authentication",
+          "reason": "For a formal publication reaching the newly added deploy.yml:1111 proof command, the job supplies none of the CI_GH authority variables required at verify-release-staging-latency.ts:76-84, and a read-only Bun 1.3.5 call using the reviewed 36701cde SHA and publication environment threw the rehearsal-required error before network I/O, which storefront-publication.ts:806-852 treats as delivery failure and restores the baseline; hosted incidence was not measured."
+        },
+        {
+          "#": 2,
+          "status": "confirmed",
+          "protected_subject": null,
+          "reason": "For an approved public fashion-store publication reaching the newly added proof step, prepare-experience.ts:119-145 selects the live page whose button is Add to cart at FashionStoreProductPage.vue:637, while the mandatory provider-purchase test requires Add to bag and automatic cart navigation at storefront-purchase.spec.ts:16-17, the Fashion test skips without FASHION_U12_PHASE, and required buyer/failure-fixture variables are absent from deploy.yml:1026-1040 and 1095-1106, so this selected suite cannot complete; hosted incidence was not measured."
+        },
+        {
+          "#": 3,
+          "status": "confirmed",
+          "protected_subject": "authorization-authentication",
+          "reason": "For a still-active CartToken bound to catalog A after publication or rollback installs catalog B, the newly added public Worker header at index.ts:66 supplies B on GET /api/cart and checkout, assertUsableCart at cart/service.ts:148-155 rejects A with cart_release_conflict before those handlers proceed, and use-guest-cart.ts:51 and 83 deletes the token despite the documented historical-catalog retention contract; the existing retention test calls the API without this changed Worker header and real shopper incidence was not measured."
+        },
+        {
+          "#": 4,
+          "status": "confirmed",
+          "protected_subject": null,
+          "reason": "For an authorized public build produced through the new full-validation.yml:191-207 path, release-validate.ts:256-265 reuses that exact output with the unchanged default browser suite, whose storefront.spec.ts:5-15 requires fallback-specific Fixture variants, Select variant and shop.example.invalid canonical content, and read-only inspection of the retained fashion-store public marker and product HTML found all three requirements absent, establishing the newly exposed gate incompatibility without executing hosted validation; hosted incidence was not measured."
+        },
+        {
+          "#": 5,
+          "status": "confirmed",
+          "protected_subject": "concurrency",
+          "reason": "After fetch marks the request building at storefront-publication.ts:616, a staging-source rollback allowed by deploy.yml:1019 can fail browser installation or capture before delivery, while a production job can fail its backup check before capture, but deploy.yml:1226 excludes staging-source staging failure and every production-job failure and storefront-publication.ts:711-746 has no pre-delivery recovery catch, leaving the unique pending row at migration 0039:37-38 to block new intents through storefront-publications.ts:324-330; failure incidence was not measured."
+        },
+        {
+          "#": 6,
+          "status": "confirmed",
+          "protected_subject": "concurrency",
+          "reason": "If the newly added publication-request artifact upload at deploy.yml:1008-1015 fails after the successful fetch has recorded building at storefront-publication.ts:616, the only local failure callback at deploy.yml:1003-1007 has already been evaluated and the downstream finalizer at line 1226 requires that failed job to have succeeded, while storefront-publications.ts:324-326 returns the pending intent without redispatch and lines 587-605 reject a changed run attempt, so the request remains blocked until an original-run callback resolves it; upload-failure incidence was not measured."
+        }
+      ]
+    },
+    "protected_subject_reclassifications": [],
+    "validation_degraded_blockers": [],
+    "suppressed_by_confidence": {
+      "25": 0,
+      "50": 0,
+      "75": 0,
+      "100": 0
+    },
+    "first_evidence_backfilled": 0,
+    "missing_quote_demotions": 0,
+    "malformed_findings": 0,
+    "malformed_returns": 0,
+    "detail_hydration_failures": 0,
+    "mode_aware_demotions": 0,
+    "admission_rejected_count": 4,
+    "apply_authorized": false,
+    "source_drift": [],
+    "notes": [
+      "Depth: full, owned gate floor from migration and large executable scope; exec_nontest_lines=2786, changed_lines=6095, size_band=large. Scope helper tracked counts exclude explicitly included untracked panel/test/evidence.",
+      "Scope: local-aligned current tree against completed U6 base 6cd04e6b18b4fac62c5bec704190f0113b03b2e9, including committed U7, settled tracked dirty files and 3 untracked files by explicit invocation override. No untracked source was excluded. A bare base: invocation ordinarily labels this standalone; caller explicitly named local-aligned current-tree scope; both tree-is-reviewed-head semantics are identical.",
+      "Project standards: root AGENTS.md and apps/admin/AGENTS.md instruction-file fallback; no governing CODING_STANDARDS.md found.",
+      "Artifact root: unset docs_root resolved docs; top-level SKILL.md sole-location rule overrides scope.md scratch example. Initial run was moved before dispatch to docs/ce-code-review with original ID/stage log.",
+      "All 12 selected local lenses collected terminal outcomes in this turn under host-capacity backpressure; 11 structured artifacts plus learnings-researcher prose. No reviewer failed or exceeded its 20-minute/40-call bound.",
+      "No external peer route started; no egress or detached job obligation exists.",
+      "No source/index/Git change, worktree, deployment, install, push/PR or candidate/DC/PG operation performed. Root may finish documentation evidence; final source drift check retained exact production source and staged diff.",
+      "Maintainability reviewer supplied supporting-offset correction preserved in /Users/studio/Documents/GitHub/shoppp/docs/ce-code-review/20261011-041618-e3aad574/maintainability-collection-note.txt. Primary quotes and full artifact remained unchanged.",
+      "Admin AntD default accessibility semantics remain library-owned; hypothetical extra live/focus protocols are outside scope.",
+      "Existing verification claims are local only; not hosted/candidate/production evidence.",
+      "Skipped conditional lenses: {\"agent-native\": \"No changed agent integration/tool registry or requirement for agent access; publication authorization is intentionally human-only. New runner is protected environment orchestration, not an agent tool.\", \"previous-comments\": \"No PR metadata/target.\", \"swift-ios\": \"No Swift/iOS runtime surface.\", \"deployment-verification\": \"0039 adds new tables/guards and permission seed; no destructive DDL, backfill, existing-row NOT NULL, rename/drop.\"}",
+      "Cross-model pass: not run. Current Codex-family host probe found only same-family Codex CLI; claude, grok, cursor-agent and opencode were absent. No review content left the machine; adversarial lens ran in-process.",
+      "Stage 5 loaded all 11 full structured reviewer artifacts and the retained learnings-researcher prose; 14 source claims were mechanically valid. Semantic reconciliation retains separate staging browser and latency failure modes, a separate public artifact browser gate, public cart retention, and two distinct pre-mutation finalizers.",
+      "Confidence suppression: 0 at every anchor. Missing-quote demotions: 0. first_evidence_backfilled: 0 across the initial and reconciliation mechanics passes. Malformed findings/returns: 0. Detail-hydration failures: 0. Mode-aware soft-bucket demotions: 0.",
+      "Four file-size-only structural preferences were rejected at admission after checking the scoped standards and settled KTD6/KTD7 architecture; no rejected claim was recycled as a residual risk or testing gap. They establish growth without a project-scoped numeric limit or a demonstrated significant consequence.",
+      "Selected plan: explicit. Settlement and reverse-scope reconciliation evaluated the supplied decision and caller-pinned KTD6/KTD7; concrete failures of the chosen design remain findings. Completed U1-U6 are inherited preservation obligations. Held-back finishing checkpoint/master evidence is expected after this review gate and creates no new missing-implementation finding.",
+      "Merge inspected every motivating source quote and affected caller/consumer; exact reviewed production-source hashes still match the dispatch manifest. No source, Git/index, worktree, environment or product mutation was performed.",
+      "Stage 5b step 5: the single deterministic batch returned all 6 matched terminal verdicts: confirmed 6, rejected 0, unresolved 0, malformed 0, failed 0, shortcut-skipped 0. Verdicts landed within the dispatch-owned bound; no validation-degraded blocker remains.",
+      "Independent protected-subject classification agrees with the validator: #1 and #3 authorization-authentication; #5 and #6 concurrency; #2 and #4 unprotected. No protected-subject reclassification was needed.",
+      "Every confirmation includes its reachable precondition and explicitly unmeasured hosted, shopper or failure incidence. Confirmation of a local code path is not completed hosted activation, candidate or production evidence.",
+      "Stage 5c skipped: apply_local=false and mode:agent is report-only. No fix, commit, index change, worktree, deployment or external action was performed.",
+      "Stage 6 checked the full plan, preserved U1-U6 baseline and reverse scope. No wholly unaddressed requirement/unit or new unrequested behavior rule was retained. The cart-invalidating effect is the contractual regression #3, not a separate scope-expansion finding.",
+      "Final report inspection confirmed every primary line and motivating quote against the reviewed tree, all production-source hashes still match dispatch, and no protected Guide/Dashboard translation was changed. Final plan/checkpoint/master completion remains caller-owned after fixes and verification."
+    ]
+  },
+  "artifact_path": "/Users/studio/Documents/GitHub/shoppp/docs/ce-code-review/20261011-041618-e3aad574",
+  "run_id": "20261011-041618-e3aad574"
+}

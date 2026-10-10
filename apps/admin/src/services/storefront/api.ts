@@ -3,6 +3,10 @@ import type {
   ExperienceResourceBinding,
   StorefrontExperienceBlockCommand,
   ThemeOverride,
+  StorefrontPublication,
+  StorefrontPublicationContext,
+  StorefrontPublicationRequest,
+  StorefrontPublicationRollback,
 } from '@shoppp/contracts'
 import { apiClient } from '../../infrastructure/http/api-client'
 
@@ -162,6 +166,39 @@ export type StorefrontExperienceMigration = {
 
 const idempotencyKey = (operation: string) =>
   `${operation}-${crypto.randomUUID ? crypto.randomUUID() : Date.now()}`
+
+export const fetchStorefrontPublicationContext = async (
+  draftId: string,
+  signal?: AbortSignal
+): Promise<StorefrontPublicationContext> => {
+  const response = await apiClient.get<{ data: StorefrontPublicationContext }>(
+    `/admin/storefront-experiences/drafts/${draftId}/publication-context`,
+    { signal }
+  )
+  return response.data.data
+}
+
+export const publishStorefront = async (
+  input: StorefrontPublicationRequest
+): Promise<StorefrontPublication> => {
+  const response = await apiClient.post<{ data: StorefrontPublication }>(
+    '/admin/storefront-publications',
+    input,
+    { headers: { 'Idempotency-Key': idempotencyKey('storefront-publish') } }
+  )
+  return response.data.data
+}
+
+export const rollbackStorefrontPublication = async (
+  input: StorefrontPublicationRollback
+): Promise<StorefrontPublication> => {
+  const response = await apiClient.post<{ data: StorefrontPublication }>(
+    '/admin/storefront-publications/rollback',
+    input,
+    { headers: { 'Idempotency-Key': idempotencyKey('storefront-rollback') } }
+  )
+  return response.data.data
+}
 
 export const storefrontPreviewOrigin = (): string | null => {
   const configured = import.meta.env.PUBLIC_PREVIEW_ORIGIN?.trim().replace(/\/$/, '')

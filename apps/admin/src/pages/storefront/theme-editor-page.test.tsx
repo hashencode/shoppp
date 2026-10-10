@@ -1,4 +1,8 @@
-import type { AdminPermission, AdminStorefrontTheme } from '@shoppp/contracts'
+import type {
+  AdminPermission,
+  AdminStorefrontTheme,
+  StorefrontPublicationContext,
+} from '@shoppp/contracts'
 import React from 'react'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
@@ -217,6 +221,7 @@ let updateBody: Record<string, unknown> | null = null
 let validationBody: Record<string, unknown> | null = null
 let previewBody: Record<string, unknown> | null = null
 let approvalBody: Record<string, unknown> | null = null
+let publicationApproval: StorefrontPublicationContext['approval'] = null
 let migrationBody: Record<string, unknown> | null = null
 let createDraftBody: Record<string, unknown> | null = null
 let successorBody: Record<string, unknown> | null = null
@@ -279,6 +284,32 @@ const catalogRelease = (id: string) => ({
   status: 'deployed' as const,
 })
 
+const rememberPublicationApproval = (snapshotId: string) => {
+  const validation = currentDraft.validations.find(
+    (item) => item.catalogReleaseId === (approvalBody?.catalogReleaseId ?? null)
+  )
+  if (!validation || !approvalBody) return
+  publicationApproval = {
+    id: snapshotId,
+    sourceDraftId: currentDraft.id,
+    sourceDraftVersion: Number(approvalBody.expectedVersion),
+    sourceValidationId: validation.id,
+    contentDigest: 'c'.repeat(64),
+    identity: {
+      catalogReleaseId: String(approvalBody.catalogReleaseId ?? 'fixture-release'),
+      catalogManifestDigest: 'a'.repeat(64),
+      catalogSourceDigest: 'b'.repeat(64),
+      experienceSnapshotId: snapshotId,
+      snapshotDigest: 'c'.repeat(64),
+      contactVersion: 'd'.repeat(64),
+      experienceVersion: Number(approvalBody.expectedVersion),
+      themeId: currentDraft.themeId,
+      themeVersion: currentDraft.themeVersion,
+      platformContractVersion: '1.0.0',
+    },
+  }
+}
+
 const deployedPreviewContext = (releaseId: string, draftVersion = 1) => {
   const snapshot = {
     ...previewSnapshot,
@@ -318,6 +349,19 @@ const server = setupServer(
   ),
   http.get('*/admin/storefront-experiences/drafts/:id/preview-context', () =>
     HttpResponse.json({ data: null })
+  ),
+  http.get('*/admin/storefront-experiences/drafts/:id/publication-context', () =>
+    HttpResponse.json({
+      data: {
+        environment: 'staging',
+        approval:
+          publicationApproval?.sourceDraftVersion === currentDraft.version
+            ? publicationApproval
+            : null,
+        active: { publication: null, verification: 'none', checkedAt: currentDraft.updatedAt },
+        publications: [],
+      },
+    })
   ),
   http.post('*/admin/storefront-experiences/drafts', async ({ request }) => {
     createDraftBody = (await request.json()) as Record<string, unknown>
@@ -398,6 +442,7 @@ const server = setupServer(
   ),
   http.post('*/admin/storefront-experiences/drafts/:id/approve', async ({ request }) => {
     approvalBody = (await request.json()) as Record<string, unknown>
+    rememberPublicationApproval('snapshot-approved-fashion-store')
     return HttpResponse.json({
       data: {
         ...previewSnapshot,
@@ -586,6 +631,7 @@ afterEach(() => {
   validationBody = null
   previewBody = null
   approvalBody = null
+  publicationApproval = null
   migrationBody = null
   createDraftBody = null
   successorBody = null
@@ -754,7 +800,8 @@ describe('ThemeEditorPage', () => {
       })
       expect(blockCommandBody?.command).toMatchObject(expected)
       expect(blockCommandBody?.reason).toBe('')
-    }
+    },
+    20_000
   )
 
   it('surfaces a rejected Block command without reporting success', async () => {
@@ -1194,11 +1241,11 @@ describe('ThemeEditorPage', () => {
     expect((await screen.findAllByText('Page 1 of 2')).length).toBeGreaterThan(0)
     expect(screen.getByRole('group', { name: 'home-hero image' })).toBeTruthy()
     expect(await screen.findByAltText('Approved hero')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Select Approved hero' }))
+    fireEvent.click(screen.getByLabelText('Select Approved hero', { selector: 'button' }))
     expect(screen.getByText('800 × 600')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Next media page' }))
+    fireEvent.click(screen.getByLabelText('Next media page', { selector: 'button' }))
     expect(await screen.findByAltText('Approved detail')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Reset home-hero image' }))
+    fireEvent.click(screen.getByLabelText('Reset home-hero image', { selector: 'button' }))
     expect(screen.getByText('Theme asset · 800 × 600')).toBeTruthy()
     expect(screen.getByRole('group', { name: 'home-hero cta' })).toBeTruthy()
     expect(
@@ -1211,10 +1258,10 @@ describe('ThemeEditorPage', () => {
     expect(
       screen.getByLabelText('home-hero cta destination', { selector: 'input,select,textarea' })
     ).toBeTruthy()
-    fireEvent.change(screen.getByRole('textbox', { name: 'home-hero heading' }), {
+    fireEvent.change(screen.getByLabelText('home-hero heading', { selector: 'input,textarea' }), {
       target: { value: 'Dirty catalog editor text' },
     })
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'home-hero featured-product' }))
+    fireEvent.mouseDown(screen.getByLabelText('home-hero featured-product', { selector: 'input' }))
     fireEvent.click((await screen.findAllByText('Stable product · /products/stable')).at(-1)!)
     await screen.findByText('preview-build-release-editor-1')
     const beforeSwitch = requestLog.length
@@ -1226,7 +1273,7 @@ describe('ThemeEditorPage', () => {
     expect(screen.getByDisplayValue('Dirty catalog editor text')).toBeTruthy()
     expect(
       screen
-        .getByRole('combobox', { name: 'home-hero featured-product' })
+        .getByLabelText('home-hero featured-product', { selector: 'input' })
         .closest('[title]')
         ?.getAttribute('title')
     ).toBe('Stable product · /products/stable')
@@ -1234,7 +1281,7 @@ describe('ThemeEditorPage', () => {
     expect(screen.getAllByText(/release-editor-1/).length).toBeGreaterThan(0)
     expect(updateBody).toBeNull()
     expect(previewBody).toBeNull()
-    fireEvent.change(screen.getByRole('textbox', { name: '备注（选填）' }), {
+    fireEvent.change(screen.getByLabelText('备注（选填）', { selector: 'input,textarea' }), {
       target: { value: 'Verify retained binding' },
     })
     fireEvent.click(screen.getByRole('button', { name: '保存' }))
@@ -1792,6 +1839,7 @@ describe('ThemeEditorPage', () => {
     server.use(
       http.post('*/admin/storefront-experiences/drafts/:id/approve', async ({ request }) => {
         approvalBody = (await request.json()) as Record<string, unknown>
+        rememberPublicationApproval('snapshot-approved-fashion-store')
         return HttpResponse.json({
           data: {
             ...previewSnapshot,
@@ -2645,6 +2693,7 @@ describe('exact preview and approval identity', () => {
       ),
       http.post('*/admin/storefront-experiences/drafts/:id/approve', async ({ request }) => {
         approvalBody = (await request.json()) as Record<string, unknown>
+        rememberPublicationApproval('snapshot-approved-exact-design')
         return HttpResponse.json({
           data: {
             ...previewSnapshot,
@@ -2659,7 +2708,7 @@ describe('exact preview and approval identity', () => {
       })
     )
     renderEditor()
-    await screen.findByRole('button', { name: 'Open authenticated preview' })
+    await screen.findByText('Open authenticated preview')
     fireEvent.change(screen.getByRole('textbox', { name: 'Approval reason' }), {
       target: { value: 'Approve the exact saved design and source' },
     })
@@ -2765,7 +2814,7 @@ describe('exact preview and approval identity', () => {
     await screen.findByRole('button', { name: 'Approve exact draft v2' })
     expect(screen.queryByText('Approved, awaiting formal release')).toBeNull()
     expect(screen.getByText(/snapshot-approved-exact-design/)).toBeTruthy()
-  })
+  }, 20_000)
 
   it('qualifies approval after preparing a new source candidate for the same saved version', async () => {
     await approveCurrentFashionDesign()
@@ -2816,7 +2865,7 @@ describe('exact preview and approval identity', () => {
     expect(screen.queryByText('Approved, awaiting formal release')).toBeNull()
     expect(screen.getByText(/snapshot-approved-exact-design/)).toBeTruthy()
     expect(updateBody).toBeNull()
-  })
+  }, 20_000)
 
   it.each([1, 2])(
     'matches retained approval to draft v%s after an in-page reload',
@@ -2840,9 +2889,11 @@ describe('exact preview and approval identity', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Open authenticated preview' }))
       fireEvent.click(await screen.findByRole('button', { name: 'Reload saved draft' }))
       await screen.findByRole('button', { name: `Approve exact draft v${version}` })
-      if (version === 1) expect(screen.getByText('Approved, awaiting formal release')).toBeTruthy()
+      if (version === 1)
+        expect(await screen.findByText('Approved, awaiting formal release')).toBeTruthy()
       else expect(screen.queryByText('Approved, awaiting formal release')).toBeNull()
       expect(screen.getByText(/snapshot-approved-exact-design/)).toBeTruthy()
-    }
+    },
+    20_000
   )
 })

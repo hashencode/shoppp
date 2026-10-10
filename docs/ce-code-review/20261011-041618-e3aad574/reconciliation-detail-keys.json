@@ -1,0 +1,128 @@
+[
+  {
+    "fingerprint": [
+      "tools/release-validate.ts",
+      "256",
+      "approved public builds fail the fixture-only browser gate"
+    ],
+    "source_keys": [
+      {
+        "reviewer": "adversarial",
+        "file": "tools/release-validate.ts",
+        "line": "256",
+        "title": "approved live builds fail the fixture-only browser gate"
+      },
+      {
+        "reviewer": "correctness",
+        "file": "tools/release-validate.ts",
+        "line": "257",
+        "title": "validate public artifacts with their live renderer browser contract"
+      }
+    ]
+  },
+  {
+    "fingerprint": [
+      ".github/workflows/deploy.yml",
+      "1111",
+      "formal publication fails the rehearsal-only latency authority check"
+    ],
+    "source_keys": [
+      {
+        "reviewer": "adversarial",
+        "file": ".github/workflows/deploy.yml",
+        "line": "1111",
+        "title": "every publication fails the rehearsal-only latency authority check"
+      },
+      {
+        "reviewer": "reliability",
+        "file": ".github/workflows/deploy.yml",
+        "line": "1111",
+        "title": "formal publication invokes an incompatible staging proof gate"
+      },
+      {
+        "reviewer": "correctness",
+        "file": ".github/workflows/deploy.yml",
+        "line": "1111",
+        "title": "give formal staging proof a matching execution context"
+      }
+    ]
+  },
+  {
+    "fingerprint": [
+      ".github/workflows/deploy.yml",
+      "1111",
+      "formal staging proof selects fallback and private-preview journeys"
+    ],
+    "source_keys": [
+      {
+        "reviewer": "adversarial",
+        "file": ".github/workflows/deploy.yml",
+        "line": "1111",
+        "title": "public staging proof selects fallback and private-journey tests"
+      },
+      {
+        "reviewer": "reliability",
+        "file": ".github/workflows/deploy.yml",
+        "line": "1111",
+        "title": "formal publication invokes an incompatible staging proof gate"
+      },
+      {
+        "reviewer": "correctness",
+        "file": ".github/workflows/deploy.yml",
+        "line": "1111",
+        "title": "give formal staging proof a matching execution context"
+      }
+    ]
+  },
+  {
+    "fingerprint": [
+      "apps/storefront/worker/index.ts",
+      "66",
+      "preserve existing public carts when the storefront changes"
+    ],
+    "source_keys": [
+      {
+        "reviewer": "correctness",
+        "file": "apps/storefront/worker/index.ts",
+        "line": "66",
+        "title": "preserve existing public carts when the storefront changes"
+      }
+    ]
+  },
+  {
+    "fingerprint": [
+      ".github/workflows/deploy.yml",
+      "1226",
+      "pre-delivery failures strand the pending publication"
+    ],
+    "source_keys": [
+      {
+        "reviewer": "adversarial",
+        "file": ".github/workflows/deploy.yml",
+        "line": "1226",
+        "title": "pre-delivery job failure permanently strands the pending publication"
+      },
+      {
+        "reviewer": "correctness",
+        "file": ".github/workflows/deploy.yml",
+        "line": "1226",
+        "title": "close ordinary failures before storefront mutation begins"
+      }
+    ]
+  },
+  {
+    "fingerprint": [
+      ".github/workflows/deploy.yml",
+      "1008",
+      "input artifact failure leaves publication permanently building"
+    ],
+    "source_keys": [
+      {
+        "reviewer": "reliability",
+        "file": ".github/workflows/deploy.yml",
+        "line": "1008",
+        "title": "input artifact failure leaves publication permanently building"
+      }
+    ]
+  }
+]

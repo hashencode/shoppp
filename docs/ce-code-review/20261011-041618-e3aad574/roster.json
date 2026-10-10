@@ -1,0 +1,40 @@
+{
+  "reviewers": [
+    "correctness",
+    "project-standards",
+    "testing",
+    "maintainability",
+    "learnings",
+    "security",
+    "performance",
+    "api-contract",
+    "data-migration",
+    "reliability",
+    "adversarial",
+    "julik-frontend-races"
+  ],
+  "tiers": {
+    "correctness": "session",
+    "project-standards": "mid-tier:gpt-6.1-sol",
+    "testing": "mid-tier:gpt-6.1-sol",
+    "maintainability": "mid-tier:gpt-6.1-sol",
+    "learnings": "mid-tier:gpt-6.1-sol",
+    "security": "session",
+    "performance": "mid-tier:gpt-6.1-sol",
+    "api-contract": "mid-tier:gpt-6.1-sol",
+    "data-migration": "mid-tier:gpt-6.1-sol",
+    "reliability": "mid-tier:gpt-6.1-sol",
+    "adversarial": "session",
+    "julik-frontend-races": "mid-tier:gpt-6.1-sol"
+  },
+  "peer": {
+    "outcome": "not-started",
+    "reason": "Current host probe: Codex family; only same-family Codex CLI installed. claude/grok/cursor-agent/opencode absent. No content egress occurred; local adversarial covers lens."
+  },
+  "skipped": {
+    "agent-native": "No changed agent integration/tool registry or requirement for agent access; publication authorization is intentionally human-only. New runner is protected environment orchestration, not an agent tool.",
+    "previous-comments": "No PR metadata/target.",
+    "swift-ios": "No Swift/iOS runtime surface.",
+    "deployment-verification": "0039 adds new tables/guards and permission seed; no destructive DDL, backfill, existing-row NOT NULL, rename/drop."
+  }
+}

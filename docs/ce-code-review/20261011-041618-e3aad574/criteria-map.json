@@ -1,0 +1,71 @@
+{
+  "search_status": "complete",
+  "criteria": [
+    {
+      "path": "AGENTS.md",
+      "changed_paths": [
+        ".github/workflows/deploy.yml",
+        ".github/workflows/full-validation.yml",
+        ".gitignore",
+        "apps/admin/src/pages/storefront/theme-editor-page.browser.test.tsx",
+        "apps/admin/src/pages/storefront/theme-editor-page.test.tsx",
+        "apps/admin/src/pages/storefront/theme-editor-page.tsx",
+        "apps/admin/src/pages/storefront/themes-page.test.tsx",
+        "apps/admin/src/pages/storefront/themes-page.tsx",
+        "apps/admin/src/services/storefront/api.ts",
+        "apps/admin/src/shared/i18n/translations.ts",
+        "apps/api/src/cart/service.ts",
+        "apps/api/src/http/app.ts",
+        "apps/api/src/publishing/candidate-releases.ts",
+        "apps/api/src/publishing/releases.ts",
+        "apps/api/src/publishing/storefront-publications.ts",
+        "apps/api/src/storefront-experience/catalog-resources.ts",
+        "apps/api/src/storefront-experience/service.ts",
+        "apps/api/test/catalog/storefront-publication.test.ts",
+        "apps/api/test/storefront-experience/experience-api.test.ts",
+        "apps/storefront/app/StorefrontExperience.vue",
+        "apps/storefront/nuxt.config.ts",
+        "apps/storefront/scripts/experience-build-input.ts",
+        "apps/storefront/scripts/prepare-experience.ts",
+        "apps/storefront/scripts/prepare-release.ts",
+        "apps/storefront/scripts/resolve-prerender-routes.ts",
+        "apps/storefront/scripts/verify-static.ts",
+        "apps/storefront/tests/storefront-publication.test.ts",
+        "apps/storefront/worker/index.ts",
+        "apps/storefront/wrangler.jsonc",
+        "docs/architecture/storefront-publication.md",
+        "docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md",
+        "docs/plans/2026-10-10-2307-refactor-admin-merchant-workflows-plan.md",
+        "packages/contracts/src/admin.ts",
+        "packages/contracts/src/index.ts",
+        "packages/contracts/src/storefront-publication.ts",
+        "packages/contracts/test/storefront-publication.test.ts",
+        "packages/db/migrations/0039_storefront_publications.sql",
+        "packages/db/src/schema/index.ts",
+        "tools/deploy-workflow.test.ts",
+        "tools/release-validate.test.ts",
+        "tools/release-validate.ts",
+        "tools/storefront-publication.test.ts",
+        "tools/storefront-publication.ts",
+        "apps/admin/src/pages/storefront/storefront-publication-panel.test.tsx",
+        "apps/admin/src/pages/storefront/storefront-publication-panel.tsx",
+        "docs/progress/2026-10-11-admin-formal-storefront-publication-verification.md"
+      ]
+    },
+    {
+      "path": "apps/admin/AGENTS.md",
+      "changed_paths": [
+        "apps/admin/src/pages/storefront/theme-editor-page.browser.test.tsx",
+        "apps/admin/src/pages/storefront/theme-editor-page.test.tsx",
+        "apps/admin/src/pages/storefront/theme-editor-page.tsx",
+        "apps/admin/src/pages/storefront/themes-page.test.tsx",
+        "apps/admin/src/pages/storefront/themes-page.tsx",
+        "apps/admin/src/services/storefront/api.ts",
+        "apps/admin/src/shared/i18n/translations.ts",
+        "apps/admin/src/pages/storefront/storefront-publication-panel.test.tsx",
+        "apps/admin/src/pages/storefront/storefront-publication-panel.tsx"
+      ]
+    }
+  ],
+  "kind": "instruction files; no governing CODING_STANDARDS.md found"
+}
