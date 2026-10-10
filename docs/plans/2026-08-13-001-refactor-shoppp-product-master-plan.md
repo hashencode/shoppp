@@ -5,8 +5,8 @@ date: 2026-08-13
 topic: shoppp-product-master-plan
 execution: knowledge-work
 plan_role: product-master
-current_plan: 2026-08-12-003-refactor-development-candidate-readiness-plan.md
-current_unit: REL-Pre-DC
+current_plan: 2026-10-10-2307-refactor-admin-merchant-workflows-plan.md
+current_unit: U2
 ---
 
 # Shoppp Product Master Plan
@@ -45,12 +45,11 @@ template-specific repair does not change product membership or candidate scope b
 
 ## Current execution pointer
 
-- **Active product plan:** `REL` — [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md).
-- **Current unit:** `REL-Pre-DC` — reconcile implementation readiness before immutable candidate selection.
-- **Current result:** FS-F14 completed U1-U9, including canonical Admin authorities, immutable private Preview, exact two-phase build/approval proof, the reconciled Fashion Surface Control Matrix, and integrated Fashion acceptance.
-- **Next action:** Reconcile the explicit product capability set and approved deferrals against their owning completed plans, then close the remaining candidate-identity validation prerequisites before selecting a candidate.
-- **Blockers:** The product capability/deferral audit and remaining REL candidate-identity validation work block DC1. No candidate is frozen; deployment, DC, and PG remain unstarted.
-- **Handback:** REL now owns the product sequence. FS-F14 remains completed historical authority and advances no Candidate, DC, deployment, or PG state by itself.
+- **Active product plan:** [管理后台商家任务与发布流程重构](2026-10-10-2307-refactor-admin-merchant-workflows-plan.md) — 用户已授权实施的产品后继。
+- **Current unit:** U2 — 重组侧栏，保留原页面和链接。
+- **Next action:** 按冻结的页面与路由基线，先强化菜单合同测试，再实现七组商家任务导航。
+- **Blockers:** 管理后台 U1–U6 无实施前置缺口；U7 依赖 REL 的精确公开化、激活与 active tuple 合同。候选未冻结，DC/PG 未开始。
+- **Tail ownership:** 管理后台计划拥有本地实施、回归与交接；REL 保留 candidate readiness、候选冻结、正式部署、DC/PG 权限。FS-F14 完成基线继续有效。
 
 The active child plan is authoritative if this summary and its execution checkpoint temporarily
 disagree. Repair this pointer in the same documentation change; do not copy the child plan's full
@@ -58,9 +57,9 @@ checkpoint here.
 
 ## Product-level sequence
 
-1. Complete active `REL-Pre-DC` capability reconciliation and candidate-identity validation prerequisites.
-2. Select and freeze an immutable candidate only through REL's named authority.
-3. Run DC and PG only through their named human and production authorities.
+1. 完成管理后台 U1–U6 的菜单、真实操作表达、设置与私有店铺预览。
+2. 回交 REL 的发布合同前置工作与 Pre-DC capability/identity reconciliation；合同具备后执行管理后台 U7。
+3. 仅由 REL 选择和冻结不可变候选，再按具名人工与生产权限执行 DC/PG。
 
 No candidate is currently frozen. DC and PG have not begun.
 
