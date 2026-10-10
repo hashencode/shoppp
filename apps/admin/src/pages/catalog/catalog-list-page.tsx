@@ -14,7 +14,6 @@ import {
   type ProductStatus,
 } from '../../services/catalog/api'
 import { ListRowActions } from '../../shared/components/list-row-actions'
-import { CatalogPreviewCandidatePanel } from './catalog-preview-candidate-panel'
 import { useCurrentTranslate, useI18n } from '../../shared/contexts/i18n-context'
 import { useLocalizedApiError } from '../../shared/i18n/api-error'
 import {
@@ -29,11 +28,7 @@ void React
 const ACTION_CONTENT_WIDTHS = { view: 58, edit: 58, publish: 58 } as const
 const ACTION_LAYOUT_COMBINATIONS = [
   [ACTION_CONTENT_WIDTHS.view],
-  [
-    ACTION_CONTENT_WIDTHS.view,
-    ACTION_CONTENT_WIDTHS.edit,
-    ACTION_CONTENT_WIDTHS.publish,
-  ],
+  [ACTION_CONTENT_WIDTHS.view, ACTION_CONTENT_WIDTHS.edit, ACTION_CONTENT_WIDTHS.publish],
 ] as const
 
 const statusStyle: Record<ProductStatus, { color: string; label: string }> = {
@@ -77,7 +72,9 @@ const PublishAction = ({
           }
         }}
       >
-        <p>{t('Publishing starts a public storefront build. Changes appear only after deployment.')}</p>
+        <p>
+          {t('Publishing starts a public storefront build. Changes appear only after deployment.')}
+        </p>
         <Input.TextArea
           value={reason}
           rows={3}
@@ -111,14 +108,6 @@ export const CatalogListPage = () => {
   const localizeError = useLocalizedApiError()
   const canWrite = hasPermission(role, 'catalog.write', permissions)
   const canPublish = hasPermission(role, 'catalog.publish', permissions)
-  const canBuildCandidate = ([
-    'catalog.read',
-    'catalog.publish',
-    'identity.read',
-    'policies.read',
-    'content.read',
-    'navigation.read',
-  ] as const).every((permission) => hasPermission(role, permission, permissions))
 
   const filters = useMemo<TemplateListFilterField<CatalogSearchValues>[]>(
     () => [
@@ -194,88 +183,88 @@ export const CatalogListPage = () => {
       buildColumns: ({ openFormPage, reload, resolveActionColumnLayout }) => {
         const actionLayout = resolveActionColumnLayout(ACTION_LAYOUT_COMBINATIONS)
         return [
-        {
-          key: 'name',
-          title: t('Product'),
-          dataIndex: 'name',
-          width: 240,
-          render: (value: string, record) => (
-            <Button
-              type="link"
-              className="!p-0"
-              onClick={() => openFormPage('readonly', record.id)}
-            >
-              {value}
-            </Button>
-          ),
-        },
-        { key: 'slug', title: t('Slug'), dataIndex: 'slug', width: 220 },
-        {
-          key: 'status',
-          title: t('Status'),
-          dataIndex: 'status',
-          width: 120,
-          render: (value: ProductStatus) => (
-            <Tag color={statusStyle[value].color}>{t(statusStyle[value].label)}</Tag>
-          ),
-        },
-        {
-          key: 'updatedAt',
-          title: t('Updated'),
-          dataIndex: 'updated_at',
-          width: 180,
-          render: (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm'),
-        },
-        {
-          key: 'buildStatus',
-          title: t('Build'),
-          dataIndex: 'build_status',
-          width: 150,
-          render: (value: string | null, record) =>
-            value ? (
-              <Tag title={record.build_correlation_id ?? undefined}>{value}</Tag>
-            ) : (
-              <span>—</span>
+          {
+            key: 'name',
+            title: t('Product'),
+            dataIndex: 'name',
+            width: 240,
+            render: (value: string, record) => (
+              <Button
+                type="link"
+                className="!p-0"
+                onClick={() => openFormPage('readonly', record.id)}
+              >
+                {value}
+              </Button>
             ),
-        },
-        {
-          key: 'action',
-          title: t('Actions'),
-          width: actionLayout.columnWidth,
-          render: (_, record) => (
-            <ListRowActions
-              layoutMode={actionLayout.mode}
-              maxRowContentWidth={actionLayout.maxRowContentWidth}
-              actions={[
-                {
-                  key: 'view',
-                  label: t('View'),
-                  contentWidth: ACTION_CONTENT_WIDTHS.view,
-                  onClick: () => openFormPage('readonly', record.id),
-                },
-                {
-                  key: 'edit',
-                  label: t('Edit'),
-                  contentWidth: ACTION_CONTENT_WIDTHS.edit,
-                  visible: canWrite && record.status !== 'published',
-                  onClick: () => openFormPage('modify', record.id),
-                },
-                {
-                  key: 'publish',
-                  label: t('Publish'),
-                  contentWidth: ACTION_CONTENT_WIDTHS.publish,
-                  visible: canPublish && record.status !== 'published',
-                  render: (
-                    <PublishAction
-                      product={record}
-                      onPublish={(reason) => handlePublish(record, reason, reload)}
-                    />
-                  ),
-                },
-              ]}
-            />
-          ),
-        },
+          },
+          { key: 'slug', title: t('Slug'), dataIndex: 'slug', width: 220 },
+          {
+            key: 'status',
+            title: t('Status'),
+            dataIndex: 'status',
+            width: 120,
+            render: (value: ProductStatus) => (
+              <Tag color={statusStyle[value].color}>{t(statusStyle[value].label)}</Tag>
+            ),
+          },
+          {
+            key: 'updatedAt',
+            title: t('Updated'),
+            dataIndex: 'updated_at',
+            width: 180,
+            render: (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm'),
+          },
+          {
+            key: 'buildStatus',
+            title: t('Build'),
+            dataIndex: 'build_status',
+            width: 150,
+            render: (value: string | null, record) =>
+              value ? (
+                <Tag title={record.build_correlation_id ?? undefined}>{value}</Tag>
+              ) : (
+                <span>—</span>
+              ),
+          },
+          {
+            key: 'action',
+            title: t('Actions'),
+            width: actionLayout.columnWidth,
+            render: (_, record) => (
+              <ListRowActions
+                layoutMode={actionLayout.mode}
+                maxRowContentWidth={actionLayout.maxRowContentWidth}
+                actions={[
+                  {
+                    key: 'view',
+                    label: t('View'),
+                    contentWidth: ACTION_CONTENT_WIDTHS.view,
+                    onClick: () => openFormPage('readonly', record.id),
+                  },
+                  {
+                    key: 'edit',
+                    label: t('Edit'),
+                    contentWidth: ACTION_CONTENT_WIDTHS.edit,
+                    visible: canWrite && record.status !== 'published',
+                    onClick: () => openFormPage('modify', record.id),
+                  },
+                  {
+                    key: 'publish',
+                    label: t('Publish'),
+                    contentWidth: ACTION_CONTENT_WIDTHS.publish,
+                    visible: canPublish && record.status !== 'published',
+                    render: (
+                      <PublishAction
+                        product={record}
+                        onPublish={(reason) => handlePublish(record, reason, reload)}
+                      />
+                    ),
+                  },
+                ]}
+              />
+            ),
+          },
         ]
       },
       buildTableNode: ({
@@ -314,7 +303,6 @@ export const CatalogListPage = () => {
 
   return (
     <>
-      {canBuildCandidate ? <CatalogPreviewCandidatePanel /> : null}
       <StandardListPageRecipe spec={spec} />
     </>
   )

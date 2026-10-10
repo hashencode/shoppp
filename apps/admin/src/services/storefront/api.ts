@@ -98,6 +98,8 @@ export type StorefrontPreviewBuild = {
 }
 
 export type StorefrontCatalogRelease = {
+  manifestDigest?: string
+  sourceDigest?: string
   approvedAt: string
   collections: Array<{ id: string; kind: 'collection'; name: string; slug: string }>
   destinations?: Array<{
@@ -191,7 +193,10 @@ export const fetchStorefrontCatalogCandidate = async (
 ): Promise<StorefrontCatalogRelease> => {
   const response = await apiClient.get<{
     data: {
+      manifestDigest: string
+      sourceDigest: string
       manifest: {
+        releaseId: string
         collections: StorefrontCatalogRelease['collections']
         content: Array<{
           id: string
@@ -206,7 +211,11 @@ export const fetchStorefrontCatalogCandidate = async (
     }
   }>(`/admin/catalog/releases/preview-candidates/${id}`)
   const manifest = response.data.data.manifest
+  if (manifest.releaseId !== id)
+    throw new Error('The private candidate identity does not match the requested store preview.')
   return {
+    manifestDigest: response.data.data.manifestDigest,
+    sourceDigest: response.data.data.sourceDigest,
     approvedAt: manifest.generatedAt,
     collections: manifest.collections,
     deployedAt: null,

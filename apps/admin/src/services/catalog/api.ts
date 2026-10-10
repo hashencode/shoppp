@@ -17,10 +17,6 @@ export type CatalogPreviewCandidate = {
   status: 'pending' | 'succeeded' | 'failed' | 'abandoned' | 'expired'
 }
 
-export type CatalogPreviewCandidateStatus = Omit<CatalogPreviewCandidate, 'sources'> & {
-  failures: Array<{ code: string }>
-}
-
 export const buildCatalogPreviewCandidate = async (
   reason: string
 ): Promise<CatalogPreviewCandidate> => {
@@ -28,22 +24,6 @@ export const buildCatalogPreviewCandidate = async (
     '/admin/catalog/releases/preview-candidates',
     { reason },
     { headers: { 'Idempotency-Key': `catalog-candidate-${crypto.randomUUID()}` } }
-  )
-  return response.data.data
-}
-
-export const fetchCatalogPreviewCandidate = async (id: string) => {
-  const response = await apiClient.get<{
-    data: { manifest: unknown; manifestDigest: string; sourceDigest: string }
-  }>(`/admin/catalog/releases/preview-candidates/${id}`)
-  return response.data.data
-}
-
-export const fetchCatalogPreviewCandidateStatus = async (
-  id: string
-): Promise<CatalogPreviewCandidateStatus> => {
-  const response = await apiClient.get<{ data: CatalogPreviewCandidateStatus }>(
-    `/admin/catalog/releases/preview-candidates/${id}/status`
   )
   return response.data.data
 }
@@ -205,7 +185,11 @@ export type PublishedProductRevisionContent = {
   description: string
   media: Array<{ altText: string; height: number; id: string; r2Key: string; width: number }>
   name: string
-  optionDefinitions?: Array<{ name: string; presentation: 'text' | 'color'; values: Array<{ label: string; swatch?: string }> }>
+  optionDefinitions?: Array<{
+    name: string
+    presentation: 'text' | 'color'
+    values: Array<{ label: string; swatch?: string }>
+  }>
   presentation: ProductPresentation | null
   seoDescription: string
   seoTitle: string

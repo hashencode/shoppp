@@ -147,13 +147,72 @@ const draft: StorefrontExperienceDraft = {
   validations: [],
 }
 
-const renderEditor = (failure: 'conflict' | 'persistent', staleCandidate = false) => {
+const renderEditor = (
+  failure: 'conflict' | 'persistent' | 'preview' | 'source',
+  staleCandidate = false
+) => {
   let failMedia = true
+  let savedDraft = structuredClone(draft)
+  const candidateId = 'private-browser-published-sources'
+  const preview = () => {
+    const snapshot = {
+      approvedAt: null,
+      approvedBy: null,
+      configurationSchemaVersion: 1,
+      contentDigest: 'c'.repeat(64),
+      createdAt: draft.createdAt,
+      createdBy: 'browser-operator',
+      experienceId: draft.experienceId,
+      id: 'snapshot-browser-exact',
+      kind: 'preview',
+      sourceDraftId: draft.id,
+      sourceDraftVersion: savedDraft.version,
+      sourceValidationId: 'validation-browser-exact',
+      themeId: theme.id,
+      themeVersion: theme.themeVersion,
+    }
+    return {
+      snapshot,
+      build: {
+        id: 'build-browser-exact',
+        snapshotId: snapshot.id,
+        status: 'deployed',
+        attempt: 1,
+        artifactDigest: 'a'.repeat(64),
+        artifactPrefix: `snapshots/${snapshot.id}/${'a'.repeat(64)}`,
+        completedAt: draft.createdAt,
+        createdAt: draft.createdAt,
+        updatedAt: draft.createdAt,
+        correlationId: 'browser-preview',
+        failureCode: null,
+        cleanedAt: null,
+        expiresAt: '2099-10-11T00:00:00.000Z',
+        inputIdentity: {
+          catalogReleaseId: candidateId,
+          experienceSnapshotId: snapshot.id,
+          experienceVersion: savedDraft.version,
+          platformContractVersion: '1.0.0',
+          themeId: theme.id,
+          themeVersion: theme.themeVersion,
+        },
+      },
+    }
+  }
   transport = installBrowserApi((request) => {
     if (
       request.method === 'put' &&
       request.url === '/admin/storefront-experiences/drafts/draft-browser'
     ) {
+      if (failure === 'preview' || failure === 'source') {
+        const body = JSON.parse(request.data as string)
+        savedDraft = {
+          ...savedDraft,
+          overrides: body.overrides,
+          bindings: body.bindings,
+          version: 2,
+        }
+        return { data: { data: savedDraft } }
+      }
       return {
         status: failure === 'conflict' ? 409 : 422,
         data: {
@@ -219,11 +278,104 @@ const renderEditor = (failure: 'conflict' | 'persistent', staleCandidate = false
         },
       }
     }
+    if (request.method === 'post' && request.url === '/admin/catalog/releases/preview-candidates') {
+      if (failure === 'source')
+        return {
+          status: 409,
+          data: {
+            error: { code: 'catalog_products_unpublished', message: 'Private source sentence' },
+          },
+        }
+      return {
+        data: {
+          data: {
+            id: candidateId,
+            status: 'succeeded',
+            purpose: 'private-preview',
+            sourceDigest: 'b'.repeat(64),
+            manifestDigest: 'a'.repeat(64),
+          },
+        },
+      }
+    }
+    if (
+      request.method === 'get' &&
+      request.url === `/admin/catalog/releases/preview-candidates/${candidateId}`
+    )
+      return {
+        data: {
+          data: {
+            manifestDigest: 'a'.repeat(64),
+            sourceDigest: 'b'.repeat(64),
+            manifest: {
+              releaseId: candidateId,
+              collections: [],
+              content: [
+                {
+                  id: 'published-story',
+                  kind: 'page',
+                  route: '/pages/story',
+                  title: 'Published story',
+                },
+              ],
+              environment: 'staging',
+              generatedAt: draft.createdAt,
+              products: [
+                { id: 'product-atlas', kind: 'product', name: 'Atlas / Carry-on', slug: 'atlas' },
+              ],
+            },
+          },
+        },
+      }
+    if (request.method === 'post' && request.url?.endsWith('/validate')) {
+      const body = JSON.parse(request.data as string)
+      return {
+        data: {
+          data: {
+            catalogReleaseId: body.catalogReleaseId,
+            draftVersion: body.expectedVersion,
+            id: 'validation-browser-exact',
+            issues: [],
+            status: 'valid',
+            createdAt: draft.createdAt,
+            validatedBy: 'browser-operator',
+          },
+        },
+      }
+    }
+    if (request.method === 'post' && request.url?.endsWith('/preview'))
+      return { data: { data: preview() } }
+    if (
+      request.method === 'post' &&
+      request.url === '/admin/storefront-experiences/snapshots/snapshot-browser-exact/grants'
+    )
+      return {
+        data: {
+          data: {
+            expiresAt: '2099-10-11T00:00:00.000Z',
+            grant: 'grant_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+            redeemUrl: 'https://preview.example.test/__preview/session',
+            snapshotId: 'snapshot-browser-exact',
+          },
+        },
+      }
+    if (request.method === 'post' && request.url?.endsWith('/approve'))
+      return {
+        data: {
+          data: {
+            ...preview().snapshot,
+            approvedAt: draft.createdAt,
+            approvedBy: 'browser-operator',
+            id: 'snapshot-browser-approved',
+            kind: 'approved',
+          },
+        },
+      }
     if (request.method !== 'get') throw new Error(`Unexpected write ${request.url}`)
     if (request.url?.endsWith('/operator-run') || request.url?.endsWith('/preview-context'))
       return { data: { data: null } }
     if (request.url === '/admin/storefront-experiences/drafts/draft-browser')
-      return { data: { data: draft } }
+      return { data: { data: savedDraft } }
     if (request.url === '/admin/storefront-experiences/themes') return { data: { data: [theme] } }
     if (request.url === '/admin/storefront-experiences/catalog-releases')
       return {
@@ -278,18 +430,155 @@ const renderEditor = (failure: 'conflict' | 'persistent', staleCandidate = false
     throw new Error(`Unexpected request ${request.url}`)
   })
   const router = createMemoryRouter(
-    [{ path: '/storefront/themes/:draftId', element: <ThemeEditorPage /> }],
+    [
+      {
+        path: '/storefront/themes/:draftId',
+        element: <ThemeEditorPage previewOrigin="https://preview.example.test" />,
+      },
+    ],
     { initialEntries: ['/storefront/themes/draft-browser'] }
   )
   return renderI18nBrowser(<RouterProvider router={router} />, [
     'themes.read',
     'themes.write',
     'themes.preview',
+    'themes.approve',
     'catalog.read',
+    'catalog.publish',
+    'identity.read',
+    'policies.read',
+    'content.read',
+    'navigation.read',
+    'settings.read',
   ])
 }
 
 describe('ThemeEditorPage browser behavior', () => {
+  it(
+    'prepares one exact store preview from saved design and published sources, then issues its grant',
+    { timeout: 20_000 },
+    async () => {
+      renderEditor('preview')
+      const locale = oppositeBrowserLocale()
+      await page
+        .getByRole('textbox', { name: 'hero heading', exact: true })
+        .fill('Saved browser preview')
+      assertNativeBrowserAndCss()
+      expect(
+        screen.queryByRole('combobox', { name: translateMessage(locale, 'Catalog Release') })
+      ).toBeNull()
+      await page
+        .getByRole('button', { name: translateMessage(locale, 'Preview store'), exact: true })
+        .click()
+      await expect
+        .element(
+          page.getByRole('button', { name: translateMessage(locale, 'Open authenticated preview') })
+        )
+        .toBeVisible()
+      const identityWrites = transport!.requests.filter(
+        ({ method, url }) =>
+          method === 'put' ||
+          url?.includes('/preview-candidates') ||
+          (method === 'post' && (url?.endsWith('/validate') || url?.endsWith('/preview')))
+      )
+      expect(identityWrites.map(({ method, url }) => `${method} ${url}`)).toEqual([
+        'put /admin/storefront-experiences/drafts/draft-browser',
+        'post /admin/catalog/releases/preview-candidates',
+        'get /admin/catalog/releases/preview-candidates/private-browser-published-sources',
+        'post /admin/storefront-experiences/drafts/draft-browser/validate',
+        'post /admin/storefront-experiences/drafts/draft-browser/preview',
+      ])
+      for (const write of identityWrites.filter(
+        ({ url }) => url?.endsWith('/validate') || url?.endsWith('/preview')
+      ))
+        expect(JSON.parse(write.data as string)).toMatchObject({
+          catalogReleaseId: 'private-browser-published-sources',
+          expectedVersion: 2,
+        })
+      let submitted = false
+      const originalSubmit = HTMLFormElement.prototype.submit
+      HTMLFormElement.prototype.submit = () => {
+        submitted = true
+      }
+      try {
+        await page
+          .getByRole('button', { name: translateMessage(locale, 'Open authenticated preview') })
+          .click()
+        await waitFor(() => expect(submitted).toBe(true))
+        const grant = transport!.requests.find(
+          ({ url }) =>
+            url === '/admin/storefront-experiences/snapshots/snapshot-browser-exact/grants'
+        )!
+        expect(JSON.parse(grant.data as string)).toMatchObject({
+          catalogReleaseId: 'private-browser-published-sources',
+        })
+      } finally {
+        HTMLFormElement.prototype.submit = originalSubmit
+      }
+      expect(
+        transport!.requests.some(({ url }) => url?.includes('/publish') || url?.includes('/deploy'))
+      ).toBe(false)
+      await page
+        .getByRole('textbox', { name: translateMessage(locale, 'Approval reason') })
+        .fill('Approve this exact browser preview')
+      await page
+        .getByRole('button', {
+          name: translateMessage(locale, 'Approve exact draft v{version}', { version: 2 }),
+        })
+        .click()
+      await expect
+        .element(page.getByText(translateMessage(locale, 'Approved, awaiting formal release')))
+        .toBeVisible()
+      const approval = transport!.requests.find(({ url }) => url?.endsWith('/approve'))!
+      expect(JSON.parse(approval.data as string)).toMatchObject({
+        expectedVersion: 2,
+        catalogReleaseId: 'private-browser-published-sources',
+        confirm: true,
+      })
+      expect(
+        transport!.requests.some(({ url }) => url?.includes('/publish') || url?.includes('/deploy'))
+      ).toBe(false)
+      expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
+    }
+  )
+
+  it(
+    'keeps saved design and published-source recovery after an empty store blocks preview',
+    { timeout: 20_000 },
+    async () => {
+      renderEditor('source')
+      const locale = oppositeBrowserLocale()
+      await page
+        .getByRole('textbox', { name: 'hero heading', exact: true })
+        .fill('Saved empty-store design')
+      await page
+        .getByRole('button', { name: translateMessage(locale, 'Preview store'), exact: true })
+        .click()
+      await expect
+        .element(
+          page.getByText(
+            translateMessage(locale, 'Publish at least one product before previewing the store.')
+          )
+        )
+        .toBeVisible()
+      await expect
+        .element(page.getByRole('link', { name: translateMessage(locale, 'Open products') }))
+        .toBeVisible()
+      expect(
+        document.querySelector<HTMLTextAreaElement>('[aria-label="hero heading"]')?.value
+      ).toBe('Saved empty-store design')
+      expect(
+        transport!.requests.some(
+          ({ url }) =>
+            url?.endsWith('/validate') || url?.endsWith('/preview') || url?.includes('/publish')
+        )
+      ).toBe(false)
+      await expect
+        .element(page.getByRole('button', { name: translateMessage(locale, 'Save'), exact: true }))
+        .toBeDisabled()
+    }
+  )
+
   it(
     'adds, reorders, and duplicates Blocks through the real editor controls',
     { timeout: 20_000 },
@@ -435,6 +724,11 @@ describe('ThemeEditorPage browser behavior', () => {
         expect(sessionStorage.getItem('storefront-editor-catalog-release')).toBeNull()
         expect(sessionStorage.getItem('storefront-editor-private-candidate')).toBeNull()
       })
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: new RegExp(translateMessage(locale, 'Preview details')),
+        })
+      )
       fireEvent.mouseDown(
         await screen.findByRole('combobox', { name: translateMessage(locale, 'Catalog Release') })
       )

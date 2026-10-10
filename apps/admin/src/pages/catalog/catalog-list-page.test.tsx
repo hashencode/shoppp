@@ -81,6 +81,21 @@ afterEach(() => {
 afterAll(() => server.close())
 
 describe('CatalogListPage', () => {
+  it('keeps private store preview preparation out of the product list', async () => {
+    renderPage([
+      'catalog.read',
+      'catalog.publish',
+      'identity.read',
+      'policies.read',
+      'content.read',
+      'navigation.read',
+      'settings.read',
+    ])
+    await screen.findByText('Carry-on')
+    expect(screen.queryByText('Private preview candidate')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Build preview candidate' })).toBeNull()
+  })
+
   it('should offer only supported page sizes and request at most 100 products', async () => {
     renderPage()
     await waitFor(() => expect(screen.getByText('Carry-on')).toBeTruthy())

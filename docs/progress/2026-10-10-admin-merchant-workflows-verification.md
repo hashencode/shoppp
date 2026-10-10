@@ -6,7 +6,7 @@ Owning plan: [管理后台商家任务与发布流程重构](../plans/2026-10-10
 
 - Checkout: `codex/fix-new-arrival-icon`，HEAD `c24e74729810ec156442abebf9a646ff0f208da1`。现有源代码无未提交修改；本会话计划为新增文档。无需 worktree。
 - 所有现有菜单、隐藏表单/详情和直接访问权限均映射至计划 R1/R3；U2 保留 route key、URL、permission。集合入口目前隐藏，需要按 R1 显示。
-- Catalog 候选只冻结 published 来源，完整权限包含 settings.read。私有候选禁止 public build/deploy；装修批准冻结 Snapshot，不代表生产激活。
+- Catalog 候选只冻结 published 来源，创建权限为 catalog.publish 加六项来源 read（含 settings.read）；GET 只要求六项 read 与 human principal。U5 逐 endpoint 核验纠正早期将 GET 也记为七项的推断。私有候选禁止 public build/deploy；装修批准冻结 Snapshot，不代表生产激活。
 - `inclusion.live` 只证明历史部署命中，不能证明目标环境当前激活。U3 必须修正文案；U7 仍缺 REL elevation、公开构建、激活回执和 active tuple 查询合同。
 - 商品 token 预览尚无 storefront consumer；U3 继续核验，不增加后端合同。装修计划 THEME-E1 未激活，本次不实现其新编辑器。
 - 经营设置仍是 whole-object 原子写入；contact 邮箱由独立 owner 维护，旧经营表单保存须保留最新邮箱。库存、订单、权限、隐私和任务重试仍执行真实操作。
@@ -66,3 +66,12 @@ Owning plan: [管理后台商家任务与发布流程重构](../plans/2026-10-10
 - Host 审查实际生产 diff。真实浏览器 Launch desktop 2/2、390px narrow 2/2 通过：Cancel 保留 EUR；显式 discard 跳转；原子保存精确 payload/preserveContactEmails；Save 就近说明在窄屏内可见。jsdom 不重复要求库弹层动画/重复标题 DOM，保留应用拥有的状态与导航断言。
 - 原 API contact-profile/candidate-release/experience-api/public-boundaries 4 suites：85 pass / 1 skipped（外部 U9 handshake 未配置）。较新邮箱后保存旧经营表单的既有 API 测试通过；没有服务合同改变。
 - Worker ESLint、diff check 通过；日志 `/private/tmp/shoppp-u4-green-confirmed.log`。没有 settings hub、复制表单、拆 writer 或 protected 内容变化。
+
+## U5 自动店铺预览验证
+
+- behavior_changed: true。移除商品列表候选面板；装修 Preview store 顺序为保存 → 授权候选 POST → 精确 GET/ID/digest 检查 → 保存版本与候选校验 → snapshot/build/grant。每次显式准备新预览，旧打开预览身份不跟随；不隐式发布来源或公开构建。
+- POST 七项权限与 GET 六项 read 分开；只读操作者可恢复已授权固定预览，但不能调用 draft validation。既有 awaiting_operator/approved run 保持冻结身份，不自动换来源。
+- proof-first 11 个目标失败；3 个 focused suites 70 pass。最终 7 个 consumer suites 82 tests 中 81 pass；原 rejected Block command 10 秒超时，隔离同一用例 1 pass，无产品或超时设置改动。覆盖来源三类缺项、每项读取/准备权限、同装修新来源重校验、无 publish 的只读恢复、精确绑定及延迟保存离开。
+- 两个新 native 场景通过：Save 后精确候选/校验/预览/授权/批准等待正式发布；空商品来源保留已保存装修并提供处理入口。Host 检查 actual production/test diff；补齐 Router Link 的 `/admin` basename/指南 query 和延迟保存的 load generation。技术版本/构建/批准审计和失败码进入关闭详情；没有新请求框架。
+- 无 consumer 的旧候选 GET/status adapters 与面板删除。结构搜索确认 10 个面板专用翻译不再被生产消费者使用后删除；其他既有翻译值不改。预览产物过期/授权撤销不等同候选失效，保留原恢复合同。
+- 日志：`/tmp/admin-u5-red.log`、`/tmp/admin-u5-final-authoring.log`、`/tmp/admin-u5-consumers-final.log`、`/tmp/admin-u5-isolated.log`、`/tmp/admin-u5-browser-final.log`。局部 Prettier、diff check 通过；完整原生浏览器与类型/审查由 U6 收尾。

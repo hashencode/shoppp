@@ -11,6 +11,13 @@ export const localThemeMessages = {
   missingRelease: 'Select a deployed Catalog Release before previewing.',
   missingPreviewOrigin: 'The private preview origin is not configured.',
   stalePreview: 'The deployed preview no longer matches this draft context.',
+  unavailableSources:
+    'The previous preview sources are unavailable. Prepare a new preview or choose an authorized deployed version in the details.',
+  candidateNotReady: 'The store preview sources are not ready. Retry preview preparation.',
+  candidateAccess:
+    'Your access changed. Ask an administrator for access to the published store sources before preparing a new preview.',
+  readOnlyValidation:
+    'This saved design needs validation. Ask someone with design editing access to preview it.',
 } as const
 export class LocalThemeError extends Error {
   readonly messageKey: (typeof localThemeMessages)[keyof typeof localThemeMessages]
@@ -19,8 +26,32 @@ export class LocalThemeError extends Error {
     this.messageKey = messageKey
   }
 }
-export const localizeThemeError = (error: unknown, t: Translate) =>
-  error instanceof LocalThemeError ? t(error.messageKey) : localizeApiError(error, t)
+export const candidateSourceMessages: Record<string, string> = {
+  catalog_identity_unpublished: 'Save store details before previewing the store.',
+  catalog_products_unpublished: 'Publish at least one product before previewing the store.',
+  catalog_required_policies_unpublished:
+    'Publish privacy, returns, shipping, and terms policies approved for this environment before previewing the store.',
+}
+
+// The HTTP adapter preserves unknown service codes in the cause, never as UI prose.
+export const themeErrorCode = (error: unknown): string | undefined => {
+  if (!error || typeof error !== 'object') return undefined
+  const value = error as {
+    code?: string
+    cause?: unknown
+    response?: { data?: { error?: { code?: string } } }
+  }
+  return (
+    value.response?.data?.error?.code ?? (value.cause ? themeErrorCode(value.cause) : value.code)
+  )
+}
+export const localizeThemeError = (error: unknown, t: Translate) => {
+  if (error instanceof LocalThemeError) return t(error.messageKey)
+  const code = themeErrorCode(error)
+  return code && Object.hasOwn(candidateSourceMessages, code)
+    ? t(candidateSourceMessages[code])
+    : localizeApiError(error, t)
+}
 
 export const validationStatusMessages: Record<string, string> = {
   valid: 'Valid',

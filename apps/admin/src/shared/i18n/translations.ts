@@ -1,4 +1,29 @@
 export const zhCNMessages: Record<string, string> = {
+  'Preview error details': '预览错误详情',
+  'Approval details': '批准详情',
+  'Preview store': '预览店铺',
+  'Store preview requested.': '店铺预览已开始准备。',
+  'Preview details': '预览详情',
+  'Preview build details': '预览构建详情',
+  'Preview failed': '预览失败',
+  'The store preview sources are not ready. Retry preview preparation.':
+    '店铺预览来源尚未就绪，请重试准备预览。',
+  'Your access changed. Ask an administrator for access to the published store sources before preparing a new preview.':
+    '你的权限已变化，请联系管理员授予已发布店铺来源的访问权限后再准备新预览。',
+  'This saved design needs validation. Ask someone with design editing access to preview it.':
+    '已保存的装修需要校验，请有装修编辑权限的成员准备预览。',
+  'Save store details before previewing the store.': '请先保存店铺资料，再预览店铺。',
+  'Publish at least one product before previewing the store.': '请先发布至少一个商品，再预览店铺。',
+  'Publish privacy, returns, shipping, and terms policies approved for this environment before previewing the store.':
+    '请先发布已在当前环境批准的隐私、退换货、配送和服务条款政策，再预览店铺。',
+  'Open store details': '前往店铺资料',
+  'Open products': '前往商品',
+  'Open policies': '前往政策',
+  'Preview uses the saved design and published sources; content and new product drafts are excluded. Cart, checkout, and orders use the current environment and its transaction rules.':
+    '预览使用已保存的装修和已发布的来源，不包含内容或新商品草稿。购物车、结账和订单使用当前环境及其交易规则。',
+  'The previous preview sources are unavailable. Prepare a new preview or choose an authorized deployed version in the details.':
+    '此前的预览来源已不可用，请准备新预览，或在详情中选择有权使用的已部署版本。',
+
   'Edit policy content': '编辑政策内容',
   'Leave with unsaved business settings?': '放弃未保存的经营设置并离开？',
   'Continuing discards your unsaved business settings.': '继续后，未保存的经营设置将被放弃。',
@@ -159,20 +184,8 @@ export const zhCNMessages: Record<string, string> = {
   'Move specification up': '上移规格',
   'Move specification down': '下移规格',
   'Save product presentation': '保存商品展示',
-  'Private preview candidate': '私有预览候选版本',
-  'Freeze the server-selected published sources for Theme Preview. This does not publish or deploy the storefront.':
-    '冻结服务器选择的已发布来源供主题预览使用。此操作不会发布或部署店铺。',
   'Candidate build reason': '候选版本构建原因',
   'Why is this Preview candidate needed?': '为什么需要此预览候选版本？',
-  'Retry candidate build': '重试候选版本构建',
-  'Build preview candidate': '构建预览候选版本',
-  'Candidate build pending': '候选版本构建等待中',
-  'Candidate build failed': '候选版本构建失败',
-  'Private candidate ready': '私有候选版本已就绪',
-  '{count} published sources frozen for {environment}.':
-    '已为 {environment} 冻结 {count} 个已发布来源。',
-  'Private Preview only': '仅限私有预览',
-  'Continue in Theme Editor': '在主题编辑器中继续',
   'Collection is still referenced': '商品集合仍被引用',
   'Repair reference': '修复引用',
   'Readonly mode does not allow Collection changes.': '只读模式不允许修改商品集合。',

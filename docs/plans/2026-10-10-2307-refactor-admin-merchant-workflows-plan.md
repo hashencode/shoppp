@@ -129,9 +129,9 @@ execution: code
 
 ### Scope Boundaries
 
-本次已授权：完成并复核这份计划；没有代码、配置、部署、候选/DC/PG 状态或受保护页面改动授权。
+用户已指示开始执行本计划。已授权 U1–U6 的核心实施：现有功能归属、导航、局部表单/动作/状态整理、既有预览编排和回归；不包含生产部署、候选冻结、DC/PG 或受保护页面内部变化。
 
-未来 U1–U6 的核心实施范围：现有功能归属、导航、局部表单/动作/状态整理、既有预览编排和回归。U7 是具名依赖的正式发布接入阶段，仍需未来实施授权及 REL 合同。
+U7 是具名依赖的正式发布接入阶段，当前缺少 REL 合同。合同具备后按其实际接口补齐本 U；真实环境发布另按 REL 授权执行，不能从本次本地实施推定生产操作许可。
 
 **Non-goals:** 复制 Shopify 界面、重写业务后端、新增客户/营销等业务、全店状态引擎、通用 CMS、全局更改队列、新设置聚合页、第三层菜单、另建发布证据账本、绕过权限/审批、把所有实际业务变成沙盒。
 
@@ -263,7 +263,7 @@ stateDiagram-v2
 | --- | --- |
 | 首次开店预览 | 候选至少需 published identity、一个 published 商品及批准并 published 的 privacy/returns/shipping/terms。U5 显示真实缺项；完整未发布空店预览不在当前合同。 |
 | 商品局部预览 | Admin 旧动作打开 `/preview?token=…`，当前 storefront 未找到对应消费；U3 核验实际运行路径，无法证实则去掉可用整店预览的承诺并说明可用后台检查。新增前台 token 渲染另列范围。 |
-| 创建候选权限 | API 要求 catalog.publish/catalog.read/identity.read/policies.read/content.read/navigation.read/settings.read；现列表 gate 漏 settings.read。U5 对齐完整权限；装修编辑/预览/批准再按各 endpoint 权限，不因菜单移动扩大授权。 |
+| 候选权限 | 创建 POST 要求 catalog.publish 加 catalog.read/identity.read/policies.read/content.read/navigation.read/settings.read；读取 GET 只要求后六项 read 权限及 human principal。现列表创建 gate 漏 settings.read。U5 分别对齐 endpoint，保留无 publish 的授权只读查看，不因菜单移动扩大或缩小授权。 |
 | 预览可写业务数据 | Preview worker 可桥接 cart/checkout/orders API；候选不是通用只读沙盒。验证仅在已隔离的非生产环境，用真实测试配置，不能宣传交易也已冻结彩排。 |
 | 当前线上状态缺口 | inclusion.live 可匹配历史/staging；U3 不虚报 active。U7 的目标环境 active Release+Snapshot 回执是当前状态前置条件。 |
 | 审核后修改 | 继续使用既有 optimistic version、来源 digest、联系信息与环境检查；新版本需要新预览/批准，不引入自动跟随。 |
@@ -278,11 +278,11 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 本节按仓库规则仅维护本计划自身执行状态。状态以实际代码与验证证据为准，REL 当前队列不在这里复制。
 
 - **Plan:** 已激活，实施中。
-- **Current unit:** U5 — 将私有候选融入在线商店预览。
-- **Next concrete action:** 在装修入口自动准备授权来源并保持候选、校验与快照的精确绑定。
+- **Current unit:** U6 — 验收后台核心与批准后的交接。
+- **Next concrete action:** 完成预览桌面/窄屏回归、类型与质量检查及正式代码审查，核对 R2 基线和待发布边界。
 - **Order:** U1 → U2 → U3 → U4 → U5 → U6；U7 在 U6 和 REL 合同具备后开始。
 - **Blocker:** U1–U6 无规划级实施前置缺口；U7 缺 REL 正式发布接口及 active tuple 证据。
-- **Unit status:** U1–U4 已完成；U5 进行中；U6 未开始；U7 前置阻塞。
+- **Unit status:** U1–U5 已完成；U6 进行中；U7 前置阻塞。
 - **Update rule:** U 状态、当前/下一步、顺序或 tail 改变时，同一变更更新本节；只有产品级指针变化才同步 master。集中验证证据放 `docs/progress/`，不建立第二执行队列。
 
 ---
@@ -367,7 +367,7 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 
 **Requirements:** R6/R7/R10–R12；F3/F4；AE4–AE7。**Dependencies:** U3/U4。
 
-**Files:** `apps/admin/src/pages/catalog/{catalog-list-page,catalog-preview-candidate-panel}.tsx`；`pages/storefront/{themes-page,theme-editor-page}.tsx`；`services/{catalog,storefront}/api.ts`；对应 candidate/theme tests 与 `theme-editor-page.browser.test.tsx`。复用 API `publishing/candidate-releases.ts` / `storefront-experience/service.ts`；回归 `apps/api/test/catalog/candidate-release.test.ts`、`test/storefront-experience/experience-api.test.ts`、`test/security/public-boundaries.test.ts`。
+**Files:** `apps/admin/src/pages/catalog/{catalog-list-page,catalog-preview-candidate-panel}.tsx`（后者及 test 删除）；`pages/storefront/{themes-page,theme-editor-page}.tsx` 与局部 `theme-feedback.ts`；`services/{catalog,storefront}/api.ts`；`shared/i18n/translations.ts`；对应 candidate/theme tests 与 `theme-editor-page.browser.test.tsx`。复用 API `publishing/candidate-releases.ts` / `storefront-experience/service.ts`；回归 `apps/api/test/catalog/candidate-release.test.ts`、`test/storefront-experience/experience-api.test.ts`、`test/security/public-boundaries.test.ts`。
 
 **Approach:** KTD4。商品列表移除候选准备面板；在线商店有一个明确的预览入口，顺序为保存装修→准备或重取合格候选并验证身份→校验该候选与保存后装修版本的绑定→snapshot/build/grant。已有合格 deployed release 的预览同样先确定身份再校验；与创建 fresh private candidate 分别按权限处理，不得无权 fallback 读取其它来源。使用现有 session binding 与 re-fetch，精确旧预览保持稳定；新预览显式准备，来源状态不自动改变。范围展示在预览动作附近，技术信息进入详情。
 
@@ -377,7 +377,7 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 - 有 published 页面并有新草稿时，预览使用 published 版本；新商品 draft/政策未就绪给具体缺项且无 public 构建副作用。
 - 缺 settings.read/catalog.publish 等任一候选权限不能创建；仅装修读/预览授权不能越过 source gate；仍可按既有权限使用合格部署版本。
 - 未保存装修遵循原 Save and Preview 保存边界；版本冲突、来源/联系变化、构建失败提供局部恢复，不自动替换候选。
-- expired/abandoned/revoked preview 清理失效选择，旧预览和 stale approve 不能继续；重载恢复精确身份，重试防重复提交。
+- expired/abandoned 候选清理失效选择，不回退到另一 deployed 版本；预览产物过期与访问撤销按既有授权/重建能力恢复，不误判合法来源失效。旧授权不能继续打开，来源/装修变化后不得复用旧校验或批准；重载恢复精确身份，重试防重复提交。
 - private candidate 仍不能经 deploy/public-build/public-manifest-read 公开；无默认公开分享或跨环境访问。
 
 **Verification:** L3 跨页面/API 消费者与原生浏览器预览场景通过；普通流程不展示技术选版本步骤，原安全和冻结证据完整。
@@ -388,7 +388,7 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 
 **Requirements:** R1–R12；F1–F5；AE1–AE9。**Dependencies:** U2–U5；不依赖 U7。
 
-**Files:** 本计划 checkpoint；必要的 `docs/progress/<实施日期>-admin-merchant-workflows-verification.md`；现有 Admin browser/E2E fixtures；实际受变更的规范 `apps/admin/docs/ai/ai-rules.md`、`apps/admin/docs/ai/page-recipes.yaml`、`apps/admin/docs/ai/component-catalog.yaml`、`apps/admin/docs/ai/page-guardrail-recipes.md`。
+**Files:** 本计划 checkpoint；必要的 `docs/progress/<实施日期>-admin-merchant-workflows-verification.md`；现有 Admin browser/E2E fixtures 与 `rstest.i18n-browser.config.ts`；局部 shell/launch browser tests；`tools/check-admin-i18n{,.test}.ts` 收录新增菜单元数据与修订状态目录，修订 editor 仅抽出原目录不改输出；实际受变更的规范 `apps/admin/docs/ai/ai-rules.md`、`apps/admin/docs/ai/page-recipes.yaml`、`apps/admin/docs/ai/component-catalog.yaml`、`apps/admin/docs/ai/page-guardrail-recipes.md`。
 
 **Approach:** KTD1–KTD6。跑真实任务回归，批准成功停在明确待正式发布状态；不提供尚不可用的“发布到店铺”按钮。复核 API/菜单权限、商家文字与保护页面差异；只更新实际变更的 UI 规范和证据，不建立第二执行队列。移除废弃候选 UI、未使用翻译及试验代码。
 
@@ -424,9 +424,9 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 
 ## Verification Contract
 
-**本次规划 L0：** 只检查新文档结构、引用、ID/依赖和 diff；不跑测试、typecheck、build、应用或部署。
+原规划阶段按 L0 检查文档结构、引用、ID/依赖和 diff；当前实施按下述等级验证。
 
-未来实施先读 `apps/admin/AGENTS.md` 及其指定 README、ai-rules、page-recipes、component-catalog、`docs/testing-standards.md`。先确定消费者闭包，再选最小有效集合：U2/U5/U6 为 L3；U3/U4 按实际变化 L2 或 L3；U7 根据真实接口选择跨层/发布验证，不提前扩大运行范围。
+实施已读 `apps/admin/AGENTS.md` 及其指定 README、ai-rules、page-recipes、component-catalog、`docs/testing-standards.md`。先确定消费者闭包，再选最小有效集合：U2/U5/U6 为 L3；U3/U4 按实际变化 L2 或 L3；U7 根据真实接口选择跨层/发布验证，不提前扩大运行范围。
 
 | 验证层 | 可用命令模式 / 完成条件 |
 | --- | --- |
@@ -452,7 +452,7 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 
 ## Sources and References
 
-仓库主要事实：`apps/admin/src/routes/routes.config.ts`、`shared/layout/app-shell.tsx`、`pages/catalog/catalog-preview-candidate-panel.tsx`、`pages/storefront/theme-editor-page.tsx`；API `http/app.ts`、`publishing/candidate-releases.ts`、`publishing/releases.ts`、`storefront-experience/service.ts`、`settings/store-identity.ts`、`settings/contact-profile.ts`、`settings/launch-configuration.ts`、`catalog/published-revisions.ts`；`apps/storefront/worker/preview-access.ts`。引用按实施时实际版本复核。
+仓库主要事实：`apps/admin/src/routes/routes.config.ts`、`shared/layout/app-shell.tsx`、`pages/catalog/catalog-list-page.tsx`、`pages/storefront/theme-editor-page.tsx` 与 `theme-feedback.ts`；API `http/app.ts`、`publishing/candidate-releases.ts`、`publishing/releases.ts`、`storefront-experience/service.ts`、`settings/store-identity.ts`、`settings/contact-profile.ts`、`settings/launch-configuration.ts`、`catalog/published-revisions.ts`；`apps/storefront/worker/preview-access.ts`。旧候选面板在 U5 移除；引用按实施时实际版本复核。
 
 历史方法依据：[单维护者发布韧性](../solutions/workflow-issues/github-first-release-resilience-for-solo-maintainers-2026-08-28.md)：后台交接复用当前发布权威，不新增备用凭证或证据平面。`docs/runbooks/storefront-theme-promotion.md` 的 retired 主题实验不作为重启授权。
 

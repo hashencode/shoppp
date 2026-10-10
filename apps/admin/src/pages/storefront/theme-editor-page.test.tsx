@@ -460,6 +460,12 @@ const authValue = (role: Role, permissionOverride?: readonly AdminPermission[]) 
           'themes.preview',
           'themes.approve',
           'catalog.read',
+          'catalog.publish',
+          'identity.read',
+          'policies.read',
+          'content.read',
+          'navigation.read',
+          'settings.read',
         ] as const)
       : (['themes.read'] as const)),
   principalKind: 'human' as const,
@@ -483,7 +489,8 @@ const renderEditor = (
   role: Role = 'admin',
   pollIntervalMs = 60_000,
   permissionOverride?: readonly AdminPermission[],
-  search = ''
+  search = '',
+  basename = ''
 ) => {
   const router = createMemoryRouter(
     [
@@ -501,8 +508,14 @@ const renderEditor = (
         ),
       },
       { path: '/storefront/themes', element: <div>THEME_LIST</div> },
+      { path: '/settings/identity', element: <div>SOURCE_OWNER</div> },
+      { path: '/settings/policies', element: <div>SOURCE_OWNER</div> },
+      { path: '/catalog/products', element: <div>SOURCE_OWNER</div> },
     ],
-    { initialEntries: [`/storefront/themes/${baseDraft.id}${search}`] }
+    {
+      basename: basename || undefined,
+      initialEntries: [`${basename}/storefront/themes/${baseDraft.id}${search}`],
+    }
   )
   return {
     router,
@@ -846,6 +859,7 @@ describe('ThemeEditorPage', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Notes (optional)' }), {
       target: { value: 'Validate current draft' },
     })
+    fireEvent.click(screen.getByRole('button', { name: /Preview details/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Validate saved version' }))
     await waitFor(() => expect(validations).toBe(1))
     const beforeSwitch = requestLog.length
@@ -1164,6 +1178,7 @@ describe('ThemeEditorPage', () => {
     )
 
     const view = renderEditor()
+    fireEvent.click(await screen.findByRole('button', { name: /Preview details/ }))
     expect(
       await screen.findByLabelText('Catalog Release', { selector: 'input,select,textarea' })
     ).toBeTruthy()
@@ -1176,7 +1191,7 @@ describe('ThemeEditorPage', () => {
     expect(
       screen.getByLabelText('home-hero featured-product', { selector: 'input,select,textarea' })
     ).toBeTruthy()
-    expect(await screen.findByText('Page 1 of 2')).toBeTruthy()
+    expect((await screen.findAllByText('Page 1 of 2')).length).toBeGreaterThan(0)
     expect(screen.getByRole('group', { name: 'home-hero image' })).toBeTruthy()
     expect(await screen.findByAltText('Approved hero')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Select Approved hero' }))
@@ -1389,7 +1404,7 @@ describe('ThemeEditorPage', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'home-hero heading' }), {
       target: { value: 'Saved headline' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Save and preview' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Preview store' }))
 
     await waitFor(() => expect(screen.getByText('Building')).toBeTruthy())
     expect(updateBody).toMatchObject({ expectedVersion: 1, reason: '' })
@@ -1493,7 +1508,7 @@ describe('ThemeEditorPage', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Notes (optional)' }), {
       target: { value: 'Validate capability protection' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Save and preview' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Preview store' }))
 
     await screen.findByText(
       /The template is missing a required capability.*required_capability_missing/
@@ -1552,6 +1567,7 @@ describe('ThemeEditorPage', () => {
     const reason = screen.getByRole('textbox', { name: 'Notes (optional)' })
     fireEvent.change(reason, { target: { value: 'Repeat persisted validation' } })
     reason.focus()
+    fireEvent.click(screen.getByRole('button', { name: /Preview details/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Validate saved version' }))
 
     await waitFor(() => expect(validationBody).toMatchObject({ expectedVersion: 1 }))
@@ -1742,7 +1758,7 @@ describe('ThemeEditorPage', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Notes (optional)' }), {
       target: { value: 'Open the immutable private preview' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Save and preview' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Preview store' }))
     await waitFor(() => expect(screen.getByText('Ready to preview')).toBeTruthy())
     fireEvent.click(screen.getByRole('button', { name: 'Open authenticated preview' }))
     await waitFor(() =>
@@ -1876,6 +1892,7 @@ describe('ThemeEditorPage', () => {
       'catalog.read',
     ])
     await screen.findByText('Ready to preview')
+    fireEvent.click(screen.getByRole('button', { name: /Preview details/ }))
     expect(screen.getByRole('combobox', { name: 'Catalog Release' }).hasAttribute('disabled')).toBe(
       true
     )
@@ -1923,6 +1940,7 @@ describe('ThemeEditorPage', () => {
               environment: 'staging',
               generatedAt: '2026-09-28T00:00:00.000Z',
               products: [],
+              releaseId: candidateId,
             },
           },
         })
@@ -2002,6 +2020,7 @@ describe('ThemeEditorPage', () => {
     )
 
     renderEditor()
+    fireEvent.click(await screen.findByRole('button', { name: /Preview details/ }))
     const selector = await screen.findByRole('combobox', { name: 'Catalog Release' })
     await waitFor(() => expect(releaseARequested).toBe(true))
     fireEvent.mouseDown(selector)
@@ -2040,7 +2059,494 @@ describe('ThemeEditorPage', () => {
     expect(
       (screen.getByRole('textbox', { name: 'home-hero heading' }) as HTMLTextAreaElement).disabled
     ).toBe(true)
-    expect(screen.queryByRole('button', { name: 'Save and preview' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Preview store' })).toBeNull()
     expect(screen.queryByRole('button', { name: /Approve exact draft/ })).toBeNull()
+  })
+})
+
+const candidatePermissions = [
+  'catalog.publish',
+  'catalog.read',
+  'identity.read',
+  'policies.read',
+  'content.read',
+  'navigation.read',
+  'settings.read',
+] as const
+const candidateManifest = {
+  collections: [],
+  content: [
+    { id: 'published-page', kind: 'page', route: '/pages/story', title: 'Published story' },
+  ],
+  environment: 'staging',
+  generatedAt: '2026-10-11T00:00:00.000Z',
+  products: [{ id: 'published-product', kind: 'product', name: 'Published bag', slug: 'bag' }],
+}
+const prepareFashionEditor = () => {
+  currentDraft = { ...currentDraft, themeId: 'fashion-store' }
+  server.use(
+    http.get('*/admin/storefront-experiences/themes', () =>
+      HttpResponse.json({ data: [{ ...theme, id: 'fashion-store' }] })
+    ),
+    http.get('*/admin/storefront-experiences/catalog-releases', () =>
+      HttpResponse.json({ data: [catalogRelease('old-deployed-release')] })
+    )
+  )
+}
+
+describe('merchant store preview', () => {
+  it('saves design, prepares and re-fetches published sources, then validates and previews that exact identity', async () => {
+    prepareFashionEditor()
+    const candidateId = 'private-published-source-vector'
+    server.use(
+      http.post('*/admin/catalog/releases/preview-candidates', () =>
+        HttpResponse.json(
+          {
+            data: {
+              id: candidateId,
+              status: 'succeeded',
+              purpose: 'private-preview',
+              manifestDigest: 'a'.repeat(64),
+              sourceDigest: 'b'.repeat(64),
+            },
+          },
+          { status: 201 }
+        )
+      ),
+      http.get('*/admin/catalog/releases/preview-candidates/:id', ({ params }) => {
+        expect(params.id).toBe(candidateId)
+        return HttpResponse.json({
+          data: {
+            manifest: { ...candidateManifest, releaseId: candidateId },
+            manifestDigest: 'a'.repeat(64),
+            sourceDigest: 'b'.repeat(64),
+          },
+        })
+      }),
+      http.post('*/admin/storefront-experiences/drafts/:id/validate', async ({ request }) => {
+        validationBody = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({
+          data: {
+            ...validValidation,
+            catalogReleaseId: validationBody.catalogReleaseId,
+            draftVersion: validationBody.expectedVersion,
+          },
+        })
+      }),
+      http.post('*/admin/storefront-experiences/drafts/:id/preview', async ({ request }) => {
+        previewBody = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({ data: deployedPreviewContext(candidateId, 2) }, { status: 202 })
+      })
+    )
+    renderEditor()
+    fireEvent.change(await screen.findByRole('textbox', { name: 'home-hero heading' }), {
+      target: { value: 'Saved for preview' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Preview store' }))
+    await waitFor(() =>
+      expect(previewBody).toMatchObject({ catalogReleaseId: candidateId, expectedVersion: 2 })
+    )
+    expect(validationBody).toMatchObject({ catalogReleaseId: candidateId, expectedVersion: 2 })
+    const chain = requestLog.filter(
+      (request) =>
+        request.startsWith('PUT ') ||
+        request.includes('/preview-candidates') ||
+        request.includes('/validate') ||
+        (request.startsWith('POST ') && request.endsWith('/preview'))
+    )
+    expect(chain.map((request) => request.split('/admin/')[1])).toEqual([
+      `storefront-experiences/drafts/${baseDraft.id}`,
+      'catalog/releases/preview-candidates',
+      `catalog/releases/preview-candidates/${candidateId}`,
+      `storefront-experiences/drafts/${baseDraft.id}/validate`,
+      `storefront-experiences/drafts/${baseDraft.id}/preview`,
+    ])
+    expect(window.sessionStorage.getItem('storefront-editor-catalog-release')).toBe(candidateId)
+    expect(screen.queryByRole('combobox', { name: 'Catalog Release' })).toBeNull()
+    expect(
+      requestLog.some((request) => request.includes('/publish') || request.includes('/deploy'))
+    ).toBe(false)
+    expect(await screen.findByRole('button', { name: 'Open authenticated preview' })).toBeTruthy()
+  })
+
+  it.each([
+    [
+      'catalog_products_unpublished',
+      'Publish at least one product before previewing the store.',
+      'Open products',
+      '/catalog/products',
+    ],
+    [
+      'catalog_identity_unpublished',
+      'Save store details before previewing the store.',
+      'Open store details',
+      '/settings/identity',
+    ],
+    [
+      'catalog_required_policies_unpublished',
+      'Publish privacy, returns, shipping, and terms policies approved for this environment before previewing the store.',
+      'Open policies',
+      '/settings/policies',
+    ],
+  ])(
+    'keeps saved design and gives category recovery for %s without building or publishing',
+    async (code, explanation, action, path) => {
+      prepareFashionEditor()
+      server.use(
+        http.post('*/admin/catalog/releases/preview-candidates', () =>
+          HttpResponse.json({ error: { code, message: 'Private source detail' } }, { status: 409 })
+        )
+      )
+      const { router } = renderEditor('admin', 60_000, undefined, '?from=setup-guide', '/admin')
+      fireEvent.change(await screen.findByRole('textbox', { name: 'home-hero heading' }), {
+        target: { value: 'Saved despite missing sources' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Preview store' }))
+      expect(await screen.findByText(explanation)).toBeTruthy()
+      expect(screen.getByRole('link', { name: action }).getAttribute('href')).toBe(
+        `/admin${path}?from=setup-guide`
+      )
+      expect(currentDraft.version).toBe(2)
+      expect(screen.getByDisplayValue('Saved despite missing sources')).toBeTruthy()
+      expect(
+        screen.getByRole('button', { name: 'Save', exact: true }).hasAttribute('disabled')
+      ).toBe(true)
+      expect(previewBody).toBeNull()
+      expect(validationBody).toBeNull()
+      expect(
+        requestLog.some((request) => request.includes('/publish') || request.includes('/deploy'))
+      ).toBe(false)
+      fireEvent.click(screen.getByRole('link', { name: action }))
+      await screen.findByText('SOURCE_OWNER')
+      expect(router.state.location.pathname).toBe(`/admin${path}`)
+      expect(router.state.location.search).toBe('?from=setup-guide')
+    }
+  )
+
+  it.each(candidatePermissions.filter((permission) => permission !== 'catalog.publish'))(
+    'does not read or prepare a stored private candidate without %s',
+    async (missingPermission) => {
+      prepareFashionEditor()
+      window.sessionStorage.setItem('storefront-editor-catalog-release', 'private-permission-lost')
+      window.sessionStorage.setItem(
+        'storefront-editor-private-candidate',
+        'private-permission-lost'
+      )
+      server.use(
+        http.get('*/admin/catalog/releases/preview-candidates/:id', () =>
+          HttpResponse.json({
+            data: { manifest: { ...candidateManifest, releaseId: 'private-permission-lost' } },
+          })
+        )
+      )
+      renderEditor('admin', 60_000, [
+        'themes.read',
+        'themes.write',
+        'themes.preview',
+        ...candidatePermissions.filter((permission) => permission !== missingPermission),
+      ])
+      await screen.findByRole('textbox', { name: 'home-hero heading' })
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 40))
+      })
+      expect(requestLog.some((request) => request.includes('/preview-candidates'))).toBe(false)
+      expect(window.sessionStorage.getItem('storefront-editor-catalog-release')).toBeNull()
+      expect(previewBody).toBeNull()
+    }
+  )
+
+  it.each(candidatePermissions)(
+    'never prepares new sources without %s and preserves authorized deployed preview access',
+    async (missingPermission) => {
+      prepareFashionEditor()
+      const releaseId = 'old-deployed-release'
+      currentDraft = {
+        ...currentDraft,
+        validations: [{ ...validValidation, draftVersion: 1, catalogReleaseId: releaseId }],
+      }
+      server.use(
+        http.post('*/admin/storefront-experiences/drafts/:id/validate', async ({ request }) => {
+          validationBody = (await request.json()) as Record<string, unknown>
+          return HttpResponse.json({
+            data: {
+              ...validValidation,
+              draftVersion: 1,
+              catalogReleaseId: validationBody.catalogReleaseId,
+            },
+          })
+        }),
+        http.post('*/admin/storefront-experiences/drafts/:id/preview', async ({ request }) => {
+          previewBody = (await request.json()) as Record<string, unknown>
+          return HttpResponse.json({ data: deployedPreviewContext(releaseId) })
+        })
+      )
+      renderEditor('admin', 60_000, [
+        'themes.read',
+        'themes.write',
+        'themes.preview',
+        ...candidatePermissions.filter((permission) => permission !== missingPermission),
+      ])
+      const preview = await screen.findByRole('button', { name: 'Preview store' })
+      if (missingPermission === 'catalog.read') expect(preview.hasAttribute('disabled')).toBe(true)
+      else {
+        await waitFor(() =>
+          expect(screen.getByText(`${releaseId} · staging · 2026-08-11T01:00:00.000Z`)).toBeTruthy()
+        )
+        fireEvent.click(preview)
+        await waitFor(() =>
+          expect(previewBody).toMatchObject({ expectedVersion: 1, catalogReleaseId: releaseId })
+        )
+      }
+      expect(requestLog.some((request) => request.includes('/preview-candidates'))).toBe(false)
+    }
+  )
+
+  it('retries candidate preparation after a generic failure without publishing or losing the saved design', async () => {
+    prepareFashionEditor()
+    let attempts = 0
+    const candidateId = 'private-retry-candidate'
+    server.use(
+      http.post('*/admin/catalog/releases/preview-candidates', () =>
+        ++attempts === 1
+          ? HttpResponse.json(
+              {
+                error: {
+                  code: 'catalog_candidate_freeze_failed',
+                  message: 'Private source failure sentence',
+                },
+              },
+              { status: 503 }
+            )
+          : HttpResponse.json({
+              data: {
+                id: candidateId,
+                status: 'succeeded',
+                purpose: 'private-preview',
+                manifestDigest: 'a'.repeat(64),
+                sourceDigest: 'b'.repeat(64),
+              },
+            })
+      ),
+      http.get('*/admin/catalog/releases/preview-candidates/:id', () =>
+        HttpResponse.json({
+          data: {
+            manifest: { ...candidateManifest, releaseId: candidateId },
+            manifestDigest: 'a'.repeat(64),
+            sourceDigest: 'b'.repeat(64),
+          },
+        })
+      ),
+      http.post('*/admin/storefront-experiences/drafts/:id/validate', async ({ request }) => {
+        validationBody = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({
+          data: {
+            ...validValidation,
+            draftVersion: 1,
+            catalogReleaseId: validationBody.catalogReleaseId,
+          },
+        })
+      }),
+      http.post('*/admin/storefront-experiences/drafts/:id/preview', async ({ request }) => {
+        previewBody = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({ data: deployedPreviewContext(candidateId) })
+      })
+    )
+    renderEditor()
+    fireEvent.click(await screen.findByRole('button', { name: 'Preview store' }))
+    const retry = await screen.findByRole('button', { name: 'Retry preview' })
+    expect(screen.queryByText('Private source failure sentence')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /Preview error details/ }))
+    expect(await screen.findByText('catalog_candidate_freeze_failed')).toBeTruthy()
+    fireEvent.click(retry)
+    await waitFor(() =>
+      expect(previewBody).toMatchObject({ expectedVersion: 1, catalogReleaseId: candidateId })
+    )
+    expect(attempts).toBe(2)
+    expect(updateBody).toBeNull()
+    expect(
+      requestLog.some((request) => request.includes('/publish') || request.includes('/deploy'))
+    ).toBe(false)
+  })
+
+  it('does not prepare sources after leaving the editor during its delayed save', async () => {
+    prepareFashionEditor()
+    let finishSave!: (response: HttpResponse<Record<string, unknown>>) => void
+    const pendingSave = new Promise<HttpResponse<Record<string, unknown>>>((resolve) => {
+      finishSave = resolve
+    })
+    server.use(
+      http.put('*/admin/storefront-experiences/drafts/:id', async ({ request }) => {
+        updateBody = (await request.json()) as Record<string, unknown>
+        return pendingSave
+      })
+    )
+    renderEditor()
+    fireEvent.change(await screen.findByRole('textbox', { name: 'home-hero heading' }), {
+      target: { value: 'Slow design save' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Preview store' }))
+    await waitFor(() => expect(updateBody).not.toBeNull())
+    fireEvent.click(screen.getByRole('button', { name: 'Storefront themes' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Discard and leave' }))
+    await screen.findByText('THEME_LIST')
+    finishSave(HttpResponse.json({ data: { ...currentDraft, version: 2 } }))
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 40))
+    })
+    expect(requestLog.some((request) => request.includes('/preview-candidates'))).toBe(false)
+    expect(validationBody).toBeNull()
+    expect(previewBody).toBeNull()
+  })
+
+  it('keeps a governed operator run on its frozen source identity with full preparation permissions', async () => {
+    prepareFashionEditor()
+    const releaseId = 'operator-frozen-release'
+    server.use(
+      http.get('*/admin/storefront-experiences/catalog-releases', () =>
+        HttpResponse.json({ data: [catalogRelease('other-release'), catalogRelease(releaseId)] })
+      ),
+      http.get('*/admin/storefront-experiences/drafts/:id/operator-run', () =>
+        HttpResponse.json({
+          data: {
+            allowedAction: 'complete_run_bound_editor_path',
+            approvalAuditId: null,
+            approvedAt: null,
+            candidateSha: 'a'.repeat(40),
+            catalogReleaseId: releaseId,
+            consumedAt: null,
+            expiresAt: '2099-10-11T00:00:00.000Z',
+            runId: 'operator-preview-run',
+            sourceDraftId: baseDraft.id,
+            status: 'awaiting_operator',
+            successorSnapshotId: null,
+            u12SnapshotId: 'u12-baseline',
+            workingDraftId: baseDraft.id,
+          },
+        })
+      ),
+      http.post('*/admin/storefront-experiences/drafts/:id/validate', async ({ request }) => {
+        validationBody = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({
+          data: {
+            ...validValidation,
+            draftVersion: 1,
+            catalogReleaseId: validationBody.catalogReleaseId,
+          },
+        })
+      }),
+      http.post('*/admin/storefront-experiences/drafts/:id/preview', async ({ request }) => {
+        previewBody = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({ data: deployedPreviewContext(releaseId) })
+      })
+    )
+    renderEditor()
+    fireEvent.click(await screen.findByRole('button', { name: 'Preview store' }))
+    await waitFor(() =>
+      expect(previewBody).toMatchObject({ expectedVersion: 1, catalogReleaseId: releaseId })
+    )
+    expect(validationBody).toMatchObject({ expectedVersion: 1, catalogReleaseId: releaseId })
+    expect(requestLog.some((request) => request.includes('/preview-candidates'))).toBe(false)
+    expect(window.sessionStorage.getItem('storefront-editor-catalog-release')).toBe(releaseId)
+  })
+
+  it('revalidates changed published sources even when the saved design version is unchanged', async () => {
+    prepareFashionEditor()
+    let prepared = 0
+    const validatedIds: string[] = []
+    server.use(
+      http.post('*/admin/catalog/releases/preview-candidates', () =>
+        HttpResponse.json({
+          data: {
+            id: `private-sources-${++prepared}`,
+            status: 'succeeded',
+            purpose: 'private-preview',
+            manifestDigest: 'a'.repeat(64),
+            sourceDigest: 'b'.repeat(64),
+          },
+        })
+      ),
+      http.get('*/admin/catalog/releases/preview-candidates/:id', ({ params }) =>
+        HttpResponse.json({
+          data: {
+            manifest: { ...candidateManifest, releaseId: params.id },
+            manifestDigest: 'a'.repeat(64),
+            sourceDigest: 'b'.repeat(64),
+          },
+        })
+      ),
+      http.post('*/admin/storefront-experiences/drafts/:id/validate', async ({ request }) => {
+        const body = (await request.json()) as { catalogReleaseId: string; expectedVersion: number }
+        validatedIds.push(body.catalogReleaseId)
+        expect(body.expectedVersion).toBe(1)
+        return HttpResponse.json({
+          data: { ...validValidation, draftVersion: 1, catalogReleaseId: body.catalogReleaseId },
+        })
+      }),
+      http.post('*/admin/storefront-experiences/drafts/:id/preview', async ({ request }) => {
+        previewBody = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({
+          data: deployedPreviewContext(previewBody.catalogReleaseId as string),
+        })
+      })
+    )
+    renderEditor()
+    fireEvent.click(await screen.findByRole('button', { name: 'Preview store' }))
+    await waitFor(() =>
+      expect(previewBody).toMatchObject({
+        catalogReleaseId: 'private-sources-1',
+        expectedVersion: 1,
+      })
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Preview store' }))
+    await waitFor(() =>
+      expect(previewBody).toMatchObject({
+        catalogReleaseId: 'private-sources-2',
+        expectedVersion: 1,
+      })
+    )
+    expect(validatedIds).toEqual(['private-sources-1', 'private-sources-2'])
+    expect(updateBody).toBeNull()
+  })
+
+  it('restores an authorized exact private preview without catalog publication access', async () => {
+    prepareFashionEditor()
+    const candidateId = 'private-readable-without-publish'
+    window.sessionStorage.setItem('storefront-editor-catalog-release', candidateId)
+    window.sessionStorage.setItem('storefront-editor-private-candidate', candidateId)
+    currentDraft = {
+      ...currentDraft,
+      validations: [{ ...validValidation, draftVersion: 1, catalogReleaseId: candidateId }],
+    }
+    server.use(
+      http.get('*/admin/catalog/releases/preview-candidates/:id', () =>
+        HttpResponse.json({ data: { manifest: { ...candidateManifest, releaseId: candidateId } } })
+      ),
+      http.get('*/admin/storefront-experiences/drafts/:id/preview-context', () =>
+        HttpResponse.json({ data: deployedPreviewContext(candidateId) })
+      )
+    )
+    renderEditor('admin', 60_000, [
+      'themes.read',
+      'themes.preview',
+      ...candidatePermissions.filter((permission) => permission !== 'catalog.publish'),
+    ])
+    await screen.findByRole('button', { name: 'Open authenticated preview' })
+    expect(window.sessionStorage.getItem('storefront-editor-catalog-release')).toBe(candidateId)
+    expect(requestLog.filter((request) => request.includes('/preview-candidates'))).toHaveLength(1)
+    expect(requestLog.some((request) => request.startsWith('POST '))).toBe(false)
+  })
+
+  it('blocks read-only preview without an exact valid binding and never calls draft validation', async () => {
+    prepareFashionEditor()
+    renderEditor('admin', 60_000, ['themes.read', 'themes.preview', 'catalog.read'])
+    fireEvent.click(await screen.findByRole('button', { name: 'Preview store' }))
+    expect(
+      await screen.findByText(
+        'This saved design needs validation. Ask someone with design editing access to preview it.'
+      )
+    ).toBeTruthy()
+    expect(validationBody).toBeNull()
+    expect(previewBody).toBeNull()
+    expect(updateBody).toBeNull()
   })
 })

@@ -42,7 +42,7 @@ import {
   App,
 } from 'antd'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useBlocker, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useBlocker, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { normalizeApiError } from '../../infrastructure/http/api-client'
@@ -72,6 +72,7 @@ import {
   type StorefrontPreviewBuild,
   type StorefrontCatalogRelease,
 } from '../../services/storefront/api'
+import { buildCatalogPreviewCandidate } from '../../services/catalog/api'
 import { QueryStateBlock } from '../../shared/components/query-state-block'
 import { SortActionGroup } from '../../shared/components/sort-action-group'
 import { useCurrentTranslate, useI18n } from '../../shared/contexts/i18n-context'
@@ -79,6 +80,7 @@ import {
   LocalThemeError,
   localThemeMessages,
   localizeThemeError,
+  themeErrorCode,
   themeDiagnosticMessage,
   validationStatusMessage,
   type ThemeMessage,
@@ -414,6 +416,20 @@ export const ThemeEditorPage = ({
   const canWrite = hasPermission(role, 'themes.write', permissions)
   const canPreview = hasPermission(role, 'themes.preview', permissions)
   const canReadCatalog = hasPermission(role, 'catalog.read', permissions)
+  const canReadCandidate = (
+    [
+      'catalog.read',
+      'identity.read',
+      'policies.read',
+      'content.read',
+      'navigation.read',
+      'settings.read',
+    ] as const
+  ).every((permission) => hasPermission(role, permission, permissions))
+  const canPrepareCandidate =
+    canReadCandidate && hasPermission(role, 'catalog.publish', permissions)
+  const canReadIdentity = hasPermission(role, 'identity.read', permissions)
+  const canReadPolicies = hasPermission(role, 'policies.read', permissions)
   const canApprove = hasPermission(role, 'themes.approve', permissions)
   const [draft, setDraft] = useState<StorefrontExperienceDraft | null>(null)
   const [operatorRun, setOperatorRun] = useState<FashionStagingOperatorRun | null>(null)
@@ -436,6 +452,7 @@ export const ThemeEditorPage = ({
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+  const [previewActionFailed, setPreviewActionFailed] = useState(false)
   const [changeReason, setChangeReason] = useState('')
   const [migrationApprovalReason, setMigrationApprovalReason] = useState('')
   const [approvalReason, setApprovalReason] = useState('')
@@ -454,6 +471,12 @@ export const ThemeEditorPage = ({
   const [validationFocusRequest, setValidationFocusRequest] = useState(0)
   const loadRequest = useRef(0)
   const previewContextRequest = useRef(0)
+  const requestedPreviewContext = useRef<{
+    draftId: string
+    version: number
+    releaseId: string
+  } | null>(null)
+  const previewActionBusy = useRef(false)
   const conflictActionRef = useRef<HTMLButtonElement>(null)
   const previewLaunchRef = useRef<HTMLButtonElement>(null)
   const draftHeadingRef = useRef<HTMLHeadingElement>(null)
@@ -557,6 +580,7 @@ export const ThemeEditorPage = ({
         selectedReleaseIdRef.current = ''
         setSelectedReleaseId('')
       }
+      requestedPreviewContext.current = null
       previewContextRequest.current += 1
       setBuild(null)
       setPreviewSnapshot(null)
@@ -587,20 +611,37 @@ export const ThemeEditorPage = ({
   }, [load])
 
   useEffect(() => {
-    if (!canPreview || !canReadCatalog || draft?.themeId !== 'fashion-store') return
+    if (draft?.themeId !== 'fashion-store') return
+    const privateId = window.sessionStorage.getItem('storefront-editor-private-candidate')
+    const privateAccessLost = Boolean(privateId && !canReadCandidate)
+    if (privateAccessLost) {
+      window.sessionStorage.removeItem('storefront-editor-private-candidate')
+      window.sessionStorage.removeItem('storefront-editor-catalog-release')
+      selectedReleaseIdRef.current = ''
+      setSelectedReleaseId('')
+      previewContextRequest.current += 1
+      setBuild(null)
+      setPreviewSnapshot(null)
+      setCandidateHandoffWarning(new LocalThemeError(localThemeMessages.candidateAccess))
+    }
+    if (!canPreview || !canReadCatalog) return
     let cancelled = false
     const timer = window.setTimeout(() => {
       setCatalogReleasesLoading(true)
       setCatalogReleasesError(null)
-      setCandidateHandoffWarning(null)
+      if (!privateAccessLost) setCandidateHandoffWarning(null)
       const handedOffCandidate = window.sessionStorage.getItem('storefront-editor-catalog-release')
       const privateCandidateHandoff = window.sessionStorage.getItem(
         'storefront-editor-private-candidate'
       )
-      let invalidPrivateCandidate = false
+      let invalidPrivateCandidate = privateAccessLost
       void fetchStorefrontCatalogReleases()
         .then(async (deployed) => {
-          if (!handedOffCandidate || privateCandidateHandoff !== handedOffCandidate) {
+          if (
+            !handedOffCandidate ||
+            privateCandidateHandoff !== handedOffCandidate ||
+            !canReadCandidate
+          ) {
             return deployed
           }
           if (deployed.some(({ id }) => id === handedOffCandidate)) {
@@ -611,7 +652,13 @@ export const ThemeEditorPage = ({
             const candidate = await fetchStorefrontCatalogCandidate(handedOffCandidate)
             return [candidate, ...deployed]
           } catch (cause) {
+            if (cancelled) return deployed
             invalidPrivateCandidate = true
+            selectedReleaseIdRef.current = ''
+            setSelectedReleaseId('')
+            previewContextRequest.current += 1
+            setBuild(null)
+            setPreviewSnapshot(null)
             window.sessionStorage.removeItem('storefront-editor-private-candidate')
             window.sessionStorage.removeItem('storefront-editor-catalog-release')
             if (!cancelled) setCandidateHandoffWarning(normalizeApiError(cause))
@@ -648,7 +695,14 @@ export const ThemeEditorPage = ({
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [canPreview, canReadCatalog, catalogReleasesRetry, draft?.themeId, operatorRun])
+  }, [
+    canPreview,
+    canReadCatalog,
+    canReadCandidate,
+    catalogReleasesRetry,
+    draft?.themeId,
+    operatorRun,
+  ])
 
   useEffect(() => {
     if (!dirty) return
@@ -688,9 +742,17 @@ export const ThemeEditorPage = ({
   const hydratedDraftId = draft?.id
   const hydratedDraftVersion = draft?.version
   useEffect(() => {
-    if (!hydratedDraftId || !hydratedDraftVersion || !canPreview) return
+    if (loading || !hydratedDraftId || !hydratedDraftVersion || !canPreview) return
+    if (selectedRelease?.status === 'private-preview' && !canReadCandidate) return
     if (requiresCatalogRelease && (!canReadCatalog || !selectedReleaseAvailable)) return
     const releaseId = requiresCatalogRelease ? selectedReleaseId : ''
+    const requested = requestedPreviewContext.current
+    if (
+      requested?.draftId === hydratedDraftId &&
+      requested.version === hydratedDraftVersion &&
+      requested.releaseId === releaseId
+    )
+      return
     const request = ++previewContextRequest.current
     let cancelled = false
     void fetchStorefrontPreviewContext(
@@ -723,8 +785,11 @@ export const ThemeEditorPage = ({
       cancelled = true
     }
   }, [
+    loading,
     canPreview,
     canReadCatalog,
+    canReadCandidate,
+    selectedRelease?.status,
     hydratedDraftId,
     hydratedDraftVersion,
     requiresCatalogRelease,
@@ -881,13 +946,15 @@ export const ThemeEditorPage = ({
   const save = async (reason: string): Promise<StorefrontExperienceDraft> => {
     if (!draft || !theme) throw new LocalThemeError(localThemeMessages.unloadedDraft)
     if (!dirty) return draft
+    if (!canWrite) throw new LocalThemeError(localThemeMessages.readOnlyValidation)
+    const request = loadRequest.current
     const overrides = createThemeOverrides(theme, draft, templates)
     let updated: StorefrontExperienceDraft
     try {
       updated = await updateStorefrontExperienceDraft(draft, overrides, reason, bindings)
     } catch (cause) {
       const apiError = normalizeApiError(cause)
-      if (apiError.status === 409) {
+      if (request === loadRequest.current && apiError.status === 409) {
         setConflict({
           bindings: structuredClone(bindings),
           draft: structuredClone(draft),
@@ -896,6 +963,7 @@ export const ThemeEditorPage = ({
       }
       throw apiError
     }
+    if (request !== loadRequest.current) return updated
     setDraft(updated)
     setSavedTemplates(cloneTemplates(templates))
     setBindings(structuredClone(updated.bindings))
@@ -904,14 +972,15 @@ export const ThemeEditorPage = ({
   }
 
   const validate = async (target: StorefrontExperienceDraft, reason: string, releaseId: string) => {
-    if (selectedReleaseIdRef.current !== releaseId) return null
+    if (!canWrite || selectedReleaseIdRef.current !== releaseId) return null
+    const request = loadRequest.current
     const validation = await validateStorefrontExperienceDraft(
       target.id,
       target.version,
       reason,
       releaseId || undefined
     )
-    if (selectedReleaseIdRef.current !== releaseId) return null
+    if (request !== loadRequest.current || selectedReleaseIdRef.current !== releaseId) return null
     const validations = [
       ...target.validations.filter(
         ({ catalogReleaseId }) => catalogReleaseId !== validation.catalogReleaseId
@@ -933,18 +1002,29 @@ export const ThemeEditorPage = ({
   const selectedValidation = (target: StorefrontExperienceDraft, releaseId: string) =>
     target.validations.find(({ catalogReleaseId }) => catalogReleaseId === (releaseId || null))
 
-  const runAction = async (action: () => Promise<void>) => {
+  const runAction = async (action: () => Promise<void>, retryPreviewOnFailure = false) => {
     setBusy(true)
     setError(null)
+    setPreviewActionFailed(false)
     try {
       await action()
     } catch (cause) {
+      setPreviewActionFailed(retryPreviewOnFailure)
       setError(cause instanceof LocalThemeError ? cause : normalizeApiError(cause))
     } finally {
       setBusy(false)
     }
   }
 
+  const sourceFailureCode = themeErrorCode(error)
+  const sourceRecovery =
+    sourceFailureCode === 'catalog_identity_unpublished' && canReadIdentity
+      ? { path: '/settings/identity', label: t('Open store details') }
+      : sourceFailureCode === 'catalog_products_unpublished' && canReadCatalog
+        ? { path: '/catalog/products', label: t('Open products') }
+        : sourceFailureCode === 'catalog_required_policies_unpublished' && canReadPolicies
+          ? { path: '/settings/policies', label: t('Open policies') }
+          : null
   const currentValidation = draft?.validations.find(
     ({ catalogReleaseId }) => catalogReleaseId === (selectedReleaseId || null)
   )
@@ -994,18 +1074,81 @@ export const ThemeEditorPage = ({
     if (requiresCatalogRelease && !releaseId) {
       throw new LocalThemeError(localThemeMessages.missingRelease)
     }
-    previewContextRequest.current += 1
+    const request = ++previewContextRequest.current
     const resolution = await previewStorefrontExperienceDraft(
       target.id,
       target.version,
       reason,
       releaseId || undefined
     )
-    if (selectedReleaseIdRef.current !== releaseId) return false
+    if (request !== previewContextRequest.current || selectedReleaseIdRef.current !== releaseId)
+      return false
     setPreviewSnapshot(resolution.snapshot)
     setRevokedPreviewSnapshotId(null)
     setBuild(resolution.build)
     return true
+  }
+
+  const previewStore = async () => {
+    if (!canPreview || previewActionBusy.current) return
+    previewActionBusy.current = true
+    try {
+      await runAction(async () => {
+        const request = loadRequest.current
+        let saved: StorefrontExperienceDraft
+        try {
+          saved = await save(changeReason)
+        } catch (cause) {
+          if (request !== loadRequest.current) return
+          throw cause
+        }
+        if (request !== loadRequest.current) return
+        let releaseId = selectedReleaseIdRef.current
+        const frozenRun =
+          operatorRun && ['awaiting_operator', 'approved'].includes(operatorRun.status)
+        if (requiresCatalogRelease && canWrite && canPrepareCandidate && !frozenRun) {
+          const candidate = await buildCatalogPreviewCandidate(changeReason)
+          if (request !== loadRequest.current) return
+          if (candidate.status !== 'succeeded' || candidate.purpose !== 'private-preview')
+            throw new LocalThemeError(localThemeMessages.candidateNotReady)
+          const exact = await fetchStorefrontCatalogCandidate(candidate.id)
+          if (request !== loadRequest.current) return
+          if (
+            exact.manifestDigest !== candidate.manifestDigest ||
+            exact.sourceDigest !== candidate.sourceDigest
+          )
+            throw new LocalThemeError(localThemeMessages.candidateNotReady)
+          releaseId = exact.id
+          requestedPreviewContext.current = { draftId: saved.id, version: saved.version, releaseId }
+          selectedReleaseIdRef.current = releaseId
+          setSelectedReleaseId(releaseId)
+          setCatalogReleases((releases) => [
+            exact,
+            ...releases.filter(({ id }) => id !== releaseId),
+          ])
+          window.sessionStorage.setItem('storefront-editor-catalog-release', releaseId)
+          window.sessionStorage.setItem('storefront-editor-private-candidate', releaseId)
+          setCandidateHandoffWarning(null)
+          previewContextRequest.current += 1
+          setBuild(null)
+          setPreviewSnapshot(null)
+          setRevokedPreviewSnapshotId(null)
+        }
+        if (requiresCatalogRelease && (!canReadCatalog || !releaseId))
+          throw new LocalThemeError(localThemeMessages.unavailableSources)
+        requestedPreviewContext.current = { draftId: saved.id, version: saved.version, releaseId }
+        const validated = canWrite ? await validate(saved, changeReason, releaseId) : saved
+        const binding = validated && selectedValidation(validated, releaseId)
+        if (!binding || binding.status !== 'valid' || binding.draftVersion !== saved.version) {
+          if (!canWrite) throw new LocalThemeError(localThemeMessages.readOnlyValidation)
+          return
+        }
+        if (await startPreview(validated, changeReason, releaseId))
+          void message.success(currentT('Store preview requested.'))
+      }, true)
+    } finally {
+      previewActionBusy.current = false
+    }
   }
 
   const setCatalogBinding = (
@@ -1101,28 +1244,13 @@ export const ThemeEditorPage = ({
                 onClick={() =>
                   void runAction(async () => {
                     await save(changeReason)
-                    void message.success(currentT('Design draft saved. The storefront is unchanged.'))
+                    void message.success(
+                      currentT('Design draft saved. The storefront is unchanged.')
+                    )
                   })
                 }
               >
                 {t('Save')}
-              </Button>
-              <Button
-                disabled={dirty}
-                loading={busy}
-                onClick={() =>
-                  void runAction(async () => {
-                    const releaseId = selectedReleaseId
-                    const validated = await validate(draft, changeReason, releaseId)
-                    if (validated && selectedValidation(validated, releaseId)?.status === 'valid') {
-                      void message.success(
-                        currentT('Draft v{version} is valid.', { version: validated.version })
-                      )
-                    }
-                  })
-                }
-              >
-                {t('Validate saved version')}
               </Button>
             </>
           ) : null}
@@ -1130,29 +1258,22 @@ export const ThemeEditorPage = ({
             <Button
               type="primary"
               icon={<EyeOutlined aria-hidden />}
-              disabled={busy || (requiresCatalogRelease && (!selectedReleaseId || !canReadCatalog))}
+              disabled={busy || (requiresCatalogRelease && !canReadCatalog)}
               loading={busy}
-              onClick={() =>
-                void runAction(async () => {
-                  const releaseId = selectedReleaseId
-                  const saved = await save(changeReason)
-                  const validated = await validate(saved, changeReason, releaseId)
-                  if (!validated || selectedValidation(validated, releaseId)?.status !== 'valid')
-                    return
-                  if (!(await startPreview(validated, changeReason, releaseId))) return
-                  void message.success(
-                    currentT('Preview requested for validated draft v{version}.', {
-                      version: validated.version,
-                    })
-                  )
-                })
-              }
+              onClick={() => void previewStore()}
             >
-              {t('Save and preview')}
+              {t('Preview store')}
             </Button>
           ) : null}
         </Space>
       </header>
+      {canPreview ? (
+        <Typography.Paragraph type="secondary">
+          {t(
+            'Preview uses the saved design and published sources; content and new product drafts are excluded. Cart, checkout, and orders use the current environment and its transaction rules.'
+          )}
+        </Typography.Paragraph>
+      ) : null}
 
       {blocker.state === 'blocked' ? (
         <Alert
@@ -1240,11 +1361,47 @@ export const ThemeEditorPage = ({
           type="error"
           showIcon
           title={t('The last operation did not complete')}
-          description={localizeThemeError(error, t)}
+          description={
+            <Space orientation="vertical" className="w-full">
+              <span>{localizeThemeError(error, t)}</span>
+              {previewActionFailed && sourceFailureCode ? (
+                <Collapse
+                  items={[
+                    {
+                      key: 'preview-error-details',
+                      label: t('Preview error details'),
+                      children: (
+                        <Descriptions size="small" column={1}>
+                          <Descriptions.Item label={t('Error code')}>
+                            {sourceFailureCode}
+                          </Descriptions.Item>
+                        </Descriptions>
+                      ),
+                    },
+                  ]}
+                />
+              ) : null}
+            </Space>
+          }
           action={
-            <Button size="small" icon={<ReloadOutlined aria-hidden />} onClick={reloadSavedDraft}>
-              {t('Reload saved draft')}
-            </Button>
+            <Space wrap>
+              {sourceRecovery ? (
+                <Link to={`${sourceRecovery.path}${guideSearch}`}>{sourceRecovery.label}</Link>
+              ) : null}
+              {previewActionFailed ? (
+                <Button size="small" disabled={busy} onClick={() => void previewStore()}>
+                  {t('Retry preview')}
+                </Button>
+              ) : (
+                <Button
+                  size="small"
+                  icon={<ReloadOutlined aria-hidden />}
+                  onClick={reloadSavedDraft}
+                >
+                  {t('Reload saved draft')}
+                </Button>
+              )}
+            </Space>
           }
         />
       ) : null}
@@ -1292,101 +1449,148 @@ export const ThemeEditorPage = ({
         />
       ) : null}
 
-      <Descriptions bordered size="small" column={{ xs: 1, lg: 3 }}>
-        <Descriptions.Item label={t('Draft identity')}>
-          <Typography.Text className="break-all">{draft.id}</Typography.Text>
-        </Descriptions.Item>
-        <Descriptions.Item label={t('Preset')}>{draft.presetId}</Descriptions.Item>
-        <Descriptions.Item label={t('Schema')}>
-          {draft.configurationSchemaVersion}
-        </Descriptions.Item>
-        <Descriptions.Item label={t('Last saved')}>{draft.updatedAt}</Descriptions.Item>
-        <Descriptions.Item label={t('Resource bindings')}>{bindings.length}</Descriptions.Item>
-      </Descriptions>
-
-      {requiresCatalogRelease ? (
-        <Card title={t('Live preview context')}>
-          {candidateHandoffWarning ? (
-            <Alert
-              type="warning"
-              showIcon
-              title={t('Private Catalog candidate is no longer available')}
-              description={t(
-                'The candidate handoff expired or was abandoned. Choose a deployed Catalog Release to continue.'
-              )}
-              style={{ marginBottom: 16 }}
-            />
-          ) : null}
-          {!canReadCatalog ? (
-            <Alert
-              type="warning"
-              showIcon
-              title={t('Catalog access is required')}
-              description={t(
-                'Live preview requires both themes.preview and catalog.read permissions.'
-              )}
-            />
-          ) : catalogReleasesLoading ? (
-            <Space>
-              <Spin size="small" />
-              <span>{t('Loading deployed Catalog Releases…')}</span>
-            </Space>
-          ) : catalogReleasesError ? (
-            <Alert
-              type="error"
-              showIcon
-              title={t('Catalog Releases could not be loaded')}
-              description={localizeThemeError(catalogReleasesError, t)}
-              action={
-                <Button size="small" onClick={() => setCatalogReleasesRetry((value) => value + 1)}>
-                  {t('Retry Catalog Releases')}
-                </Button>
-              }
-            />
-          ) : catalogReleases.length === 0 ? (
-            <Alert
-              type="info"
-              showIcon
-              title={t('No deployed canonical Catalog Release is available in this environment.')}
-            />
-          ) : (
-            <Space orientation="vertical" className="w-full">
-              <Select
-                aria-label={t('Catalog Release')}
-                className="w-full"
-                disabled={
-                  busy ||
-                  Boolean(
-                    operatorRun && ['awaiting_operator', 'approved'].includes(operatorRun.status)
-                  )
-                }
-                value={selectedReleaseId || undefined}
-                options={catalogReleases.map((release) => ({
-                  label: `${release.id} · ${release.environment} · ${release.deployedAt ?? release.approvedAt}`,
-                  value: release.id,
-                }))}
-                onChange={(value) => {
-                  window.sessionStorage.removeItem('storefront-editor-private-candidate')
-                  selectedReleaseIdRef.current = value
-                  setSelectedReleaseId(value)
-                  window.sessionStorage.setItem('storefront-editor-catalog-release', value)
-                  previewContextRequest.current += 1
-                  setBuild(null)
-                  setPreviewSnapshot(null)
-                  setRevokedPreviewSnapshotId(null)
-                }}
-              />
-              {selectedRelease ? (
-                <Typography.Text type="secondary">
-                  {selectedRelease.environment} · {selectedRelease.status} ·{' '}
-                  {selectedRelease.products.length} {t('products')} ·{' '}
-                  {selectedRelease.collections.length} {t('collections')}
-                </Typography.Text>
-              ) : null}
-            </Space>
-          )}
-        </Card>
+      {candidateHandoffWarning ? (
+        <Alert
+          type="warning"
+          showIcon
+          title={t('Private Catalog candidate is no longer available')}
+          description={localizeThemeError(candidateHandoffWarning, t)}
+        />
       ) : null}
+      <Collapse
+        items={[
+          {
+            key: 'preview-details',
+            label: t('Preview details'),
+            forceRender: true,
+            children: (
+              <>
+                {canWrite ? (
+                  <>
+                    {' '}
+                    <Button
+                      disabled={dirty}
+                      loading={busy}
+                      onClick={() =>
+                        void runAction(async () => {
+                          const releaseId = selectedReleaseId
+                          const validated = await validate(draft, changeReason, releaseId)
+                          if (
+                            validated &&
+                            selectedValidation(validated, releaseId)?.status === 'valid'
+                          ) {
+                            void message.success(
+                              currentT('Draft v{version} is valid.', { version: validated.version })
+                            )
+                          }
+                        })
+                      }
+                    >
+                      {t('Validate saved version')}
+                    </Button>
+                  </>
+                ) : null}
+                <Descriptions bordered size="small" column={{ xs: 1, lg: 3 }}>
+                  <Descriptions.Item label={t('Draft identity')}>
+                    <Typography.Text className="break-all">{draft.id}</Typography.Text>
+                  </Descriptions.Item>
+                  <Descriptions.Item label={t('Preset')}>{draft.presetId}</Descriptions.Item>
+                  <Descriptions.Item label={t('Schema')}>
+                    {draft.configurationSchemaVersion}
+                  </Descriptions.Item>
+                  <Descriptions.Item label={t('Last saved')}>{draft.updatedAt}</Descriptions.Item>
+                  <Descriptions.Item label={t('Resource bindings')}>
+                    {bindings.length}
+                  </Descriptions.Item>
+                </Descriptions>
+
+                {requiresCatalogRelease ? (
+                  <Card title={t('Live preview context')}>
+                    {!canReadCatalog ? (
+                      <Alert
+                        type="warning"
+                        showIcon
+                        title={t('Catalog access is required')}
+                        description={t(
+                          'Live preview requires both themes.preview and catalog.read permissions.'
+                        )}
+                      />
+                    ) : catalogReleasesLoading ? (
+                      <Space>
+                        <Spin size="small" />
+                        <span>{t('Loading deployed Catalog Releases…')}</span>
+                      </Space>
+                    ) : catalogReleasesError ? (
+                      <Alert
+                        type="error"
+                        showIcon
+                        title={t('Catalog Releases could not be loaded')}
+                        description={localizeThemeError(catalogReleasesError, t)}
+                        action={
+                          <Button
+                            size="small"
+                            onClick={() => setCatalogReleasesRetry((value) => value + 1)}
+                          >
+                            {t('Retry Catalog Releases')}
+                          </Button>
+                        }
+                      />
+                    ) : catalogReleases.length === 0 ? (
+                      <Alert
+                        type="info"
+                        showIcon
+                        title={t(
+                          'No deployed canonical Catalog Release is available in this environment.'
+                        )}
+                      />
+                    ) : (
+                      <Space orientation="vertical" className="w-full">
+                        <Select
+                          aria-label={t('Catalog Release')}
+                          className="w-full"
+                          disabled={
+                            busy ||
+                            Boolean(
+                              operatorRun &&
+                              ['awaiting_operator', 'approved'].includes(operatorRun.status)
+                            )
+                          }
+                          value={selectedReleaseId || undefined}
+                          options={catalogReleases.map((release) => ({
+                            label: `${release.id} · ${release.environment} · ${release.deployedAt ?? release.approvedAt}`,
+                            value: release.id,
+                          }))}
+                          onChange={(value) => {
+                            window.sessionStorage.removeItem('storefront-editor-private-candidate')
+                            requestedPreviewContext.current = null
+                            selectedReleaseIdRef.current = value
+                            setSelectedReleaseId(value)
+                            window.sessionStorage.setItem(
+                              'storefront-editor-catalog-release',
+                              value
+                            )
+                            previewContextRequest.current += 1
+                            setBuild(null)
+                            setPreviewSnapshot(null)
+                            setRevokedPreviewSnapshotId(null)
+                          }}
+                        />
+                        {selectedRelease ? (
+                          <Typography.Text type="secondary">
+                            {selectedRelease.environment} · {selectedRelease.status} ·{' '}
+                            {selectedRelease.products.length} {t('products')} ·{' '}
+                            {selectedRelease.collections.length} {t('collections')}
+                          </Typography.Text>
+                        ) : null}
+                      </Space>
+                    )}
+                  </Card>
+                ) : null}
+              </>
+            ),
+          },
+        ]}
+      />
 
       <Card
         title={t('Notes (optional)')}
@@ -2328,45 +2532,50 @@ export const ThemeEditorPage = ({
         )}
       </Card>
 
-      <Card
-        title={t('Store preview')}
-        extra={<Tag color={status.color}>{t(status.label)}</Tag>}
-      >
+      <Card title={t('Store preview')} extra={<Tag color={status.color}>{t(status.label)}</Tag>}>
         <Space orientation="vertical" className="w-full">
           {build ? (
-            <Descriptions size="small" column={{ xs: 1, lg: 3 }}>
-              <Descriptions.Item label={t('Build')}>
-                <Typography.Text className="break-all">{build.id}</Typography.Text>
-              </Descriptions.Item>
-              <Descriptions.Item label={t('Attempt')}>{build.attempt}</Descriptions.Item>
-              <Descriptions.Item label={t('Snapshot')}>
-                <Typography.Text className="break-all">{build.snapshotId}</Typography.Text>
-              </Descriptions.Item>
-              {previewSnapshot?.id === build.snapshotId ? (
-                <Descriptions.Item label={t('Content digest')}>
-                  <Typography.Text className="break-all">
-                    {previewSnapshot.contentDigest}
-                  </Typography.Text>
-                </Descriptions.Item>
-              ) : null}
-              <Descriptions.Item label={t('Catalog Release')}>
-                {build.inputIdentity?.catalogReleaseId ?? t('None')}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('Experience version')}>
-                {build.inputIdentity?.experienceVersion ?? t('Unknown')}
-              </Descriptions.Item>
-              <Descriptions.Item label={t('Theme version')}>
-                {build.inputIdentity?.themeVersion ?? draft.themeVersion}
-              </Descriptions.Item>
-              {build.failureCode ? (
-                <Descriptions.Item label={t('Failure')}>
-                  {themeDiagnosticMessage('preview', build.failureCode, t)}
-                </Descriptions.Item>
-              ) : null}
-              {build.expiresAt ? (
-                <Descriptions.Item label={t('Expires')}>{build.expiresAt}</Descriptions.Item>
-              ) : null}
-            </Descriptions>
+            <Collapse
+              items={[
+                {
+                  key: 'build-details',
+                  label: t('Preview build details'),
+                  forceRender: true,
+                  children: (
+                    <Descriptions size="small" column={{ xs: 1, lg: 3 }}>
+                      <Descriptions.Item label={t('Build')}>
+                        <Typography.Text className="break-all">{build.id}</Typography.Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label={t('Attempt')}>{build.attempt}</Descriptions.Item>
+                      <Descriptions.Item label={t('Snapshot')}>
+                        <Typography.Text className="break-all">{build.snapshotId}</Typography.Text>
+                      </Descriptions.Item>
+                      {previewSnapshot?.id === build.snapshotId ? (
+                        <Descriptions.Item label={t('Content digest')}>
+                          <Typography.Text className="break-all">
+                            {previewSnapshot.contentDigest}
+                          </Typography.Text>
+                        </Descriptions.Item>
+                      ) : null}
+                      <Descriptions.Item label={t('Catalog Release')}>
+                        {build.inputIdentity?.catalogReleaseId ?? t('None')}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={t('Experience version')}>
+                        {build.inputIdentity?.experienceVersion ?? t('Unknown')}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={t('Theme version')}>
+                        {build.inputIdentity?.themeVersion ?? draft.themeVersion}
+                      </Descriptions.Item>
+                      {build.expiresAt ? (
+                        <Descriptions.Item label={t('Expires')}>
+                          {build.expiresAt}
+                        </Descriptions.Item>
+                      ) : null}
+                    </Descriptions>
+                  ),
+                },
+              ]}
+            />
           ) : (
             <Typography.Text type="secondary">
               {t('No preview has been requested for this editor session.')}
@@ -2427,6 +2636,14 @@ export const ThemeEditorPage = ({
               description={t('Ask an administrator to configure the preview address.')}
             />
           ) : null}
+          {build?.failureCode ? (
+            <Alert
+              type="error"
+              showIcon
+              title={t('Preview failed')}
+              description={themeDiagnosticMessage('preview', build.failureCode, t)}
+            />
+          ) : null}
           {build && ['failed', 'expired'].includes(build.status) ? (
             <Button
               icon={<ReloadOutlined aria-hidden />}
@@ -2459,7 +2676,9 @@ export const ThemeEditorPage = ({
         <Card title={t('Approve draft')}>
           <Space orientation="vertical" className="w-full">
             <Typography.Text type="secondary">
-              {t('Approval freezes this design for formal release. It does not update the storefront.')}
+              {t(
+                'Approval freezes this design for formal release. It does not update the storefront.'
+              )}
             </Typography.Text>
             <Input.TextArea
               aria-label={t('Approval reason')}
@@ -2508,15 +2727,22 @@ export const ThemeEditorPage = ({
               {t('Approve exact draft v{version}', { version: draft.version })}
             </Button>
             {approvedSnapshot ? (
-              <Alert
-                type="success"
-                showIcon
-                title={t('Approved, awaiting formal release')}
-                description={t('{id} · source draft v{version} · audit succeeded', {
-                  id: approvedSnapshot.id,
-                  version: approvedSnapshot.sourceDraftVersion,
-                })}
-              />
+              <>
+                <Alert type="success" showIcon title={t('Approved, awaiting formal release')} />
+                <Collapse
+                  items={[
+                    {
+                      key: 'approval-details',
+                      label: t('Approval details'),
+                      forceRender: true,
+                      children: t('{id} · source draft v{version} · audit succeeded', {
+                        id: approvedSnapshot.id,
+                        version: approvedSnapshot.sourceDraftVersion,
+                      }),
+                    },
+                  ]}
+                />
+              </>
             ) : null}
           </Space>
         </Card>
