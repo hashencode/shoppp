@@ -329,6 +329,13 @@ const renderEditor = (
       }
     if (request.method === 'post' && request.url?.endsWith('/validate')) {
       const body = JSON.parse(request.data as string)
+      expect(savedDraft.bindings).toEqual([
+        expect.objectContaining({
+          instanceId: 'hero',
+          settingId: 'product',
+          reference: { kind: 'product', id: 'product-atlas' },
+        }),
+      ])
       return {
         data: {
           data: {
@@ -460,6 +467,8 @@ describe('ThemeEditorPage browser behavior', () => {
     async () => {
       renderEditor('preview')
       const locale = oppositeBrowserLocale()
+      await page.getByRole('combobox', { name: 'hero product', exact: true }).click()
+      await page.getByText('Atlas / Carry-on · /products/atlas', { exact: true }).click()
       await page
         .getByRole('textbox', { name: 'hero heading', exact: true })
         .fill('Saved browser preview')
@@ -470,6 +479,19 @@ describe('ThemeEditorPage browser behavior', () => {
       await page
         .getByRole('button', { name: translateMessage(locale, 'Preview store'), exact: true })
         .click()
+      await waitFor(() =>
+        expect(transport!.requests.some(({ method }) => method === 'put')).toBe(true)
+      )
+      expect(
+        JSON.parse(transport!.requests.find(({ method }) => method === 'put')!.data as string)
+          .bindings
+      ).toEqual([
+        expect.objectContaining({
+          instanceId: 'hero',
+          settingId: 'product',
+          reference: { kind: 'product', id: 'product-atlas' },
+        }),
+      ])
       await expect
         .element(
           page.getByRole('button', { name: translateMessage(locale, 'Open authenticated preview') })

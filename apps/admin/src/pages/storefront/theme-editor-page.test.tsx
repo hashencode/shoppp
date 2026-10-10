@@ -1789,6 +1789,22 @@ describe('ThemeEditorPage', () => {
       validations: [validation],
     }
     const hydrated = deployedPreviewContext('fixture')
+    server.use(
+      http.post('*/admin/storefront-experiences/drafts/:id/approve', async ({ request }) => {
+        approvalBody = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({
+          data: {
+            ...previewSnapshot,
+            approvedAt: '2026-07-30T00:15:00.000Z',
+            approvedBy: 'theme-admin',
+            id: 'snapshot-approved-fashion-store',
+            kind: 'approved',
+            sourceDraftVersion: 1,
+            sourceValidationId: validation.id,
+          },
+        })
+      })
+    )
     let operatorRunReads = 0
     server.use(
       http.get('*/admin/storefront-experiences/drafts/:id/operator-run', () => {
@@ -2208,9 +2224,7 @@ describe('merchant store preview', () => {
       )
       expect(currentDraft.version).toBe(2)
       expect(screen.getByDisplayValue('Saved despite missing sources')).toBeTruthy()
-      expect(
-        screen.getByRole('button', { name: 'Save' }).hasAttribute('disabled')
-      ).toBe(true)
+      expect(screen.getByRole('button', { name: 'Save' }).hasAttribute('disabled')).toBe(true)
       expect(previewBody).toBeNull()
       expect(validationBody).toBeNull()
       expect(
@@ -2534,6 +2548,28 @@ describe('merchant store preview', () => {
     expect(window.sessionStorage.getItem('storefront-editor-catalog-release')).toBe(candidateId)
     expect(requestLog.filter((request) => request.includes('/preview-candidates'))).toHaveLength(1)
     expect(requestLog.some((request) => request.startsWith('POST '))).toBe(false)
+    server.use(
+      http.post('*/admin/storefront-experiences/drafts/:id/preview', async ({ request }) => {
+        previewBody = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({ data: deployedPreviewContext(candidateId) })
+      })
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Preview store' }))
+    await waitFor(() =>
+      expect(previewBody).toMatchObject({
+        catalogReleaseId: candidateId,
+        expectedVersion: 1,
+      })
+    )
+    await screen.findByRole('button', { name: 'Open authenticated preview' })
+    expect(validationBody).toBeNull()
+    expect(updateBody).toBeNull()
+    expect(requestLog.filter((request) => request.includes('/preview-candidates'))).toHaveLength(1)
+    expect(
+      requestLog
+        .filter((request) => request.startsWith('POST '))
+        .map((request) => request.split('/admin/')[1])
+    ).toEqual([`storefront-experiences/drafts/${baseDraft.id}/preview`])
   })
 
   it('blocks read-only preview without an exact valid binding and never calls draft validation', async () => {
@@ -2549,4 +2585,264 @@ describe('merchant store preview', () => {
     expect(previewBody).toBeNull()
     expect(updateBody).toBeNull()
   })
+})
+
+describe('exact preview and approval identity', () => {
+  it.each(['manifestDigest', 'sourceDigest'] as const)(
+    'rejects a mismatching candidate %s before validation or preview',
+    async (digest) => {
+      prepareFashionEditor()
+      const candidateId = 'private-mismatching-source'
+      server.use(
+        http.post('*/admin/catalog/releases/preview-candidates', () =>
+          HttpResponse.json(
+            {
+              data: {
+                id: candidateId,
+                status: 'succeeded',
+                purpose: 'private-preview',
+                manifestDigest: 'a'.repeat(64),
+                sourceDigest: 'b'.repeat(64),
+              },
+            },
+            { status: 201 }
+          )
+        ),
+        http.get('*/admin/catalog/releases/preview-candidates/:id', () =>
+          HttpResponse.json({
+            data: {
+              manifest: { ...candidateManifest, releaseId: candidateId },
+              manifestDigest: 'a'.repeat(64),
+              sourceDigest: 'b'.repeat(64),
+              [digest]: 'c'.repeat(64),
+            },
+          })
+        )
+      )
+      renderEditor()
+      fireEvent.click(await screen.findByRole('button', { name: 'Preview store' }))
+      await screen.findByText('The store preview sources are not ready. Retry preview preparation.')
+      expect(validationBody).toBeNull()
+      expect(previewBody).toBeNull()
+      expect(window.sessionStorage.getItem('storefront-editor-private-candidate')).toBeNull()
+      expect(window.sessionStorage.getItem('storefront-editor-catalog-release')).not.toBe(
+        candidateId
+      )
+    }
+  )
+
+  const approveCurrentFashionDesign = async () => {
+    prepareFashionEditor()
+    currentDraft = {
+      ...currentDraft,
+      validations: [
+        { ...validValidation, draftVersion: 1, catalogReleaseId: 'old-deployed-release' },
+      ],
+    }
+    server.use(
+      http.get('*/admin/storefront-experiences/drafts/:id/preview-context', () =>
+        HttpResponse.json({ data: deployedPreviewContext('old-deployed-release') })
+      ),
+      http.post('*/admin/storefront-experiences/drafts/:id/approve', async ({ request }) => {
+        approvalBody = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({
+          data: {
+            ...previewSnapshot,
+            approvedAt: '2026-07-30T00:15:00.000Z',
+            approvedBy: 'theme-admin',
+            id: 'snapshot-approved-exact-design',
+            kind: 'approved',
+            sourceDraftVersion: 1,
+            themeId: 'fashion-store',
+          },
+        })
+      })
+    )
+    renderEditor()
+    await screen.findByRole('button', { name: 'Open authenticated preview' })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Approval reason' }), {
+      target: { value: 'Approve the exact saved design and source' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Approve exact draft v1' }))
+    await screen.findByText('Approved, awaiting formal release')
+  }
+
+  it.each(['validation', 'preview'] as const)(
+    'retains the newly prepared candidate when an older release list arrives during %s',
+    async (pendingStage) => {
+      prepareFashionEditor()
+      const candidateId = 'private-late-list-candidate'
+      let listStarted = false
+      let resolveList!: (response: HttpResponse<Record<string, unknown>>) => void
+      const delayedList = new Promise<HttpResponse<Record<string, unknown>>>((resolve) => {
+        resolveList = resolve
+      })
+      let resolveStage!: (response: HttpResponse<Record<string, unknown>>) => void
+      const delayedStage = new Promise<HttpResponse<Record<string, unknown>>>((resolve) => {
+        resolveStage = resolve
+      })
+      const validation = {
+        ...validValidation,
+        id: 'validation-late-list-candidate',
+        draftVersion: 1,
+        catalogReleaseId: candidateId,
+      }
+      server.use(
+        http.get('*/admin/storefront-experiences/catalog-releases', () => {
+          listStarted = true
+          return delayedList
+        }),
+        http.post('*/admin/catalog/releases/preview-candidates', () =>
+          HttpResponse.json(
+            {
+              data: {
+                id: candidateId,
+                status: 'succeeded',
+                purpose: 'private-preview',
+                manifestDigest: 'a'.repeat(64),
+                sourceDigest: 'b'.repeat(64),
+              },
+            },
+            { status: 201 }
+          )
+        ),
+        http.get('*/admin/catalog/releases/preview-candidates/:id', () =>
+          HttpResponse.json({
+            data: {
+              manifest: { ...candidateManifest, releaseId: candidateId },
+              manifestDigest: 'a'.repeat(64),
+              sourceDigest: 'b'.repeat(64),
+            },
+          })
+        ),
+        http.post('*/admin/storefront-experiences/drafts/:id/validate', async ({ request }) => {
+          validationBody = (await request.json()) as Record<string, unknown>
+          return pendingStage === 'validation'
+            ? delayedStage
+            : HttpResponse.json({ data: validation })
+        }),
+        http.post('*/admin/storefront-experiences/drafts/:id/preview', async ({ request }) => {
+          previewBody = (await request.json()) as Record<string, unknown>
+          return pendingStage === 'preview'
+            ? delayedStage
+            : HttpResponse.json({ data: deployedPreviewContext(candidateId) })
+        })
+      )
+      renderEditor()
+      await waitFor(() => expect(listStarted).toBe(true))
+      fireEvent.click(screen.getByRole('button', { name: 'Preview store' }))
+      await waitFor(() =>
+        expect(pendingStage === 'validation' ? validationBody : previewBody).toMatchObject({
+          catalogReleaseId: candidateId,
+          expectedVersion: 1,
+        })
+      )
+      await act(async () => {
+        resolveList(HttpResponse.json({ data: [catalogRelease('old-deployed-release')] }))
+        await new Promise((resolve) => window.setTimeout(resolve, 20))
+      })
+      resolveStage(
+        HttpResponse.json({
+          data: pendingStage === 'validation' ? validation : deployedPreviewContext(candidateId),
+        })
+      )
+      await screen.findByRole('button', { name: 'Open authenticated preview' })
+      expect(previewBody).toMatchObject({ catalogReleaseId: candidateId, expectedVersion: 1 })
+      expect(window.sessionStorage.getItem('storefront-editor-catalog-release')).toBe(candidateId)
+      expect(screen.queryByText('The last operation did not complete')).toBeNull()
+    }
+  )
+
+  it('qualifies approval after unsaved edits and a newly saved design version', async () => {
+    await approveCurrentFashionDesign()
+    const heading = screen.getByRole('textbox', { name: 'home-hero heading' })
+    fireEvent.change(heading, { target: { value: 'Unapproved local design' } })
+    expect(screen.queryByText('Approved, awaiting formal release')).toBeNull()
+    fireEvent.change(heading, { target: { value: 'Existing headline' } })
+    expect(screen.getByText('Approved, awaiting formal release')).toBeTruthy()
+    fireEvent.change(heading, { target: { value: 'Unapproved saved design' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await screen.findByRole('button', { name: 'Approve exact draft v2' })
+    expect(screen.queryByText('Approved, awaiting formal release')).toBeNull()
+    expect(screen.getByText(/snapshot-approved-exact-design/)).toBeTruthy()
+  })
+
+  it('qualifies approval after preparing a new source candidate for the same saved version', async () => {
+    await approveCurrentFashionDesign()
+    const candidateId = 'private-unapproved-new-source'
+    server.use(
+      http.post('*/admin/catalog/releases/preview-candidates', () =>
+        HttpResponse.json(
+          {
+            data: {
+              id: candidateId,
+              status: 'succeeded',
+              purpose: 'private-preview',
+              manifestDigest: 'a'.repeat(64),
+              sourceDigest: 'b'.repeat(64),
+            },
+          },
+          { status: 201 }
+        )
+      ),
+      http.get('*/admin/catalog/releases/preview-candidates/:id', () =>
+        HttpResponse.json({
+          data: {
+            manifest: { ...candidateManifest, releaseId: candidateId },
+            manifestDigest: 'a'.repeat(64),
+            sourceDigest: 'b'.repeat(64),
+          },
+        })
+      ),
+      http.post('*/admin/storefront-experiences/drafts/:id/validate', async ({ request }) => {
+        validationBody = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({
+          data: {
+            ...validValidation,
+            id: 'validation-unapproved-new-source',
+            draftVersion: 1,
+            catalogReleaseId: candidateId,
+          },
+        })
+      }),
+      http.post('*/admin/storefront-experiences/drafts/:id/preview', async ({ request }) => {
+        previewBody = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({ data: deployedPreviewContext(candidateId) })
+      })
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Preview store' }))
+    await waitFor(() => expect(previewBody).toMatchObject({ catalogReleaseId: candidateId }))
+    await screen.findByRole('button', { name: 'Open authenticated preview' })
+    expect(screen.queryByText('Approved, awaiting formal release')).toBeNull()
+    expect(screen.getByText(/snapshot-approved-exact-design/)).toBeTruthy()
+    expect(updateBody).toBeNull()
+  })
+
+  it.each([1, 2])(
+    'matches retained approval to draft v%s after an in-page reload',
+    async (version) => {
+      await approveCurrentFashionDesign()
+      expect(screen.getByText('Approved, awaiting formal release')).toBeTruthy()
+      currentDraft = {
+        ...currentDraft,
+        version,
+        validation: null,
+        validations: version === 1 ? currentDraft.validations : [],
+      }
+      server.use(
+        http.post('*/admin/storefront-experiences/snapshots/:id/grants', () =>
+          HttpResponse.json(
+            { error: { code: 'upstream_unavailable', message: 'Retry later' } },
+            { status: 503 }
+          )
+        )
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'Open authenticated preview' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Reload saved draft' }))
+      await screen.findByRole('button', { name: `Approve exact draft v${version}` })
+      if (version === 1) expect(screen.getByText('Approved, awaiting formal release')).toBeTruthy()
+      else expect(screen.queryByText('Approved, awaiting formal release')).toBeNull()
+      expect(screen.getByText(/snapshot-approved-exact-design/)).toBeTruthy()
+    }
+  )
 })

@@ -6,7 +6,7 @@ topic: shoppp-product-master-plan
 execution: knowledge-work
 plan_role: product-master
 current_plan: 2026-10-10-2307-refactor-admin-merchant-workflows-plan.md
-current_unit: U6
+current_unit: U7
 ---
 
 # Shoppp Product Master Plan
@@ -46,9 +46,9 @@ template-specific repair does not change product membership or candidate scope b
 ## Current execution pointer
 
 - **Active product plan:** [管理后台商家任务与发布流程重构](2026-10-10-2307-refactor-admin-merchant-workflows-plan.md) — 用户已授权实施的产品后继。
-- **Current unit:** U6 — 验收后台核心与批准后的交接。
-- **Next action:** 完成预览桌面/窄屏回归、类型与质量检查及正式代码审查，核对受保护页面和待发布边界。
-- **Blockers:** 管理后台 U1–U6 无实施前置缺口；U7 依赖 REL 的精确公开化、激活与 active tuple 合同。候选未冻结，DC/PG 未开始。
+- **Current unit:** U7 — 对接 REL 的正式发布与当前线上回执（前置阻塞）；管理后台核心已完成。
+- **Next action:** REL 先提供并验证同一版本的公开授权、精确批准绑定、激活/失败/回滚及 active tuple 合同，再由管理后台 U7 消费。
+- **Blockers:** U7 尚无上述 REL 合同；私有候选禁止公开构建和部署。候选未冻结，DC/PG 未开始。
 - **Tail ownership:** 管理后台计划拥有本地实施、回归与交接；REL 保留 candidate readiness、候选冻结、正式部署、DC/PG 权限。FS-F14 完成基线继续有效。
 
 The active child plan is authoritative if this summary and its execution checkpoint temporarily
@@ -57,7 +57,7 @@ checkpoint here.
 
 ## Product-level sequence
 
-1. 完成管理后台 U1–U6 的菜单、真实操作表达、设置与私有店铺预览。
+1. 管理后台 U1–U6 的菜单、真实操作表达、设置与私有店铺预览已完成。
 2. 回交 REL 的发布合同前置工作与 Pre-DC capability/identity reconciliation；合同具备后执行管理后台 U7。
 3. 仅由 REL 选择和冻结不可变候选，再按具名人工与生产权限执行 DC/PG。
 

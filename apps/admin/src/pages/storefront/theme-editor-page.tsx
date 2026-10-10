@@ -470,6 +470,7 @@ export const ThemeEditorPage = ({
   const [upgradeThemeKey, setUpgradeThemeKey] = useState('')
   const [validationFocusRequest, setValidationFocusRequest] = useState(0)
   const loadRequest = useRef(0)
+  const catalogReleasesRequest = useRef(0)
   const previewContextRequest = useRef(0)
   const requestedPreviewContext = useRef<{
     draftId: string
@@ -612,6 +613,7 @@ export const ThemeEditorPage = ({
 
   useEffect(() => {
     if (draft?.themeId !== 'fashion-store') return
+    const request = ++catalogReleasesRequest.current
     const privateId = window.sessionStorage.getItem('storefront-editor-private-candidate')
     const privateAccessLost = Boolean(privateId && !canReadCandidate)
     if (privateAccessLost) {
@@ -639,6 +641,7 @@ export const ThemeEditorPage = ({
       let invalidPrivateCandidate = privateAccessLost
       void fetchStorefrontCatalogReleases()
         .then(async (deployed) => {
+          if (cancelled || request !== catalogReleasesRequest.current) return deployed
           if (
             !handedOffCandidate ||
             privateCandidateHandoff !== handedOffCandidate ||
@@ -654,7 +657,7 @@ export const ThemeEditorPage = ({
             const candidate = await fetchStorefrontCatalogCandidate(handedOffCandidate)
             return [candidate, ...deployed]
           } catch (cause) {
-            if (cancelled) return deployed
+            if (cancelled || request !== catalogReleasesRequest.current) return deployed
             invalidPrivateCandidate = true
             selectedReleaseIdRef.current = ''
             setSelectedReleaseId('')
@@ -668,7 +671,7 @@ export const ThemeEditorPage = ({
           }
         })
         .then((releases) => {
-          if (cancelled) return
+          if (cancelled || request !== catalogReleasesRequest.current) return
           setCatalogReleases(releases)
           setSelectedReleaseId((current) => {
             const frozen =
@@ -687,10 +690,12 @@ export const ThemeEditorPage = ({
           })
         })
         .catch((cause) => {
-          if (!cancelled) setCatalogReleasesError(normalizeApiError(cause))
+          if (!cancelled && request === catalogReleasesRequest.current)
+            setCatalogReleasesError(normalizeApiError(cause))
         })
         .finally(() => {
-          if (!cancelled) setCatalogReleasesLoading(false)
+          if (!cancelled && request === catalogReleasesRequest.current)
+            setCatalogReleasesLoading(false)
         })
     }, 0)
     return () => {
@@ -1042,6 +1047,12 @@ export const ThemeEditorPage = ({
   ])
   const validationCurrent =
     currentValidation?.status === 'valid' && currentValidation.draftVersion === draft?.version
+  const approvalCurrent =
+    !dirty &&
+    validationCurrent &&
+    approvedSnapshot?.sourceDraftId === draft?.id &&
+    approvedSnapshot?.sourceDraftVersion === draft?.version &&
+    approvedSnapshot?.sourceValidationId === currentValidation?.id
   const previewContextCurrent =
     build?.status === 'deployed' &&
     previewSnapshot?.id === build.snapshotId &&
@@ -1121,6 +1132,9 @@ export const ThemeEditorPage = ({
           )
             throw new LocalThemeError(localThemeMessages.candidateNotReady)
           releaseId = exact.id
+          catalogReleasesRequest.current += 1
+          setCatalogReleasesLoading(false)
+          setCatalogReleasesError(null)
           requestedPreviewContext.current = { draftId: saved.id, version: saved.version, releaseId }
           selectedReleaseIdRef.current = releaseId
           setSelectedReleaseId(releaseId)
@@ -2730,7 +2744,9 @@ export const ThemeEditorPage = ({
             </Button>
             {approvedSnapshot ? (
               <>
-                <Alert type="success" showIcon title={t('Approved, awaiting formal release')} />
+                {approvalCurrent ? (
+                  <Alert type="success" showIcon title={t('Approved, awaiting formal release')} />
+                ) : null}
                 <Collapse
                   items={[
                     {

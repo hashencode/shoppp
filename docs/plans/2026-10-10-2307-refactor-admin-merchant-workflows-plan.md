@@ -277,12 +277,12 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 
 本节按仓库规则仅维护本计划自身执行状态。状态以实际代码与验证证据为准，REL 当前队列不在这里复制。
 
-- **Plan:** 已激活，实施中。
-- **Current unit:** U6 — 验收后台核心与批准后的交接。
-- **Next concrete action:** 完成预览桌面/窄屏回归、类型与质量检查及正式代码审查，核对 R2 基线和待发布边界。
+- **Plan:** 已激活；管理后台核心完成，正式发布接入前置阻塞。
+- **Current unit:** U7 — 对接 REL 的正式发布与当前线上回执（前置阻塞）。
+- **Next concrete action:** REL 先定义并验证 same Release ID/digest 的公开授权、exact approved Snapshot/Contact/Theme 绑定、激活/失败/回滚和 active tuple 查询合同；具备接口与证据后补充本 U 路径并接入。
 - **Order:** U1 → U2 → U3 → U4 → U5 → U6；U7 在 U6 和 REL 合同具备后开始。
-- **Blocker:** U1–U6 无规划级实施前置缺口；U7 缺 REL 正式发布接口及 active tuple 证据。
-- **Unit status:** U1–U5 已完成；U6 进行中；U7 前置阻塞。
+- **Blocker:** U7 缺 REL 正式发布接口及 active tuple 证据；私有候选仍禁止公开构建或部署。没有可直接消费的 elevation 合同。
+- **Unit status:** U1–U6 已完成；U7 前置阻塞。全计划未完成，候选未冻结，DC/PG 未开始。
 - **Update rule:** U 状态、当前/下一步、顺序或 tail 改变时，同一变更更新本节；只有产品级指针变化才同步 master。集中验证证据放 `docs/progress/`，不建立第二执行队列。
 
 ---
@@ -379,6 +379,7 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 - 未保存装修遵循原 Save and Preview 保存边界；版本冲突、来源/联系变化、构建失败提供局部恢复，不自动替换候选。
 - expired/abandoned 候选清理失效选择，不回退到另一 deployed 版本；预览产物过期与访问撤销按既有授权/重建能力恢复，不误判合法来源失效。旧授权不能继续打开，来源/装修变化后不得复用旧校验或批准；重载恢复精确身份，重试防重复提交。
 - private candidate 仍不能经 deploy/public-build/public-manifest-read 公开；无默认公开分享或跨环境访问。
+- 初始 deployed 列表晚于新候选到达时，不能覆盖显式准备的精确身份；候选摘要不匹配必须在校验/预览前拒绝。只读操作者已有有效绑定时可预览，不执行保存、候选准备或写入校验。
 
 **Verification:** L3 跨页面/API 消费者与原生浏览器预览场景通过；普通流程不展示技术选版本步骤，原安全和冻结证据完整。
 
@@ -388,13 +389,14 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 
 **Requirements:** R1–R12；F1–F5；AE1–AE9。**Dependencies:** U2–U5；不依赖 U7。
 
-**Files:** 本计划 checkpoint；必要的 `docs/progress/<实施日期>-admin-merchant-workflows-verification.md`；现有 Admin browser/E2E fixtures 与 `rstest.i18n-browser.config.ts`；局部 shell/launch browser tests；`tools/check-admin-i18n{,.test}.ts` 收录新增菜单元数据与修订状态目录，修订 editor 仅抽出原目录不改输出；实际受变更的规范 `apps/admin/docs/ai/ai-rules.md`、`apps/admin/docs/ai/page-recipes.yaml`、`apps/admin/docs/ai/component-catalog.yaml`、`apps/admin/docs/ai/page-guardrail-recipes.md`。
+**Files:** 本计划 checkpoint；必要的 `docs/progress/<实施日期>-admin-merchant-workflows-verification.md`；既有 `theme-editor-page.tsx` 的局部请求失效/批准身份修正及对应 test；现有 Admin browser/E2E fixtures 与 `rstest.i18n-browser.config.ts`；局部 shell/launch browser tests；`tools/check-admin-i18n{,.test}.ts` 收录新增菜单元数据与修订状态目录，修订 editor 仅抽出原目录不改输出；实际受变更的规范 `apps/admin/docs/ai/ai-rules.md`、`apps/admin/docs/ai/page-recipes.yaml`、`apps/admin/docs/ai/component-catalog.yaml`、`apps/admin/docs/ai/page-guardrail-recipes.md`。
 
 **Approach:** KTD1–KTD6。跑真实任务回归，批准成功停在明确待正式发布状态；不提供尚不可用的“发布到店铺”按钮。复核 API/菜单权限、商家文字与保护页面差异；只更新实际变更的 UI 规范和证据，不建立第二执行队列。移除废弃候选 UI、未使用翻译及试验代码。
 
 **Test scenarios:**
 
 - 原生浏览器覆盖 F1–F5，包括正常预览、空店阻塞、限制权限、版本冲突、失败恢复和批准待发布。
+- 成功用例的已保存引用真实存在于候选中；批准后编辑、保存、准备新来源或重新加载新版本，不继续显示当前版本已批准。同一精确身份的批准及历史审计保留。
 - 库存或配置实际写入不会被预览/批准延迟；主题 Save/Approve 不能执行生产激活。
 - 两受保护页面的常见加载/空/错误/权限状态与 U1 基线一致；仅菜单变化可见。
 - 商家验收能说明本次预览未含草稿、哪些修改立即影响交易、何时才算上线；若理解失败，修正其最近决策点，不添加全页解释。
