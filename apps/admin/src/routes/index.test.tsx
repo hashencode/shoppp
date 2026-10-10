@@ -29,28 +29,29 @@ describe('Ant Design locale', () => {
 
 describe('first-level menu route contract', () => {
   const firstLevelRouteInventory = {
-    'setup-guide': { title: 'Store setup guide', headingOwner: 'custom' },
     'commerce-dashboard': { title: 'Commerce dashboard', headingOwner: 'custom' },
-    'order-report': { title: 'Revenue report', headingOwner: 'standard-list' },
+    'setup-guide': { title: 'Store setup guide', headingOwner: 'custom' },
+    orders: { title: 'Orders', headingOwner: 'standard-list' },
+    fulfillment: { title: 'Fulfillment', headingOwner: 'custom' },
     'catalog-products': { title: 'Catalog', headingOwner: 'standard-list' },
+    'catalog-collections': { title: 'Collections', headingOwner: 'standard-list' },
+    inventory: { title: 'Inventory', headingOwner: 'standard-list' },
     'catalog-reviews': { title: 'Reviews', headingOwner: 'custom' },
     'content-pages': { title: 'Pages', headingOwner: 'standard-list' },
     'content-articles': { title: 'Articles', headingOwner: 'standard-list' },
     'storefront-navigation': { title: 'Navigation', headingOwner: 'custom' },
     'storefront-themes': { title: 'Storefront themes', headingOwner: 'custom' },
-    inventory: { title: 'Inventory', headingOwner: 'standard-list' },
-    orders: { title: 'Orders', headingOwner: 'standard-list' },
-    fulfillment: { title: 'Fulfillment', headingOwner: 'custom' },
-    'notification-recovery': { title: 'Automation recovery', headingOwner: 'standard-list' },
+    'order-report': { title: 'Revenue report', headingOwner: 'standard-list' },
     'store-identity': { title: 'Store identity', headingOwner: 'top-level-form' },
-    policies: { title: 'Policies', headingOwner: 'custom' },
-    'launch-settings': { title: 'Commercial settings', headingOwner: 'top-level-form' },
     'contact-settings': { title: 'Contact settings', headingOwner: 'top-level-form' },
+    'launch-settings': { title: 'Commercial settings', headingOwner: 'top-level-form' },
     'shipping-settings': { title: 'Shipping settings', headingOwner: 'top-level-form' },
-    audit: { title: 'Audit trail', headingOwner: 'custom' },
-    privacy: { title: 'Privacy requests', headingOwner: 'custom' },
+    policies: { title: 'Policies', headingOwner: 'custom' },
     'iam-users': { title: 'Users & invitations', headingOwner: 'custom' },
     'iam-roles': { title: 'Roles', headingOwner: 'standard-list' },
+    privacy: { title: 'Privacy requests', headingOwner: 'custom' },
+    audit: { title: 'Audit trail', headingOwner: 'custom' },
+    'notification-recovery': { title: 'Automation recovery', headingOwner: 'standard-list' },
   } as const
 
   it('keeps every menu route in the documented heading-owner inventory', () => {
@@ -68,78 +69,71 @@ describe('first-level menu route contract', () => {
     expect(headingOwners).toContain('top-level-form')
   })
 
-  it('groups store settings in their accepted order without changing route access', () => {
-    const storeSettingsRoutes = templateRoutes
-      .filter((route) => route.inMenu && route.menuGroup === 'Store settings')
-      .map(({ key, path, permission, menuMode, menuGroup, breadcrumb }) => ({
-        key,
-        path,
-        permission,
-        menuMode,
-        menuGroup,
-        breadcrumb,
-      }))
+  it('organizes the existing destinations into seven ordered merchant tasks', () => {
+    const groups = new Map<string | undefined, string[]>()
+    for (const route of templateRoutes.filter(({ inMenu }) => inMenu)) {
+      const paths = groups.get(route.menuGroup) ?? []
+      paths.push(route.path)
+      groups.set(route.menuGroup, paths)
+    }
 
-    expect(storeSettingsRoutes).toEqual([
-      {
-        key: 'store-identity',
-        path: '/settings/identity',
-        permission: 'identity.read',
-        menuMode: undefined,
-        menuGroup: 'Store settings',
-        breadcrumb: ['Store settings', 'Store identity'],
-      },
-      {
-        key: 'policies',
-        path: '/settings/policies',
-        permission: 'policies.read',
-        menuMode: undefined,
-        menuGroup: 'Store settings',
-        breadcrumb: ['Store settings', 'Policies'],
-      },
-      {
-        key: 'launch-settings',
-        path: '/settings/launch',
-        permission: 'settings.read',
-        menuMode: undefined,
-        menuGroup: 'Store settings',
-        breadcrumb: ['Store settings', 'Commercial settings'],
-      },
-      {
-        key: 'contact-settings',
-        path: '/settings/contact',
-        permission: 'settings.read',
-        menuMode: undefined,
-        menuGroup: 'Store settings',
-        breadcrumb: ['Store settings', 'Contact settings'],
-      },
-      {
-        key: 'shipping-settings',
-        path: '/settings/shipping',
-        permission: 'settings.read',
-        menuMode: undefined,
-        menuGroup: 'Store settings',
-        breadcrumb: ['Store settings', 'Shipping settings'],
-      },
+    expect([...groups]).toEqual([
+      ['Home', ['/dashboard', '/welcome']],
+      ['Orders', ['/orders', '/fulfillment']],
+      ['Products', ['/catalog/products', '/catalog/collections', '/inventory', '/catalog/reviews']],
+      ['Content', ['/content/pages', '/content/articles', '/storefront/navigation']],
+      ['Online store', ['/storefront/themes']],
+      ['Analytics', ['/reports/orders']],
+      [
+        'Settings',
+        [
+          '/settings/identity',
+          '/settings/contact',
+          '/settings/launch',
+          '/settings/shipping',
+          '/settings/policies',
+          '/access/users',
+          '/access/roles',
+          '/privacy',
+          '/audit',
+          '/operations/jobs',
+        ],
+      ],
+    ])
+    const menuPaths = templateRoutes.filter(({ inMenu }) => inMenu).map(({ path }) => path)
+    expect(new Set(menuPaths).size).toBe(menuPaths.length)
+    expect(templateRoutes.filter(({ inMenu }) => !inMenu).map(({ path }) => path)).toEqual([
+      '/orders/:reference',
+      '/catalog/products/form',
+      '/catalog/collections/form',
+      '/content/pages/form',
+      '/content/articles/form',
+      '/storefront/themes/:draftId',
+      '/access/users/:id',
+      '/access/roles/:id',
+      '*',
     ])
   })
 
-  it('keeps grouped IAM entries on their existing breadcrumb contract', () => {
-    const groupedRoutes = templateRoutes
-      .filter((route) => route.inMenu && route.menuGroup === 'Access management')
-      .map(({ key, menuGroup, breadcrumb }) => ({ key, menuGroup, breadcrumb }))
-
-    expect(groupedRoutes).toEqual([
-      {
-        key: 'iam-users',
-        menuGroup: 'Access management',
-        breadcrumb: ['Access management', 'Users & invitations'],
-      },
-      {
-        key: 'iam-roles',
-        menuGroup: 'Access management',
-        breadcrumb: ['Access management', 'Roles'],
-      },
-    ])
+  it('keeps menu-only labels separate from the original page and breadcrumb metadata', () => {
+    expect(templateRoutes.find(({ key }) => key === 'catalog-products')).toMatchObject({
+      title: 'Catalog',
+      menuTitle: 'Products',
+      menuMode: 'standalone',
+      breadcrumb: ['Catalog', 'Products'],
+    })
+    expect(templateRoutes.find(({ key }) => key === 'contact-settings')).toMatchObject({
+      title: 'Contact settings',
+      menuTitle: 'Contact information',
+      breadcrumb: ['Store settings', 'Contact settings'],
+    })
+    expect(templateRoutes.find(({ key }) => key === 'iam-users')).toMatchObject({
+      menuGroup: 'Settings',
+      breadcrumb: ['Access management', 'Users & invitations'],
+    })
+    expect(templateRoutes.find(({ key }) => key === 'iam-roles')).toMatchObject({
+      menuGroup: 'Settings',
+      breadcrumb: ['Access management', 'Roles'],
+    })
   })
 })

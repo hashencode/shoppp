@@ -225,30 +225,35 @@
 
 当前一级菜单 inventory（新增、删除或改变 `inMenu` 路由时必须同步更新并通过 route contract 测试）：
 
+侧栏以显式 `menuGroup` 组织商家任务，菜单名称需要不同于页面标题时仅使用 `menuTitle`。这两个字段不改变 route title、breadcrumb 或原有 `menuMode`；`standalone` 继续决定既有一级页面不显示面包屑。
+
 | Route key | Route title | Menu shape | Heading owner | Title-adjacent copy disposition |
-| --- | --- | --- | --- | --- |
-| `setup-guide` | Store setup guide | standalone | custom / business override | 无本轮清理项 |
-| `commerce-dashboard` | Commerce dashboard | standalone | custom / business override | 无标题副文案；筛选说明留在筛选/结果边界 |
-| `order-report` | Revenue report | standalone | standard list | 销售总额、退款、净额定义放在各自表头右侧的信息图标 Tooltip 中；不保留筛选下方的范围摘要 |
-| `catalog-products` | Catalog | standalone | standard list | 无本轮清理项 |
-| `catalog-reviews` | Reviews | standalone | custom / business override | 将审核后发布时间移到 moderation 决策旁 |
+| ----------------------- | ------------------- | --------------------- | -------------------------------- | --------------------------------------------------------------------------------------- |
+| `commerce-dashboard` | Commerce dashboard | grouped: Home | custom / business override | 无标题副文案；筛选说明留在筛选/结果边界 |
+| `setup-guide` | Store setup guide | grouped: Home | custom / business override | 无本轮清理项 |
+| `orders` | Orders | grouped: Orders | standard list | 删除仅复述用途的摘要 |
+| `fulfillment` | Fulfillment | grouped: Orders | custom / business override | 删除仅复述用途的摘要 |
+| `catalog-products` | Catalog | grouped: Products | standard list | 无本轮清理项 |
+| `catalog-collections` | Collections | grouped: Products | standard list | 无本轮清理项 |
+| `inventory` | Inventory | grouped: Products | standard list | 删除仅复述用途的摘要 |
+| `catalog-reviews` | Reviews | grouped: Products | custom / business override | 将审核后发布时间移到 moderation 决策旁 |
 | `content-pages` | Pages | grouped: Content | standard list | 发布候选与线上包含状态保留在记录行内 |
 | `content-articles` | Articles | grouped: Content | standard list | 发布候选与线上包含状态保留在记录行内 |
-| `storefront-navigation` | Navigation | standalone | custom / business override | 菜单版本、候选与线上包含状态保留在编辑器状态区 |
-| `storefront-themes` | Storefront themes | standalone | custom / business override | 将 production theme caveat 移到 draft/package 控件旁 |
-| `inventory` | Inventory | standalone | standard list | 删除仅复述用途的摘要 |
-| `orders` | Orders | standalone | standard list | 删除仅复述用途的摘要 |
-| `fulfillment` | Fulfillment | standalone | custom / business override | 删除仅复述用途的摘要 |
-| `notification-recovery` | Automation recovery | standalone | standard list | 删除仅复述用途的摘要 |
-| `launch-settings` | Commercial settings | grouped: Store settings | top-level form via custom recipe | 无本轮清理项 |
-| `contact-settings` | Contact settings | grouped: Store settings | top-level form via custom recipe | 将 publication guidance 移入 Global Contact Channels；不改 404、环境、请求或保存行为 |
-| `shipping-settings` | Shipping settings | grouped: Store settings | top-level form via custom recipe | 删除仅复述用途的摘要 |
-| `audit` | Audit trail | standalone | custom / business override | 移除结果区的脱敏、权限与分页实现介绍 |
-| `privacy` | Privacy requests | standalone | custom / business override | 身份核验说明只放在请求确认弹窗中 |
-| `iam-users` | Users & invitations | grouped: Access management | custom / business override | 删除仅复述用途的摘要 |
-| `iam-roles` | Roles | grouped: Access management | standard list | 将 authority guidance 移到权限内容旁 |
+| `storefront-navigation` | Navigation | grouped: Content | custom / business override | 菜单版本、候选与线上包含状态保留在编辑器状态区 |
+| `storefront-themes` | Storefront themes | grouped: Online store | custom / business override | 将 production theme caveat 移到 draft/package 控件旁 |
+| `order-report` | Revenue report | grouped: Analytics | standard list | 销售总额、退款、净额定义放在各自表头右侧的信息图标 Tooltip 中；不保留筛选下方的范围摘要 |
+| `store-identity` | Store identity | grouped: Settings | top-level form via custom recipe | 无本轮清理项 |
+| `contact-settings` | Contact settings | grouped: Settings | top-level form via custom recipe | 将 publication guidance 移入 Global Contact Channels；不改 404、环境、请求或保存行为 |
+| `launch-settings` | Commercial settings | grouped: Settings | top-level form via custom recipe | 无本轮清理项 |
+| `shipping-settings` | Shipping settings | grouped: Settings | top-level form via custom recipe | 删除仅复述用途的摘要 |
+| `policies` | Policies | grouped: Settings | custom / business override | 无本轮清理项 |
+| `iam-users` | Users & invitations | grouped: Settings | custom / business override | 删除仅复述用途的摘要 |
+| `iam-roles` | Roles | grouped: Settings | standard list | 将 authority guidance 移到权限内容旁 |
+| `privacy` | Privacy requests | grouped: Settings | custom / business override | 身份核验说明只放在请求确认弹窗中 |
+| `audit` | Audit trail | grouped: Settings | custom / business override | 移除结果区的脱敏、权限与分页实现介绍 |
+| `notification-recovery` | Automation recovery | grouped: Settings | standard list | 删除仅复述用途的摘要 |
 
-`remove` 只适用于紧邻标题且仅复述页面用途的通用摘要；`relocate` 适用于会影响操作决策的规则。字段 help、指标定义、错误/空态 description、表格事实和无障碍 description 不属于标题副文案，必须保留在其原有任务边界。Store settings 与 IAM 分组项继续保留 `AppShell` 的分组 breadcrumb；详情、编辑器和子表单继续使用 `PageHeaderWithBack`，不进入上述 inventory。
+`remove` 只适用于紧邻标题且仅复述页面用途的通用摘要；`relocate` 适用于会影响操作决策的规则。字段 help、指标定义、错误/空态 description、表格事实和无障碍 description 不属于标题副文案，必须保留在其原有任务边界。原 Store settings 与 IAM 入口移入 Settings 侧栏分组后，继续保留 `AppShell` 的原有 breadcrumb；详情、编辑器和子表单继续使用 `PageHeaderWithBack`，不进入上述 inventory。
 
 面包屑只允许由 `AppShell` 统一渲染。禁止在页面内容区再散装手写与 route/title 同义的 `Typography.Title`，也不要给首个主 `Card` 设置同义标题造成双主标题。`Card title` 只用于表达内容分区，例如“基本信息”“列表明细”。
 

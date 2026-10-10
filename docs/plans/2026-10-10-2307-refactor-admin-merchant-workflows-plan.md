@@ -278,11 +278,11 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 本节按仓库规则仅维护本计划自身执行状态。状态以实际代码与验证证据为准，REL 当前队列不在这里复制。
 
 - **Plan:** 已激活，实施中。
-- **Current unit:** U2 — 重组侧栏，保留原页面和链接。
-- **Next concrete action:** 按冻结的路由与页面基线，先强化菜单合同测试，再重组侧栏。
+- **Current unit:** U3 — 统一动作表达与真实状态。
+- **Next concrete action:** 核验商品预览消费并整理商品、内容和装修的真实动作结果。
 - **Order:** U1 → U2 → U3 → U4 → U5 → U6；U7 在 U6 和 REL 合同具备后开始。
 - **Blocker:** U1–U6 无规划级实施前置缺口；U7 缺 REL 正式发布接口及 active tuple 证据。
-- **Unit status:** U1 已完成；U2 进行中；U3–U6 未开始；U7 前置阻塞。
+- **Unit status:** U1–U2 已完成；U3 进行中；U4–U6 未开始；U7 前置阻塞。
 - **Update rule:** U 状态、当前/下一步、顺序或 tail 改变时，同一变更更新本节；只有产品级指针变化才同步 master。集中验证证据放 `docs/progress/`，不建立第二执行队列。
 
 ---

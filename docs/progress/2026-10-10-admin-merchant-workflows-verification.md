@@ -35,3 +35,12 @@ Owning plan: [管理后台商家任务与发布流程重构](../plans/2026-10-10
   "apps/admin/src/pages/home/welcome-page.tsx": "6991fc0414f17068c3dc1182764cdf2019a4d3550772667045e0f182e2c32807"
 }
 ```
+
+## U2 菜单与消费者验证
+
+- behavior_changed: true。七组菜单、菜单专用名称及系列入口已实现；32 个 route 的 key/path/title/permission/menuMode/breadcrumb/icon 保持，组件绑定一致。共享内容几何不变。
+- 先更新 index/auth-route-guards/shell 既有测试：旧实现 65 tests，21 个业务合同失败（另 2 个几何断言选择器问题已修正）。
+- 8 个 L3 consumer suites 共 124 tests：7 suites 80/80 通过；shell 选择器修正后 44/44 通过。选择器修正只适配 AntD 多菜单与图标 accessible name，不放宽业务断言。覆盖双语菜单、权限、深链/query/hash/Back/指南回程、路由标题与容器。
+- Host 实际检查生产与测试 diff；另运行原 welcome/dashboard 2 suites，28/28 通过，覆盖正常、空、加载、错误、权限与数据状态。7/7 protected hashes 一致。
+- changed-file ESLint、Prettier 和 diff check 通过。类型和原生浏览器收尾留给 U6。测试运行器使用本地回环端口，sandbox EPERM 后同命令升级权限运行；失败不是产品行为失败。
+- 不引入导航 registry、焦点/ARIA 框架；保留原 AntD 与 recipe 合同。

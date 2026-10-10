@@ -32,24 +32,12 @@ export type TemplateRoute = {
   menuVisibility?: 'always' | 'dev-only'
   menuMode?: 'standalone' | 'grouped'
   menuGroup?: string
+  menuTitle?: string
   breadcrumb?: string[]
   component: () => ReactNode
 }
 
 const commerceRoutes: TemplateRoute[] = [
-  {
-    key: 'setup-guide',
-    path: '/welcome',
-    title: 'Store setup guide',
-    icon: createElement(SmileOutlined),
-    permission: null,
-    inMenu: true,
-    menuMode: 'standalone',
-    component: () =>
-      lazyPage(() =>
-        import('../pages/home/welcome-page').then((m) => ({ default: m.WelcomePage }))
-      ),
-  },
   {
     key: 'commerce-dashboard',
     path: '/dashboard',
@@ -57,6 +45,7 @@ const commerceRoutes: TemplateRoute[] = [
     icon: createElement(DollarOutlined),
     permission: 'reporting.read',
     inMenu: true,
+    menuGroup: 'Home',
     menuMode: 'standalone',
     breadcrumb: ['Commerce dashboard'],
     component: () =>
@@ -67,18 +56,66 @@ const commerceRoutes: TemplateRoute[] = [
       ),
   },
   {
-    key: 'order-report',
-    path: '/reports/orders',
-    title: 'Revenue report',
-    icon: createElement(FileTextOutlined),
-    permission: 'reporting.read',
+    key: 'setup-guide',
+    path: '/welcome',
+    title: 'Store setup guide',
+    icon: createElement(SmileOutlined),
+    permission: null,
     inMenu: true,
+    menuGroup: 'Home',
     menuMode: 'standalone',
-    breadcrumb: ['Reports', 'Order revenue'],
     component: () =>
       lazyPage(() =>
-        import('../pages/reports/order-report-page').then((m) => ({
-          default: m.OrderReportPage,
+        import('../pages/home/welcome-page').then((m) => ({ default: m.WelcomePage }))
+      ),
+  },
+  {
+    key: 'orders',
+    path: '/orders',
+    title: 'Orders',
+    icon: createElement(ShoppingCartOutlined),
+    permission: 'orders.read',
+    inMenu: true,
+    menuGroup: 'Orders',
+    menuMode: 'standalone',
+    breadcrumb: ['Orders'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/orders/order-list-page').then((m) => ({
+          default: m.OrderListPage,
+        }))
+      ),
+  },
+  {
+    key: 'order-detail',
+    path: '/orders/:reference',
+    title: 'Order',
+    icon: createElement(ShoppingCartOutlined),
+    permission: 'orders.read',
+    inMenu: false,
+    breadcrumb: ['Orders', 'Order'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/orders/order-detail').then((m) => ({
+          default: m.OrderDetailPage,
+        }))
+      ),
+  },
+  {
+    key: 'fulfillment',
+    path: '/fulfillment',
+    title: 'Fulfillment',
+    icon: createElement(ShoppingCartOutlined),
+    permission: 'orders.fulfill',
+    inMenu: true,
+    menuGroup: 'Orders',
+    menuTitle: 'Shipping and fulfillment',
+    menuMode: 'standalone',
+    breadcrumb: ['Fulfillment'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/fulfillment/fulfillment-page').then((m) => ({
+          default: m.FulfillmentPage,
         }))
       ),
   },
@@ -89,6 +126,8 @@ const commerceRoutes: TemplateRoute[] = [
     icon: createElement(ShoppingOutlined),
     permission: 'catalog.read',
     inMenu: true,
+    menuGroup: 'Products',
+    menuTitle: 'Products',
     menuMode: 'standalone',
     breadcrumb: ['Catalog', 'Products'],
     component: () =>
@@ -119,7 +158,9 @@ const commerceRoutes: TemplateRoute[] = [
     title: 'Collections',
     icon: createElement(ShoppingOutlined),
     permission: 'catalog.read',
-    inMenu: false,
+    inMenu: true,
+    menuGroup: 'Products',
+    menuTitle: 'Product collections',
     breadcrumb: ['Catalog', 'Collections'],
     component: () =>
       lazyPage(() =>
@@ -144,12 +185,30 @@ const commerceRoutes: TemplateRoute[] = [
       ),
   },
   {
+    key: 'inventory',
+    path: '/inventory',
+    title: 'Inventory',
+    icon: createElement(DatabaseOutlined),
+    permission: 'inventory.read',
+    inMenu: true,
+    menuGroup: 'Products',
+    menuMode: 'standalone',
+    breadcrumb: ['Inventory'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/inventory/inventory-page').then((m) => ({
+          default: m.InventoryPage,
+        }))
+      ),
+  },
+  {
     key: 'catalog-reviews',
     path: '/catalog/reviews',
     title: 'Reviews',
     icon: createElement(AuditOutlined),
     permission: 'reviews.moderate',
     inMenu: true,
+    menuGroup: 'Products',
     menuMode: 'standalone',
     breadcrumb: ['Catalog', 'Reviews'],
     component: () =>
@@ -226,6 +285,8 @@ const commerceRoutes: TemplateRoute[] = [
     icon: createElement(GlobalOutlined),
     permission: 'navigation.read',
     inMenu: true,
+    menuGroup: 'Content',
+    menuTitle: 'Navigation menus',
     menuMode: 'standalone',
     breadcrumb: ['Storefront', 'Navigation'],
     component: () =>
@@ -242,6 +303,8 @@ const commerceRoutes: TemplateRoute[] = [
     icon: createElement(SkinOutlined),
     permission: 'themes.read',
     inMenu: true,
+    menuGroup: 'Online store',
+    menuTitle: 'Store design',
     menuMode: 'standalone',
     breadcrumb: ['Storefront', 'Themes'],
     component: () =>
@@ -267,81 +330,19 @@ const commerceRoutes: TemplateRoute[] = [
       ),
   },
   {
-    key: 'inventory',
-    path: '/inventory',
-    title: 'Inventory',
-    icon: createElement(DatabaseOutlined),
-    permission: 'inventory.read',
+    key: 'order-report',
+    path: '/reports/orders',
+    title: 'Revenue report',
+    icon: createElement(FileTextOutlined),
+    permission: 'reporting.read',
     inMenu: true,
+    menuGroup: 'Analytics',
     menuMode: 'standalone',
-    breadcrumb: ['Inventory'],
+    breadcrumb: ['Reports', 'Order revenue'],
     component: () =>
       lazyPage(() =>
-        import('../pages/inventory/inventory-page').then((m) => ({
-          default: m.InventoryPage,
-        }))
-      ),
-  },
-  {
-    key: 'orders',
-    path: '/orders',
-    title: 'Orders',
-    icon: createElement(ShoppingCartOutlined),
-    permission: 'orders.read',
-    inMenu: true,
-    menuMode: 'standalone',
-    breadcrumb: ['Orders'],
-    component: () =>
-      lazyPage(() =>
-        import('../pages/orders/order-list-page').then((m) => ({
-          default: m.OrderListPage,
-        }))
-      ),
-  },
-  {
-    key: 'order-detail',
-    path: '/orders/:reference',
-    title: 'Order',
-    icon: createElement(ShoppingCartOutlined),
-    permission: 'orders.read',
-    inMenu: false,
-    breadcrumb: ['Orders', 'Order'],
-    component: () =>
-      lazyPage(() =>
-        import('../pages/orders/order-detail').then((m) => ({
-          default: m.OrderDetailPage,
-        }))
-      ),
-  },
-  {
-    key: 'fulfillment',
-    path: '/fulfillment',
-    title: 'Fulfillment',
-    icon: createElement(ShoppingCartOutlined),
-    permission: 'orders.fulfill',
-    inMenu: true,
-    menuMode: 'standalone',
-    breadcrumb: ['Fulfillment'],
-    component: () =>
-      lazyPage(() =>
-        import('../pages/fulfillment/fulfillment-page').then((m) => ({
-          default: m.FulfillmentPage,
-        }))
-      ),
-  },
-  {
-    key: 'notification-recovery',
-    path: '/operations/jobs',
-    title: 'Automation recovery',
-    icon: createElement(ReloadOutlined),
-    permission: 'operations.jobs.read',
-    inMenu: true,
-    menuMode: 'standalone',
-    breadcrumb: ['Operations', 'Automation recovery'],
-    component: () =>
-      lazyPage(() =>
-        import('../pages/operations/jobs/notification-jobs-page').then((m) => ({
-          default: m.NotificationJobsPage,
+        import('../pages/reports/order-report-page').then((m) => ({
+          default: m.OrderReportPage,
         }))
       ),
   },
@@ -352,44 +353,13 @@ const commerceRoutes: TemplateRoute[] = [
     icon: createElement(IdcardOutlined),
     permission: 'identity.read',
     inMenu: true,
-    menuGroup: 'Store settings',
+    menuGroup: 'Settings',
+    menuTitle: 'Store details',
     breadcrumb: ['Store settings', 'Store identity'],
     component: () =>
       lazyPage(() =>
         import('../pages/settings/store-identity-page').then((m) => ({
           default: m.StoreIdentityPage,
-        }))
-      ),
-  },
-  {
-    key: 'policies',
-    path: '/settings/policies',
-    title: 'Policies',
-    icon: createElement(FileProtectOutlined),
-    permission: 'policies.read',
-    inMenu: true,
-    menuGroup: 'Store settings',
-    breadcrumb: ['Store settings', 'Policies'],
-    component: () =>
-      lazyPage(() =>
-        import('../pages/settings/policies-page').then((m) => ({
-          default: m.PoliciesPage,
-        }))
-      ),
-  },
-  {
-    key: 'launch-settings',
-    path: '/settings/launch',
-    title: 'Commercial settings',
-    icon: createElement(SettingOutlined),
-    permission: 'settings.read',
-    inMenu: true,
-    menuGroup: 'Store settings',
-    breadcrumb: ['Store settings', 'Commercial settings'],
-    component: () =>
-      lazyPage(() =>
-        import('../pages/settings/launch-settings-page').then((m) => ({
-          default: m.LaunchSettingsPage,
         }))
       ),
   },
@@ -400,12 +370,30 @@ const commerceRoutes: TemplateRoute[] = [
     icon: createElement(SettingOutlined),
     permission: 'settings.read',
     inMenu: true,
-    menuGroup: 'Store settings',
+    menuGroup: 'Settings',
+    menuTitle: 'Contact information',
     breadcrumb: ['Store settings', 'Contact settings'],
     component: () =>
       lazyPage(() =>
         import('../pages/settings/contact-settings-page').then((m) => ({
           default: m.ContactSettingsPage,
+        }))
+      ),
+  },
+  {
+    key: 'launch-settings',
+    path: '/settings/launch',
+    title: 'Commercial settings',
+    icon: createElement(SettingOutlined),
+    permission: 'settings.read',
+    inMenu: true,
+    menuGroup: 'Settings',
+    menuTitle: 'Business settings',
+    breadcrumb: ['Store settings', 'Commercial settings'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/settings/launch-settings-page').then((m) => ({
+          default: m.LaunchSettingsPage,
         }))
       ),
   },
@@ -416,7 +404,7 @@ const commerceRoutes: TemplateRoute[] = [
     icon: createElement(GlobalOutlined),
     permission: 'settings.read',
     inMenu: true,
-    menuGroup: 'Store settings',
+    menuGroup: 'Settings',
     breadcrumb: ['Store settings', 'Shipping settings'],
     component: () =>
       lazyPage(() =>
@@ -426,34 +414,18 @@ const commerceRoutes: TemplateRoute[] = [
       ),
   },
   {
-    key: 'audit',
-    path: '/audit',
-    title: 'Audit trail',
-    icon: createElement(AuditOutlined),
-    permission: 'audit.read',
+    key: 'policies',
+    path: '/settings/policies',
+    title: 'Policies',
+    icon: createElement(FileProtectOutlined),
+    permission: 'policies.read',
     inMenu: true,
-    menuMode: 'standalone',
-    breadcrumb: ['Operations', 'Audit'],
+    menuGroup: 'Settings',
+    breadcrumb: ['Store settings', 'Policies'],
     component: () =>
       lazyPage(() =>
-        import('../pages/audit/audit-page').then((m) => ({
-          default: m.AuditPage,
-        }))
-      ),
-  },
-  {
-    key: 'privacy',
-    path: '/privacy',
-    title: 'Privacy requests',
-    icon: createElement(SafetyCertificateOutlined),
-    permission: 'privacy.manage',
-    inMenu: true,
-    menuMode: 'standalone',
-    breadcrumb: ['Operations', 'Privacy requests'],
-    component: () =>
-      lazyPage(() =>
-        import('../pages/privacy/privacy-page').then((m) => ({
-          default: m.PrivacyPage,
+        import('../pages/settings/policies-page').then((m) => ({
+          default: m.PoliciesPage,
         }))
       ),
   },
@@ -464,7 +436,7 @@ const commerceRoutes: TemplateRoute[] = [
     icon: createElement(TeamOutlined),
     permission: 'iam.users.read',
     inMenu: true,
-    menuGroup: 'Access management',
+    menuGroup: 'Settings',
     breadcrumb: ['Access management', 'Users & invitations'],
     component: () =>
       lazyPage(() => import('../pages/iam/users-page').then((m) => ({ default: m.UsersPage }))),
@@ -489,7 +461,8 @@ const commerceRoutes: TemplateRoute[] = [
     icon: createElement(KeyOutlined),
     permission: 'iam.roles.read',
     inMenu: true,
-    menuGroup: 'Access management',
+    menuGroup: 'Settings',
+    menuTitle: 'Roles and permissions',
     breadcrumb: ['Access management', 'Roles'],
     component: () =>
       lazyPage(() => import('../pages/iam/roles-page').then((m) => ({ default: m.RolesPage }))),
@@ -505,6 +478,59 @@ const commerceRoutes: TemplateRoute[] = [
     component: () =>
       lazyPage(() =>
         import('../pages/iam/role-detail-page').then((m) => ({ default: m.RoleDetailPage }))
+      ),
+  },
+  {
+    key: 'privacy',
+    path: '/privacy',
+    title: 'Privacy requests',
+    icon: createElement(SafetyCertificateOutlined),
+    permission: 'privacy.manage',
+    inMenu: true,
+    menuGroup: 'Settings',
+    menuMode: 'standalone',
+    breadcrumb: ['Operations', 'Privacy requests'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/privacy/privacy-page').then((m) => ({
+          default: m.PrivacyPage,
+        }))
+      ),
+  },
+  {
+    key: 'audit',
+    path: '/audit',
+    title: 'Audit trail',
+    icon: createElement(AuditOutlined),
+    permission: 'audit.read',
+    inMenu: true,
+    menuGroup: 'Settings',
+    menuTitle: 'Audit log',
+    menuMode: 'standalone',
+    breadcrumb: ['Operations', 'Audit'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/audit/audit-page').then((m) => ({
+          default: m.AuditPage,
+        }))
+      ),
+  },
+  {
+    key: 'notification-recovery',
+    path: '/operations/jobs',
+    title: 'Automation recovery',
+    icon: createElement(ReloadOutlined),
+    permission: 'operations.jobs.read',
+    inMenu: true,
+    menuGroup: 'Settings',
+    menuTitle: 'Automated task recovery',
+    menuMode: 'standalone',
+    breadcrumb: ['Operations', 'Automation recovery'],
+    component: () =>
+      lazyPage(() =>
+        import('../pages/operations/jobs/notification-jobs-page').then((m) => ({
+          default: m.NotificationJobsPage,
+        }))
       ),
   },
 ]

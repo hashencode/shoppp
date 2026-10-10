@@ -1,7 +1,7 @@
 import React from 'react'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it, beforeEach } from '@rstest/core'
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../../infrastructure/auth/auth-context'
 import { ThemeProvider } from '../contexts/theme-context'
 import { AppShell } from './app-shell'
@@ -42,8 +42,14 @@ if (!window.ResizeObserver) {
 
 const LocationProbe = () => {
   const location = useLocation()
+  const navigate = useNavigate()
 
-  return <div data-testid="location-probe">{`${location.pathname}${location.search}${location.hash}`}</div>
+  return (
+    <>
+      <div data-testid="location-probe">{`${location.pathname}${location.search}${location.hash}`}</div>
+      <button onClick={() => navigate(-1)}>Browser back</button>
+    </>
+  )
 }
 
 const renderShell = (options?: {
@@ -139,17 +145,21 @@ describe('AppShell', () => {
   })
 
   it('replaces the old welcome menu with one authorized setup guide entry', () => {
-    renderShell({ routes: templateRoutes })
+    renderShell({ routes: templateRoutes, initialEntry: '/welcome' })
     expect(screen.getAllByRole('menuitem', { name: /开店指南/ })).toHaveLength(1)
     expect(screen.queryByRole('menuitem', { name: '欢迎' })).toBeNull()
-    expect(screen.getByRole('menuitem', { name: /店铺配置/ })).toBeTruthy()
+    expect(screen.getByRole('menuitem', { name: /设置/ })).toBeTruthy()
   })
 
   it('keeps the auth-only setup guide but omits welcome without settings access', () => {
-    renderShell({ routes: templateRoutes, auth: { permissions: ['catalog.read'] } })
+    renderShell({
+      routes: templateRoutes,
+      initialEntry: '/welcome',
+      auth: { permissions: ['catalog.read'] },
+    })
     expect(screen.getByRole('menuitem', { name: /开店指南/ })).toBeTruthy()
     expect(screen.queryByRole('menuitem', { name: '欢迎' })).toBeNull()
-    expect(screen.getByRole('menuitem', { name: /商品目录/ })).toBeTruthy()
+    expect(screen.getByRole('menuitem', { name: /商品$/ })).toBeTruthy()
   })
 
   it('does not use the fallback route as home breadcrumb metadata', () => {
@@ -170,7 +180,7 @@ describe('AppShell', () => {
     'hides breadcrumbs for standalone entries regardless of classification labels: %j',
     ({ breadcrumb }) => {
       const { container } = renderShellWithRouteMeta([
-        { ...routeMetaRoutes[0]!, menuMode: 'standalone', breadcrumb },
+        { ...routeMetaRoutes[0]!, menuMode: 'standalone', menuGroup: 'Home', breadcrumb },
       ])
       expect(container.querySelector('.ant-breadcrumb')).toBeNull()
       expect(screen.getByTestId('route-meta-probe').textContent).toBe(
@@ -315,60 +325,159 @@ describe('AppShell', () => {
     expect(screen.getAllByText('Alpha 页面').length).toBeGreaterThan(0)
   })
 
-  it('expands Store settings in the accepted order without making the parent a destination', async () => {
-    renderShell({ routes: templateRoutes })
+  it.each([
+    {
+      locale: 'en-US' as const,
+      groups: [
+        ['Home', ['Commerce dashboard', 'Store setup guide']],
+        ['Orders', ['Orders', 'Shipping and fulfillment']],
+        ['Products', ['Products', 'Product collections', 'Inventory', 'Reviews']],
+        ['Content', ['Pages', 'Articles', 'Navigation menus']],
+        ['Online store', ['Store design']],
+        ['Analytics', ['Revenue report']],
+        [
+          'Settings',
+          [
+            'Store details',
+            'Contact information',
+            'Business settings',
+            'Shipping settings',
+            'Policies',
+            'Users & invitations',
+            'Roles and permissions',
+            'Privacy requests',
+            'Audit log',
+            'Automated task recovery',
+          ],
+        ],
+      ],
+    },
+    {
+      locale: 'zh-CN' as const,
+      groups: [
+        ['首页', ['商业仪表盘', '开店指南']],
+        ['订单', ['订单', '发货与履约']],
+        ['商品', ['商品', '商品系列', '库存', '评价']],
+        ['内容', ['页面', '文章', '导航菜单']],
+        ['在线商店', ['店铺装修']],
+        ['数据分析', ['收入报表']],
+        [
+          '设置',
+          [
+            '店铺资料',
+            '联系信息',
+            '经营设置',
+            '配送设置',
+            '政策',
+            '用户与邀请',
+            '角色与权限',
+            '隐私请求',
+            '审计记录',
+            '自动任务恢复',
+          ],
+        ],
+      ],
+    },
+  ])(
+    'expands the seven ordered merchant groups in $locale without parent destinations',
+    ({ locale, groups }) => {
+      renderShell({ routes: templateRoutes, locale })
+      const menu = screen.getAllByRole('menu')[0]!
+      const topLevelItems = Array.from(menu.children)
+      expect(
+        topLevelItems.map((item) => item.querySelector('[role="menuitem"]')?.textContent)
+      ).toEqual(groups.map(([name]) => name))
 
-    const storeSettings = screen.getByRole('menuitem', { name: /店铺配置/ })
-    expect(screen.getByTestId('location-probe').textContent).toBe('/')
-    fireEvent.click(storeSettings)
+      for (const [name, children] of groups) {
+        const group = topLevelItems.find(
+          (item) => item.querySelector('[role="menuitem"]')?.textContent === name
+        )!
+        fireEvent.click(group.querySelector('[role="menuitem"]')!)
+        expect(
+          within(group)
+            .getAllByRole('menuitem')
+            .map((item) => item.textContent?.trim())
+        ).toEqual([name, ...children!])
+        expect(screen.getByTestId('location-probe').textContent).toBe('/')
+      }
+    }
+  )
 
-    const groupItems = within(storeSettings.closest('li')!).getAllByRole('menuitem')
-    expect(groupItems.map((item) => item.textContent?.trim()).filter(Boolean)).toEqual([
-      '店铺配置',
-      '店铺身份',
-      '政策',
-      '商业设置',
-      '联系方式设置',
-      '配送设置',
-    ])
-    expect(screen.getByTestId('location-probe').textContent).toBe('/')
+  it.each([
+    { permissions: [], groups: ['首页'], items: ['首页', '开店指南'] },
+    {
+      permissions: ['orders.read'],
+      groups: ['首页', '订单'],
+      items: ['首页', '开店指南', '订单', '订单'],
+    },
+    {
+      permissions: ['iam.users.read', 'iam.roles.read'],
+      groups: ['首页', '设置'],
+      items: ['首页', '开店指南', '设置', '用户与邀请', '角色与权限'],
+    },
+  ] as const)(
+    'filters task groups and their children for $permissions',
+    ({ permissions, groups, items }) => {
+      renderShell({ routes: templateRoutes, auth: { permissions } })
+      const menu = screen.getAllByRole('menu')[0]!
+      expect(screen.getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(
+        groups
+      )
+      for (const group of Array.from(menu.children)) {
+        fireEvent.click(group.querySelector('[role="menuitem"]')!)
+      }
+      expect(screen.getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(items)
+      expect(screen.queryByRole('menuitem', { name: '商业仪表盘' })).toBeNull()
+      expect(screen.queryByRole('menuitem', { name: '发货与履约' })).toBeNull()
+    }
+  )
 
-    fireEvent.click(screen.getByRole('menuitem', { name: '商业设置' }))
-    await waitFor(() =>
-      expect(screen.getByTestId('location-probe').textContent).toBe('/settings/launch')
-    )
-    fireEvent.click(screen.getByRole('menuitem', { name: '联系方式设置' }))
-    await waitFor(() =>
-      expect(screen.getByTestId('location-probe').textContent).toBe('/settings/contact')
-    )
-    fireEvent.click(screen.getByRole('menuitem', { name: '配送设置' }))
-    await waitFor(() =>
-      expect(screen.getByTestId('location-probe').textContent).toBe('/settings/shipping')
-    )
-  })
+  it.each([
+    [
+      '/catalog/products/form?mode=modify&id=product-1&from=setup-guide#media',
+      '商品',
+      '商品',
+      true,
+    ],
+    ['/catalog/collections/form?mode=readonly&id=collection-1#members', '商品', '商品系列', false],
+    ['/content/pages/form?mode=modify&id=page-1&from=setup-guide#body', '内容', '页面', true],
+    ['/content/articles/form?mode=modify&id=article-1#body', '内容', '文章', false],
+    ['/storefront/themes/draft-1?from=setup-guide#preview', '在线商店', '店铺装修', true],
+    ['/orders/order-1?from=setup-guide#timeline', '订单', '订单', true],
+    ['/access/users/user-1?tab=roles#access', '设置', '用户与邀请', false],
+    ['/access/roles/role-1?tab=permissions#access', '设置', '角色与权限', false],
+  ] as const)(
+    'selects the owning task for %s and preserves history and guide provenance',
+    async (entry, groupName, itemName, hasGuideReturn) => {
+      renderShell({ routes: templateRoutes, initialEntry: entry })
+      const group = Array.from(screen.getAllByRole('menu')[0]!.children).find(
+        (item) => item.querySelector('[role="menuitem"]')?.textContent === groupName
+      )!
+      expect(group.querySelector('[role="menuitem"]')?.getAttribute('aria-expanded')).toBe('true')
+      const item = within(group)
+        .getAllByRole('menuitem')
+        .find((item) => item.className.includes('ant-menu-item-selected'))!
+      expect(item.textContent?.trim()).toBe(itemName)
+      expect(screen.getByTestId('location-probe').textContent).toBe(entry)
+      expect(Boolean(screen.queryByRole('link', { name: '返回开店指南' }))).toBe(hasGuideReturn)
 
-  it('shows Store settings only with settings.read permission', () => {
-    const { unmount } = renderShell({
-      auth: { permissions: ['settings.read'] },
-      routes: templateRoutes,
-    })
-    expect(screen.getByRole('menuitem', { name: /店铺配置/ })).toBeTruthy()
-    unmount()
+      fireEvent.click(item)
+      await waitFor(() => expect(screen.getByTestId('location-probe').textContent).not.toBe(entry))
+      fireEvent.click(screen.getByRole('button', { name: 'Browser back' }))
+      await waitFor(() => expect(screen.getByTestId('location-probe').textContent).toBe(entry))
+    }
+  )
 
-    renderShell({ auth: { permissions: ['catalog.read'] }, routes: templateRoutes })
-    expect(screen.queryByRole('menuitem', { name: /店铺配置/ })).toBeNull()
-  })
-
-  it('opens and selects a direct Store settings route with English breadcrumbs', () => {
+  it('opens and selects a direct Settings route while retaining the original English breadcrumbs', () => {
     const { container } = renderShell({
       initialEntry: '/settings/contact',
       locale: 'en-US',
       routes: templateRoutes,
     })
-
-    const storeSettings = screen.getByRole('menuitem', { name: /Store settings/ })
-    expect(storeSettings.getAttribute('aria-expanded')).toBe('true')
-    expect(screen.getByRole('menuitem', { name: 'Contact settings' }).className).toContain(
+    expect(screen.getByRole('menuitem', { name: /Settings$/ }).getAttribute('aria-expanded')).toBe(
+      'true'
+    )
+    expect(screen.getByRole('menuitem', { name: 'Contact information' }).className).toContain(
       'ant-menu-item-selected'
     )
     expect(container.querySelector('.ant-breadcrumb')?.textContent).toContain(
@@ -376,74 +485,47 @@ describe('AppShell', () => {
     )
   })
 
-  it('restores the active Store settings group after collapsing under the /admin basename', () => {
+  it('restores the active Settings group after collapsing under the /admin basename', () => {
     const { container } = renderShell({
       basename: '/admin',
       initialEntry: '/admin/settings/shipping',
       routes: templateRoutes,
     })
-
     expect(screen.getByRole('menuitem', { name: '配送设置' }).className).toContain(
       'ant-menu-item-selected'
     )
-    expect(container.querySelector('.ant-breadcrumb')?.textContent).toContain(
-      '店铺配置/配送设置'
-    )
-
+    expect(container.querySelector('.ant-breadcrumb')?.textContent).toContain('店铺配置/配送设置')
     fireEvent.click(screen.getByRole('img', { name: 'menu-fold' }).parentElement!)
     fireEvent.click(screen.getByRole('img', { name: 'menu-unfold' }).parentElement!)
-
-    const storeSettings = screen.getByRole('menuitem', { name: /店铺配置/ })
-    expect(storeSettings.getAttribute('aria-expanded')).toBe('true')
+    expect(
+      within(screen.getAllByRole('menu')[0]!)
+        .getAllByRole('menuitem')
+        .find((item) => item.textContent === '设置')
+        ?.getAttribute('aria-expanded')
+    ).toBe('true')
     expect(screen.getByRole('menuitem', { name: '配送设置' }).className).toContain(
       'ant-menu-item-selected'
     )
     expect(screen.getByTestId('location-probe').textContent).toBe('/settings/shipping')
   })
 
-  it('shows the Access management group only when authoritative IAM permissions allow it', async () => {
-    const accessRoutes = [
-      {
-        key: 'iam-users',
-        path: '/access/users',
-        title: 'Users & invitations',
-        icon: null,
-        permission: 'iam.users.read' as const,
-        inMenu: true,
-        menuGroup: 'Access management',
-      },
-      {
-        key: 'iam-roles',
-        path: '/access/roles',
-        title: 'Roles',
-        icon: null,
-        permission: 'iam.roles.read' as const,
-        inMenu: true,
-        menuGroup: 'Access management',
-      },
-    ]
-    const { rerender } = renderShell({
-      auth: { permissions: ['iam.users.read'] },
-      routes: accessRoutes,
-    })
-
-    fireEvent.click(await screen.findByText('访问管理'))
-    expect(await screen.findByText('用户与邀请')).toBeTruthy()
-    expect(screen.queryByText('角色')).toBeNull()
-
-    rerender(
-      <AuthContext.Provider value={authContextFixture({ permissions: [] })}>
-        <ThemeProvider>
-          <MemoryRouter>
-            <Routes>
-              <Route path="/" element={<AppShell routes={accessRoutes} />}>
-                <Route index element={<div>Home</div>} />
-              </Route>
-            </Routes>
-          </MemoryRouter>
-        </ThemeProvider>
-      </AuthContext.Provider>
+  it.each([
+    ['/welcome', 'Store setup guide|'],
+    ['/dashboard', 'Commerce dashboard|Commerce dashboard'],
+  ])('keeps protected page metadata and content geometry at %s', (path, meta) => {
+    const { container } = renderShellWithRouteMeta(templateRoutes, path)
+    expect(container.querySelector('.ant-breadcrumb')).toBeNull()
+    expect(screen.getByTestId('route-meta-probe').textContent).toBe(
+      meta!.replace('Store setup guide', '开店指南').replaceAll('Commerce dashboard', '商业仪表盘')
     )
-    expect(screen.queryByText('访问管理')).toBeNull()
+    expect(container.querySelector('.ant-layout-sider')?.getAttribute('style')).toContain(
+      'width: 224px'
+    )
+    expect(container.querySelector('.ant-layout-content')?.className).toContain(
+      'min-h-0 overflow-y-auto p-6'
+    )
+    expect(container.querySelector('.ant-layout-content')?.getAttribute('style')).toContain(
+      'scrollbar-gutter: stable both-edges'
+    )
   })
 })

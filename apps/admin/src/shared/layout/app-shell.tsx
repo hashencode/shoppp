@@ -53,6 +53,7 @@ type RouteContract = {
   menuVisibility?: 'always' | 'dev-only'
   menuMode?: 'standalone' | 'grouped'
   menuGroup?: string
+  menuTitle?: string
   breadcrumb?: string[]
 }
 
@@ -112,11 +113,11 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
       const shouldUseDevGroup =
         showDevMenuGroup && route.menuVisibility === 'dev-only' && route.menuGroup === undefined
 
-      if (!shouldUseDevGroup && isStandaloneMenuItem(route)) {
+      if (!shouldUseDevGroup && isStandaloneMenuItem(route) && route.menuGroup === undefined) {
         items.push({
           key: route.key,
           icon: route.icon,
-          label: t(route.title),
+          label: t(route.menuTitle ?? route.title),
           onClick: () => navigate(route.path),
         })
         continue
@@ -144,7 +145,7 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
 
       current.children.push({
         key: route.key,
-        label: t(route.title),
+        label: t(route.menuTitle ?? route.title),
         onClick: () => navigate(route.path),
       })
     }
@@ -175,7 +176,7 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
       selectedRoute.menuVisibility === 'dev-only' &&
       selectedRoute.menuGroup === undefined
       ? 'group-Dev'
-      : !isStandaloneMenuItem(selectedRoute)
+      : selectedRoute.menuGroup !== undefined || !isStandaloneMenuItem(selectedRoute)
         ? `group-${getMenuGroup(selectedRoute)}`
         : undefined
     : undefined

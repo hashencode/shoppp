@@ -7,6 +7,7 @@ import { PermissionGuard } from '../shared/components/permission-guard'
 import { RedirectIfAuthenticated, RequireAuth } from './auth-route-guards'
 import { templateRoutes } from './routes.config'
 import { renderInLocale } from '../test/render-in-locale'
+import { authContextFixture } from '../test/auth-context-fixture'
 
 void React
 
@@ -103,9 +104,9 @@ describe('auth-route-guards', () => {
     })
   })
 
-  it('registers the independent Collection list and editor behind catalog.read', () => {
+  it('registers the visible Collection list and hidden editor behind catalog.read', () => {
     expect(templateRoutes.find(({ key }) => key === 'catalog-collections')).toMatchObject({
-      inMenu: false,
+      inMenu: true,
       path: '/catalog/collections',
       permission: 'catalog.read',
     })
@@ -142,6 +143,40 @@ describe('auth-route-guards', () => {
       path: '/storefront/navigation',
       permission: 'navigation.read',
     })
+  })
+
+  it.each([
+    '/catalog/products/form',
+    '/catalog/collections',
+    '/content/pages/form',
+    '/storefront/themes/draft-1',
+    '/orders/order-1',
+    '/access/users/user-1',
+    '/access/roles/role-1',
+  ])('denies a direct task link without its original permission: %s', (path) => {
+    const route = templateRoutes.find(
+      (route) =>
+        route.path === path ||
+        (route.path.includes('/:') && path.startsWith(route.path.split('/:')[0]! + '/'))
+    )!
+    renderInLocale(
+      <AuthContext.Provider value={authContextFixture({ permissions: [] })}>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route
+              path={route.path}
+              element={
+                <PermissionGuard permission={route.permission!}>
+                  <div>Task content</div>
+                </PermissionGuard>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </AuthContext.Provider>
+    )
+    expect(screen.queryByText('Task content')).toBeNull()
+    expect(screen.getByText('Access denied')).toBeTruthy()
   })
 
   it('uses the API permission set as the authority for theme routes', () => {
