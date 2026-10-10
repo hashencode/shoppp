@@ -1,4 +1,5 @@
 import { readFile, readdir, stat } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { join, relative, resolve, sep } from "node:path";
 import { activeExperienceSnapshot, activeThemeId } from "../app/generated/active-theme";
 import { activeExperienceProviderInput } from "../app/generated/active-experience";
@@ -10,10 +11,14 @@ import {
   resolveStorefrontPrerenderRoutes,
 } from "./resolve-prerender-routes";
 import { assertStaticPageHtml } from "./static-page-verification";
+import { canonicalStorefrontJson, storefrontReleaseMarkerSchema } from "@shoppp/contracts";
+import { experienceBuildInputSchema } from "./experience-build-input";
 
 const root = resolve(import.meta.dir, "..");
 const output = resolve(root, ".output/public");
 const previewBuild = process.env.STOREFRONT_BUILD_MODE === "preview";
+const publicBuild = process.env.STOREFRONT_BUILD_MODE === "public";
+const themedBuild = previewBuild || publicBuild;
 
 async function outputFiles(directory: string): Promise<string[]> {
   const files: string[] = [];
@@ -25,9 +30,15 @@ async function outputFiles(directory: string): Promise<string[]> {
   return files;
 }
 
-if (previewBuild) {
+if (themedBuild) {
   if (!activeExperienceSnapshot || activeThemeId === "production-fallback") {
-    throw new Error("Preview output must use one immutable experience snapshot.");
+    throw new Error("Themed output must use one immutable experience snapshot.");
+  }
+  if (
+    publicBuild &&
+    (activeExperienceSnapshot.kind !== "approved" || activeExperienceProviderInput.mode !== "live")
+  ) {
+    throw new Error("Public output requires the approved live snapshot.");
   }
 } else if (activeExperienceSnapshot || activeThemeId !== "production-fallback") {
   throw new Error("Production output must retain the unchanged storefront fallback.");
@@ -45,13 +56,13 @@ function linkedStylesheets(html: string): string[] {
 }
 
 const pageRoutes = resolveStorefrontPrerenderRoutes({
-  experience: previewBuild
+  experience: themedBuild
     ? {
         catalogRelease:
           activeExperienceProviderInput.mode === "live"
             ? activeExperienceProviderInput.release
             : undefined,
-        environment: "preview",
+        environment: publicBuild ? "public" : "preview",
         presentationMode: activeExperienceProviderInput.mode === "live" ? "live" : undefined,
         themeId: activeThemeId,
       }
@@ -62,7 +73,7 @@ const pageRoutes = resolveStorefrontPrerenderRoutes({
 for (const route of pageRoutes) {
   const html = await readFile(outputPath(route), "utf8");
   assertStaticPageHtml({ html, previewBuild, route });
-  if (!previewBuild && route.startsWith("/products/")) {
+  if (!themedBuild && route.startsWith("/products/")) {
     const product = verificationCatalog.products.find(
       (item) => item.slug === route.slice("/products/".length),
     );
@@ -88,7 +99,7 @@ if (!previewBuild) {
   }
 }
 
-if (previewBuild && activeThemeId === "fashion-store") {
+if (themedBuild && activeThemeId === "fashion-store") {
   const homeHtml = await readFile(outputPath("/"), "utf8");
   const firstRenderCss = (
     await Promise.all(
@@ -97,7 +108,7 @@ if (previewBuild && activeThemeId === "fashion-store") {
   ).join("\n");
   if (!firstRenderCss.includes("[data-fashion-store-product-card]")) {
     throw new Error(
-      "Fashion Store preview must link its selected-theme CSS in the initial document.",
+      "Fashion Store output must link its selected-theme CSS in the initial document.",
     );
   }
 
@@ -166,8 +177,43 @@ if (!previewBuild) {
   }
 }
 
+if (publicBuild) {
+  const marker = storefrontReleaseMarkerSchema.parse(
+    JSON.parse(await readFile(resolve(output, "__shoppp-release.json"), "utf8")),
+  );
+  const input = experienceBuildInputSchema.parse(
+    JSON.parse(await readFile(resolve(process.env.STOREFRONT_EXPERIENCE_FILE ?? ""), "utf8")),
+  );
+  const retainedCatalog = await readFile(resolve(output, "__shoppp-catalog.json"), "utf8");
+  if (
+    input.environment !== "public" ||
+    retainedCatalog !== input.catalogManifestJson ||
+    canonicalStorefrontJson(marker.identity) !== canonicalStorefrontJson(input.inputIdentity) ||
+    marker.sourceEnvironment !== input.sourceEnvironment ||
+    createHash("sha256").update(canonicalStorefrontJson(activeExperienceSnapshot)).digest("hex") !==
+      marker.identity.snapshotDigest ||
+    marker.identity.experienceSnapshotId !== activeExperienceSnapshot?.id ||
+    marker.identity.catalogReleaseId !== manifest.releaseId
+  ) {
+    throw new Error("Public output marker does not match its compiled Catalog and Snapshot.");
+  }
+  for (const route of pageRoutes.filter(
+    (route) =>
+      !productionPlatformRoutes.includes(route as (typeof productionPlatformRoutes)[number]) &&
+      !["/wishlist", "/account"].includes(route),
+  )) {
+    const html = await readFile(outputPath(route), "utf8");
+    if (
+      /<meta[^>]+name="robots"[^>]+content="noindex, nofollow"/.test(html) ||
+      /Private preview|Preview only|__preview\//i.test(html)
+    ) {
+      throw new Error(`${route} public output contains private Preview presentation.`);
+    }
+  }
+}
+
 console.log(
-  previewBuild
-    ? `Static preview verification passed for ${activeThemeId} snapshot ${activeExperienceSnapshot?.id}.`
+  themedBuild
+    ? `Static ${publicBuild ? "public storefront" : "preview"} verification passed for ${activeThemeId} snapshot ${activeExperienceSnapshot?.id}.`
     : `Static SEO verification passed for ${manifest.routes.length} indexable routes and ${productionPlatformRoutes.length} private commerce shells.`,
 );

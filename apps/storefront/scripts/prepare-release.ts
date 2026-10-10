@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import {
   canonicalCatalogReleaseSchema,
   catalogReleaseV3Schema,
+  storefrontReleaseMarkerSchema,
   type CanonicalCatalogRelease,
   type CatalogReleaseV3,
 } from "@shoppp/contracts";
@@ -29,14 +30,22 @@ function assertCanonicalCatalogRelease(
 
 const root = resolve(import.meta.dir, "..");
 const prettierConfig = await resolveConfig(root);
+const buildMode = process.env.STOREFRONT_BUILD_MODE ?? "production";
+if (buildMode === "public" && !process.env.STOREFRONT_EXPERIENCE_FILE) {
+  throw new Error("Public builds require STOREFRONT_EXPERIENCE_FILE.");
+}
 const experienceInput =
-  process.env.STOREFRONT_BUILD_MODE === "preview" && process.env.STOREFRONT_EXPERIENCE_FILE
+  (buildMode === "preview" || buildMode === "public") && process.env.STOREFRONT_EXPERIENCE_FILE
     ? experienceBuildInputSchema.parse(
         JSON.parse(await readFile(resolve(process.env.STOREFRONT_EXPERIENCE_FILE), "utf8")),
       )
     : undefined;
-const livePreviewInput =
-  experienceInput?.environment === "preview" &&
+if (experienceInput && experienceInput.environment !== buildMode) {
+  throw new Error("The experience build file must match its build mode.");
+}
+const liveExperienceInput =
+  experienceInput &&
+  experienceInput.environment !== "production" &&
   "presentationMode" in experienceInput &&
   experienceInput.presentationMode === "live"
     ? experienceInput
@@ -45,8 +54,8 @@ const sourceFile = process.env.NUXT_CATALOG_RELEASE_FILE
   ? resolve(process.env.NUXT_CATALOG_RELEASE_FILE)
   : resolve(root, "fixtures/release.json");
 
-const releaseSource = livePreviewInput
-  ? livePreviewInput.catalogRelease
+const releaseSource = liveExperienceInput
+  ? liveExperienceInput.catalogRelease
   : process.env.NUXT_CATALOG_RELEASE_URL
     ? await fetch(process.env.NUXT_CATALOG_RELEASE_URL, {
         headers: process.env.NUXT_CATALOG_RELEASE_TOKEN
@@ -57,9 +66,9 @@ const releaseSource = livePreviewInput
         return response.json() as Promise<unknown>;
       })
     : (JSON.parse(await readFile(sourceFile, "utf8")) as unknown);
-assertCanonicalCatalogRelease(releaseSource, { allowPrivatePreview: Boolean(livePreviewInput) });
+assertCanonicalCatalogRelease(releaseSource, { allowPrivatePreview: Boolean(liveExperienceInput) });
 const release = releaseSource;
-const experience = livePreviewInput?.snapshot;
+const experience = liveExperienceInput?.snapshot;
 
 const products = release.products.filter(
   (product) =>
@@ -119,12 +128,35 @@ await rm(generatedCollections, { force: true, recursive: true });
 await mkdir(generatedProducts, { recursive: true });
 await mkdir(generatedCollections, { recursive: true });
 await mkdir(resolve(root, "public"), { recursive: true });
+const markerPath = resolve(root, "public/__shoppp-release.json");
+const retainedCatalogPath = resolve(root, "public/__shoppp-catalog.json");
+if (experienceInput?.environment === "public") {
+  const marker = storefrontReleaseMarkerSchema.parse({
+    schemaVersion: 1,
+    sourceEnvironment: experienceInput.sourceEnvironment,
+    identity: experienceInput.inputIdentity,
+  });
+  await writeFile(markerPath, `${JSON.stringify(marker)}\n`);
+  await writeFile(retainedCatalogPath, experienceInput.catalogManifestJson);
+} else {
+  await rm(markerPath, { force: true });
+  await rm(retainedCatalogPath, { force: true });
+}
 await writeFile(
   resolve(root, "app/generated/catalog.ts"),
-  await format(`export const catalogRelease = ${JSON.stringify(selected)} as const\n`, {
-    ...prettierConfig,
-    parser: "typescript",
-  }),
+  await format(
+    `import type { CanonicalCatalogRelease } from "@shoppp/contracts";
+const selectedCatalog = ${JSON.stringify(selected)} as const;
+export const catalogRelease = {
+  ...selectedCatalog,
+  collections: selectedCatalog.collections as readonly Pick<CanonicalCatalogRelease["collections"][number], "name" | "slug">[],
+} as const;
+`,
+    {
+      ...prettierConfig,
+      parser: "typescript",
+    },
+  ),
 );
 await writeFile(
   resolve(generatedRoot, "featured-products.ts"),

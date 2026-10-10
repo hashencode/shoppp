@@ -15,6 +15,15 @@ on:
         description: Immutable release identity; defaults to ci-<source-sha>
         required: false
         type: string
+      publication_id:
+        description: Authorized approved storefront publication; empty keeps catalog delivery
+        required: false
+        type: string
+      source_environment:
+        description: Owning protected API environment for the publication
+        required: false
+        default: staging
+        type: string
   workflow_call:
     inputs:
       source_sha:
@@ -29,9 +38,18 @@ on:
         description: Immutable release identity
         required: true
         type: string
+      publication_id:
+        description: Authorized approved storefront publication; empty keeps catalog delivery
+        required: false
+        type: string
+      source_environment:
+        description: Owning protected API environment for the publication
+        required: false
+        default: staging
+        type: string
     secrets:
       BUILD_MANIFEST_TOKEN:
-        description: Read-only Catalog release validation token; the staging environment value wins
+        description: Existing build token from the owning protected source environment
         required: false
     outputs:
       source_sha:
@@ -84,6 +102,11 @@ jobs:
         uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
         with:
           bun-version: 1.3.5
+      - name: Validate owning publication environment before source credentials
+        if: ${{ inputs.publication_id != '' }}
+        env:
+          SOURCE_ENVIRONMENT: ${{ inputs.source_environment }}
+        run: test "$SOURCE_ENVIRONMENT" = "staging" || test "$SOURCE_ENVIRONMENT" = "production"
       - name: Verify trusted workflow, actor, and exact reachable source
         id: identity
         run: bun tools/ci-trusted-source-preflight.ts --mode validation
@@ -92,7 +115,7 @@ jobs:
     needs: preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 60
-    environment: staging
+    environment: ${{ inputs.publication_id != '' && inputs.source_environment || 'staging' }}
     permissions:
       contents: read
     outputs:
@@ -107,6 +130,8 @@ jobs:
       RELEASE_GITHUB_RUN_ID: ${{ github.run_id }}
       RELEASE_ID: ${{ needs.preflight.outputs.release_id }}
       RELEASE_TARGET: staging
+      PUBLICATION_ID: ${{ inputs.publication_id }}
+      SOURCE_ENVIRONMENT: ${{ inputs.source_environment || 'staging' }}
       SOURCE_EQUIVALENCE_MAX_BROWSER_WORKERS: "2"
       SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
       SOURCE_TREE: ${{ needs.preflight.outputs.source_tree }}
@@ -163,10 +188,21 @@ jobs:
           printf 'RELEASE_WOFF2_VERSION=%s\n' "$(dpkg-query --show --showformat='${Version}' woff2)" >> "$GITHUB_ENV"
           printf 'RELEASE_RUNNER_IMAGE=%s/%s\n' "${ImageOS:-unknown}" "${ImageVersion:-unknown}" >> "$GITHUB_ENV"
           printf 'RELEASE_SYSTEM_VERSION=%s\n' "$(uname -srvmo | head -n 1)" >> "$GITHUB_ENV"
+      - name: Read exact authorized public build input from its owning producer
+        id: publication-input
+        if: ${{ inputs.publication_id != '' }}
+        env:
+          API_URL: ${{ vars.API_URL }}
+          BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
+        run: |
+          bun tools/storefront-publication.ts fetch --input .artifacts/storefront-publication/input.json --metadata .artifacts/storefront-publication/publication.json
+          printf 'STOREFRONT_BUILD_MODE=public\n' >> "$GITHUB_ENV"
+          printf 'STOREFRONT_EXPERIENCE_FILE=%s/.artifacts/storefront-publication/input.json\n' "$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
       - name: Validate release candidate and write bound attestation
         env:
-          NUXT_CATALOG_RELEASE_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
-          NUXT_CATALOG_RELEASE_URL: ${{ vars.API_URL }}/build/catalog/releases/${{ needs.preflight.outputs.release_id }}
+          NUXT_CATALOG_RELEASE_TOKEN: ${{ inputs.publication_id == '' && secrets.BUILD_MANIFEST_TOKEN || '' }}
+          NUXT_CATALOG_RELEASE_URL: ${{ inputs.publication_id == '' && format('{0}/build/catalog/releases/{1}', vars.API_URL, needs.preflight.outputs.release_id) || '' }}
+          API_URL: ${{ vars.API_URL }}
           RELEASE_STRICT_ENVIRONMENT: "true"
         run: bun run release:validate -- --release-id "$RELEASE_ID" --write-attestation
         shell: bash
@@ -215,3 +251,9 @@ jobs:
           path: artifacts/releases/${{ needs.preflight.outputs.release_id }}.json
           if-no-files-found: warn
           retention-days: 14
+      - name: Record failed public validation without changing an active storefront
+        if: ${{ failure() && inputs.publication_id != '' && steps.publication-input.outcome == 'success' }}
+        env:
+          API_URL: ${{ vars.API_URL }}
+          BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
+        run: bun tools/storefront-publication.ts fail

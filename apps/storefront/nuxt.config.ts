@@ -10,6 +10,8 @@ import { parseFashionStoreHomeDevelopmentProfile } from "./app/themes/fashion-st
 const storefrontBrowserTargets = ["chrome111", "edge111", "firefox115", "safari16.4", "ios16.4"];
 
 const previewBuild = process.env.STOREFRONT_BUILD_MODE === "preview";
+const publicBuild = process.env.STOREFRONT_BUILD_MODE === "public";
+const themedBuild = previewBuild || publicBuild;
 const fashionStoreHomeProfile = parseFashionStoreHomeDevelopmentProfile(
   process.env.STOREFRONT_FASHION_HOME_PROFILE,
 );
@@ -30,7 +32,7 @@ const previewExperienceInput = previewExperienceFile
     )
   : undefined;
 const previewThemeStyles =
-  previewBuild && previewExperienceInput?.environment === "preview"
+  themedBuild && previewExperienceInput?.environment !== "production" && previewExperienceInput
     ? previewExperienceInput.themeId === "fashion-store"
       ? [
           "~/themes/fashion-store/critical.css",
@@ -54,7 +56,7 @@ export default defineNuxtConfig({
   css: ["~/assets/css/main.css", ...previewThemeStyles],
   devtools: { enabled: false },
   features: {
-    inlineStyles: previewBuild ? false : (id) => Boolean(id?.includes(".vue")),
+    inlineStyles: themedBuild ? false : (id) => Boolean(id?.includes(".vue")),
   },
   modules: ["@nuxt/image", "@pinia/nuxt"],
   vite: {
@@ -119,7 +121,7 @@ export default defineNuxtConfig({
         entry.assets = entry.assets?.filter(
           (asset) => !/\.(?:avif|gif|jpe?g|png|svg|webp)$/i.test(asset),
         );
-        if (previewBuild) {
+        if (themedBuild) {
           entry.css = [...new Set(collectDependencyCss(id))];
           entry.imports = [];
         }

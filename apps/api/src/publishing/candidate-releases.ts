@@ -1230,6 +1230,18 @@ export async function abandonPrivateCatalogCandidate(
   }
   const auditReason = normalizeAuditReason(reason);
   const now = new Date().toISOString();
+  const retained = await context.env.DB.prepare(
+    "SELECT id FROM storefront_publications WHERE catalog_release_id = ? LIMIT 1",
+  )
+    .bind(id)
+    .first<{ id: string }>();
+  if (retained) {
+    throw new ApiError(
+      409,
+      "catalog_publication_retained",
+      "This candidate is retained for an authorized storefront publication.",
+    );
+  }
   await expirePrivateCatalogCandidates(context.env.DB, now);
   const current = await getPrivateCatalogCandidateStatus(
     context.env.DB,

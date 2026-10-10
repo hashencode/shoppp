@@ -279,8 +279,8 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 本节按仓库规则仅维护本计划自身执行状态。状态以实际代码与验证证据为准，REL 当前队列不在这里复制。
 
 - **Plan:** 已激活；管理后台核心完成，正式发布接入实施中。
-- **Current unit:** U7.1 — 补齐 REL 正式发布生产者、构建输入与激活回执。
-- **Next concrete action:** 按 KTD6/KTD7 实现精确发布请求、权限/环境边界、公开构建、当前回执与失败/回滚，再接入 U7.2。
+- **Current unit:** U7.2 — 接入管理后台的精确发布、当前状态与回滚。
+- **Next concrete action:** 消费已验证的生产者合同，补齐重载恢复、权限和失效保护，再完成 U7.3 的浏览器与共享消费者验证。
 - **Order:** U1–U6 完成 → U7.1 生产者与交付合同 → U7.2 Admin 消费 → U7.3 focused/integration 验证。
 - **Blocker:** 无本地实施阻塞；真实环境操作仍需配置既有 hook/工作流并满足 REL 门禁。
 - **Unit status:** U1–U6 已完成；U7 实施中。全计划未完成，候选未冻结，DC/PG 未开始。
@@ -414,8 +414,8 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 
 **Approach:** KTD6/KTD7。保持 REL knowledge-work 的 DC/PG 责任，不把其 validation-only 计划改成实现队列；本 U 是当前唯一实施 owner。
 
-1. U7.1 建立发布请求/资格、精确构建输入、构建与部署回调、当前 tuple 查询和旧版本回滚合同；分离 human 的 `themes.publish` 与 build credential。现有购物车/商品查找消费已真正激活的公开资格。
-2. 同阶段扩展公开编译分支，使用 approved Snapshot 的 live renderer，不带 preview credential/noindex/fixture。现有 hosted validation 保存 tuple 与 source environment；runner 以实际 Worker 版本/部署及店铺身份确认激活，CAS 更新预期旧指针。部署前保存精确旧 Worker 版本；部署后核对或回执失败时恢复并核对旧身份。恢复无法确认时显示状态待核实，不能宣称旧店铺仍在线。
+1. U7.1 建立发布请求/资格、精确构建输入、构建与部署回调、当前 tuple 查询和旧版本回滚合同；分离 human 的 `themes.publish` 与 build credential。现有购物车/商品查找消费已真正激活的公开资格。staging 的正式 Commerce 证明发生在最终激活前，因此只允许从配置的当前公开 Worker 核对精确目录产物；production 仍要求成功激活资格，不复制 D1 数据或改写 source environment。
+2. 同阶段扩展公开编译分支，使用 approved Snapshot 的 live renderer，不带 preview credential/noindex/fixture。现有 hosted validation 保存 tuple 与 source environment；runner 以实际 Worker 版本/部署及店铺身份确认激活，CAS 更新预期旧指针。部署前将精确旧 Worker 版本保存在同次受保护任务的产物中；部署后核对或回执失败时恢复并核对旧身份。恢复无法确认时显示状态待核实，不能宣称旧店铺仍在线；强制终止可能阻止自动恢复，须使用保留基线按环境权限恢复。
 3. U7.2 增加就近的正式发布/状态刷新/失败重试与受权回滚，重载可恢复精确批准和发布记录。queued/building 与实际已上线状态区分；编辑/换来源后原批准不授权新 bytes。
 4. U7.3 验证生产者、构建/工作流、公开消费者和 Admin 的闭包；核对 R2，回交 REL 的 Pre-DC。
 
@@ -431,6 +431,7 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 - 未授权私有候选继续无法公开读取/构建/购买；受权公开构建仍保留原始 manifest bytes；成功激活后的 public Commerce 消费同一 release，私有候选过期不撤掉已上线产物。
 - public compiler 使用批准主题/联系/来源，输出真实身份；正式输出不含私有凭据、fixture 或 noindex。source/activation 环境分离且各自校验，production 成功回调仅在既有 PG 后发生。
 - 部署后回执失败恢复精确旧 Worker；恢复失败保留待核实状态，不显示新版本或旧版本已上线。production 来源在 staging 的 Commerce 数据准备仍由 REL DC2 负责，不复制或改写生产身份。
+- staging 激活前仅当前公开 Worker 的有效目录摘要允许 Commerce 证明；错误摘要、缺少运行版本和 production 旁路拒绝。部署前保留基线的顺序可验证，使用旧基线部署前重新核对。
 
 **Verification:** REL 前置合同与本 U focused/integration 证据均成立；真实受保护环境操作另依发布授权，不能通过本计划测试获得生产许可。完成后本计划回交 REL，不自行设置 DC/PG。
 

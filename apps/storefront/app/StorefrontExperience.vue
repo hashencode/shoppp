@@ -249,13 +249,32 @@ if (activeExperienceSnapshot && liveRelease?.schemaVersion === 3) {
       ? [{ href: liveRelease.identity.faviconMedia.src, key: "storefront-favicon", rel: "icon" }]
       : [],
   }));
-  if (!previewOrigin) {
-    useSeoMeta({
-      title: () => (pageContract.value?.pageType === "content" ? routeSeo.value.title : undefined),
-      description: () =>
-        pageContract.value?.pageType === "content" ? routeSeo.value.description : undefined,
-    });
-  }
+}
+
+if (activeExperienceSnapshot && liveRelease && !previewOrigin) {
+  useSeoMeta({
+    description: () => routeSeo.value.description,
+    robots: () => (pageContract.value?.indexing === "noindex" ? "noindex, nofollow" : undefined),
+    title: () => routeSeo.value.title,
+  });
+  useHead(() => ({
+    link: [
+      {
+        rel: "canonical",
+        href: canonicalUrl(liveRelease.site.origin, routeSeo.value.canonicalPath),
+      },
+    ],
+    script: routeSeo.value.product
+      ? [
+          {
+            type: "application/ld+json",
+            innerHTML: JSON.stringify(
+              productStructuredData(routeSeo.value.product, liveRelease.site.origin),
+            ),
+          },
+        ]
+      : [],
+  }));
 }
 if (activeExperienceSnapshot && previewOrigin) {
   const seoOrigin = liveRelease?.site.origin ?? previewOrigin;
@@ -322,7 +341,7 @@ if (import.meta.client) {
       ><NuxtPage
     /></NuxtLayout>
     <main v-else-if="activeExperienceSnapshot">
-      <h1>Preview template unavailable</h1>
+      <h1>{{ previewOrigin ? "Preview template unavailable" : "Page unavailable" }}</h1>
       <p>The selected theme does not declare this presentation surface.</p>
     </main>
     <NuxtLayout v-else>

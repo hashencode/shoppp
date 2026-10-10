@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 
 import {
   canonicalCatalogReleaseSchema,
+  canonicalStorefrontJson,
   catalogReleaseV3Schema,
   storefrontExperienceDraftInputSchema,
   themePackageSchema,
@@ -3961,7 +3962,31 @@ describe("storefront experience API", () => {
       "theme-run-bound-approval-create-0001",
       catalogReadyDraftInput,
     );
-    const draftId = created.body.data.id;
+    const settingsResponse = await app.fetch(request("/admin/settings/contact"), env);
+    const { data: contact } = await settingsResponse.json<{
+      data: { profileVersion: string | null; publicContact: unknown };
+    }>();
+    const contactVersion = await sha256Hex(
+      canonicalStorefrontJson({
+        profileVersion: contact.profileVersion,
+        publicContact: contact.publicContact,
+      }),
+    );
+    let draftId = "";
+    for (let index = 0; index < 500; index += 1) {
+      const candidate = `draft-run-bound-retry-${index}`;
+      const key = `${candidate}:1:${catalogReleaseId}:approved:${fashionStoreManifest.themeVersion}:${fashionStoreManifest.configurationSchemaVersion}:contact:${contactVersion}`;
+      const snapshotId = `snapshot-approved-${(await sha256Hex(key)).slice(0, 32)}`;
+      if (redactForLog(snapshotId) !== snapshotId) {
+        draftId = candidate;
+        break;
+      }
+    }
+    expect(draftId).not.toBe("");
+    // Exercise an opaque ID that the generic payment-data heuristic would redact.
+    await env.DB.prepare("UPDATE storefront_experience_drafts SET id = ? WHERE id = ?")
+      .bind(draftId, created.body.data.id)
+      .run();
     await validateDraft(
       app,
       draftId,
@@ -4062,12 +4087,15 @@ describe("storefront experience API", () => {
 
     const first = await approve("theme-run-bound-approval-first-0001");
     const retry = await approve("theme-run-bound-approval-retry-0001");
-    expect([first.status, retry.status]).toEqual([200, 200]);
+    expect([first.status, retry.status], JSON.stringify(await retry.clone().json())).toEqual([
+      200, 200,
+    ]);
     const [firstBody, retryBody] = await Promise.all([
       first.json<{ data: { contentDigest: string; id: string } }>(),
       retry.json<{ data: { contentDigest: string; id: string } }>(),
     ]);
     expect(retryBody.data).toMatchObject(firstBody.data);
+    expect(redactForLog(firstBody.data.id)).not.toBe(firstBody.data.id);
     const operatorRun = await getFashionStagingOperatorRun(
       env.DB,
       "fashion-u8-retry-reconciliation",
@@ -4079,14 +4107,22 @@ describe("storefront experience API", () => {
       successorSnapshotId: firstBody.data.id,
     });
     expect(operatorRun.approvalAuditId).toMatch(/^audit-fashion-u8-[a-f0-9]{32}$/);
-    expect(
-      await env.DB.prepare(`SELECT actor_id, action, target_id FROM audit_events WHERE id = ?`)
-        .bind(operatorRun.approvalAuditId)
-        .first(),
-    ).toEqual({
+    const audit = await env.DB.prepare(
+      `SELECT actor_id, action, target_id, metadata_json FROM audit_events WHERE id = ?`,
+    )
+      .bind(operatorRun.approvalAuditId)
+      .first<{ actor_id: string; action: string; target_id: string; metadata_json: string }>();
+    expect(audit).toMatchObject({
       action: "themes.fashion-staging.operator.approve",
       actor_id: "admin-theme-admin",
       target_id: "fashion-u8-retry-reconciliation",
+    });
+    expect(JSON.parse(audit!.metadata_json)).toEqual({
+      catalogReleaseId,
+      draftId,
+      draftVersion: 1,
+      snapshotContentDigest: firstBody.data.contentDigest,
+      snapshotId: firstBody.data.id,
     });
   });
 

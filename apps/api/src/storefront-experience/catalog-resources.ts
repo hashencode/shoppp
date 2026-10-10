@@ -1,6 +1,7 @@
 import {
   canonicalCatalogReleaseSchema,
   catalogReleaseV3Schema,
+  storefrontStagingCatalogObservationSchema,
   type CanonicalCatalogRelease,
   type CatalogReleaseV3,
   type ExperienceSnapshot,
@@ -8,6 +9,7 @@ import {
 
 import type { ApiBindings } from "../http/context";
 import { ApiError } from "../http/errors";
+import { sha256Hex } from "../orders/tokens";
 import { assertCatalogReleaseLifecycle } from "../publishing/candidate-releases";
 import { fashionStoreEditorDestinations } from "../../../storefront/app/themes/fashion-store/editor-destinations";
 import { resolveFashionStoreReader } from "../../../storefront/app/themes/fashion-store/package-registry";
@@ -42,6 +44,8 @@ export async function getCanonicalDeployedCatalogRelease(
     allowPrivateCandidate?: boolean;
     privateCandidateBuildId?: string;
     allowStagingProof?: boolean;
+    stagingProofOrigin?: string;
+    stagingProofManifestDigest?: string;
     environment?: ApiBindings["ENVIRONMENT"];
     principalKind?: "human" | "service";
   } = {},
@@ -51,7 +55,11 @@ export async function getCanonicalDeployedCatalogRelease(
       `SELECT id, manifest_json, status, purpose, environment, candidate_status
          FROM catalog_releases
         WHERE id = ?
-          AND (status = 'deployed' OR
+          AND ((status = 'deployed' AND purpose = 'public') OR
+               EXISTS (SELECT 1 FROM storefront_publications p
+                 WHERE p.catalog_release_id = catalog_releases.id AND p.status = 'succeeded'
+                   AND p.environment = catalog_releases.environment
+                   AND (? IS NULL OR p.environment = ?)) OR
                (? = 1 AND purpose = 'private-preview' AND candidate_status = 'succeeded'
                   AND candidate_expires_at > ?
                   AND (? IS NULL OR EXISTS (
@@ -62,6 +70,8 @@ export async function getCanonicalDeployedCatalogRelease(
     )
     .bind(
       releaseId,
+      options.environment ?? null,
+      options.environment ?? null,
       options.allowPrivateCandidate ? 1 : 0,
       new Date().toISOString(),
       options.privateCandidateBuildId ?? null,
@@ -77,9 +87,64 @@ export async function getCanonicalDeployedCatalogRelease(
       status: string;
     }>();
   if (!row) {
+    if (
+      options.environment === "staging" &&
+      options.allowStagingProof &&
+      options.stagingProofOrigin &&
+      /^[a-f0-9]{64}$/.test(options.stagingProofManifestDigest ?? "")
+    ) {
+      try {
+        const origin = new URL(options.stagingProofOrigin);
+        if (
+          origin.protocol !== "https:" ||
+          origin.origin !== options.stagingProofOrigin ||
+          origin.username ||
+          origin.password
+        )
+          throw new Error("Invalid configured staging storefront origin.");
+        const response = await fetch(`${origin.origin}/.well-known/shoppp-release/catalog`, {
+          headers: { "Cache-Control": "no-cache" },
+          redirect: "error",
+          signal: AbortSignal.timeout(10_000),
+        });
+        if (!response.ok) throw new Error("The installed staging catalog is unavailable.");
+        const installed = storefrontStagingCatalogObservationSchema.parse(await response.json());
+        const release = catalogReleaseV3Schema
+          .or(canonicalCatalogReleaseSchema)
+          .parse(JSON.parse(installed.catalogManifestJson));
+        if (
+          release.releaseId !== releaseId ||
+          installed.identity.catalogReleaseId !== releaseId ||
+          installed.identity.catalogManifestDigest !== options.stagingProofManifestDigest ||
+          (await sha256Hex(installed.catalogManifestJson)) !== options.stagingProofManifestDigest ||
+          (release.schemaVersion === 3 && release.environment !== installed.sourceEnvironment)
+        ) {
+          throw new Error("The installed staging catalog identity does not match.");
+        }
+        return release;
+      } catch {
+        // Installed staging proof never creates a public publication qualification.
+      }
+    }
     throw new ApiError(422, "catalog_release_unavailable", "Select a deployed Catalog Release.");
   }
   if (row.purpose === "private-preview") {
+    const activated = await db
+      .prepare(
+        `SELECT id FROM storefront_publications
+      WHERE catalog_release_id = ? AND environment = ? AND status = 'succeeded' LIMIT 1`,
+      )
+      .bind(releaseId, options.environment ?? row.environment)
+      .first<{ id: string }>();
+    if (activated) {
+      const release = parseCanonicalRelease(row);
+      if (release) return release;
+      throw new ApiError(
+        422,
+        "catalog_release_invalid",
+        "The activated Catalog Release is invalid.",
+      );
+    }
     assertCatalogReleaseLifecycle(
       { ...row, candidateStatus: row.candidate_status },
       {
@@ -199,10 +264,15 @@ export async function listStorefrontCatalogReleases(env: ApiBindings) {
   const rows = await env.DB.prepare(
     `SELECT id, status, manifest_json, approved_at, deployed_at
        FROM catalog_releases
-      WHERE status = 'deployed'
+      WHERE (status = 'deployed' AND purpose = 'public')
+         OR EXISTS (SELECT 1 FROM storefront_publications p
+           WHERE p.catalog_release_id = catalog_releases.id AND p.status = 'succeeded'
+             AND p.environment = ? AND catalog_releases.environment = ?)
       ORDER BY deployed_at DESC, id DESC
       LIMIT 50`,
-  ).all<ReleaseRow>();
+  )
+    .bind(env.ENVIRONMENT, env.ENVIRONMENT)
+    .all<ReleaseRow>();
 
   return rows.results.flatMap((row) => {
     const release = parseCanonicalRelease(row);

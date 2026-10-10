@@ -234,7 +234,7 @@ describe("production promotion workflow", () => {
       "secrets:\n      BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}",
     );
     expect(validation).not.toContain("secrets: inherit");
-    expect(validation).toContain("needs: preflight");
+    expect(validation).toContain("needs: [preflight, publication-request]");
     expect(validation).toContain("uses: ./.github/workflows/full-validation.yml");
     expect(validation).toContain("source_sha: ${{ needs.preflight.outputs.source_sha }}");
     expect(validation).toContain("release_id: ${{ inputs.release_id }}");
@@ -468,7 +468,8 @@ describe("production promotion workflow", () => {
     expect(workflow).toContain("environment: staging-human-access");
     expect(workflow).toContain("human_access_evidence_id:");
     expect(humanEvidenceInput).toContain("required: false");
-    expect(humanApprovalJob).toContain("if: ${{ inputs.promote_production }}");
+    expect(humanApprovalJob).toContain("always() && inputs.promote_production");
+    expect(humanApprovalJob).toContain("needs.prove-staging.result == 'success'");
     expect(workflow).toContain('evidence_source="environment-review"');
     expect(workflow).toContain('evidence_source="workflow-dispatch-actor"');
     expect(workflow).toContain("WORKFLOW_ACTOR: ${{ github.actor }}");
@@ -1225,5 +1226,79 @@ describe("storefront theme browser matrix", () => {
     expect(runbook).toContain("snapshot migration");
     expect(runbook).toContain("promotion-eligible");
     expect(runbook).toContain("abandon");
+  });
+});
+
+describe("authorized storefront publication delivery", () => {
+  test("uses the owning producer environment and existing reusable validation before public delivery", async () => {
+    const [workflow, validation] = await Promise.all([
+      readFile(workflowPath, "utf8"),
+      readFile(fullValidationWorkflowPath, "utf8"),
+    ]);
+    expect(workflow).toContain("publication_id:");
+    expect(workflow).toContain("source_environment:");
+    expect(workflow).toContain("Validate formal publication environment before protected jobs");
+    expect(validation).toContain(
+      "environment: ${{ inputs.publication_id != '' && inputs.source_environment || 'staging' }}",
+    );
+    expect(validation).toContain(
+      "Read exact authorized public build input from its owning producer",
+    );
+    expect(validation).toContain("STOREFRONT_BUILD_MODE=public");
+    expect(workflow).toContain("Verify same-run public artifact before target credentials");
+    expect(workflow).toContain(
+      "Verify same validated public artifact before production credentials",
+    );
+  });
+  test("staged production proof has no production callback credential and rollback avoids rebuilding", async () => {
+    const workflow = await readFile(workflowPath, "utf8");
+    const staging = workflow.slice(
+      workflow.indexOf("  publication-staging:"),
+      workflow.indexOf("  publication-production:"),
+    );
+    const production = workflow.slice(
+      workflow.indexOf("  publication-production:"),
+      workflow.indexOf("  publication-failure:"),
+    );
+    expect(staging).toContain(
+      "inputs.source_environment == 'staging' && secrets.BUILD_MANIFEST_TOKEN || ''",
+    );
+    expect(staging).toContain("--proof-only");
+    expect(staging).toContain("bunx playwright test --config e2e/playwright.config.ts");
+    expect(production).toContain("needs.approve-production.result == 'success'");
+    expect(production).toContain("environment: production");
+    expect(production).toContain("needs.publication-request.outputs.operation == 'rollback'");
+    expect(production).not.toMatch(/d1 migrations|versions upload|bun run build/);
+    expect(workflow).toContain("Record recoverable missing production gate");
+    expect(workflow).toContain("PUBLICATION_FAILURE_CODE: production_gate_required");
+  });
+});
+
+describe("publication forced-termination recovery evidence", () => {
+  test("retains the captured staging and production baselines before either storefront mutation", async () => {
+    const workflow = await readFile(workflowPath, "utf8");
+    const staging = workflow.slice(
+      workflow.indexOf("  publication-staging:"),
+      workflow.indexOf("  publication-production:"),
+    );
+    const production = workflow.slice(
+      workflow.indexOf("  publication-production:"),
+      workflow.indexOf("  publication-failure:"),
+    );
+    for (const [job, environment] of [
+      [staging, "staging"],
+      [production, "production"],
+    ] as const) {
+      const capture = job.indexOf("Capture exact storefront baseline before mutation");
+      const preserve = job.indexOf("Preserve exact storefront baseline before mutation");
+      const deliver = job.indexOf("storefront-publication.ts deliver");
+      expect(capture).toBeGreaterThan(0);
+      expect(preserve).toBeGreaterThan(capture);
+      expect(deliver).toBeGreaterThan(preserve);
+      expect(job).toContain(`publication-baseline-${environment}-`);
+      expect(job).toContain("retention-days: 90");
+      expect(job).toContain("if-no-files-found: error");
+      expect(job).toContain("--baseline .artifacts/storefront-publication/baseline.json");
+    }
   });
 });

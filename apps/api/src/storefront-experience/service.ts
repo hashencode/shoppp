@@ -1549,7 +1549,7 @@ async function snapshotId(deduplicationKey: string, kind: "approved" | "preview"
   return `snapshot-${kind}-${(await sha256Hex(deduplicationKey)).slice(0, 32)}`;
 }
 
-async function frozenContact(context: Context<ApiEnvironment>) {
+export async function frozenContact(context: Context<ApiEnvironment>) {
   const settings = await getContactSettings(context);
   const publicContact: PublicContact = publicContactSchema.parse(settings.publicContact);
   const version = await sha256Hex(
@@ -1777,15 +1777,14 @@ async function insertSnapshot(
         input.operatorApproval.runId,
         input.reason ? normalizeAuditReason(input.reason) : null,
         context.get("requestId"),
-        JSON.stringify(
-          redactForLog({
-            catalogReleaseId: input.validation.catalog_release_id,
-            draftId: input.row.id,
-            draftVersion: input.row.version,
-            snapshotContentDigest: contentDigest,
-            snapshotId: id,
-          }),
-        ),
+        // Retry reconciliation requires these nonsecret identity fields verbatim.
+        JSON.stringify({
+          catalogReleaseId: input.validation.catalog_release_id,
+          draftId: input.row.id,
+          draftVersion: input.row.version,
+          snapshotContentDigest: contentDigest,
+          snapshotId: id,
+        }),
         now,
         ...operatorBindings,
       ),

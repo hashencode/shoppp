@@ -8,6 +8,7 @@ import {
   sqliteTable,
   text,
   uniqueIndex,
+  type AnySQLiteColumn,
 } from "drizzle-orm/sqlite-core";
 
 const timestamps = {
@@ -1592,6 +1593,63 @@ export const storefrontExperienceSnapshots = sqliteTable(
     index("storefront_experience_snapshots_experience_idx").on(table.experienceId, table.createdAt),
   ],
 );
+
+export const storefrontPublications = sqliteTable(
+  "storefront_publications",
+  {
+    id: text("id").primaryKey(),
+    environment: text("environment", { enum: ["development", "staging", "production"] }).notNull(),
+    catalogReleaseId: text("catalog_release_id")
+      .notNull()
+      .references(() => catalogReleases.id, { onDelete: "restrict" }),
+    snapshotId: text("snapshot_id")
+      .notNull()
+      .references(() => storefrontExperienceSnapshots.id, { onDelete: "restrict" }),
+    identityJson: text("identity_json").notNull(),
+    operation: text("operation", { enum: ["publish", "rollback"] }).notNull(),
+    status: text("status", {
+      enum: ["queued", "building", "succeeded", "failed", "unresolved"],
+    }).notNull(),
+    expectedActivePublicationId: text("expected_active_publication_id").references(
+      (): AnySQLiteColumn => storefrontPublications.id,
+      { onDelete: "restrict" },
+    ),
+    rollbackOf: text("rollback_of").references((): AnySQLiteColumn => storefrontPublications.id, {
+      onDelete: "restrict",
+    }),
+    restoreWorkerVersionId: text("restore_worker_version_id"),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => adminIdentities.id, { onDelete: "restrict" }),
+    reason: text("reason").notNull(),
+    correlationId: text("correlation_id"),
+    failureCode: text("failure_code"),
+    runId: text("run_id"),
+    runAttempt: integer("run_attempt"),
+    sourceCommit: text("source_commit"),
+    receiptJson: text("receipt_json"),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("storefront_publications_one_pending_environment")
+      .on(table.environment)
+      .where(sql`${table.status} IN ('queued', 'building', 'unresolved')`),
+    index("storefront_publications_catalog_activation").on(
+      table.catalogReleaseId,
+      table.environment,
+      table.status,
+    ),
+    index("storefront_publications_snapshot_history").on(table.snapshotId, table.createdAt),
+  ],
+);
+
+export const storefrontActivePublications = sqliteTable("storefront_active_publications", {
+  environment: text("environment", { enum: ["development", "staging", "production"] }).primaryKey(),
+  publicationId: text("publication_id")
+    .notNull()
+    .references(() => storefrontPublications.id, { onDelete: "restrict" }),
+  updatedAt: text("updated_at").notNull(),
+});
 
 export const fashionStagingOperatorRuns = sqliteTable(
   "fashion_staging_operator_runs",

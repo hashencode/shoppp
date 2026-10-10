@@ -66,6 +66,12 @@ export const storefrontActivationObservationSchema = storefrontReleaseMarkerSche
   })
   .strict();
 
+// Isolated staging Commerce proof reads the catalog from its currently deployed
+// artifact. Production never uses this temporary qualification path.
+export const storefrontStagingCatalogObservationSchema = storefrontActivationObservationSchema
+  .extend({ catalogManifestJson: z.string().min(1) })
+  .strict();
+
 export const storefrontPublicationReceiptSchema = z
   .object({
     environment: storefrontPublicationEnvironmentSchema,
@@ -216,6 +222,15 @@ export function canonicalStorefrontJson(value: unknown): string {
   return JSON.stringify(value);
 }
 
+export const storefrontPublicationBuildManifestSchema = z
+  .object({
+    input: storefrontPublicationBuildInputSchema,
+    publication: storefrontPublicationSchema,
+    rollbackReceipt: storefrontPublicationReceiptSchema.nullable(),
+    baselineReceipt: storefrontPublicationReceiptSchema.nullable(),
+  })
+  .strict();
+
 export function sameStorefrontPublicationIdentity(
   left: StorefrontPublicationIdentity,
   right: StorefrontPublicationIdentity,
@@ -233,3 +248,6 @@ export type StorefrontPublicationBuildInput = z.infer<typeof storefrontPublicati
 export type StorefrontPublicationContext = z.infer<typeof storefrontPublicationContextSchema>;
 export type StorefrontActivePublication = z.infer<typeof storefrontActivePublicationSchema>;
 export type StorefrontReleaseMarker = z.infer<typeof storefrontReleaseMarkerSchema>;
+export type StorefrontPublicationBuildManifest = z.infer<
+  typeof storefrontPublicationBuildManifestSchema
+>;

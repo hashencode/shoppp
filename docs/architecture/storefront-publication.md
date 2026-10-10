@@ -26,9 +26,13 @@ The runner reads the public input from the source API, verifies the raw Catalog 
 
 Hosted validation binds its report and artifact digest to this input. Production-source artifacts are validated in isolated staging before the existing production gates permit deployment of the same bytes. Staging proof must not send an activation callback to the production producer. Preparing compatible staging Commerce data is REL DC2 work; this path does not mirror production D1 data or rewrite IDs.
 
+Commerce proof runs before the final activation callback. The public Worker attaches its compiled Catalog ID and manifest digest to API requests. In staging only, the API can read `/.well-known/shoppp-release/catalog` from its configured storefront origin and verify the current runtime version, exact Catalog bytes, digest and source environment. This qualifies only the currently installed public artifact for staging proof, including a production-source artifact absent from staging D1. It does not create an activation receipt. Production Commerce requires the successful publication qualification. A private preview, missing public marker or mismatched digest cannot use this path.
+
 The deployment runner confirms one Worker version at 100% traffic and the public marker, then submits the receipt with environment, exact identity, Worker/deployment ID, run/attempt/commit and report/artifact digests. The producer checks its own configured storefront origin and performs a compare-and-swap against the previous active request. Duplicate identical callbacks are harmless; changed or stale run attempts and previous-pointer mismatches fail closed.
 
 Before deploying, capture the exact previous Worker version. On post-deployment observation or receipt failure, restore that version and verify the previous public identity. A failed restoration leaves an unresolved request and no claim that either version is currently live. Active queries recheck the actual public marker; unavailable or mismatched observations do not yield an online label.
+
+Retain the nonsecret baseline in the same protected workflow's artifacts before mutation. Forced job termination can prevent automatic restoration; the retained baseline supports an explicitly authorized exact-version recovery. A terminated job or unavailable observation is not evidence that the old shop was restored.
 
 Rollback uses a new authorized request and an existing successful receipt in the same environment. It restores that saved exact Worker version through the same protected workflow, verifies it and records a new activation receipt. It does not rebuild content or roll back D1 migrations, API versions or Queues.
 
@@ -37,3 +41,17 @@ Rollback uses a new authorized request and an existing successful receipt in the
 Publication request rows and the environment's active pointer are operational state, not a second release/candidate evidence ledger. Original immutable manifest and approved Snapshot bytes remain authoritative. A successful activation grants public Commerce consumption of that catalog independently of the private preview lease. Historical activated catalogs remain valid for existing carts; they do not determine the current online badge. Authorized catalog media and snapshots must be retained for exact-version recovery.
 
 Local U7 tests prove these boundaries and consumers. Actual hosted execution, candidate identity, DC and production PG remain owned by REL.
+
+## Environment setup and interrupted-run recovery
+
+Apply migration `0039_storefront_publications.sql` and deploy the updated API before using the Admin consumer. The existing build-hook dispatcher must forward `publicationId` as workflow input `publication_id`, and `sourceEnvironment` as `source_environment`, alongside the Catalog Release ID. A production request still needs the existing explicit promotion, recent backup and human-access approvals; an incomplete gate produces `production_gate_required`, not a successful activation.
+
+If a protected delivery is forcibly terminated, inspect the current producer state and Worker before authorizing recovery. Retrieve `publication-input-<run>-attempt-<attempt>` and `publication-baseline-<target>-<publication>-<run>-attempt-<attempt>` from that exact run (90-day retention). Use its original `GITHUB_RUN_ID`, `GITHUB_RUN_ATTEMPT` and `RELEASE_EXPECTED_COMMIT`, its `PUBLICATION_ID`/`SOURCE_ENVIRONMENT`, and the authorized target's `ACTIVATION_ENVIRONMENT`, `API_URL`, `STOREFRONT_URL`, `STOREFRONT_WORKER_NAME` and existing protected Cloudflare/build credentials:
+
+```sh
+bun tools/storefront-publication.ts recover \
+  --metadata /path/to/original/publication.json \
+  --baseline /path/to/original/baseline.json
+```
+
+The command rejects a completed request, a changed run or a different target, restores the retained exact version, verifies its current marker and submits the original run's failed/recovered callback. For production-source staging proof, add `--proof-only`; use staging Cloudflare credentials without the production build token. This restores staging only and sends no production callback. Failed verification keeps the request unresolved. Recovery is an environment operation requiring its own authorization; this documentation does not authorize it.

@@ -2,6 +2,14 @@ import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { basename, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
+import {
+  canonicalStorefrontJson,
+  storefrontPublicationBuildInputSchema,
+  storefrontPublicationIdentitySchema,
+  storefrontPublicationEnvironmentSchema,
+  type StorefrontPublicationBuildInput,
+  type StorefrontPublicationIdentity,
+} from "../packages/contracts/src/storefront-publication";
 import { verifyEnvironmentIsolation } from "./verify-environment-isolation";
 
 type ReleaseTarget = "staging" | "production";
@@ -29,6 +37,12 @@ export interface ReleaseReport {
   environmentIsolation: {
     mode: "structural" | "strict";
     environments: string[];
+  };
+  publication?: {
+    publicationId: string;
+    sourceEnvironment: "development" | "staging" | "production";
+    identity: StorefrontPublicationIdentity;
+    inputDigest: string;
   };
   approval?: {
     approvedBy: string;
@@ -239,6 +253,10 @@ export function releaseGateEnvironment(
 ): NodeJS.ProcessEnv {
   const scopedEnvironment = { ...environment };
   delete scopedEnvironment.STOREFRONT_REUSE_VALIDATED_BUILD;
+  if (!["production-builds", "static-output"].includes(gateName)) {
+    delete scopedEnvironment.STOREFRONT_BUILD_MODE;
+    delete scopedEnvironment.STOREFRONT_EXPERIENCE_FILE;
+  }
   if (gateName !== "production-builds") {
     delete scopedEnvironment.NUXT_CATALOG_RELEASE_TOKEN;
     delete scopedEnvironment.NUXT_CATALOG_RELEASE_URL;
@@ -440,6 +458,10 @@ function parseReleaseReport(value: unknown): ReleaseReport {
   const environments = isolation.environments.map((environment, index) =>
     requiredString(environment, `release report environment ${index}`),
   );
+  const publication =
+    candidate.publication === undefined
+      ? undefined
+      : parsePublicationEvidence(candidate.publication);
   let approval: ReleaseReport["approval"];
   if (candidate.approval !== undefined) {
     const approvalCandidate = requiredRecord(candidate.approval, "release report approval");
@@ -470,6 +492,7 @@ function parseReleaseReport(value: unknown): ReleaseReport {
     gates,
     artifactDigests,
     environmentIsolation: { mode, environments },
+    ...(publication ? { publication } : {}),
     ...(approval ? { approval } : {}),
   };
 }
@@ -660,6 +683,8 @@ export async function verifyValidationAttestation(options: {
   reportDigest: string;
   attestationDigest: string;
   deployableDigest: string;
+  publicationId?: string;
+  sourceEnvironment?: string;
 }): Promise<void> {
   const root = resolve(options.root ?? ROOT);
   const releaseId = safeReleaseId(options.releaseId);
@@ -738,6 +763,14 @@ export async function verifyValidationAttestation(options: {
     artifactMapDigest(attestation.artifactDigests) === options.deployableDigest,
     "deployable artifact map digest mismatch",
   );
+  if (options.publicationId) {
+    assert(
+      report.publication?.publicationId === options.publicationId &&
+        report.publication.sourceEnvironment === options.sourceEnvironment &&
+        report.publication.identity.catalogReleaseId === releaseId,
+      "Validation evidence differs from the requested publication source",
+    );
+  }
   const artifactEntries = Object.entries(attestation.artifactDigests);
   const artifactPaths = artifactEntries.map(([artifactPath]) => {
     assert(
@@ -805,6 +838,63 @@ async function writeValidationAttestation(options: {
   return path;
 }
 
+export function parsePublicationEvidence(
+  value: unknown,
+): NonNullable<ReleaseReport["publication"]> {
+  const candidate = requiredRecord(value, "release publication evidence");
+  const publicationId = safeReleaseId(requiredString(candidate.publicationId, "publication ID"));
+  const sourceEnvironment = storefrontPublicationEnvironmentSchema.parse(
+    candidate.sourceEnvironment,
+  );
+  assert(
+    sourceEnvironment !== "development",
+    "Formal validation requires a protected publication source",
+  );
+  const identity = storefrontPublicationIdentitySchema.parse(candidate.identity);
+  const inputDigest = requiredString(candidate.inputDigest, "publication input digest");
+  assert(SHA256_DIGEST.test(inputDigest), "publication input digest is invalid");
+  return { publicationId, sourceEnvironment, identity, inputDigest };
+}
+export function assertPublicBuildInput(
+  input: StorefrontPublicationBuildInput,
+  options: {
+    publicationId: string;
+    sourceEnvironment: string;
+    releaseId: string;
+    sourceApiOrigin: string;
+    configuredSourceApiOrigin: string;
+  },
+): void {
+  assert(
+    input.publicationId === options.publicationId &&
+      input.inputIdentity.catalogReleaseId === options.releaseId,
+    "Public build input differs from the selected publication/release",
+  );
+  assert(
+    input.sourceEnvironment === options.sourceEnvironment &&
+      options.sourceEnvironment !== "development",
+    "Public build input crosses its protected source environment",
+  );
+  const source = new URL(options.sourceApiOrigin);
+  assert(
+    source.origin === options.sourceApiOrigin &&
+      source.protocol === "https:" &&
+      !source.username &&
+      !source.password &&
+      source.origin === new URL(options.configuredSourceApiOrigin).origin,
+    "Publication API source crosses the configured owning environment",
+  );
+  const manifestDigest = createHash("sha256").update(input.catalogManifestJson).digest("hex");
+  const snapshotDigest = createHash("sha256")
+    .update(canonicalStorefrontJson(input.snapshot))
+    .digest("hex");
+  assert(
+    manifestDigest === input.inputIdentity.catalogManifestDigest &&
+      snapshotDigest === input.inputIdentity.snapshotDigest,
+    "Public build input digest mismatch",
+  );
+}
+
 export async function validateRelease(options: {
   target: ReleaseTarget;
   releaseId?: string;
@@ -841,7 +931,31 @@ export async function validateRelease(options: {
   const snapshots = await verifyEnvironmentIsolation({
     ...(strictEnvironment ? { strictEnvironment: options.target } : {}),
   });
-  if (strictEnvironment && !options.promotion) {
+  let publication = stagingEvidence?.publication;
+  if (strictEnvironment && !options.promotion && process.env.PUBLICATION_ID) {
+    assert(
+      process.env.STOREFRONT_BUILD_MODE === "public" && process.env.STOREFRONT_EXPERIENCE_FILE,
+      "Formal publication requires an explicit public build input",
+    );
+    const contents = await readFile(resolve(process.env.STOREFRONT_EXPERIENCE_FILE), "utf8");
+    const input = storefrontPublicationBuildInputSchema.parse(JSON.parse(contents));
+    const owner = snapshots.find(
+      (snapshot) => snapshot.environment === process.env.SOURCE_ENVIRONMENT,
+    );
+    assertPublicBuildInput(input, {
+      publicationId: process.env.PUBLICATION_ID,
+      sourceEnvironment: process.env.SOURCE_ENVIRONMENT ?? "",
+      releaseId,
+      sourceApiOrigin: process.env.API_URL ?? "",
+      configuredSourceApiOrigin: owner?.apiVariables.PUBLIC_ORIGIN ?? "",
+    });
+    publication = {
+      publicationId: input.publicationId,
+      sourceEnvironment: input.sourceEnvironment,
+      identity: input.inputIdentity,
+      inputDigest: `sha256:${createHash("sha256").update(contents).digest("hex")}`,
+    };
+  } else if (strictEnvironment && !options.promotion) {
     const staging = snapshots.find((snapshot) => snapshot.environment === "staging");
     assertCatalogReleaseSource({
       releaseId,
@@ -887,6 +1001,7 @@ export async function validateRelease(options: {
     status: passed ? "passed" : "failed",
     gates,
     artifactDigests: digests,
+    ...(publication ? { publication } : {}),
     environmentIsolation: {
       mode: strictEnvironment ? "strict" : "structural",
       environments: snapshots.map((snapshot) => snapshot.environment),
@@ -939,6 +1054,12 @@ if (import.meta.main) {
       reportDigest: process.env.EXPECTED_REPORT_DIGEST ?? "",
       attestationDigest: process.env.EXPECTED_ATTESTATION_DIGEST ?? "",
       deployableDigest: process.env.EXPECTED_DEPLOYABLE_DIGEST ?? "",
+      ...(process.env.PUBLICATION_ID
+        ? {
+            publicationId: process.env.PUBLICATION_ID,
+            sourceEnvironment: process.env.SOURCE_ENVIRONMENT ?? "",
+          }
+        : {}),
     });
     console.log("Validation attestation and deployable artifacts verified");
     process.exit(0);

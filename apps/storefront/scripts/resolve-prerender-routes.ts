@@ -13,7 +13,7 @@ export const productionPlatformRoutes = [
 
 export interface PrerenderExperienceInput {
   catalogRelease?: CanonicalCatalogRelease | CatalogReleaseV3;
-  environment: "preview" | "production";
+  environment: "preview" | "production" | "public";
   presentationMode?: "live";
   themeId?: string;
 }
@@ -23,7 +23,7 @@ export function resolveStorefrontPrerenderRoutes(input: {
   previewBuild: boolean;
   productionRoutes: readonly string[];
 }): string[] {
-  if (!input.previewBuild) {
+  if (!input.previewBuild && input.experience?.environment !== "public") {
     return [...input.productionRoutes, ...productionPlatformRoutes];
   }
   const routes = fashionStoreThemeRoutes;
@@ -35,5 +35,6 @@ export function resolveStorefrontPrerenderRoutes(input: {
     ? themeRoutePaths(routes, "live", liveRelease)
     : themeRoutePaths(routes, "fixture-preview");
   const policyRoutes = liveRelease?.policies.map(({ slug }) => `/policies/${slug}`) ?? [];
-  return [...new Set([...previewRoutes, ...policyRoutes, ...previewPlatformRoutes])];
+  const platformRoutes = input.previewBuild ? previewPlatformRoutes : productionPlatformRoutes;
+  return [...new Set([...previewRoutes, ...policyRoutes, ...platformRoutes])];
 }

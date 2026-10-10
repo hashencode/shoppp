@@ -26,6 +26,10 @@ export type BuildTrigger = (input: {
   environment: string;
   releaseId: string;
   requestId: string;
+  publicationId?: string;
+  sourceEnvironment?: string;
+  operation?: "publish" | "rollback";
+  restoreWorkerVersionId?: string;
 }) => Promise<BuildTriggerResult>;
 
 export async function createPreviewToken(

@@ -1,7 +1,10 @@
+import { createHash } from "node:crypto";
 import {
+  canonicalStorefrontJson,
   canonicalCatalogReleaseSchema,
   catalogReleaseV3Schema,
   experienceSnapshotSchema,
+  storefrontPublicationBuildInputSchema,
 } from "@shoppp/contracts";
 import * as z from "zod";
 
@@ -80,10 +83,48 @@ const livePreviewBuildInputSchema = z
     }
   });
 
+const publicExperienceBuildInputSchema = storefrontPublicationBuildInputSchema.superRefine(
+  (input, context) => {
+    const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
+    if (sha256(input.catalogManifestJson) !== input.inputIdentity.catalogManifestDigest) {
+      context.addIssue({
+        code: "custom",
+        message: "Public Catalog manifest digest does not match retained bytes.",
+        path: ["catalogManifestJson"],
+      });
+    }
+    if (sha256(canonicalStorefrontJson(input.snapshot)) !== input.inputIdentity.snapshotDigest) {
+      context.addIssue({
+        code: "custom",
+        message: "Public Snapshot digest does not match approved bytes.",
+        path: ["snapshot"],
+      });
+    }
+    try {
+      const raw = JSON.parse(input.catalogManifestJson);
+      const release = z.union([catalogReleaseV3Schema, canonicalCatalogReleaseSchema]).parse(raw);
+      if (canonicalStorefrontJson(release) !== canonicalStorefrontJson(input.catalogRelease)) {
+        context.addIssue({
+          code: "custom",
+          message: "Public Catalog input differs from retained manifest.",
+          path: ["catalogRelease"],
+        });
+      }
+    } catch {
+      context.addIssue({
+        code: "custom",
+        message: "Public Catalog manifest is invalid.",
+        path: ["catalogManifestJson"],
+      });
+    }
+  },
+);
+
 export const experienceBuildInputSchema = z.union([
   productionExperienceBuildInputSchema,
   fixturePreviewBuildInputSchema,
   livePreviewBuildInputSchema,
+  publicExperienceBuildInputSchema,
 ]);
 
 export type ExperienceBuildInput = z.infer<typeof experienceBuildInputSchema>;

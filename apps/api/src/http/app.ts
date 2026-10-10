@@ -74,7 +74,21 @@ import {
   contentTransitionRequestSchema,
   navigationMenuWriteRequestSchema,
   navigationTransitionRequestSchema,
+  storefrontPublicationRequestSchema,
+  storefrontPublicationRollbackSchema,
+  storefrontPublicationCallbackSchema,
 } from "@shoppp/contracts";
+
+import {
+  createStorefrontPublication,
+  getActiveStorefrontPublication,
+  getStorefrontPublication,
+  getStorefrontPublicationBuildManifest,
+  getStorefrontPublicationContext,
+  recordStorefrontPublicationResult,
+  requirePublicationHuman,
+  rollbackStorefrontPublication,
+} from "../publishing/storefront-publications";
 
 import {
   acknowledgeAdjustments,
@@ -1039,6 +1053,9 @@ export function createApp(options: CreateAppOptions = {}) {
     }
     const release = await getCanonicalDeployedCatalogRelease(context.env.DB, releaseId, {
       allowStagingProof: context.env.ENVIRONMENT === "staging",
+      environment: context.env.ENVIRONMENT,
+      stagingProofOrigin: context.env.STOREFRONT_ORIGIN,
+      stagingProofManifestDigest: context.req.header("x-storefront-catalog-manifest-digest") ?? "",
     });
     const releaseProduct = release.products.find(
       (product) => product.id === context.req.param("id") && product.status === "published",
@@ -1200,6 +1217,21 @@ export function createApp(options: CreateAppOptions = {}) {
       ),
     ),
   );
+  app.get("/build/storefront-publications/:id", async (context) => {
+    requireBuildCredential(context, options.buildManifestToken ?? context.env.BUILD_MANIFEST_TOKEN);
+    context.header("Cache-Control", "private, no-store");
+    return context.json(
+      await getStorefrontPublicationBuildManifest(context, context.req.param("id")),
+    );
+  });
+  app.post("/build/storefront-publications/:id/status", async (context) => {
+    requireBuildCredential(context, options.buildManifestToken ?? context.env.BUILD_MANIFEST_TOKEN);
+    const input = await parseJson(context, storefrontPublicationCallbackSchema);
+    return context.json({
+      data: await recordStorefrontPublicationResult(context, context.req.param("id"), input),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
   app.get("/build/catalog/releases/:id", async (context) => {
     const expectedToken = options.buildManifestToken ?? context.env.BUILD_MANIFEST_TOKEN;
     requireBuildCredential(context, expectedToken);
@@ -1549,6 +1581,78 @@ export function createApp(options: CreateAppOptions = {}) {
     });
     return context.json({
       data: await getAdminRole(context.env.DB, context.req.param("id")),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/storefront-publications/active", async (context) => {
+    requirePublicationHuman(context);
+    await requirePermission(context, "themes.read", { type: "storefront_publication" });
+    return context.json({
+      data: await getActiveStorefrontPublication(context),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.get("/admin/storefront-publications/:id", async (context) => {
+    requirePublicationHuman(context);
+    await requirePermission(context, "themes.read", {
+      type: "storefront_publication",
+      id: context.req.param("id"),
+    });
+    return context.json({
+      data: await getStorefrontPublication(
+        context.env.DB,
+        context.req.param("id"),
+        context.env.ENVIRONMENT,
+      ),
+      meta: { requestId: context.get("requestId") },
+    });
+  });
+  app.post(
+    "/admin/storefront-publications",
+    async (context, next) => {
+      requirePublicationHuman(context);
+      await requirePermission(context, "themes.publish", { type: "storefront_publication" });
+      await next();
+    },
+    idempotency("storefront.publication.publish"),
+    async (context) => {
+      const input = await parseJson(context, storefrontPublicationRequestSchema);
+      return context.json(
+        {
+          data: await createStorefrontPublication(context, input, options.buildTrigger),
+          meta: { requestId: context.get("requestId") },
+        },
+        202,
+      );
+    },
+  );
+  app.post(
+    "/admin/storefront-publications/rollback",
+    async (context, next) => {
+      requirePublicationHuman(context);
+      await requirePermission(context, "themes.publish", { type: "storefront_publication" });
+      await next();
+    },
+    idempotency("storefront.publication.rollback"),
+    async (context) => {
+      const input = await parseJson(context, storefrontPublicationRollbackSchema);
+      return context.json(
+        {
+          data: await rollbackStorefrontPublication(context, input, options.buildTrigger),
+          meta: { requestId: context.get("requestId") },
+        },
+        202,
+      );
+    },
+  );
+  app.get("/admin/storefront-experiences/drafts/:id/publication-context", async (context) => {
+    requirePublicationHuman(context);
+    await requirePermission(context, "themes.read", {
+      type: "storefront_experience_draft",
+      id: context.req.param("id"),
+    });
+    return context.json({
+      data: await getStorefrontPublicationContext(context, context.req.param("id")),
       meta: { requestId: context.get("requestId") },
     });
   });

@@ -566,7 +566,10 @@ export async function addCartLine(
       );
     }
     const release = await getCanonicalDeployedCatalogRelease(context.env.DB, input.releaseId, {
+      environment: context.env.ENVIRONMENT,
       allowStagingProof: context.env.ENVIRONMENT === "staging",
+      stagingProofOrigin: context.env.STOREFRONT_ORIGIN,
+      stagingProofManifestDigest: context.req.header("x-storefront-catalog-manifest-digest") ?? "",
     });
     const member = release.products.some(
       (product) =>

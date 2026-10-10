@@ -12,6 +12,7 @@ import {
   createValidationAttestation,
   digestArtifact,
   releaseGateEnvironment,
+  parsePublicationEvidence,
   verifyValidationAttestation,
   type ReleaseReport,
   type ValidationAttestation,
@@ -630,4 +631,79 @@ describe("release validation", () => {
       );
     });
   }
+});
+
+describe("formal publication validation evidence", () => {
+  const identity = {
+    catalogReleaseId: "release-2026-08-27",
+    catalogManifestDigest: "a".repeat(64),
+    catalogSourceDigest: "b".repeat(64),
+    experienceSnapshotId: "approved-snapshot",
+    snapshotDigest: "c".repeat(64),
+    contactVersion: "d".repeat(64),
+    experienceVersion: 3,
+    themeId: "fashion-store",
+    themeVersion: "2.0.0",
+    platformContractVersion: "1.0.0",
+  };
+  test("retains owning source identity and input digest without qualifying missing input", () => {
+    const evidence = {
+      publicationId: "publication-approved",
+      sourceEnvironment: "production" as const,
+      identity,
+      inputDigest: `sha256:${"f".repeat(64)}`,
+    };
+    expect(parsePublicationEvidence(evidence)).toEqual(evidence);
+    expect(() =>
+      parsePublicationEvidence({ ...evidence, sourceEnvironment: "development" }),
+    ).toThrow(/protected/);
+    expect(() => parsePublicationEvidence({ ...evidence, inputDigest: "missing" })).toThrow(
+      /digest/,
+    );
+  });
+  test("only build and static verification consume the formal input", () => {
+    const env = {
+      PATH: "/bin",
+      STOREFRONT_BUILD_MODE: "public",
+      STOREFRONT_EXPERIENCE_FILE: "/tmp/approved-input.json",
+    };
+    expect(releaseGateEnvironment("production-builds", env)).toEqual(env);
+    expect(releaseGateEnvironment("static-output", env)).toEqual(env);
+    expect(releaseGateEnvironment("unit-contract", env)).toEqual({ PATH: "/bin" });
+    expect(releaseGateEnvironment("browser-journeys", env)).toEqual({
+      PATH: "/bin",
+      STOREFRONT_REUSE_VALIDATED_BUILD: "1",
+    });
+  });
+  test("deployment evidence binds the requested publication and rejects cross-source reuse", async () => {
+    const fixture = await createEvidenceFixture();
+    fixture.report.publication = {
+      publicationId: "publication-approved",
+      sourceEnvironment: "production" as const,
+      identity,
+      inputDigest: `sha256:${"f".repeat(64)}`,
+    };
+    await persistEvidenceFixture(fixture);
+    await expect(
+      verifyValidationAttestation({
+        ...fixture.expected,
+        publicationId: "publication-approved",
+        sourceEnvironment: "production",
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      verifyValidationAttestation({
+        ...fixture.expected,
+        publicationId: "publication-approved",
+        sourceEnvironment: "staging",
+      }),
+    ).rejects.toThrow(/publication source/);
+    await expect(
+      verifyValidationAttestation({
+        ...fixture.expected,
+        publicationId: "another-publication",
+        sourceEnvironment: "production",
+      }),
+    ).rejects.toThrow(/publication source/);
+  });
 });

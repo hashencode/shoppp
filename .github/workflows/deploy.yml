@@ -15,6 +15,15 @@ on:
         description: Approved immutable catalog release ID
         required: true
         type: string
+      publication_id:
+        description: Authorized approved storefront publication; empty keeps catalog delivery
+        required: false
+        type: string
+      source_environment:
+        description: Owning protected API environment for the publication
+        required: false
+        default: staging
+        type: string
       promote_production:
         description: Promote the proven candidate to production
         required: true
@@ -82,12 +91,21 @@ jobs:
         run: |
           echo "A staging rollback rehearsal cannot promote production." >&2
           exit 1
+      - name: Validate formal publication environment before protected jobs
+        if: ${{ inputs.publication_id != '' }}
+        env:
+          SOURCE_ENVIRONMENT: ${{ inputs.source_environment }}
+          REHEARSE_STAGING_ROLLBACK: ${{ inputs.rehearse_staging_rollback }}
+        run: |
+          [[ "$SOURCE_ENVIRONMENT" == "staging" || "$SOURCE_ENVIRONMENT" == "production" ]]
+          test "$REHEARSE_STAGING_ROLLBACK" = "false"
       - name: Verify trusted deployment request before credentials
         id: request
         run: bun tools/ci-trusted-source-preflight.ts --mode deploy
 
   validate:
-    needs: preflight
+    needs: [preflight, publication-request]
+    if: ${{ always() && needs.preflight.result == 'success' && (inputs.publication_id == '' || needs.publication-request.outputs.operation == 'publish') }}
     permissions:
       contents: read
     uses: ./.github/workflows/full-validation.yml
@@ -95,6 +113,8 @@ jobs:
       source_sha: ${{ needs.preflight.outputs.source_sha }}
       source_ref: ${{ inputs.source_ref }}
       release_id: ${{ inputs.release_id }}
+      publication_id: ${{ inputs.publication_id }}
+      source_environment: ${{ inputs.source_environment }}
     secrets:
       BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
 
@@ -133,7 +153,7 @@ jobs:
 
   record-validation-failure:
     needs: [preflight, validate]
-    if: ${{ always() && needs.preflight.result == 'success' && needs.validate.result == 'failure' }}
+    if: ${{ always() && needs.preflight.result == 'success' && needs.validate.result == 'failure' && inputs.publication_id == '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     environment: staging
@@ -154,6 +174,7 @@ jobs:
 
   deploy-staging:
     needs: [validate, verify-deployment-inputs]
+    if: ${{ inputs.publication_id == '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     environment: staging
@@ -334,6 +355,7 @@ jobs:
 
   prove-staging:
     needs: [validate, deploy-staging]
+    if: ${{ inputs.publication_id == '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 55
     environment: staging
@@ -697,8 +719,8 @@ jobs:
           path: artifacts/staging-restoration/
 
   approve-human-access:
-    needs: prove-staging
-    if: ${{ inputs.promote_production }}
+    needs: [prove-staging, publication-request, publication-staging]
+    if: ${{ always() && inputs.promote_production && ((inputs.publication_id == '' && needs.prove-staging.result == 'success') || (inputs.publication_id != '' && inputs.source_environment == 'production' && needs.publication-request.result == 'success' && (needs.publication-staging.result == 'success' || needs.publication-request.outputs.operation == 'rollback'))) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment: staging-human-access
@@ -752,8 +774,8 @@ jobs:
           path: artifacts/access-evidence/
 
   approve-production:
-    needs: [validate, prove-staging, approve-human-access]
-    if: ${{ inputs.promote_production }}
+    needs: [validate, prove-staging, approve-human-access, publication-request, publication-staging]
+    if: ${{ always() && inputs.promote_production && needs.approve-human-access.result == 'success' && ((inputs.publication_id == '' && needs.validate.result == 'success' && needs.prove-staging.result == 'success') || (inputs.publication_id != '' && inputs.source_environment == 'production' && needs.publication-request.result == 'success' && (needs.publication-staging.result == 'success' || needs.publication-request.outputs.operation == 'rollback'))) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions: {}
@@ -784,7 +806,7 @@ jobs:
 
   promote-production:
     needs: [validate, verify-deployment-inputs, prove-staging, approve-production]
-    if: ${{ inputs.promote_production }}
+    if: ${{ inputs.promote_production && inputs.publication_id == '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     environment: production
@@ -935,3 +957,293 @@ jobs:
           (cd apps/api && bunx wrangler versions deploy --env production --version-tag "$RELEASE_TAG" --message "$RELEASE_ID approved by $APPROVED_BY after backup $PRODUCTION_BACKUP_ID" --yes)
           (cd apps/admin && bunx wrangler versions deploy --env production --version-tag "$RELEASE_TAG" --message "$RELEASE_ID approved by $APPROVED_BY after backup $PRODUCTION_BACKUP_ID" --yes)
           (cd apps/storefront && bunx wrangler versions deploy --env production --version-tag "$RELEASE_TAG" --message "$RELEASE_ID approved by $APPROVED_BY after backup $PRODUCTION_BACKUP_ID" --yes)
+
+  publication-request:
+    needs: preflight
+    if: ${{ inputs.publication_id != '' && (inputs.source_environment == 'staging' || inputs.source_environment == 'production') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: ${{ inputs.source_environment }}
+    permissions:
+      contents: read
+    outputs:
+      operation: ${{ steps.publication.outputs.operation }}
+      source_api_origin: ${{ steps.publication.outputs.source_api_origin }}
+    env:
+      PUBLICATION_ID: ${{ inputs.publication_id }}
+      SOURCE_ENVIRONMENT: ${{ inputs.source_environment }}
+      RELEASE_EXPECTED_COMMIT: ${{ needs.preflight.outputs.source_sha }}
+      API_URL: ${{ vars.API_URL }}
+      BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ needs.preflight.outputs.source_sha }}
+          persist-credentials: false
+          clean: true
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
+        with:
+          bun-version: 1.3.5
+      - run: bun install --frozen-lockfile --ignore-scripts
+      - name: Bind the authorized immutable publication to this protected run
+        id: publication
+        run: bun tools/storefront-publication.ts fetch --input .artifacts/storefront-publication/input.json --metadata .artifacts/storefront-publication/publication.json
+      - name: Require explicit production gates before continuing a production publication
+        if: ${{ inputs.source_environment == 'production' }}
+        env:
+          PROMOTE_PRODUCTION: ${{ inputs.promote_production }}
+          PRODUCTION_CONFIRMATION: ${{ inputs.production_confirmation }}
+          PRODUCTION_BACKUP_ID: ${{ inputs.production_backup_id }}
+          HUMAN_ACCESS_EVIDENCE_ID: ${{ inputs.human_access_evidence_id }}
+        run: |
+          test "$PROMOTE_PRODUCTION" = "true"
+          test "$PRODUCTION_CONFIRMATION" = "PROMOTE $RELEASE_ID"
+          test -n "$PRODUCTION_BACKUP_ID"
+          test -n "$HUMAN_ACCESS_EVIDENCE_ID"
+      - name: Record recoverable missing production gate
+        if: ${{ failure() && steps.publication.outcome == 'success' }}
+        env:
+          PUBLICATION_FAILURE_CODE: production_gate_required
+        run: bun tools/storefront-publication.ts fail
+      - name: Retain the run-bound authorized input without credentials
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: publication-input-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .artifacts/storefront-publication/
+          if-no-files-found: error
+          retention-days: 90
+          include-hidden-files: true
+
+  publication-staging:
+    needs: [preflight, publication-request, validate, verify-deployment-inputs]
+    if: ${{ always() && inputs.publication_id != '' && needs.publication-request.result == 'success' && ((needs.publication-request.outputs.operation == 'publish' && needs.validate.result == 'success' && needs.verify-deployment-inputs.result == 'success') || (needs.publication-request.outputs.operation == 'rollback' && inputs.source_environment == 'staging')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    environment: staging
+    permissions:
+      actions: read
+      contents: read
+    env:
+      PUBLICATION_ID: ${{ inputs.publication_id }}
+      SOURCE_ENVIRONMENT: ${{ inputs.source_environment }}
+      ACTIVATION_ENVIRONMENT: staging
+      API_URL: ${{ needs.publication-request.outputs.source_api_origin }}
+      RELEASE_EXPECTED_COMMIT: ${{ needs.preflight.outputs.source_sha }}
+      API_E2E_BASE_URL: ${{ vars.API_URL }}
+      ADMIN_E2E_BASE_URL: ${{ vars.ADMIN_URL }}
+      STOREFRONT_E2E_BASE_URL: ${{ vars.STOREFRONT_URL }}
+      E2E_ADMIN_SERVICE_SUBJECT: ${{ vars.ADMIN_SERVICE_SUBJECT }}
+      E2E_PROHIBITED_ADMIN_SERVICE_SUBJECT: ${{ vars.PROHIBITED_ADMIN_SERVICE_SUBJECT }}
+      E2E_ORDER_REFERENCE: ${{ vars.ORDER_REFERENCE }}
+      E2E_PRODUCT_SLUG: ${{ vars.PRODUCT_SLUG }}
+      E2E_OPERATOR_EMAIL: ${{ vars.OPERATOR_EMAIL }}
+      E2E_LAST_KNOWN_GOOD_RELEASE_ID: ${{ vars.LAST_KNOWN_GOOD_RELEASE_ID }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ needs.preflight.outputs.source_sha }}
+          persist-credentials: false
+          clean: true
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
+        with:
+          bun-version: 1.3.5
+      - run: bun install --frozen-lockfile --ignore-scripts
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: publication-input-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .artifacts/storefront-publication/
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        if: ${{ needs.publication-request.outputs.operation == 'publish' }}
+        with:
+          name: ${{ needs.validate.outputs.artifact_name }}
+      - name: Verify same-run public artifact before target credentials
+        if: ${{ needs.publication-request.outputs.operation == 'publish' }}
+        env:
+          EXPECTED_ATTESTATION_DIGEST: ${{ needs.validate.outputs.attestation_digest }}
+          EXPECTED_DEPLOYABLE_DIGEST: ${{ needs.validate.outputs.deployable_digest }}
+          EXPECTED_REPORT_DIGEST: ${{ needs.validate.outputs.report_digest }}
+          RELEASE_EXPECTED_TREE: ${{ needs.validate.outputs.source_tree }}
+          RELEASE_GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          RELEASE_GITHUB_RUN_ID: ${{ github.run_id }}
+        run: bun tools/release-validate.ts --verify-attestation
+      - run: bunx playwright install --with-deps chromium
+      - name: Capture exact storefront baseline before mutation
+        env:
+          API_URL: ${{ needs.publication-request.outputs.source_api_origin }}
+          BUILD_MANIFEST_TOKEN: ${{ inputs.source_environment == 'staging' && secrets.BUILD_MANIFEST_TOKEN || '' }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          STOREFRONT_WORKER_NAME: shoppp-storefront-staging
+          STOREFRONT_URL: ${{ vars.STOREFRONT_URL }}
+          EXPECTED_DEPLOYABLE_DIGEST: ${{ needs.validate.outputs.deployable_digest }}
+          EXPECTED_REPORT_DIGEST: ${{ needs.validate.outputs.report_digest }}
+          PROOF_ONLY: ${{ inputs.source_environment == 'production' }}
+        run: |
+          proof_options=()
+          if [ "$PROOF_ONLY" = "true" ]; then proof_options+=(--proof-only); fi
+          bun tools/storefront-publication.ts capture --metadata .artifacts/storefront-publication/publication.json \
+            --baseline .artifacts/storefront-publication/baseline.json "${proof_options[@]}"
+      - name: Preserve exact storefront baseline before mutation
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: publication-baseline-staging-${{ inputs.publication_id }}-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .artifacts/storefront-publication/baseline.json
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 90
+      - name: Prove public storefront in isolated staging and recover exact baseline on failure
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          BUILD_MANIFEST_TOKEN: ${{ inputs.source_environment == 'staging' && secrets.BUILD_MANIFEST_TOKEN || '' }}
+          STOREFRONT_WORKER_NAME: shoppp-storefront-staging
+          STOREFRONT_URL: ${{ vars.STOREFRONT_URL }}
+          EXPECTED_DEPLOYABLE_DIGEST: ${{ needs.validate.outputs.deployable_digest }}
+          EXPECTED_REPORT_DIGEST: ${{ needs.validate.outputs.report_digest }}
+          E2E_ADMIN_SERVICE_TOKEN: ${{ secrets.ADMIN_SERVICE_TOKEN }}
+          E2E_PROHIBITED_ADMIN_SERVICE_TOKEN: ${{ secrets.PROHIBITED_ADMIN_SERVICE_TOKEN }}
+          E2E_STRIPE_TEST_CARD: ${{ secrets.STRIPE_TEST_CARD }}
+          PROOF_ONLY: ${{ inputs.source_environment == 'production' }}
+        run: |
+          proof_options=()
+          if [ "$PROOF_ONLY" = "true" ]; then proof_options+=(--proof-only); fi
+          bun tools/storefront-publication.ts deliver --metadata .artifacts/storefront-publication/publication.json --baseline .artifacts/storefront-publication/baseline.json "${proof_options[@]}" \
+            --proof-command 'bunx playwright test --config e2e/playwright.config.ts && bun tools/verify-release-staging-latency.ts'
+
+  publication-production:
+    needs:
+      [
+        preflight,
+        publication-request,
+        validate,
+        verify-deployment-inputs,
+        publication-staging,
+        approve-production,
+      ]
+    if: ${{ always() && inputs.publication_id != '' && inputs.source_environment == 'production' && inputs.promote_production && needs.publication-request.result == 'success' && needs.approve-production.result == 'success' && ((needs.publication-request.outputs.operation == 'publish' && needs.publication-staging.result == 'success' && needs.verify-deployment-inputs.result == 'success') || needs.publication-request.outputs.operation == 'rollback') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: production
+    permissions:
+      actions: read
+      contents: read
+    env:
+      PUBLICATION_ID: ${{ inputs.publication_id }}
+      SOURCE_ENVIRONMENT: production
+      ACTIVATION_ENVIRONMENT: production
+      RELEASE_EXPECTED_COMMIT: ${{ needs.preflight.outputs.source_sha }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ needs.preflight.outputs.source_sha }}
+          persist-credentials: false
+          clean: true
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
+        with:
+          bun-version: 1.3.5
+      - run: bun install --frozen-lockfile --ignore-scripts
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: publication-input-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .artifacts/storefront-publication/
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        if: ${{ needs.publication-request.outputs.operation == 'publish' }}
+        with:
+          name: ${{ needs.validate.outputs.artifact_name }}
+      - name: Verify same validated public artifact before production credentials
+        if: ${{ needs.publication-request.outputs.operation == 'publish' }}
+        env:
+          EXPECTED_ATTESTATION_DIGEST: ${{ needs.validate.outputs.attestation_digest }}
+          EXPECTED_DEPLOYABLE_DIGEST: ${{ needs.validate.outputs.deployable_digest }}
+          EXPECTED_REPORT_DIGEST: ${{ needs.validate.outputs.report_digest }}
+          RELEASE_EXPECTED_TREE: ${{ needs.validate.outputs.source_tree }}
+          RELEASE_GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          RELEASE_GITHUB_RUN_ID: ${{ github.run_id }}
+        run: bun tools/release-validate.ts --verify-attestation
+      - name: Verify approved recent production backup
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PRODUCTION_BACKUP_ID: ${{ needs.approve-production.outputs.backup_id }}
+        run: |
+          backup_json="$(
+            cd apps/api
+            bunx wrangler d1 execute shoppp-production \
+              --env production \
+              --remote \
+              --json \
+              --command "SELECT id FROM d1_backup_runs WHERE id = '$PRODUCTION_BACKUP_ID' AND environment = 'production' AND status = 'ready' AND datetime(completed_at) >= datetime('now', '-24 hours') LIMIT 1"
+          )"
+          jq --exit-status \
+            --arg id "$PRODUCTION_BACKUP_ID" \
+            'any(.[]?.results[]?; .id == $id)' \
+            <<< "$backup_json" >/dev/null
+      - name: Capture exact storefront baseline before mutation
+        env:
+          API_URL: ${{ vars.API_URL }}
+          BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          STOREFRONT_WORKER_NAME: shoppp-storefront-production
+          STOREFRONT_URL: ${{ vars.STOREFRONT_URL }}
+          EXPECTED_DEPLOYABLE_DIGEST: ${{ needs.validate.outputs.deployable_digest }}
+          EXPECTED_REPORT_DIGEST: ${{ needs.validate.outputs.report_digest }}
+        run: |
+          bun tools/storefront-publication.ts capture --metadata .artifacts/storefront-publication/publication.json \
+            --baseline .artifacts/storefront-publication/baseline.json
+      - name: Preserve exact storefront baseline before mutation
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: publication-baseline-production-${{ inputs.publication_id }}-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .artifacts/storefront-publication/baseline.json
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 90
+      - name: Activate exact approved storefront and verify online receipt
+        env:
+          API_URL: ${{ vars.API_URL }}
+          BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          STOREFRONT_WORKER_NAME: shoppp-storefront-production
+          STOREFRONT_URL: ${{ vars.STOREFRONT_URL }}
+          EXPECTED_DEPLOYABLE_DIGEST: ${{ needs.validate.outputs.deployable_digest }}
+          EXPECTED_REPORT_DIGEST: ${{ needs.validate.outputs.report_digest }}
+        run: bun tools/storefront-publication.ts deliver --metadata .artifacts/storefront-publication/publication.json --baseline .artifacts/storefront-publication/baseline.json
+
+  publication-failure:
+    needs:
+      [
+        preflight,
+        publication-request,
+        validate,
+        verify-deployment-inputs,
+        publication-staging,
+        approve-human-access,
+        approve-production,
+        publication-production,
+      ]
+    if: ${{ always() && inputs.publication_id != '' && needs.publication-request.result == 'success' && needs.publication-production.result == 'skipped' && (needs.validate.result == 'failure' || needs.verify-deployment-inputs.result == 'failure' || needs.approve-human-access.result == 'failure' || needs.approve-production.result == 'failure' || (inputs.source_environment == 'production' && needs.publication-staging.result == 'failure')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: ${{ inputs.source_environment }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ needs.preflight.outputs.source_sha }}
+          persist-credentials: false
+          clean: true
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
+        with:
+          bun-version: 1.3.5
+      - run: bun install --frozen-lockfile --ignore-scripts
+      - name: Record failure before the owning storefront was changed
+        env:
+          API_URL: ${{ vars.API_URL }}
+          BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
+          PUBLICATION_ID: ${{ inputs.publication_id }}
+          SOURCE_ENVIRONMENT: ${{ inputs.source_environment }}
+          RELEASE_EXPECTED_COMMIT: ${{ needs.preflight.outputs.source_sha }}
+        run: bun tools/storefront-publication.ts fail
