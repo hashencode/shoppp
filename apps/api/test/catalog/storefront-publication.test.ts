@@ -4,16 +4,20 @@ import {
   canonicalStorefrontJson,
   catalogReleaseV3Schema,
   experienceSnapshotSchema,
+  type Cart,
   type StorefrontPublication,
+  type StorefrontPublicationContext,
   type StorefrontPublicationIdentity,
   type StorefrontPublicationReceipt,
 } from "@shoppp/contracts";
 import releaseFixture from "../../../storefront/fixtures/release.json";
 import { fashionStoreSuccessorPackage } from "../../../storefront/app/themes/fashion-store/package-registry";
+import storefrontWorker from "../../../storefront/worker";
 import { createApp } from "../../src/http/app";
 import { sha256Hex } from "../../src/orders/tokens";
 import { getCanonicalDeployedCatalogRelease } from "../../src/storefront-experience/catalog-resources";
 import type { BuildTrigger } from "../../src/publishing/releases";
+import type { PaymentProvider } from "../../src/payments/port";
 import { ADMIN_ROLE_IDS, seedHumanAdmin, seedServiceAdmin } from "../fixtures/admin-iam";
 
 const token = "storefront-publication-build-token-00000001";
@@ -30,10 +34,14 @@ function request(path: string, body?: unknown, subject = "publication-admin") {
     },
   });
 }
-function app(trigger: BuildTrigger = vi.fn(async () => ({ correlationId: "publication-run" }))) {
+function app(
+  trigger: BuildTrigger = vi.fn(async () => ({ correlationId: "publication-run" })),
+  paymentProvider?: PaymentProvider,
+) {
   return createApp({
     buildManifestToken: token,
     buildTrigger: trigger,
+    ...(paymentProvider ? { paymentProvider } : {}),
     testIdentityVerifier: async (identity) =>
       identity === "publication-service"
         ? {
@@ -297,6 +305,57 @@ async function activate(api: App, publication: StorefrontPublication, version = 
   );
 }
 
+async function seedPublicCommerce() {
+  const now = new Date().toISOString();
+  const product = releaseFixture.products[0]!;
+  const variant = product.variants[0]!;
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT OR IGNORE INTO products (id, slug, name, description, status, seo_title, seo_description, published_at, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 'published', ?, ?, ?, ?, ?)`,
+    ).bind(
+      product.id,
+      product.slug,
+      product.name,
+      product.description,
+      product.seoTitle,
+      product.seoDescription,
+      now,
+      now,
+      now,
+    ),
+    env.DB.prepare(
+      `INSERT OR IGNORE INTO product_variants (id, product_id, sku, title, option_values_json, weight_grams, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
+    ).bind(
+      variant.id,
+      product.id,
+      variant.sku,
+      variant.title,
+      JSON.stringify(variant.optionValues),
+      variant.weightGrams,
+      now,
+      now,
+    ),
+    env.DB.prepare(
+      `INSERT OR IGNORE INTO price_lists (id, code, currency, status, created_at, updated_at)
+      VALUES ('publication-usd', 'PUBLICATION-USD', 'USD', 'active', ?, ?)`,
+    ).bind(now, now),
+    env.DB.prepare(
+      `INSERT OR IGNORE INTO prices (id, price_list_id, variant_id, amount, created_at, updated_at)
+      VALUES ('publication-price', 'publication-usd', ?, 12900, ?, ?)`,
+    ).bind(variant.id, now, now),
+    env.DB.prepare(
+      "INSERT OR IGNORE INTO warehouses (id, code, name, created_at) VALUES ('publication-wh', 'PUBLICATION', 'Publication warehouse', ?)",
+    ).bind(now),
+    env.DB.prepare(
+      `INSERT OR IGNORE INTO inventory_items (variant_id, warehouse_id, on_hand_quantity, reserved_quantity, oversell_limit, version, updated_at)
+      VALUES (?, 'publication-wh', 10, 0, 0, 0, ?)`,
+    ).bind(variant.id, now),
+  ]);
+  return { product, variant };
+}
+
 describe("formal storefront publication", () => {
   beforeAll(async () => {
     await seedHumanAdmin(env.DB, {
@@ -381,6 +440,49 @@ describe("formal storefront publication", () => {
       ),
     );
     expect(context.approval).toMatchObject({ identity: input.identity, sourceDraftVersion: 1 });
+  });
+  test("restores environment publication history and pending work across drafts", async () => {
+    const api = app();
+    const previousInput = await seedApproval(api);
+    const previous = await activate(api, await publish(api, previousInput));
+    const pendingInput = await seedApproval(api);
+    const pending = await publish(api, pendingInput, previous.id);
+    const currentInput = await seedApproval(api);
+    const otherEnvironmentInput = await seedApproval(api, "production");
+    const { manifestJson: _manifest, ...otherEnvironmentBody } = otherEnvironmentInput;
+    const otherEnvironment = await data<StorefrontPublication>(
+      await api.fetch(request("/admin/storefront-publications", otherEnvironmentBody), {
+        ...env,
+        ENVIRONMENT: "production",
+        RESOURCE_NAMESPACE: "shoppp-production",
+      }),
+    );
+
+    const context = await data<StorefrontPublicationContext>(
+      await api.fetch(
+        request(`/admin/storefront-experiences/drafts/${currentInput.draftId}/publication-context`),
+        env,
+      ),
+    );
+    expect(context).toMatchObject({
+      environment: "staging",
+      approval: { sourceDraftId: currentInput.draftId, identity: currentInput.identity },
+      active: { publication: { id: previous.id }, verification: "verified" },
+    });
+    expect(context.publications).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: pending.id, status: "queued", receipt: null }),
+        expect.objectContaining({
+          id: previous.id,
+          status: "succeeded",
+          receipt: previous.receipt,
+        }),
+      ]),
+    );
+    expect(context.publications.every((publication) => publication.environment === "staging")).toBe(
+      true,
+    );
+    expect(context.publications.map(({ id }) => id)).not.toContain(otherEnvironment.id);
   });
   test("rejects approval identity, draft, Contact and source environment drift", async () => {
     const api = app();
@@ -705,53 +807,7 @@ describe("formal storefront publication", () => {
     const api = app();
     const input = await seedApproval(api);
     const publication = await publish(api, input);
-    const now = new Date().toISOString();
-    const product = releaseFixture.products[0]!;
-    const variant = product.variants[0]!;
-    await env.DB.batch([
-      env.DB.prepare(
-        `INSERT INTO products (id, slug, name, description, status, seo_title, seo_description, published_at, created_at, updated_at)
-        VALUES (?, ?, ?, ?, 'published', ?, ?, ?, ?, ?)`,
-      ).bind(
-        product.id,
-        product.slug,
-        product.name,
-        product.description,
-        product.seoTitle,
-        product.seoDescription,
-        now,
-        now,
-        now,
-      ),
-      env.DB.prepare(
-        `INSERT INTO product_variants (id, product_id, sku, title, option_values_json, weight_grams, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
-      ).bind(
-        variant.id,
-        product.id,
-        variant.sku,
-        variant.title,
-        JSON.stringify(variant.optionValues),
-        variant.weightGrams,
-        now,
-        now,
-      ),
-      env.DB.prepare(
-        `INSERT INTO price_lists (id, code, currency, status, created_at, updated_at)
-        VALUES ('publication-usd', 'PUBLICATION-USD', 'USD', 'active', ?, ?)`,
-      ).bind(now, now),
-      env.DB.prepare(
-        `INSERT INTO prices (id, price_list_id, variant_id, amount, created_at, updated_at)
-        VALUES ('publication-price', 'publication-usd', ?, 12900, ?, ?)`,
-      ).bind(variant.id, now, now),
-      env.DB.prepare(
-        "INSERT INTO warehouses (id, code, name, created_at) VALUES ('publication-wh', 'PUBLICATION', 'Publication warehouse', ?)",
-      ).bind(now),
-      env.DB.prepare(
-        `INSERT INTO inventory_items (variant_id, warehouse_id, on_hand_quantity, reserved_quantity, oversell_limit, version, updated_at)
-        VALUES (?, 'publication-wh', 10, 0, 0, 0, ?)`,
-      ).bind(variant.id, now),
-    ]);
+    const { product, variant } = await seedPublicCommerce();
     const cart = await data<{ token: string }>(
       await api.fetch(
         new Request("https://api.example.test/cart", {
@@ -902,6 +958,267 @@ describe("formal storefront publication", () => {
       ).status,
     ).toBe(422);
   }, 20_000);
+  test("keeps public carts usable through a new activation and rollback while isolating private preview", async () => {
+    const createHostedSession = vi.fn<PaymentProvider["createHostedSession"]>(async (input) => ({
+      id: `cs_test_${input.attemptId}`,
+      attemptId: input.attemptId,
+      amountTotal: input.snapshot.totals.grandTotal,
+      currency: input.snapshot.currency,
+      createdAt: new Date().toISOString(),
+      expiresAt: input.expiresAt,
+      paymentState: "pending",
+      url: `https://checkout.stripe.test/${input.attemptId}`,
+    }));
+    const unusedProviderCall = async (): Promise<never> => {
+      throw new Error("Only hosted session creation is expected.");
+    };
+    const api = app(undefined, {
+      name: "stripe",
+      createHostedSession,
+      createRefund: unusedProviderCall,
+      retrieveRefund: unusedProviderCall,
+      retrieveSession: unusedProviderCall,
+      verifyWebhook: unusedProviderCall,
+    });
+    const { product, variant } = await seedPublicCommerce();
+    const shippingMethodId = `ship_${"S".repeat(26)}`;
+    const zoneId = `zone_${"Z".repeat(26)}`;
+    const now = new Date().toISOString();
+    await env.DB.batch([
+      env.DB.prepare(
+        "INSERT INTO shipping_zones (id, name, status, created_at, updated_at) VALUES (?, 'Publication US', 'active', ?, ?)",
+      ).bind(zoneId, now, now),
+      env.DB.prepare(
+        "INSERT INTO shipping_zone_countries (zone_id, country_code) VALUES (?, 'US')",
+      ).bind(zoneId),
+      env.DB.prepare(
+        `INSERT INTO shipping_methods (id, zone_id, name, calculation_type, price_amount, currency,
+         status, created_at, updated_at) VALUES (?, ?, 'Ground', 'flat', 700, 'USD', 'active', ?, ?)`,
+      ).bind(shippingMethodId, zoneId, now, now),
+    ]);
+    const shippingAddress = {
+      city: "Portland",
+      countryCode: "US",
+      line1: "100 Market Street",
+      name: "Example Shopper",
+      postalCode: "97205",
+      region: "OR",
+    };
+    const firstInput = await seedApproval(api);
+    const first = await activate(api, await publish(api, firstInput), "worker-cart-a");
+    let installed = first;
+    const publicRequest = (
+      path: string,
+      cartToken?: string,
+      body?: unknown,
+      method = body === undefined ? "GET" : "POST",
+      idempotencyKey = crypto.randomUUID(),
+    ) =>
+      storefrontWorker.fetch(
+        new Request(`${env.STOREFRONT_ORIGIN}/api${path}`, {
+          method,
+          ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": idempotencyKey,
+            "X-Preview-Catalog-Release": "browser-spoofed-private-release",
+            "X-Storefront-Catalog-Release": "browser-spoofed-public-release",
+            "X-Storefront-Catalog-Manifest-Digest": "f".repeat(64),
+            ...(cartToken ? { Authorization: `CartToken ${cartToken}` } : {}),
+          },
+        }),
+        {
+          API: { fetch: async (request) => api.fetch(request, env) },
+          ASSETS: {
+            fetch: async () =>
+              Response.json({
+                schemaVersion: 1,
+                sourceEnvironment: installed.environment,
+                identity: installed.identity,
+              }),
+          },
+          CF_VERSION_METADATA: { id: installed.receipt!.workerVersionId },
+        },
+      );
+    const createReleaseCart = async () => {
+      const created = await data<{ cart: Cart; token: string }>(
+        await publicRequest("/cart", undefined, { currency: "USD" }),
+      );
+      const added = await publicRequest("/cart/lines", created.token, {
+        quantity: 1,
+        releaseId: "browser-spoofed-body-release",
+        variantId: variant.id,
+      });
+      expect(added.status).toBe(200);
+      expect(
+        await env.DB.prepare("SELECT pricing_context_json FROM carts WHERE id = ?")
+          .bind(created.cart.id)
+          .first<{ pricing_context_json: string }>(),
+      ).toEqual({
+        pricing_context_json: expect.stringContaining(installed.identity.catalogReleaseId),
+      });
+      return created;
+    };
+    const checkout = async (cart: { cart: Cart; token: string }) => {
+      expect(
+        (
+          await publicRequest(
+            "/cart/shipping",
+            cart.token,
+            { shippingAddress, shippingMethodId },
+            "PUT",
+          )
+        ).status,
+      ).toBe(200);
+      const idempotencyKey = crypto.randomUUID();
+      const body = {
+        acceptTerms: true,
+        cartId: cart.cart.id,
+        countryCode: "US",
+        currency: "USD",
+        email: "shopper@example.test",
+        idempotencyKey,
+        shippingAddress,
+        shippingMethodId,
+      };
+      return publicRequest("/checkout/sessions", cart.token, body, "POST", idempotencyKey);
+    };
+    const cartA = await createReleaseCart();
+    const retainedCartA = await createReleaseCart();
+    vi.restoreAllMocks();
+    const second = await activate(
+      api,
+      await publish(api, await seedApproval(api), first.id),
+      "worker-cart-b",
+    );
+    installed = second;
+    expect((await publicRequest(`/catalog/products/by-id/${product.id}/live`)).status).toBe(200);
+    expect((await publicRequest("/cart", cartA.token)).status).toBe(200);
+    expect(
+      (await publicRequest(`/cart/lines/${variant.id}`, cartA.token, { quantity: 2 }, "PATCH"))
+        .status,
+    ).toBe(200);
+    const foreignNewLine = await publicRequest("/cart/lines", cartA.token, {
+      quantity: 1,
+      variantId: variant.id,
+    });
+    expect(foreignNewLine.status).toBe(409);
+    expect(await foreignNewLine.json()).toMatchObject({ error: { code: "cart_release_conflict" } });
+    for (const path of ["/cart", "/checkout/sessions"]) {
+      const privateMismatch = await api.fetch(
+        new Request(`https://api.example.test${path}`, {
+          ...(path === "/checkout/sessions" ? { method: "POST", body: "{}" } : {}),
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": crypto.randomUUID(),
+            Authorization: `CartToken ${retainedCartA.token}`,
+            "X-Preview-Catalog-Release": second.identity.catalogReleaseId,
+            "X-Storefront-Catalog-Release": first.identity.catalogReleaseId,
+          },
+        }),
+        env,
+      );
+      expect(privateMismatch.status).toBe(409);
+      expect(await privateMismatch.json()).toMatchObject({
+        error: { code: "cart_release_conflict" },
+      });
+    }
+    expect(createHostedSession).not.toHaveBeenCalled();
+    expect((await checkout(cartA)).status).toBe(201);
+    const cartB = await createReleaseCart();
+    vi.restoreAllMocks();
+    await env.DB.prepare(
+      "UPDATE catalog_releases SET candidate_status = 'expired', candidate_expires_at = '2000-01-01T00:00:00.000Z' WHERE id IN (?, ?)",
+    )
+      .bind(first.identity.catalogReleaseId, second.identity.catalogReleaseId)
+      .run();
+    const rollback = await data<StorefrontPublication>(
+      await api.fetch(
+        request("/admin/storefront-publications/rollback", {
+          targetPublicationId: first.id,
+          expectedActivePublicationId: second.id,
+          reason: "Restore the previous public store",
+        }),
+        env,
+      ),
+    );
+    installed = await activate(api, rollback, "worker-cart-a");
+    for (const [cart, releaseId] of [
+      [retainedCartA, first.identity.catalogReleaseId],
+      [cartB, second.identity.catalogReleaseId],
+    ] as const) {
+      expect((await publicRequest("/cart", cart.token)).status).toBe(200);
+      expect(
+        (await publicRequest(`/cart/lines/${variant.id}`, cart.token, { quantity: 2 }, "PATCH"))
+          .status,
+      ).toBe(200);
+      expect((await checkout(cart)).status).toBe(201);
+      const stored = await env.DB.prepare("SELECT pricing_context_json FROM carts WHERE id = ?")
+        .bind(cart.cart.id)
+        .first<{ pricing_context_json: string }>();
+      expect(JSON.parse(stored!.pricing_context_json).releaseId).toBe(releaseId);
+    }
+    expect(createHostedSession).toHaveBeenCalledTimes(3);
+  }, 20_000);
+  test.each([true, false])(
+    "finalizes a same-run preparation failure only when the retained baseline is verifiable (%s)",
+    async (baselineAvailable) => {
+      const trigger = vi.fn(async () => ({ correlationId: "preparation-failure-run" }));
+      const api = app(trigger);
+      const baseline = await activate(api, await publish(api, await seedApproval(api)));
+      vi.restoreAllMocks();
+      const input = await seedApproval(api);
+      const pending = await publish(api, input, baseline.id);
+      expect((await callback(api, pending, { ...run, status: "building" })).status).toBe(200);
+      const currentStorefront = serveMarker(observation(baseline));
+      if (!baselineAvailable)
+        currentStorefront.mockResolvedValue(new Response("unavailable", { status: 503 }));
+      const failed = await data<StorefrontPublication>(
+        await callback(api, pending, {
+          ...run,
+          status: "failed",
+          failureCode: "storefront_preparation_failed",
+          restorationVerified: true,
+        }),
+      );
+      expect(currentStorefront).toHaveBeenCalledTimes(1);
+      expect(failed).toMatchObject({
+        status: baselineAvailable ? "failed" : "unresolved",
+        failureCode: "storefront_preparation_failed",
+        ...run,
+      });
+      expect(
+        await env.DB.prepare(
+          "SELECT publication_id FROM storefront_active_publications WHERE environment = 'staging'",
+        ).first<{ publication_id: string }>(),
+      ).toEqual({ publication_id: baseline.id });
+      if (baselineAvailable) {
+        const retry = await publish(api, input, baseline.id);
+        expect(retry.id).not.toBe(pending.id);
+        expect(retry.status).toBe("queued");
+        expect(trigger).toHaveBeenCalledTimes(3);
+      } else {
+        const { manifestJson: _manifest, ...body } = input;
+        const retry = await api.fetch(
+          request("/admin/storefront-publications", {
+            ...body,
+            expectedActivePublicationId: baseline.id,
+          }),
+          env,
+        );
+        expect(retry.status).toBe(409);
+        expect(await retry.json()).toMatchObject({
+          error: { code: "storefront_publication_pending" },
+        });
+        expect(trigger).toHaveBeenCalledTimes(2);
+        expect(
+          await env.DB.prepare(
+            "SELECT id, status FROM storefront_publications WHERE environment = 'staging' AND status IN ('queued', 'building', 'unresolved')",
+          ).first<{ id: string; status: string }>(),
+        ).toEqual({ id: pending.id, status: "unresolved" });
+      }
+    },
+  );
   test("records dispatch failure and uses a new intent for an explicit retry", async () => {
     const failedTrigger = vi.fn(async () => {
       throw new Error("hook failed");

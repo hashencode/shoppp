@@ -226,6 +226,7 @@ describe("public storefront activation marker", () => {
       new Request("https://shop.example.test/api/products/product-1?currency=USD", {
         headers: {
           "X-Preview-Catalog-Release": "browser-release",
+          "X-Storefront-Catalog-Release": "browser-public-release",
           "X-Storefront-Catalog-Manifest-Digest": "b".repeat(64),
         },
       }),
@@ -249,7 +250,8 @@ describe("public storefront activation marker", () => {
     );
     expect(await response.text()).toBe("product");
     expect(upstream!.url).toBe("https://shop.example.test/products/product-1?currency=USD");
-    expect(upstream!.headers.get("X-Preview-Catalog-Release")).toBe(
+    expect(upstream!.headers.get("X-Preview-Catalog-Release")).toBeNull();
+    expect(upstream!.headers.get("X-Storefront-Catalog-Release")).toBe(
       input.inputIdentity.catalogReleaseId,
     );
     expect(upstream!.headers.get("X-Storefront-Catalog-Manifest-Digest")).toBe(
@@ -344,16 +346,38 @@ describe("public storefront activation marker", () => {
     expect(requests).toEqual(["https://shop.example.test/__shoppp-release.json"]);
   });
 
-  test("cannot report activation for a fallback artifact or missing runtime version", async () => {
+  test("cannot report activation for a fallback artifact", async () => {
     const response = await storefrontWorker.fetch(
       new Request("https://shop.example.test/.well-known/shoppp-release"),
       {
         API: { fetch: async () => new Response("unused") },
         ASSETS: { fetch: async () => new Response("not found", { status: 404 }) },
+        CF_VERSION_METADATA: { id: "fallback-worker-version" },
       },
     );
     expect(response.status).toBe(404);
     expect(response.headers.get("Cache-Control")).toBe("no-store");
+  });
+
+  test("cannot report activation for a valid compiled marker without runtime version metadata", async () => {
+    const input = approvedInput();
+    const response = await storefrontWorker.fetch(
+      new Request("https://shop.example.test/.well-known/shoppp-release"),
+      {
+        API: { fetch: async () => new Response("unused") },
+        ASSETS: {
+          fetch: async () =>
+            Response.json({
+              schemaVersion: 1,
+              sourceEnvironment: input.sourceEnvironment,
+              identity: input.inputIdentity,
+            }),
+        },
+      },
+    );
+    expect(response.status).toBe(404);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(await response.text()).toBe("");
   });
 
   test("rejects corrupt compiled markers rather than returning a runtime-only online claim", async () => {

@@ -7,6 +7,7 @@ if (!storefront)
 export default defineConfig({
   testDir: ".",
   testMatch: "*.spec.ts",
+  testIgnore: ["formal-publication-purchase.spec.ts"],
   outputDir: "../test-results/staging",
   forbidOnly: true,
   fullyParallel: false,
@@ -31,6 +32,7 @@ export default defineConfig({
         "storefront-purchase.spec.ts",
         "fashion-store-purchase.spec.ts",
         "admin-access.spec.ts",
+        "formal-publication-purchase.spec.ts",
       ],
     },
   ],

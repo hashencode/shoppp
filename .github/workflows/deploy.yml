@@ -989,6 +989,7 @@ jobs:
         id: publication
         run: bun tools/storefront-publication.ts fetch --input .artifacts/storefront-publication/input.json --metadata .artifacts/storefront-publication/publication.json
       - name: Require explicit production gates before continuing a production publication
+        id: production_gates
         if: ${{ inputs.source_environment == 'production' }}
         env:
           PROMOTE_PRODUCTION: ${{ inputs.promote_production }}
@@ -1000,11 +1001,6 @@ jobs:
           test "$PRODUCTION_CONFIRMATION" = "PROMOTE $RELEASE_ID"
           test -n "$PRODUCTION_BACKUP_ID"
           test -n "$HUMAN_ACCESS_EVIDENCE_ID"
-      - name: Record recoverable missing production gate
-        if: ${{ failure() && steps.publication.outcome == 'success' }}
-        env:
-          PUBLICATION_FAILURE_CODE: production_gate_required
-        run: bun tools/storefront-publication.ts fail
       - name: Retain the run-bound authorized input without credentials
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -1013,6 +1009,12 @@ jobs:
           if-no-files-found: error
           retention-days: 90
           include-hidden-files: true
+
+      - name: Record recoverable request preparation failure
+        if: ${{ failure() && steps.publication.outcome == 'success' }}
+        env:
+          PUBLICATION_FAILURE_CODE: ${{ steps.production_gates.outcome == 'failure' && 'production_gate_required' || 'input_retention_failed' }}
+        run: bun tools/storefront-publication.ts fail
 
   publication-staging:
     needs: [preflight, publication-request, validate, verify-deployment-inputs]
@@ -1038,6 +1040,14 @@ jobs:
       E2E_PRODUCT_SLUG: ${{ vars.PRODUCT_SLUG }}
       E2E_OPERATOR_EMAIL: ${{ vars.OPERATOR_EMAIL }}
       E2E_LAST_KNOWN_GOOD_RELEASE_ID: ${{ vars.LAST_KNOWN_GOOD_RELEASE_ID }}
+      STOREFRONT_PUBLICATION_METADATA: .artifacts/storefront-publication/publication.json
+      PUBLICATION_VALIDATED_SOURCE_SHA: ${{ needs.validate.outputs.source_sha }}
+      PUBLICATION_OPERATION: ${{ needs.publication-request.outputs.operation }}
+      E2E_EXHAUSTED_NOTIFICATION_ID: publication-notification-${{ github.run_id }}-${{ github.run_attempt }}
+      E2E_FAILED_CATALOG_RELEASE_ID: publication-catalog-failure-${{ github.run_id }}-${{ github.run_attempt }}
+      E2E_ADMIN_ACCESS_PROOF_ID: publication-access-${{ github.run_id }}-${{ github.run_attempt }}
+      E2E_ADMIN_ACCESS_PROOF_EMAIL: publication-access+${{ github.run_id }}-${{ github.run_attempt }}@example.test
+      E2E_BUYER_EMAIL: publication-buyer+${{ github.run_id }}-${{ github.run_attempt }}@example.test
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -1066,8 +1076,106 @@ jobs:
           RELEASE_GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
           RELEASE_GITHUB_RUN_ID: ${{ github.run_id }}
         run: bun tools/release-validate.ts --verify-attestation
-      - run: bunx playwright install --with-deps chromium
+      - name: Install staging proof browser
+        if: ${{ needs.publication-request.outputs.operation == 'publish' }}
+        run: bunx playwright install --with-deps chromium
+      - name: Select retained public product and verify REL-prepared staging Commerce
+        if: ${{ needs.publication-request.outputs.operation == 'publish' }}
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          bun e2e/formal-publication-context.ts
+          commerce_json="$(cd apps/api && bunx wrangler d1 execute shoppp-staging --env staging --remote --json --file ../../.artifacts/storefront-publication/commerce-check.sql)"
+          jq --exit-status 'any(.[]?.results[]?; .qualified_variant == 1)' <<<"$commerce_json" >/dev/null || {
+            echo "REL staging Commerce does not match the retained public product, USD price or inventory." >&2
+            exit 1
+          }
+      - name: Provision hashed staging proof service credentials
+        if: ${{ needs.publication-request.outputs.operation == 'publish' }}
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ADMIN_SERVICE_TOKEN: ${{ secrets.ADMIN_SERVICE_TOKEN }}
+          PROHIBITED_SERVICE_TOKEN: ${{ secrets.PROHIBITED_ADMIN_SERVICE_TOKEN }}
+        run: |
+          bun run provision:admin-service --environment test --database shoppp-staging --subject "$E2E_ADMIN_SERVICE_SUBJECT" --name "Staging publication automation"
+          ADMIN_SERVICE_TOKEN="$PROHIBITED_SERVICE_TOKEN" bun run provision:admin-service --environment test --database shoppp-staging --subject "$E2E_PROHIBITED_ADMIN_SERVICE_SUBJECT" --name "Staging prohibited automation"
+      - name: Verify staging administrator auth secret
+        if: ${{ needs.publication-request.outputs.operation == 'publish' }}
+        run: |
+          curl --fail --silent --show-error \
+            --request POST \
+            --header "Content-Type: application/json" \
+            --header "Origin: $ADMIN_E2E_BASE_URL" \
+            --header "Sec-Fetch-Site: same-origin" \
+            --data '{"email":"release-auth-secret-proof@example.test"}' \
+            "$ADMIN_E2E_BASE_URL/api/admin/auth/password-reset/request" >/dev/null
+      - name: Prepare retained product last-unit staging inventory
+        if: ${{ needs.publication-request.outputs.operation == 'publish' }}
+        env:
+          E2E_ADMIN_SERVICE_TOKEN: ${{ secrets.ADMIN_SERVICE_TOKEN }}
+        run: |
+          sku="$(jq -er '.sku' .artifacts/storefront-publication/proof-product.json)"
+          variant="$(jq -er '.variantId' .artifacts/storefront-publication/proof-product.json)"
+          inventory_json="$(curl --fail --silent --show-error --get --data-urlencode "query=$sku" --data-urlencode 'pageSize=100' \
+            --header "Authorization: Bearer $E2E_ADMIN_SERVICE_TOKEN" "$ADMIN_E2E_BASE_URL/api/admin/inventory")"
+          inventory="$(jq -er --arg variant "$variant" '[.data[] | select(.variantId == $variant)] | if length == 1 then .[0] else error("REL staging requires one representative inventory record") end' <<<"$inventory_json")"
+          available="$(jq -er '.available' <<<"$inventory")"
+          warehouse="$(jq -er '.warehouseId' <<<"$inventory")"
+          delta="$((1 - available))"
+          if [ "$delta" -ne 0 ]; then
+            curl --fail --silent --show-error --request POST \
+              --header "Authorization: Bearer $E2E_ADMIN_SERVICE_TOKEN" --header "Content-Type: application/json" \
+              --header "Idempotency-Key: publication-last-unit-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
+              --data "$(jq -cn --argjson delta "$delta" '{quantityDelta:$delta,reason:"Staging publication last-unit fixture"}')" \
+              "$ADMIN_E2E_BASE_URL/api/admin/inventory/$variant/$warehouse/adjustments"
+          fi
+      - name: Seed isolated staging journey fixtures
+        id: fixtures
+        if: ${{ needs.publication-request.outputs.operation == 'publish' }}
+        working-directory: apps/api
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          [[ "$E2E_ORDER_REFERENCE" =~ ^[A-Z]+-[A-Z0-9]+$ ]]
+          bunx wrangler d1 execute shoppp-staging --env staging --remote --command "
+            INSERT INTO catalog_releases
+              (id, status, manifest_json, approved_at, failure_code, build_correlation_id,
+               product_id, created_at, updated_at)
+            SELECT '$E2E_FAILED_CATALOG_RELEASE_ID', 'failed', '{}',
+                   strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                   'release_proof_synthetic', '$E2E_FAILED_CATALOG_RELEASE_ID',
+                   id, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                   strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+              FROM products
+             WHERE slug = '$E2E_PRODUCT_SLUG';
+            INSERT INTO notification_jobs
+              (id, order_id, type, deduplication_key, payload_json, status, attempt_count,
+               last_error_code, created_at, updated_at, max_attempts, attempt_cycle_count,
+               dead_lettered_at)
+            SELECT '$E2E_EXHAUSTED_NOTIFICATION_ID', id, 'order_receipt',
+                   '$E2E_EXHAUSTED_NOTIFICATION_ID', json_object('orderId', id),
+                   'dead_letter', 3, 'release_proof_synthetic',
+                   strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                   strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 3, 3,
+                   strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+              FROM orders
+             WHERE public_reference = '$E2E_ORDER_REFERENCE';
+            INSERT OR IGNORE INTO admin_invitations
+              (id, normalized_email, display_name, role_id, status, idempotency_key,
+               invited_by_id, expires_at, version, created_at, updated_at)
+            VALUES
+              ('inv_$E2E_ADMIN_ACCESS_PROOF_ID', '$E2E_ADMIN_ACCESS_PROOF_EMAIL',
+               'Release access proof', 'role_support', 'pending',
+               '$E2E_ADMIN_ACCESS_PROOF_ID', NULL,
+               strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+1 day'), 1,
+               strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+               strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+          "
       - name: Capture exact storefront baseline before mutation
+        id: capture
         env:
           API_URL: ${{ needs.publication-request.outputs.source_api_origin }}
           BUILD_MANIFEST_TOKEN: ${{ inputs.source_environment == 'staging' && secrets.BUILD_MANIFEST_TOKEN || '' }}
@@ -1092,6 +1200,7 @@ jobs:
           include-hidden-files: true
           retention-days: 90
       - name: Prove public storefront in isolated staging and recover exact baseline on failure
+        id: deliver
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -1107,8 +1216,49 @@ jobs:
         run: |
           proof_options=()
           if [ "$PROOF_ONLY" = "true" ]; then proof_options+=(--proof-only); fi
-          bun tools/storefront-publication.ts deliver --metadata .artifacts/storefront-publication/publication.json --baseline .artifacts/storefront-publication/baseline.json "${proof_options[@]}" \
-            --proof-command 'bunx playwright test --config e2e/playwright.config.ts && bun tools/verify-release-staging-latency.ts'
+          if [ "$PUBLICATION_OPERATION" = "publish" ]; then
+            proof_options+=(--proof-command 'bunx playwright test --config e2e/playwright.formal-publication.config.ts && bun tools/verify-release-staging-latency.ts --formal-publication')
+          fi
+          bun tools/storefront-publication.ts deliver --metadata .artifacts/storefront-publication/publication.json --baseline .artifacts/storefront-publication/baseline.json "${proof_options[@]}"
+
+      - name: Record verified failure before delivery entered
+        if: ${{ failure() && steps.deliver.outcome == 'skipped' && inputs.source_environment == 'staging' }}
+        env:
+          API_URL: ${{ vars.API_URL }}
+          BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
+          PUBLICATION_FAILURE_CODE: pre_delivery_failed
+        run: bun tools/storefront-publication.ts fail
+
+      - name: Remove transient staging proof fixtures
+        if: ${{ always() && steps.fixtures.outcome != 'skipped' }}
+        working-directory: apps/api
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          bunx wrangler d1 execute shoppp-staging --env staging --remote \
+            --command "
+              DELETE FROM catalog_releases
+               WHERE id = '$E2E_FAILED_CATALOG_RELEASE_ID'
+                 AND failure_code = 'release_proof_synthetic';
+              DELETE FROM notification_jobs
+               WHERE id = '$E2E_EXHAUSTED_NOTIFICATION_ID'
+                 AND status = 'dead_letter'
+                 AND last_error_code = 'release_proof_synthetic';
+              DELETE FROM admin_invitations
+               WHERE id = 'inv_$E2E_ADMIN_ACCESS_PROOF_ID'
+                 AND normalized_email = '$E2E_ADMIN_ACCESS_PROOF_EMAIL';
+            "
+      - name: Preserve formal publication proof evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: publication-proof-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: |
+            playwright-report/
+            .artifacts/screenshots/*-formal-publication/
+          if-no-files-found: warn
+          include-hidden-files: true
 
   publication-production:
     needs:
@@ -1179,6 +1329,7 @@ jobs:
             'any(.[]?.results[]?; .id == $id)' \
             <<< "$backup_json" >/dev/null
       - name: Capture exact storefront baseline before mutation
+        id: capture
         env:
           API_URL: ${{ vars.API_URL }}
           BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
@@ -1200,6 +1351,7 @@ jobs:
           include-hidden-files: true
           retention-days: 90
       - name: Activate exact approved storefront and verify online receipt
+        id: deliver
         env:
           API_URL: ${{ vars.API_URL }}
           BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
@@ -1210,6 +1362,14 @@ jobs:
           EXPECTED_DEPLOYABLE_DIGEST: ${{ needs.validate.outputs.deployable_digest }}
           EXPECTED_REPORT_DIGEST: ${{ needs.validate.outputs.report_digest }}
         run: bun tools/storefront-publication.ts deliver --metadata .artifacts/storefront-publication/publication.json --baseline .artifacts/storefront-publication/baseline.json
+
+      - name: Record verified failure before delivery entered
+        if: ${{ failure() && steps.deliver.outcome == 'skipped' }}
+        env:
+          API_URL: ${{ vars.API_URL }}
+          BUILD_MANIFEST_TOKEN: ${{ secrets.BUILD_MANIFEST_TOKEN }}
+          PUBLICATION_FAILURE_CODE: pre_delivery_failed
+        run: bun tools/storefront-publication.ts fail
 
   publication-failure:
     needs:

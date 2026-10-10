@@ -66,6 +66,8 @@ const termsAccepted = ref(false);
 const submitting = ref(false);
 const hydrated = ref(false);
 const liveTransactionDisabled = computed(() => isLive.value && !hydrated.value);
+const noScriptNavigation =
+  '<div class="container pt-15px pb-15px"><a href="/cart">Return to bag</a></div>';
 const shippingBusy = ref(false);
 const loadError = ref("");
 const loadNotice = ref("");
@@ -379,15 +381,7 @@ onBeforeUnmount(() => {
       :data-local-action-count="localActionCount"
       :data-session-count="sessionCount"
     >
-      <div
-        v-if="liveTransactionDisabled"
-        class="container pt-15px pb-15px"
-        role="region"
-        aria-label="JavaScript limitations"
-      >
-        <p>Shopping actions require JavaScript.</p>
-        <a href="/cart">Return to bag</a>
-      </div>
+      <noscript v-if="isLive" v-html="noScriptNavigation" />
       <section class="top-space-margin half-section bg-gradient-very-light-gray">
         <div class="container">
           <div class="row align-items-center justify-content-center">
@@ -778,11 +772,13 @@ onBeforeUnmount(() => {
                       <th class="fw-600 text-dark-gray alt-font">Shipping</th>
                       <td data-title="Shipping">
                         <ul class="shipping-methods fashion-checkout-shipping-methods p-0">
-                          <li v-if="isLive && !shippingAddressComplete" role="status">
-                            Complete the shipping address to calculate delivery automatically.
+                          <li v-if="isLive && !shippingAddressComplete">
+                            <span role="status">
+                              Complete the shipping address to calculate delivery automatically.
+                            </span>
                           </li>
-                          <li v-else-if="isLive && shippingBusy" role="status">
-                            Calculating delivery options…
+                          <li v-else-if="isLive && shippingBusy">
+                            <span role="status">Calculating delivery options…</span>
                           </li>
                           <li
                             v-for="method in shippingMethods"

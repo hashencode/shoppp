@@ -550,7 +550,9 @@ test("live Cart and Checkout remain content-complete and transaction-read-only w
     await noJsPage.goto(new URL("/cart", baseURL).href);
     const cartPage = noJsPage.locator("[data-fashion-store-cart]");
     await expect(cartPage.getByRole("heading", { name: "Shopping cart" })).toBeVisible();
-    await expect(cartPage.getByText("Shopping actions require JavaScript.")).toBeVisible();
+    await expect(noJsPage.getByRole("region", { name: "JavaScript limitations" })).toContainText(
+      "Shopping actions require JavaScript.",
+    );
     const cartButtons = cartPage.getByRole("button");
     expect(await cartButtons.count()).toBeGreaterThan(0);
     for (const button of await cartButtons.all()) await expect(button).toBeDisabled();
@@ -558,7 +560,9 @@ test("live Cart and Checkout remain content-complete and transaction-read-only w
     await noJsPage.goto(new URL("/checkout", baseURL).href);
     const checkoutPage = noJsPage.locator("[data-fashion-store-checkout]");
     await expect(checkoutPage.getByText("Billing details")).toBeVisible();
-    await expect(checkoutPage.getByText("Shopping actions require JavaScript.")).toBeVisible();
+    await expect(noJsPage.getByRole("region", { name: "JavaScript limitations" })).toContainText(
+      "Shopping actions require JavaScript.",
+    );
     await expect(checkoutPage.getByRole("button", { name: "Place order" })).toBeDisabled();
     await expect(checkoutPage.getByRole("link", { name: "Return to bag" })).toHaveAttribute(
       "href",

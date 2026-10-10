@@ -107,6 +107,8 @@ const shippingInvalid = ref(false);
 const busy = ref(false);
 const hydrated = ref(false);
 const liveTransactionDisabled = computed(() => isLive.value && !hydrated.value);
+const noScriptNavigation =
+  '<div class="container pt-15px pb-15px"><a href="/shop">Browse the published catalog</a></div>';
 const mutationCount = ref(0);
 const localActionCount = ref(0);
 
@@ -315,15 +317,7 @@ onMounted(async () => {
       :data-local-action-count="localActionCount"
       :data-mutation-count="mutationCount"
     >
-      <div
-        v-if="liveTransactionDisabled"
-        class="container pt-15px pb-15px"
-        role="region"
-        aria-label="JavaScript limitations"
-      >
-        <p>Shopping actions require JavaScript.</p>
-        <a href="/shop">Browse the published catalog</a>
-      </div>
+      <noscript v-if="isLive" v-html="noScriptNavigation" />
       <section class="top-space-margin half-section bg-gradient-very-light-gray">
         <div class="container">
           <div class="row align-items-center justify-content-center">

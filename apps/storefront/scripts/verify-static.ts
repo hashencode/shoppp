@@ -11,7 +11,11 @@ import {
   resolveStorefrontPrerenderRoutes,
 } from "./resolve-prerender-routes";
 import { assertStaticPageHtml } from "./static-page-verification";
-import { canonicalStorefrontJson, storefrontReleaseMarkerSchema } from "@shoppp/contracts";
+import {
+  canonicalStorefrontJson,
+  sameStorefrontPublicationIdentity,
+  storefrontReleaseMarkerSchema,
+} from "@shoppp/contracts";
 import { experienceBuildInputSchema } from "./experience-build-input";
 
 const root = resolve(import.meta.dir, "..");
@@ -188,7 +192,7 @@ if (publicBuild) {
   if (
     input.environment !== "public" ||
     retainedCatalog !== input.catalogManifestJson ||
-    canonicalStorefrontJson(marker.identity) !== canonicalStorefrontJson(input.inputIdentity) ||
+    !sameStorefrontPublicationIdentity(marker.identity, input.inputIdentity) ||
     marker.sourceEnvironment !== input.sourceEnvironment ||
     createHash("sha256").update(canonicalStorefrontJson(activeExperienceSnapshot)).digest("hex") !==
       marker.identity.snapshotDigest ||

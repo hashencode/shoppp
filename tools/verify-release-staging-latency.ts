@@ -1,3 +1,10 @@
+import { parseArgs } from "node:util";
+import {
+  assertFormalPublicationProofAuthority,
+  readFormalPublicationContext,
+  type FormalPublicationContext,
+} from "../e2e/formal-publication-context";
+
 const SAMPLE_COUNT = 20;
 const CHECKOUT_CONCURRENCY = 4;
 const SOURCE_SHA = /^[a-f0-9]{40}$/;
@@ -83,6 +90,14 @@ export function assertReleaseStagingLatencyAuthority(
   if (!SOURCE_SHA.test(validatedSourceSha) || checkoutSourceSha !== validatedSourceSha) {
     throw new Error("validated source SHA must equal the checked-out source SHA");
   }
+}
+
+export function assertFormalPublicationStagingLatencyAuthority(
+  context: FormalPublicationContext,
+  environment: Environment,
+  checkoutSourceSha: string,
+): void {
+  assertFormalPublicationProofAuthority(context, environment, checkoutSourceSha);
 }
 
 function assertConfig(config: ReleaseStagingLatencyConfig): void {
@@ -241,13 +256,22 @@ function checkoutSourceSha(): string {
 }
 
 if (import.meta.main) {
-  assertReleaseStagingLatencyAuthority(process.env, checkoutSourceSha());
+  const { values } = parseArgs({
+    args: Bun.argv.slice(2),
+    options: { "formal-publication": { type: "boolean" } },
+  });
+  const formalContext = values["formal-publication"] ? readFormalPublicationContext() : null;
+  if (formalContext)
+    assertFormalPublicationStagingLatencyAuthority(formalContext, process.env, checkoutSourceSha());
+  else assertReleaseStagingLatencyAuthority(process.env, checkoutSourceSha());
   const runId = `${required(process.env, "GITHUB_RUN_ID")}-${required(process.env, "GITHUB_RUN_ATTEMPT")}`;
   const report = await runReleaseStagingLatencyProbe({
-    apiBaseUrl: required(process.env, "API_E2E_BASE_URL").replace(/\/$/, ""),
+    apiBaseUrl: formalContext
+      ? `${required(process.env, "STOREFRONT_E2E_BASE_URL").replace(/\/$/, "")}/api`
+      : required(process.env, "API_E2E_BASE_URL").replace(/\/$/, ""),
     checkoutConcurrency: 4,
     currency: "USD",
-    productSlug: required(process.env, "E2E_PRODUCT_SLUG"),
+    productSlug: formalContext?.product.slug ?? required(process.env, "E2E_PRODUCT_SLUG"),
     runId,
     sampleCount: 20,
     storefrontOrigin: required(process.env, "STOREFRONT_E2E_BASE_URL").replace(/\/$/, ""),

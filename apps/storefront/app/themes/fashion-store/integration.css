@@ -1339,7 +1339,7 @@ body[data-fashion-store-shell="true"] {
 }
 
 [data-fashion-store-checkout] .form-error {
-  color: #d23b3b;
+  color: #bb3333;
 }
 
 [data-fashion-store-checkout] button:focus-visible,

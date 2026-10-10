@@ -661,7 +661,7 @@ describe("formal publication validation evidence", () => {
       /digest/,
     );
   });
-  test("only build and static verification consume the formal input", () => {
+  test("build, static and browser consumers retain the same formal input", () => {
     const env = {
       PATH: "/bin",
       STOREFRONT_BUILD_MODE: "public",
@@ -670,10 +670,12 @@ describe("formal publication validation evidence", () => {
     expect(releaseGateEnvironment("production-builds", env)).toEqual(env);
     expect(releaseGateEnvironment("static-output", env)).toEqual(env);
     expect(releaseGateEnvironment("unit-contract", env)).toEqual({ PATH: "/bin" });
-    expect(releaseGateEnvironment("browser-journeys", env)).toEqual({
-      PATH: "/bin",
-      STOREFRONT_REUSE_VALIDATED_BUILD: "1",
-    });
+    for (const gate of ["browser-journeys", "accessibility", "performance"]) {
+      expect(releaseGateEnvironment(gate, env)).toEqual({
+        ...env,
+        STOREFRONT_REUSE_VALIDATED_BUILD: "1",
+      });
+    }
   });
   test("deployment evidence binds the requested publication and rejects cross-source reuse", async () => {
     const fixture = await createEvidenceFixture();

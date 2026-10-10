@@ -279,11 +279,10 @@ export async function getStorefrontPublicationContext(
   }
   const rows = await context.env.DB.prepare(
     `SELECT p.* FROM storefront_publications p
-    JOIN storefront_experience_snapshots s ON s.id = p.snapshot_id
-    WHERE s.source_draft_id = ? AND p.environment = ?
+    WHERE p.environment = ?
     ORDER BY p.created_at DESC, p.id DESC LIMIT 50`,
   )
-    .bind(draftId, context.env.ENVIRONMENT)
+    .bind(context.env.ENVIRONMENT)
     .all<PublicationRow>();
   return {
     environment: context.env.ENVIRONMENT,
@@ -301,29 +300,30 @@ async function pendingPublication(context: ApiContext) {
     .first<PublicationRow>();
   return row ? mapPublication(row) : null;
 }
-async function createIntent(
-  context: ApiContext,
-  input: {
-    identity: StorefrontPublicationIdentity;
-    expectedActivePublicationId: string | null;
-    operation: "publish" | "rollback";
-    rollbackOf?: string;
-    restoreWorkerVersionId?: string;
-    reason: string;
-    contactSources?: { launch: string | null; profile: string | null };
-  },
-  trigger?: BuildTrigger,
-) {
+type PublicationIntent = {
+  identity: StorefrontPublicationIdentity;
+  expectedActivePublicationId: string | null;
+  operation: "publish" | "rollback";
+  rollbackOf?: string;
+  restoreWorkerVersionId?: string;
+  reason: string;
+  contactSources?: { launch: string | null; profile: string | null };
+};
+
+function matchesPendingIntent(pending: StorefrontPublication, input: PublicationIntent): boolean {
+  return (
+    pending.status !== "unresolved" &&
+    pending.operation === input.operation &&
+    pending.rollbackOf === (input.rollbackOf ?? null) &&
+    pending.expectedActivePublicationId === input.expectedActivePublicationId &&
+    sameStorefrontPublicationIdentity(pending.identity, input.identity)
+  );
+}
+
+async function createIntent(context: ApiContext, input: PublicationIntent, trigger?: BuildTrigger) {
   const pending = await pendingPublication(context);
   if (pending) {
-    if (
-      pending.status !== "unresolved" &&
-      pending.operation === input.operation &&
-      pending.rollbackOf === (input.rollbackOf ?? null) &&
-      pending.expectedActivePublicationId === input.expectedActivePublicationId &&
-      sameStorefrontPublicationIdentity(pending.identity, input.identity)
-    )
-      return pending;
+    if (matchesPendingIntent(pending, input)) return pending;
     conflict(
       "storefront_publication_pending",
       "Finish or resolve the current publication before starting another.",
@@ -394,15 +394,7 @@ async function createIntent(
       );
   } catch (error) {
     const concurrent = await pendingPublication(context);
-    if (
-      concurrent &&
-      concurrent.status !== "unresolved" &&
-      concurrent.operation === input.operation &&
-      concurrent.rollbackOf === (input.rollbackOf ?? null) &&
-      concurrent.expectedActivePublicationId === input.expectedActivePublicationId &&
-      sameStorefrontPublicationIdentity(concurrent.identity, input.identity)
-    )
-      return concurrent;
+    if (concurrent && matchesPendingIntent(concurrent, input)) return concurrent;
     if (concurrent)
       conflict(
         "storefront_publication_pending",

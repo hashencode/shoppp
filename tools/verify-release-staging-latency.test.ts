@@ -107,3 +107,54 @@ describe("CI-GH release staging latency verifier", () => {
     ).toThrow("staging checkout mutation p95 exceeds 800 ms");
   });
 });
+
+test("the actual formal publication job environment reaches its own authority path without rehearsal flags", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const { formalPublicationEnvironment, formalPublicationFixture } =
+    await import("../e2e/formal-publication-test-fixture");
+  const { parseFormalPublicationContext } = await import("../e2e/formal-publication-context");
+  const verifier = await import("./verify-release-staging-latency");
+  const workflow = Bun.YAML.parse(
+    await readFile(new URL("../.github/workflows/deploy.yml", import.meta.url), "utf8"),
+  ) as {
+    jobs: Record<
+      string,
+      {
+        env: Record<string, string>;
+        steps: Array<{ id?: string; env?: Record<string, string>; run?: string }>;
+      }
+    >;
+  };
+  const job = workflow.jobs["publication-staging"]!;
+  const deliver = job.steps.find((step) => step.id === "deliver")!;
+  const fixture = formalPublicationFixture();
+  const runtime = formalPublicationEnvironment(fixture);
+  const values: Record<string, string> = {
+    "inputs.publication_id": runtime.PUBLICATION_ID,
+    "inputs.source_environment": runtime.SOURCE_ENVIRONMENT,
+    "needs.preflight.outputs.source_sha": sourceSha,
+    "needs.validate.outputs.source_sha": sourceSha,
+    "vars.PRODUCT_SLUG": runtime.E2E_PRODUCT_SLUG,
+    "vars.STOREFRONT_URL": runtime.STOREFRONT_E2E_BASE_URL,
+  };
+  const actual = Object.fromEntries(
+    Object.entries({ ...job.env, ...deliver.env }).map(([key, value]) => [
+      key,
+      value.replace(
+        /\$\{\{\s*([^}]+?)\s*\}\}/g,
+        (_, expression: string) => values[expression] ?? "unused",
+      ),
+    ]),
+  );
+  const env = { ...runtime, ...actual };
+  expect(deliver.run).toContain("--formal-publication");
+  expect(job.env.CI_GH_STAGING_REHEARSAL).toBeUndefined();
+  expect(() =>
+    verifier.assertFormalPublicationStagingLatencyAuthority(
+      parseFormalPublicationContext(fixture, env),
+      env,
+      sourceSha,
+    ),
+  ).not.toThrow();
+  expect(() => assertReleaseStagingLatencyAuthority(env, sourceSha)).toThrow("rehearsal");
+});

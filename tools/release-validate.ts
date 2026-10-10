@@ -253,7 +253,9 @@ export function releaseGateEnvironment(
 ): NodeJS.ProcessEnv {
   const scopedEnvironment = { ...environment };
   delete scopedEnvironment.STOREFRONT_REUSE_VALIDATED_BUILD;
-  if (!["production-builds", "static-output"].includes(gateName)) {
+  const browserConsumer = ["browser-journeys", "accessibility", "performance"].includes(gateName);
+  const consumesPublicInput = environment.STOREFRONT_BUILD_MODE === "public" && browserConsumer;
+  if (!["production-builds", "static-output"].includes(gateName) && !consumesPublicInput) {
     delete scopedEnvironment.STOREFRONT_BUILD_MODE;
     delete scopedEnvironment.STOREFRONT_EXPERIENCE_FILE;
   }
@@ -261,7 +263,7 @@ export function releaseGateEnvironment(
     delete scopedEnvironment.NUXT_CATALOG_RELEASE_TOKEN;
     delete scopedEnvironment.NUXT_CATALOG_RELEASE_URL;
   }
-  if (["browser-journeys", "accessibility", "performance"].includes(gateName)) {
+  if (browserConsumer) {
     scopedEnvironment.STOREFRONT_REUSE_VALIDATED_BUILD = "1";
   }
   return scopedEnvironment;

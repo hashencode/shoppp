@@ -1,16 +1,20 @@
 import { defineConfig } from "@playwright/test";
+import { readPublicValidationInput } from "./e2e/public-validation-input";
 
 const port = Number(process.env.STOREFRONT_PERF_PORT || 3421);
 const baseURL = process.env.STOREFRONT_PERF_BASE_URL || `http://127.0.0.1:${port}`;
 const reuseValidatedBuild = process.env.STOREFRONT_REUSE_VALIDATED_BUILD === "1";
-const theme = process.env.STOREFRONT_THEME;
+const publicValidation = readPublicValidationInput();
+const theme = publicValidation?.input.themeId ?? process.env.STOREFRONT_THEME;
 if (theme && theme !== "fashion-store") {
   throw new Error(`Unsupported STOREFRONT_THEME: ${theme}`);
 }
-const buildCommand = theme ? `bun run build:preview:${theme}` : "bun run build";
-const verifyCommand = theme
-  ? "STOREFRONT_BUILD_MODE=preview bun run verify:static"
-  : "bun run verify:static";
+const buildCommand =
+  !publicValidation && theme ? `bun run build:preview:${theme}` : "bun run build";
+const verifyCommand =
+  !publicValidation && theme
+    ? "STOREFRONT_BUILD_MODE=preview bun run verify:static"
+    : "bun run verify:static";
 const serverCommand = reuseValidatedBuild
   ? `${verifyCommand} && bun scripts/check-bundle-budget.ts && bun scripts/serve-static.ts ${port}`
   : `${buildCommand} && ${verifyCommand} && bun scripts/check-bundle-budget.ts && bun scripts/serve-static.ts ${port}`;

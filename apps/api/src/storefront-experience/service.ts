@@ -1,5 +1,6 @@
 import {
   adminStorefrontThemeSchema,
+  canonicalStorefrontJson as canonicalJson,
   experienceResourceBindingSchema,
   experienceDraftSchema,
   experienceSnapshotSchema,
@@ -320,17 +321,6 @@ function mapDraft(row: DraftRow, validationRows: readonly ValidationRow[] = []) 
     validations,
     version: row.version,
   };
-}
-
-function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
-  if (value && typeof value === "object") {
-    return `{${Object.entries(value)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, entry]) => `${JSON.stringify(key)}:${canonicalJson(entry)}`)
-      .join(",")}}`;
-  }
-  return JSON.stringify(value);
 }
 
 async function mapSnapshot(row: SnapshotRow) {

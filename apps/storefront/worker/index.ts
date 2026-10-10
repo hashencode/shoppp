@@ -63,7 +63,8 @@ async function publicApiRequest(request: Request, environment: Environment): Pro
     const marker = await compiledMarker(request, environment);
     if (!marker) return environment.API.fetch(upstream);
     const headers = new Headers(upstream.headers);
-    headers.set("X-Preview-Catalog-Release", marker.identity.catalogReleaseId);
+    headers.delete("X-Preview-Catalog-Release");
+    headers.set("X-Storefront-Catalog-Release", marker.identity.catalogReleaseId);
     headers.set("X-Storefront-Catalog-Manifest-Digest", marker.identity.catalogManifestDigest);
     return environment.API.fetch(new Request(upstream, { headers }));
   } catch {

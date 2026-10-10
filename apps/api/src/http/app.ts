@@ -1043,7 +1043,9 @@ export function createApp(options: CreateAppOptions = {}) {
         { path: ["currency"], message: "Use a three-letter currency code." },
       ]);
     }
-    const releaseId = context.req.header("x-preview-catalog-release");
+    const releaseId =
+      context.req.header("x-preview-catalog-release") ??
+      context.req.header("x-storefront-catalog-release");
     if (!releaseId) {
       throw new ApiError(
         422,
@@ -1108,7 +1110,9 @@ export function createApp(options: CreateAppOptions = {}) {
   app.post("/cart/lines", idempotency("cart.lines.add"), async (context) => {
     const cart = await requireCart(context);
     const input = await parseJson(context, addCartLineRequestSchema);
-    const authorizedReleaseId = context.req.header("x-preview-catalog-release");
+    const authorizedReleaseId =
+      context.req.header("x-preview-catalog-release") ??
+      context.req.header("x-storefront-catalog-release");
     context.header("Cache-Control", "private, no-store");
     return context.json({
       data: await addCartLine(context, cart, {

@@ -1,4 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
+import { readPublicValidationInput } from "./e2e/public-validation-input";
+
+readPublicValidationInput();
 
 const port = Number(process.env.STOREFRONT_A11Y_PORT || 3422);
 const baseURL = process.env.STOREFRONT_A11Y_BASE_URL || `http://127.0.0.1:${port}`;

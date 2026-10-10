@@ -224,7 +224,7 @@ export async function observeStorefrontActivation(
       sameStorefrontPublicationIdentity(marker.identity, options.identity),
     "Public storefront identity differs from the approved publication",
   );
-  return { ...deployment, observedAt: new Date().toISOString() };
+  return { ...deployment, observation: marker, observedAt: new Date().toISOString() };
 }
 export async function captureStorefrontBaseline(
   target: PublicationTarget,
@@ -457,7 +457,9 @@ export async function completeStorefrontPublication(
   const receipt = storefrontPublicationReceiptSchema.parse({
     environment: options.target.environment,
     identity: options.identity,
-    ...observation,
+    workerVersionId: observation.workerVersionId,
+    deploymentId: observation.deploymentId,
+    observedAt: observation.observedAt,
     artifactDigest: options.artifactDigest,
     reportDigest: options.reportDigest,
   });
@@ -544,15 +546,44 @@ export async function recoverStorefrontPublication(
   );
   return restorationVerified;
 }
-async function command(arguments_: string[], cwd: string): Promise<void> {
+async function command(
+  arguments_: string[],
+  cwd: string,
+  environment?: Record<string, string>,
+): Promise<void> {
   const child = Bun.spawn(arguments_, {
     cwd,
-    env: process.env,
+    env: { ...process.env, ...environment },
     stdin: "inherit",
     stdout: "inherit",
     stderr: "inherit",
   });
   assert((await child.exited) === 0, `Publication command failed: ${arguments_[0]}`);
+}
+export async function runStorefrontPublicationProof(
+  options: {
+    source: PublicationSource;
+    target: PublicationTarget;
+    run: PublicationRun;
+    observation: ReturnType<typeof storefrontActivationObservationSchema.parse>;
+    proofCommand: string;
+    operation: "publish" | "rollback";
+  },
+  execute: typeof command = command,
+): Promise<void> {
+  assert(
+    options.target.environment === "staging" && options.operation === "publish",
+    "Hosted purchase proof requires a new staging publication, never exact-version rollback",
+  );
+  await execute(["bash", "-euo", "pipefail", "-c", options.proofCommand], rootPath(), {
+    STOREFRONT_PUBLICATION_PROOF: JSON.stringify({
+      publicationId: options.source.publicationId,
+      sourceEnvironment: options.source.sourceEnvironment,
+      activationEnvironment: options.target.environment,
+      run: options.run,
+      observation: options.observation,
+    }),
+  });
 }
 function required(environment: NodeJS.ProcessEnv, key: string): string {
   const value = environment[key]?.trim();
@@ -797,14 +828,21 @@ if (import.meta.main) {
           resolve(root, "apps/storefront"),
         );
       }
-      await observeStorefrontActivation({
+      const observed = await observeStorefrontActivation({
         target,
         sourceEnvironment: source.sourceEnvironment,
         identity: result.publication.identity,
         ...(expectedWorkerVersionId ? { expectedWorkerVersionId } : {}),
       });
       if (values["proof-command"])
-        await command(["bash", "-euo", "pipefail", "-c", values["proof-command"]], root);
+        await runStorefrontPublicationProof({
+          source,
+          target,
+          run,
+          operation: result.publication.operation,
+          observation: observed.observation,
+          proofCommand: values["proof-command"],
+        });
       if (values["proof-only"]) {
         await restoreBaseline(target, baseline, fetch);
       } else {

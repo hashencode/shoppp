@@ -550,3 +550,72 @@ test("same-run unresolved and verified recovery callbacks use distinct keys whil
   expect(keys[0]).toBe(keys[1]);
   expect(keys[2]).not.toBe(keys[0]);
 });
+
+test("observed activation composes a same-run proof child environment and rejects rollback proof", async () => {
+  const { runStorefrontPublicationProof } = await import("./storefront-publication");
+  const { parseFormalPublicationContext, assertFormalPublicationProofAuthority } =
+    await import("../e2e/formal-publication-context");
+  const { formalPublicationEnvironment, formalPublicationFixture } =
+    await import("../e2e/formal-publication-test-fixture");
+  const fixture = formalPublicationFixture();
+  const environment = formalPublicationEnvironment(fixture);
+  const context = parseFormalPublicationContext(fixture, environment);
+  const proofSource = { ...source, publicationId: fixture.publication.id };
+  const proofRun = {
+    runId: environment.GITHUB_RUN_ID,
+    runAttempt: Number(environment.GITHUB_RUN_ATTEMPT),
+    sourceCommit: environment.RELEASE_EXPECTED_COMMIT,
+  };
+  const observed = await observeStorefrontActivation(
+    { target, sourceEnvironment: "production", identity: context.manifest.publication.identity },
+    async (input) =>
+      String(input).includes("api.cloudflare.com")
+        ? Response.json({ success: true, result: [deployment()] })
+        : Response.json({
+            schemaVersion: 1,
+            sourceEnvironment: "production",
+            identity: context.manifest.publication.identity,
+            workerVersionId: deployment().versions[0]!.version_id,
+          }),
+  );
+  let calls = 0;
+  const options = {
+    source: proofSource,
+    target,
+    run: proofRun,
+    observation: observed.observation,
+    proofCommand: "proof-child",
+    operation: "publish" as const,
+  };
+  const execute = async (
+    args: string[],
+    _cwd: string,
+    childEnvironment?: Record<string, string>,
+  ) => {
+    calls++;
+    expect(args).toEqual(["bash", "-euo", "pipefail", "-c", "proof-child"]);
+    expect(JSON.stringify(childEnvironment)).not.toMatch(/build-secret|cf-secret/);
+    assertFormalPublicationProofAuthority(
+      context,
+      { ...environment, ...childEnvironment },
+      proofRun.sourceCommit,
+    );
+  };
+  await runStorefrontPublicationProof(options, execute);
+  expect(calls).toBe(1);
+  await expect(
+    runStorefrontPublicationProof({ ...options, operation: "rollback" }, execute),
+  ).rejects.toThrow("never exact-version rollback");
+  await expect(
+    runStorefrontPublicationProof(
+      { ...options, target: { ...target, environment: "production" } },
+      execute,
+    ),
+  ).rejects.toThrow("staging");
+  expect(calls).toBe(1);
+  await expect(
+    runStorefrontPublicationProof(options, async () => {
+      throw new Error("hosted purchase rejected");
+    }),
+  ).rejects.toThrow("hosted purchase rejected");
+});

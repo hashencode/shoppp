@@ -1188,12 +1188,28 @@ describe("storefront theme browser matrix", () => {
       readFile(storefrontPlaywrightPath, "utf8"),
       readFile(fashionStorePlaywrightPath, "utf8"),
     ]);
-    const productionIgnore = production.match(/testIgnore:\s*\[([\s\S]*?)\],/)?.[1];
-
+    const environment = { ...process.env };
+    delete environment.STOREFRONT_BUILD_MODE;
+    delete environment.STOREFRONT_EXPERIENCE_FILE;
+    const imported = Bun.spawnSync(
+      [
+        process.execPath,
+        "-e",
+        `const config = (await import(${JSON.stringify(storefrontPlaywrightPath)})).default; console.log(JSON.stringify({ testMatch: config.testMatch, testIgnore: config.testIgnore }));`,
+      ],
+      { env: environment, stdout: "pipe", stderr: "pipe" },
+    );
+    expect(imported.exitCode).toBe(0);
+    const productionSelection = JSON.parse(imported.stdout.toString()) as {
+      testMatch?: string;
+      testIgnore: string[];
+    };
+    expect(productionSelection.testMatch).toBeUndefined();
     expect(production).not.toContain("decor-theme.spec.ts");
     expect(production).not.toContain("decor-motion.spec.ts");
-    expect(productionIgnore).toContain('"fashion-store-*.spec.ts"');
-    expect(productionIgnore).toContain('"theme-behavior-contract.spec.ts"');
+    expect(productionSelection.testIgnore).toContain("fashion-store-*.spec.ts");
+    expect(productionSelection.testIgnore).toContain("theme-behavior-contract.spec.ts");
+    expect(productionSelection.testIgnore).toContain("public-storefront.spec.ts");
     expect(fashionStore).toContain('"fashion-store-*.spec.ts"');
     expect(fashionStore).not.toContain('testMatch: ["*.spec.ts"');
     expect(fashionStore).toContain("check-bundle-budget.ts");
@@ -1264,13 +1280,15 @@ describe("authorized storefront publication delivery", () => {
       "inputs.source_environment == 'staging' && secrets.BUILD_MANIFEST_TOKEN || ''",
     );
     expect(staging).toContain("--proof-only");
-    expect(staging).toContain("bunx playwright test --config e2e/playwright.config.ts");
+    expect(staging).toContain(
+      "bunx playwright test --config e2e/playwright.formal-publication.config.ts",
+    );
     expect(production).toContain("needs.approve-production.result == 'success'");
     expect(production).toContain("environment: production");
     expect(production).toContain("needs.publication-request.outputs.operation == 'rollback'");
     expect(production).not.toMatch(/d1 migrations|versions upload|bun run build/);
-    expect(workflow).toContain("Record recoverable missing production gate");
-    expect(workflow).toContain("PUBLICATION_FAILURE_CODE: production_gate_required");
+    expect(workflow).toContain("Record recoverable request preparation failure");
+    expect(workflow).toContain("'production_gate_required'");
   });
 });
 
@@ -1301,4 +1319,254 @@ describe("publication forced-termination recovery evidence", () => {
       expect(job).toContain("--baseline .artifacts/storefront-publication/baseline.json");
     }
   });
+});
+
+interface ParsedPublicationStep {
+  name?: string;
+  id?: string;
+  if?: string;
+  run?: string;
+  uses?: string;
+  env?: Record<string, string>;
+}
+interface ParsedPublicationJob {
+  env?: Record<string, string>;
+  steps: ParsedPublicationStep[];
+}
+async function parsedPublicationJobs() {
+  return (
+    Bun.YAML.parse(await readFile(workflowPath, "utf8")) as {
+      jobs: Record<string, ParsedPublicationJob>;
+    }
+  ).jobs;
+}
+function evaluateStepExpression(
+  condition: string | undefined,
+  outcomes: Record<string, string>,
+  sourceEnvironment: string,
+  failed: boolean,
+): unknown {
+  if (!condition) return !failed;
+  const expression = condition
+    .replace(/^\$\{\{\s*|\s*\}\}$/g, "")
+    .replace(/failure\(\)/g, String(failed))
+    .replace(/always\(\)/g, "true")
+    .replace(/inputs.source_environment/g, JSON.stringify(sourceEnvironment))
+    .replace(/needs.publication-request.outputs.operation/g, '"publish"')
+    .replace(/steps\.([\w-]+)\.outcome/g, (_, id: string) =>
+      JSON.stringify(outcomes[id] ?? "skipped"),
+    );
+  return Function(`return (${expression})`)();
+}
+function stepCondition(
+  condition: string | undefined,
+  outcomes: Record<string, string>,
+  sourceEnvironment: string,
+  failed: boolean,
+): boolean {
+  return Boolean(evaluateStepExpression(condition, outcomes, sourceEnvironment, failed));
+}
+function injectPublicationStepFailure(
+  job: ParsedPublicationJob,
+  failureName: string,
+  sourceEnvironment: string,
+) {
+  const outcomes: Record<string, string> = {};
+  const callbacks: ParsedPublicationStep[] = [];
+  let failed = false;
+  for (const step of job.steps) {
+    const enters = stepCondition(step.if, outcomes, sourceEnvironment, failed);
+    const outcome = !enters ? "skipped" : step.name === failureName ? "failure" : "success";
+    if (step.id) outcomes[step.id] = outcome;
+    if (outcome === "failure") failed = true;
+    if (enters && step.run?.includes("storefront-publication.ts fail"))
+      callbacks.push({
+        ...step,
+        env: Object.fromEntries(
+          Object.entries(step.env ?? {}).map(([key, value]) => [
+            key,
+            key === "PUBLICATION_FAILURE_CODE" && value.startsWith("${{")
+              ? String(evaluateStepExpression(value, outcomes, sourceEnvironment, failed))
+              : value,
+          ]),
+        ),
+      });
+  }
+  return { outcomes, callbacks };
+}
+
+describe("formal publication pre-mutation finalization", () => {
+  test("retention failure finalizes the owned request after the upload and distinguishes gate failure", async () => {
+    const request = (await parsedPublicationJobs())["publication-request"]!;
+    const upload = request.steps.findIndex((step) => step.name?.startsWith("Retain the run-bound"));
+    const catcher = request.steps.findIndex((step) =>
+      step.run?.includes("storefront-publication.ts fail"),
+    );
+    expect(catcher).toBeGreaterThan(upload);
+    for (const [failure, code] of [
+      ["Retain the run-bound authorized input without credentials", "input_retention_failed"],
+      [
+        "Require explicit production gates before continuing a production publication",
+        "production_gate_required",
+      ],
+    ]) {
+      const result = injectPublicationStepFailure(request, failure!, "production");
+      expect(result.callbacks).toHaveLength(1);
+      expect(result.outcomes.publication).toBe("success");
+      expect(result.callbacks[0]?.env?.PUBLICATION_FAILURE_CODE).toBe(code!);
+    }
+    expect(
+      injectPublicationStepFailure(
+        request,
+        "Bind the authorized immutable publication to this protected run",
+        "staging",
+      ).callbacks,
+    ).toEqual([]);
+  });
+
+  test("browser, backup, capture and baseline-upload failures finalize only before delivery starts", async () => {
+    const jobs = await parsedPublicationJobs();
+    for (const [jobName, environment, failures] of [
+      [
+        "publication-staging",
+        "staging",
+        [
+          "Install staging proof browser",
+          "Capture exact storefront baseline before mutation",
+          "Preserve exact storefront baseline before mutation",
+        ],
+      ],
+      [
+        "publication-production",
+        "production",
+        [
+          "Verify approved recent production backup",
+          "Capture exact storefront baseline before mutation",
+          "Preserve exact storefront baseline before mutation",
+        ],
+      ],
+    ] as const) {
+      const job = jobs[jobName]!;
+      expect(job.steps.find((step) => step.id === "capture")).toBeDefined();
+      expect(job.steps.find((step) => step.id === "deliver")).toBeDefined();
+      for (const failure of failures) {
+        const result = injectPublicationStepFailure(job, failure, environment);
+        expect(result.outcomes.deliver).toBe("skipped");
+        expect(result.callbacks).toHaveLength(1);
+      }
+      const delivery = job.steps.find((step) => step.id === "deliver")!;
+      expect(injectPublicationStepFailure(job, delivery.name!, environment).callbacks).toEqual([]);
+    }
+  });
+});
+
+test("formal hosted configuration imports the selected public purchase and all mandatory operations without private grants", async () => {
+  const { mkdtemp, rm, writeFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { formalPublicationEnvironment, formalPublicationFixture } =
+    await import("../e2e/formal-publication-test-fixture");
+  const directory = await mkdtemp(resolve(tmpdir(), "shoppp-formal-proof-"));
+  try {
+    const fixture = formalPublicationFixture();
+    const environment = formalPublicationEnvironment(fixture);
+    const sha = Bun.spawnSync(["git", "rev-parse", "HEAD"], { stdout: "pipe", stderr: "pipe" })
+      .stdout.toString()
+      .trim();
+    const proof = JSON.parse(environment.STOREFRONT_PUBLICATION_PROOF);
+    proof.run.sourceCommit = sha;
+    const metadata = resolve(directory, "publication.json");
+    await writeFile(metadata, JSON.stringify(fixture));
+    const configPath = resolve(import.meta.dir, "../e2e/playwright.formal-publication.config.ts");
+    const imported = Bun.spawnSync(
+      [
+        process.execPath,
+        "-e",
+        `const config = (await import(${JSON.stringify(configPath)})).default; console.log(JSON.stringify({ projects: config.projects, use: config.use }));`,
+      ],
+      {
+        env: {
+          ...process.env,
+          ...environment,
+          PUBLICATION_VALIDATED_SOURCE_SHA: sha,
+          RELEASE_EXPECTED_COMMIT: sha,
+          STOREFRONT_PUBLICATION_PROOF: JSON.stringify(proof),
+          STOREFRONT_PUBLICATION_METADATA: metadata,
+        },
+        stdout: "pipe",
+        stderr: "pipe",
+      },
+    );
+    expect(imported.exitCode).toBe(0);
+    const config = JSON.parse(imported.stdout.toString()) as {
+      projects: Array<{ name: string; testMatch: string | string[]; dependencies?: string[] }>;
+      use: { trace: string };
+    };
+    expect(config.projects).toEqual([
+      { name: "public-provider-purchase", testMatch: "formal-publication-purchase.spec.ts" },
+      {
+        name: "release-operations",
+        dependencies: ["public-provider-purchase"],
+        testMatch: [
+          "publication.spec.ts",
+          "payment-recovery.spec.ts",
+          "admin-fulfillment.spec.ts",
+          "admin-access.spec.ts",
+          "accessibility.spec.ts",
+        ],
+      },
+    ]);
+    expect(config.use.trace).toBe("off");
+    const job = (await parsedPublicationJobs())["publication-staging"]!;
+    const deliver = job.steps.find((step) => step.id === "deliver")!;
+    for (const required of [
+      "E2E_BUYER_EMAIL",
+      "E2E_FAILED_CATALOG_RELEASE_ID",
+      "E2E_EXHAUSTED_NOTIFICATION_ID",
+      "E2E_ADMIN_ACCESS_PROOF_ID",
+      "E2E_ADMIN_ACCESS_PROOF_EMAIL",
+      "E2E_ORDER_REFERENCE",
+      "E2E_ADMIN_SERVICE_SUBJECT",
+      "E2E_PROHIBITED_ADMIN_SERVICE_SUBJECT",
+    ])
+      expect(job.env?.[required]).toBeTruthy();
+    for (const required of [
+      "E2E_ADMIN_SERVICE_TOKEN",
+      "E2E_PROHIBITED_ADMIN_SERVICE_TOKEN",
+      "E2E_STRIPE_TEST_CARD",
+    ])
+      expect(deliver.env?.[required]).toBeTruthy();
+    expect(job.env?.FASHION_U12_PHASE).toBeUndefined();
+    expect(
+      job.steps.some(
+        (step) =>
+          step.name === "Select retained public product and verify REL-prepared staging Commerce",
+      ),
+    ).toBe(true);
+    expect(job.steps.some((step) => step.id === "fixtures")).toBe(true);
+    // Execute the actual delivery shell with an inert Bun function: rollback must not run destructive proof.
+    for (const operation of ["publish", "rollback"]) {
+      const output = resolve(directory, `arguments-${operation}.txt`);
+      const script = `bun() { printf '%s\\n' "$@" > "$ARGUMENTS_FILE"; }\n${deliver.run}`;
+      const execution = Bun.spawnSync(["bash", "-eo", "pipefail", "-c", script], {
+        env: {
+          ...process.env,
+          ARGUMENTS_FILE: output,
+          PUBLICATION_OPERATION: operation,
+          PROOF_ONLY: "false",
+        },
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      expect(execution.exitCode).toBe(0);
+      const arguments_ = await readFile(output, "utf8");
+      expect(arguments_).toContain("storefront-publication.ts\ndeliver\n");
+      if (operation === "publish") {
+        expect(arguments_).toContain("--proof-command\n");
+        expect(arguments_).toContain("e2e/playwright.formal-publication.config.ts");
+        expect(arguments_).toContain("--formal-publication");
+      } else expect(arguments_).not.toContain("--proof-command");
+    }
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });
