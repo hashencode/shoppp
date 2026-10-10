@@ -52,3 +52,9 @@ Owning plan: [管理后台商家任务与发布流程重构](../plans/2026-10-10
 - 只读 content 编辑器中，发布确认的 OK/Cancel 继承了 Form 禁用状态。隔离测试先证明 OK disabled，再以局部按钮属性恢复已授权的确认与取消；保留 dirty、busy、reason、version 和权限 guards，没有 dirty 豁免。
 - Host 审查生产 diff、测试变更和最终日志；changed-file ESLint 与 diff check 通过。Protected 页面、既有翻译值及后端合同保持；未实现 token 前台、新发布平台或 active 状态推断。
 - 临时运行日志：`/tmp/shoppp-u3-focused-final.log`、`/tmp/shoppp-u3-content-confirm-red.log`、`/tmp/shoppp-u3-revision-red.log`。执行体以本计划 U3 完成项为准，日志不承担队列权威。
+
+## U2/U3 简化检查
+
+- 使用 ce-simplify-code 的复用、质量、效率三个完整规则审查已提交 `c24e747…5422ff7` 的人写代码；不包括正在编写的 U4，也不改变 session-settled KTD 和 protected 页面。
+- 应用质量发现 1 项：content 发布/归档 Popconfirm 的重复禁用表达式改为两个局部派生布尔值。输出、顺序、Cancel 行为及运行时 version/reason/dirty/busy checks 保持；复用和效率无保留问题，无新增抽象。
+- content-editor 原 consumer suite 通过；局部 ESLint、Prettier 通过。没有行为变化，无新增镜像测试。最终 Admin typecheck 统一在 U6 稳定代码后运行。

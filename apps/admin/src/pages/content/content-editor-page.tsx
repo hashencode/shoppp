@@ -87,6 +87,8 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
   const canPublish = hasPermission(role, 'content.publish', permissions)
   const watchedValues = Form.useWatch([], { form, preserve: true })
   const isDirty = Boolean(watchedValues) && form.isFieldsTouched()
+  const transitionInputBlocked = isDirty || saveLoading || transitionReason.trim().length < 3
+  const transitionBlocked = transitionInputBlocked || transitionLoading
   const listRoute = `/content/${kind === 'page' ? 'pages' : 'articles'}`
   const singular = kind === 'page' ? t('Page') : t('Article')
 
@@ -274,26 +276,12 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
                   description={t(
                     'This content becomes available to future storefront versions. The current storefront is unchanged.'
                   )}
-                  okButtonProps={{
-                    disabled:
-                      isDirty ||
-                      transitionLoading ||
-                      saveLoading ||
-                      transitionReason.trim().length < 3,
-                  }}
+                  okButtonProps={{ disabled: transitionBlocked }}
                   cancelButtonProps={{ disabled: false }}
                   onConfirm={() => void transition('publish')}
-                  disabled={
-                    isDirty ||
-                    transitionLoading ||
-                    saveLoading ||
-                    transitionReason.trim().length < 3
-                  }
+                  disabled={transitionBlocked}
                 >
-                  <Button
-                    loading={transitionLoading}
-                    disabled={isDirty || saveLoading || transitionReason.trim().length < 3}
-                  >
+                  <Button loading={transitionLoading} disabled={transitionInputBlocked}>
                     {t('Publish')}
                   </Button>
                 </Popconfirm>
@@ -302,27 +290,12 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
                 <Popconfirm
                   title={t('Archive this content version?')}
                   description={t('Current references must be repaired before archive succeeds.')}
-                  okButtonProps={{
-                    disabled:
-                      isDirty ||
-                      transitionLoading ||
-                      saveLoading ||
-                      transitionReason.trim().length < 3,
-                  }}
+                  okButtonProps={{ disabled: transitionBlocked }}
                   cancelButtonProps={{ disabled: false }}
                   onConfirm={() => void transition('archive')}
-                  disabled={
-                    isDirty ||
-                    transitionLoading ||
-                    saveLoading ||
-                    transitionReason.trim().length < 3
-                  }
+                  disabled={transitionBlocked}
                 >
-                  <Button
-                    danger
-                    loading={transitionLoading}
-                    disabled={isDirty || saveLoading || transitionReason.trim().length < 3}
-                  >
+                  <Button danger loading={transitionLoading} disabled={transitionInputBlocked}>
                     {t('Archive')}
                   </Button>
                 </Popconfirm>
