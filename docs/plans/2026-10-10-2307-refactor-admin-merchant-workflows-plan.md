@@ -17,11 +17,11 @@ execution: code
 
 **Authority:** 用户本次约束 → 本计划 Product Contract → 现行产品 master / REL 发布权限 → 已完成功能计划及代码事实。用户已指示开始执行；本文件现为 active product plan，拥有管理后台 U1–U7。REL 的候选与生产权限保持独立。
 
-**Execution profile:** 实施使用当前 checkout，按 U1–U6 交付管理后台核心；U7 受 REL 接口与发布条件约束。单开发者本地验证与现有分支流程，无默认 PR、worktree、生产部署或候选冻结。
+**Execution profile:** 实施使用当前 checkout；U1–U6 核心已完成。用户于 2026-10-11 授权补齐 REL 正式发布生产者合同并完成 U7，保持 R2 不变。单开发者本地验证与现有分支流程，无默认 PR、worktree、生产部署或候选冻结。
 
 **Stop conditions:** 涉及 R2 两个受保护页面内部变化，先单独申请；U7 的授权、接口或环境证据不成立时停在明确的待发布状态。不能以预览或审批成功代替线上生效。
 
-**Tail owner:** 本计划拥有管理后台实施、回归与文档收尾；REL 拥有公开版本授权、真实环境激活、DC/PG 与生产发布证据。U7 只消费 REL 合同，不接管这些权限。
+**Tail owner:** 本计划拥有 U7 发布合同实现、管理后台消费、本地回归与文档收尾；REL 拥有合同的发布政策、真实环境操作、DC/PG 与生产发布证据。新增生产者代码不转移生产权限。
 
 ---
 
@@ -131,7 +131,7 @@ execution: code
 
 用户已指示开始执行本计划。已授权 U1–U6 的核心实施：现有功能归属、导航、局部表单/动作/状态整理、既有预览编排和回归；不包含生产部署、候选冻结、DC/PG 或受保护页面内部变化。
 
-U7 是具名依赖的正式发布接入阶段，当前缺少 REL 合同。合同具备后按其实际接口补齐本 U；真实环境发布另按 REL 授权执行，不能从本次本地实施推定生产操作许可。
+用户于 2026-10-11 授权在 U7 内补齐缺少的 REL 正式发布接口、精确公开构建输入及当前激活回执，再接入管理后台。真实环境发布另按 REL 授权执行，不能从本次本地实施推定生产操作许可。Product Contract 的 R/F/AE 含义与标识保持不变。
 
 **Non-goals:** 复制 Shopify 界面、重写业务后端、新增客户/营销等业务、全店状态引擎、通用 CMS、全局更改队列、新设置聚合页、第三层菜单、另建发布证据账本、绕过权限/审批、把所有实际业务变成沙盒。
 
@@ -165,7 +165,8 @@ U7 是具名依赖的正式发布接入阶段，当前缺少 REL 合同。合同
 - **KTD3 — 使用各业务服务真实状态，避免统一虚假生命周期。** 实现 R4/R5/R9/R10；UI 只组合已有结果。`inclusion.live` 目前是历史部署命中，不能作为 active production 状态；U7 前使用来源状态/已知预览事实。
 - **KTD4 — 在线商店编排既有候选与装修预览。** 实现 R6/R7/R11；候选准备沿用 server freeze，自动选择限定在已有授权和当前环境。精确候选仍需重取与验证；普通详情折叠，诊断保持可达。不自动发布来源、不变更候选 purpose。
 - **KTD5 — 先整理经营设置单页，保留单次原子写入。** 实现 R9；经营、支付与政策链接区块仍属 `/settings/launch`。政策内容由政策页面，联系信息由联系页面，配送实体由配送页面维护；链接到唯一写入者，不复制编辑表单。
-- **KTD6 — 正式发布接口依赖 REL，先交付诚实的交接。** 实现 R8/R12；private candidate 当前明确禁止 deploy/public-build，无 elevation endpoint。U7 对接同一 Release ID/digest 的受权公开化及批准 Snapshot 精确绑定；接口缺失时不能用新 public release 冒充已审核的同一候选。
+- **KTD6 — 正式发布保留不可变身份，资格与原始用途分离。** 实现 R8/R12；0034 的 immutable guard 保留。U7 用发布请求绑定同一 Release ID/manifest digest/source digest 与 approved Snapshot/content digest/Contact/Theme，显式授权公开构建；不改私有 manifest 的 purpose，不用新 public release 冒充已审核候选。
+- **KTD7 — 沿现有受保护工作流交付并验证当前回执。** 实现 R8/R12；发布请求与当前指针是服务状态，不是新的 candidate/DC/PG ledger。source environment 保留不可变数据归属，activation environment 表示实际部署目标；普通请求只面向当前 API 环境。production 来源从 production producer 读取，隔离 staging 只做同一产物的验证，不激活 production 指针。现有 deploy/full-validation workflow 消费批准输入、保留保护与批准门禁，在实际版本部署及店铺身份核对后回调 producer。失败不移动旧指针；回滚仅选择已有成功回执的精确旧版本，经同一 workflow 恢复后确认。
 
 ### High-Level Technical Design
 
@@ -269,7 +270,7 @@ stateDiagram-v2
 | 审核后修改 | 继续使用既有 optimistic version、来源 digest、联系信息与环境检查；新版本需要新预览/批准，不引入自动跟随。 |
 | 设置写入冲突 | LaunchConfiguration 为 whole-object 原子 PUT；U4 不拆 writer，保留 preserveContactEmails 和并发冲突恢复。 |
 | 范围扩张 | 不创建 settings hub、全店 draft overlay、新发布平台/权限系统或全局 announcer；当前需要的是已有流程可理解且结果真实。 |
-| U7 prerequisite | REL 需提供受权 elevation/公开构建/激活/失败/回滚和 active tuple 查询合同及测试证据。当前不存在；U7 阻塞，不影响 U1–U6。 |
+| U7 prerequisite | 已授权在 U7.1 内补齐生产者合同；U7.2 消费后由 U7.3 验证。缺少环境配置/门禁或真实回执时，运行态明确受阻，不能显示成功。 |
 
 Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依据。Shopify 的主题预览与主题外资源分离，商品保存语义也不同；本计划保留 Shoppp 不可变版本事实，不直接照搬“保存即全店更新”。
 
@@ -277,12 +278,12 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 
 本节按仓库规则仅维护本计划自身执行状态。状态以实际代码与验证证据为准，REL 当前队列不在这里复制。
 
-- **Plan:** 已激活；管理后台核心完成，正式发布接入前置阻塞。
-- **Current unit:** U7 — 对接 REL 的正式发布与当前线上回执（前置阻塞）。
-- **Next concrete action:** REL 先定义并验证 same Release ID/digest 的公开授权、exact approved Snapshot/Contact/Theme 绑定、激活/失败/回滚和 active tuple 查询合同；具备接口与证据后补充本 U 路径并接入。
-- **Order:** U1 → U2 → U3 → U4 → U5 → U6；U7 在 U6 和 REL 合同具备后开始。
-- **Blocker:** U7 缺 REL 正式发布接口及 active tuple 证据；私有候选仍禁止公开构建或部署。没有可直接消费的 elevation 合同。
-- **Unit status:** U1–U6 已完成；U7 前置阻塞。全计划未完成，候选未冻结，DC/PG 未开始。
+- **Plan:** 已激活；管理后台核心完成，正式发布接入实施中。
+- **Current unit:** U7.1 — 补齐 REL 正式发布生产者、构建输入与激活回执。
+- **Next concrete action:** 按 KTD6/KTD7 实现精确发布请求、权限/环境边界、公开构建、当前回执与失败/回滚，再接入 U7.2。
+- **Order:** U1–U6 完成 → U7.1 生产者与交付合同 → U7.2 Admin 消费 → U7.3 focused/integration 验证。
+- **Blocker:** 无本地实施阻塞；真实环境操作仍需配置既有 hook/工作流并满足 REL 门禁。
+- **Unit status:** U1–U6 已完成；U7 实施中。全计划未完成，候选未冻结，DC/PG 未开始。
 - **Update rule:** U 状态、当前/下一步、顺序或 tail 改变时，同一变更更新本节；只有产品级指针变化才同步 master。集中验证证据放 `docs/progress/`，不建立第二执行队列。
 
 ---
@@ -407,11 +408,18 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 
 **Goal:** 在具备真实发布合同后，商家能够发布所批准的精确版本并看到目标环境结果。
 
-**Requirements:** R8/R12；F5；AE8。**Dependencies:** U6；REL 提供并验证 elevation/激活/查询/失败/回滚合同。**当前前置阻塞，不能直接实现按钮或推定接口形状。**
+**Requirements:** R8/R12；F5；AE8。**Dependencies:** U6；用户 2026-10-11 的生产者实现授权。U7.1 建立合同后，U7.2 才接入操作。
 
-**Files:** 先补充本 U 的 REL 合同链接及确切接口/test 路径；接入目标为 `apps/admin/src/pages/storefront/{themes-page,theme-editor-page}.tsx` 与 `services/storefront/api.ts`；相关 contract/API adapter 以 REL 批准接口为准；保留 `apps/api/test/catalog/candidate-release.test.ts`、`test/security/public-boundaries.test.ts`、`tools/{release-validate,deploy-workflow}.test.ts` 的边界。不在本计划另建 workflow、密钥或发布 ledger。
+**Files:** `docs/architecture/storefront-publication.md`；`packages/contracts/src/{storefront-publication,admin,index}.ts`；`packages/db/migrations/0039_storefront_publications.sql` 与必要 schema；`apps/api/src/publishing/{storefront-publications,candidate-releases,releases}.ts`、`http/app.ts`、`storefront-experience/catalog-resources.ts`；`apps/api/test/catalog/storefront-publication.test.ts`、现有 candidate/security/commerce tests；`apps/storefront/scripts/{experience-build-input,prepare-experience,prepare-release,resolve-prerender-routes,verify-static}.ts`、`nuxt.config.ts`、`worker/index.ts` 与对应 tests；`tools/{storefront-publication,release-validate,deploy-workflow}.test.ts` 和实现；`.github/workflows/{deploy,full-validation}.yml`；`apps/admin/src/pages/storefront/{themes-page,theme-editor-page}.tsx`、局部发布组件及 tests、`services/storefront/api.ts`、`shared/i18n/translations.ts`。复用既有 workflow/凭据，不新增候选 ledger。
 
-**Approach:** KTD6。REL owning plan 先定义并验证 same Release ID/digest 的公开授权和 exact approved Snapshot/Contact/Theme 绑定；本 U 增补接口合同后复核。接入授权动作、异步状态、成功/失败与 active tuple 读取；无需从商品 Publish 曲线触发装修上线。回滚由 REL 授权选择旧不可变 tuple，Admin 仅按接口呈现。
+**Approach:** KTD6/KTD7。保持 REL knowledge-work 的 DC/PG 责任，不把其 validation-only 计划改成实现队列；本 U 是当前唯一实施 owner。
+
+1. U7.1 建立发布请求/资格、精确构建输入、构建与部署回调、当前 tuple 查询和旧版本回滚合同；分离 human 的 `themes.publish` 与 build credential。现有购物车/商品查找消费已真正激活的公开资格。
+2. 同阶段扩展公开编译分支，使用 approved Snapshot 的 live renderer，不带 preview credential/noindex/fixture。现有 hosted validation 保存 tuple 与 source environment；runner 以实际 Worker 版本/部署及店铺身份确认激活，CAS 更新预期旧指针。部署前保存精确旧 Worker 版本；部署后核对或回执失败时恢复并核对旧身份。恢复无法确认时显示状态待核实，不能宣称旧店铺仍在线。
+3. U7.2 增加就近的正式发布/状态刷新/失败重试与受权回滚，重载可恢复精确批准和发布记录。queued/building 与实际已上线状态区分；编辑/换来源后原批准不授权新 bytes。
+4. U7.3 验证生产者、构建/工作流、公开消费者和 Admin 的闭包；核对 R2，回交 REL 的 Pre-DC。
+
+**Execution note:** 先在真实 API/D1 与构建输入边界观察缺失功能的失败，再修改生产实现；UI 复用 AntD 的现有交互。Admin 为 L3，发布服务/工具按实际跨层风险跑 focused contract/security/consumer checks；完整 release validation 属于后续冻结候选，不为本地 U 完成启动真实部署。
 
 **Test scenarios:**
 
@@ -419,6 +427,10 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 - 重复发布按服务幂等处理；queued/building 不显示成功；失败可恢复，实际 active receipt 成功才显示“已上线”。
 - 批准后再改来源/联系/装修不能复用旧批准发布新 bytes；公共端点无法读取尚未受权私有候选。
 - 回执返回目标环境当前 active tuple；历史部署 inclusion 不影响线上标签；授权回滚结果由实际激活确认。
+- 同一请求重试不重复 dispatch；失败显式新 attempt，旧/乱序 callback 与并发旧指针均拒绝。重载恢复服务状态，访问权限丢失清理 UI 状态。
+- 未授权私有候选继续无法公开读取/构建/购买；受权公开构建仍保留原始 manifest bytes；成功激活后的 public Commerce 消费同一 release，私有候选过期不撤掉已上线产物。
+- public compiler 使用批准主题/联系/来源，输出真实身份；正式输出不含私有凭据、fixture 或 noindex。source/activation 环境分离且各自校验，production 成功回调仅在既有 PG 后发生。
+- 部署后回执失败恢复精确旧 Worker；恢复失败保留待核实状态，不显示新版本或旧版本已上线。production 来源在 staging 的 Commerce 数据准备仍由 REL DC2 负责，不复制或改写生产身份。
 
 **Verification:** REL 前置合同与本 U focused/integration 证据均成立；真实受保护环境操作另依发布授权，不能通过本计划测试获得生产许可。完成后本计划回交 REL，不自行设置 DC/PG。
 

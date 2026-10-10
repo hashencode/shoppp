@@ -58,6 +58,7 @@ export const ADMIN_PERMISSION_KEYS = [
   "themes.read",
   "themes.write",
   "themes.approve",
+  "themes.publish",
   "themes.preview",
 ] as const;
 
@@ -302,6 +303,12 @@ export const ADMIN_PERMISSION_CATALOG = [
     description: "Approve storefront experience snapshots and migrations.",
     key: "themes.approve",
     label: "Approve themes",
+  },
+  {
+    category: "themes",
+    description: "Publish approved storefront snapshots and restore previously activated versions.",
+    key: "themes.publish",
+    label: "Publish storefront",
   },
   {
     category: "themes",
