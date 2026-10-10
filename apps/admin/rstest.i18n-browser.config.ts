@@ -5,6 +5,9 @@ const narrow = process.env.ADMIN_I18N_BROWSER_PROFILE === 'narrow'
 
 export default defineConfig({
   include: [
+    'src/shared/layout/app-shell.browser.test.tsx',
+    'src/pages/settings/launch-settings-page.browser.test.tsx',
+    'src/pages/content/content-editor.browser.test.tsx',
     'src/pages/dashboard/dashboard.browser.test.tsx',
     'src/pages/storefront/theme-editor-page.browser.test.tsx',
     'src/pages/iam/iam-pages.browser.test.tsx',

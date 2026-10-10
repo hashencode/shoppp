@@ -383,7 +383,7 @@ describe('AppShell', () => {
     ({ locale, groups }) => {
       renderShell({ routes: templateRoutes, locale })
       const menu = screen.getAllByRole('menu')[0]!
-      const topLevelItems = Array.from(menu.children)
+      const topLevelItems = Array.from(menu.children) as HTMLElement[]
       expect(
         topLevelItems.map((item) => item.querySelector('[role="menuitem"]')?.textContent)
       ).toEqual(groups.map(([name]) => name))
@@ -450,7 +450,7 @@ describe('AppShell', () => {
     'selects the owning task for %s and preserves history and guide provenance',
     async (entry, groupName, itemName, hasGuideReturn) => {
       renderShell({ routes: templateRoutes, initialEntry: entry })
-      const group = Array.from(screen.getAllByRole('menu')[0]!.children).find(
+      const group = (Array.from(screen.getAllByRole('menu')[0]!.children) as HTMLElement[]).find(
         (item) => item.querySelector('[role="menuitem"]')?.textContent === groupName
       )!
       expect(group.querySelector('[role="menuitem"]')?.getAttribute('aria-expanded')).toBe('true')

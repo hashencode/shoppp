@@ -24,6 +24,13 @@ type Props = {
 
 void React
 
+const revisionStatusLabels = {
+  draft: 'Draft',
+  building: 'Building',
+  published: 'Published',
+  failed: 'Failed',
+}
+
 function initialContent(detail: ProductDetail): PublishedProductRevisionContent {
   const optionDefinitions = JSON.parse(detail.product.option_definitions_json) as NonNullable<PublishedProductRevisionContent['optionDefinitions']>
   return {
@@ -261,11 +268,7 @@ export function PublishedProductRevisionEditor({ canEdit, detail, onChanged }: P
         {t('Product version')}: {state?.productVersion ?? detail.product.version} ·{' '}
         {t('Revision status')}:{' '}
         {state?.draft
-          ? t(
-              { draft: 'Draft', building: 'Building', published: 'Published', failed: 'Failed' }[
-                state.draft.status
-              ] ?? state.draft.status
-            )
+          ? t(revisionStatusLabels[state.draft.status] ?? state.draft.status)
           : t('No draft')}
       </p>
       <label className="block space-y-1">

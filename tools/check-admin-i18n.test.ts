@@ -137,6 +137,9 @@ describe("Admin translation coverage", () => {
       "The catalog reference is missing from the selected Catalog Release.",
       "The target package removed a setting with local overrides.",
       "The private preview build failed. Review the build diagnostics and retry.",
+      "Store design",
+      "Product collections",
+      "Automated task recovery",
     ]) {
       expect(audit.messages.some((message) => message.key === key)).toBe(true);
     }

@@ -2209,7 +2209,7 @@ describe('merchant store preview', () => {
       expect(currentDraft.version).toBe(2)
       expect(screen.getByDisplayValue('Saved despite missing sources')).toBeTruthy()
       expect(
-        screen.getByRole('button', { name: 'Save', exact: true }).hasAttribute('disabled')
+        screen.getByRole('button', { name: 'Save' }).hasAttribute('disabled')
       ).toBe(true)
       expect(previewBody).toBeNull()
       expect(validationBody).toBeNull()

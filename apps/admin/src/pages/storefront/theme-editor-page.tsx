@@ -618,15 +618,17 @@ export const ThemeEditorPage = ({
       window.sessionStorage.removeItem('storefront-editor-private-candidate')
       window.sessionStorage.removeItem('storefront-editor-catalog-release')
       selectedReleaseIdRef.current = ''
-      setSelectedReleaseId('')
       previewContextRequest.current += 1
-      setBuild(null)
-      setPreviewSnapshot(null)
-      setCandidateHandoffWarning(new LocalThemeError(localThemeMessages.candidateAccess))
     }
-    if (!canPreview || !canReadCatalog) return
     let cancelled = false
     const timer = window.setTimeout(() => {
+      if (privateAccessLost) {
+        setSelectedReleaseId('')
+        setBuild(null)
+        setPreviewSnapshot(null)
+        setCandidateHandoffWarning(new LocalThemeError(localThemeMessages.candidateAccess))
+      }
+      if (!canPreview || !canReadCatalog) return
       setCatalogReleasesLoading(true)
       setCatalogReleasesError(null)
       if (!privateAccessLost) setCandidateHandoffWarning(null)
@@ -1017,14 +1019,14 @@ export const ThemeEditorPage = ({
   }
 
   const sourceFailureCode = themeErrorCode(error)
-  const sourceRecovery =
-    sourceFailureCode === 'catalog_identity_unpublished' && canReadIdentity
-      ? { path: '/settings/identity', label: t('Open store details') }
-      : sourceFailureCode === 'catalog_products_unpublished' && canReadCatalog
-        ? { path: '/catalog/products', label: t('Open products') }
-        : sourceFailureCode === 'catalog_required_policies_unpublished' && canReadPolicies
-          ? { path: '/settings/policies', label: t('Open policies') }
-          : null
+  let sourceRecovery: { path: string; label: string } | null = null
+  if (sourceFailureCode === 'catalog_identity_unpublished' && canReadIdentity) {
+    sourceRecovery = { path: '/settings/identity', label: t('Open store details') }
+  } else if (sourceFailureCode === 'catalog_products_unpublished' && canReadCatalog) {
+    sourceRecovery = { path: '/catalog/products', label: t('Open products') }
+  } else if (sourceFailureCode === 'catalog_required_policies_unpublished' && canReadPolicies) {
+    sourceRecovery = { path: '/settings/policies', label: t('Open policies') }
+  }
   const currentValidation = draft?.validations.find(
     ({ catalogReleaseId }) => catalogReleaseId === (selectedReleaseId || null)
   )

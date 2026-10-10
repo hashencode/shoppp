@@ -75,3 +75,30 @@ Owning plan: [管理后台商家任务与发布流程重构](../plans/2026-10-10
 - 两个新 native 场景通过：Save 后精确候选/校验/预览/授权/批准等待正式发布；空商品来源保留已保存装修并提供处理入口。Host 检查 actual production/test diff；补齐 Router Link 的 `/admin` basename/指南 query 和延迟保存的 load generation。技术版本/构建/批准审计和失败码进入关闭详情；没有新请求框架。
 - 无 consumer 的旧候选 GET/status adapters 与面板删除。结构搜索确认 10 个面板专用翻译不再被生产消费者使用后删除；其他既有翻译值不改。预览产物过期/授权撤销不等同候选失效，保留原恢复合同。
 - 日志：`/tmp/admin-u5-red.log`、`/tmp/admin-u5-final-authoring.log`、`/tmp/admin-u5-consumers-final.log`、`/tmp/admin-u5-isolated.log`、`/tmp/admin-u5-browser-final.log`。局部 Prettier、diff check 通过；完整原生浏览器与类型/审查由 U6 收尾。
+
+## U4/U5 简化检查
+
+- ce-simplify-code 三个完整 reviewer 规则检查 `dc193840` 后的限定 U4/U5 人写代码，排除受保护页面、早期 U2/U3 和主机 U6 文件。三个终态结果均已收集。
+- 应用质量发现 2 项：三个 source recovery 分支改为平铺 if/else；Catalog 列表只剩一个 recipe 后移除无作用 fragment。权限条件、输出与调用顺序保持。复用 0、效率 0；效率观察 1 项跳过：保存后后台 preview-context GET 的抑制可能改变失败恢复，没有行为等价证据，故不为减请求改合同。
+- 三类来源恢复 3 pass；最终权限清理修正后同组及六项 read 缺失矩阵 9 pass。类型和 changed-file lint 统一通过下述 U6 gate，不重复整套业务测试。
+
+## U6 核心验收
+
+L3 范围：U2 route/shell 消费者、U3 内容与商品动作、U4 settings 原子 writer 和局部 owner links、U5 preview 编排/局部 source feedback/Catalog 与 storefront adapters。contracts/API 行为未改；候选及公开边界沿用 U4 已验证的 4 个 API suites（85 pass，外部 U9 exact handshake 1 skip，未配置 `U9_EXACT_HANDSHAKE_URL`），不冒充 hosted/生产证据。
+
+原生 Browser Mode 只替换 HTTP transport，使用真实页面、AntD、router、i18n 和浏览器 CSS：
+
+| Consumer | desktop | 390px narrow | 验证范围 |
+| --- | --- | --- | --- |
+| AppShell | 1 pass | 1 pass | 七组、键盘菜单、深链和原标题/面包屑；224/80 几何保持 |
+| Launch settings | 2 pass | 2 pass | Cancel 保留编辑、显式 discard、guide query、原子 PUT/保留邮箱与保存后果 |
+| Theme editor | 10 pass | 10 pass | 自动精确预览/授权/批准待发布、空来源、失效候选、冲突/持续错误、语言切换、键盘/触控和无 URL 凭据 |
+| Content editor | 1 pass | 1 pass | 粘贴内容、键盘及版本冲突恢复 |
+| 原 Dashboard | 7 pass | 7 pass | 原正常/空/错误/主题/时区和 resize 场景，原测试与页面不改 |
+
+- 合计 42 个 native 场景 pass；按消费者边界运行，无全仓库、全模板 build 或生产操作。日志 `/tmp/shoppp-native-{shell,launch,preview}-desktop.log`、对应 `-narrow.log`；Dashboard desktop 实际日志 `/tmp/shoppp-native-protected-content-desktop.log` 只含 Dashboard，Content 单独 `/tmp/shoppp-native-content.log`；窄屏两者 `/tmp/shoppp-native-protected-content-narrow.log`。
+- 类型首次 gate 发现 3 个测试文件共 4 个类型错误：未声明 matcher、ByRole 无 exact option、Element/HTMLElement 不匹配；修正为等价 value 断言、标准名称匹配和已知 HTML 节点类型。确认 `bun run --cwd apps/admin typecheck` pass。没有断言放宽或新类型兼容层。
+- changed-file ESLint 覆盖 41 个 Admin TS 文件，另检查两个 tools 文件，pass。权限变化 effect 的 React 检查错误通过沿用现有零延迟 callback 清理 UI 修正；session/ref/generation 在 effect 立即失效，未削减安全检查；六项权限缺失与三类恢复 9 pass。
+- `bun test tools/check-admin-i18n.test.ts --timeout 20000`：8 pass。首次新菜单目录断言观察到缺少 dynamic catalog，注册 route menu-only fields、revision status labels、candidateSourceMessages 后通过。20 秒仅为该 CPU audit 命令上限（并行初验曾超默认 5 秒），不改变仓库 timeout 配置或业务断言；最终实际 2.12 秒。
+- 最后保护核对：7/7 页面/测试 SHA 相同；31 个业务 route key/path/title/permission/menuMode/breadcrumb/icon 相同；保留的 1,556 条旧翻译值相同，仅删除 10 条已证明无消费者的旧面板专用键。原 welcome/dashboard 28 个 jsdom 场景证据沿用 U2；没有共享几何、protected metadata 或内部内容改动。
+- 类型/质量日志：`/tmp/shoppp-admin-typecheck-confirmed.log`、`/tmp/shoppp-admin-eslint-confirmed.log`、`/tmp/shoppp-admin-preview-access-final.log`、`/tmp/shoppp-admin-i18n-final.log`。`git diff --check` pass。只更新实际变化的 guardrail inventory，不新增规范抽象。

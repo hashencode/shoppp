@@ -301,9 +301,5 @@ export const CatalogListPage = () => {
     [canPublish, canWrite, filters, fromSetupGuide, handlePublish, navigate, t]
   )
 
-  return (
-    <>
-      <StandardListPageRecipe spec={spec} />
-    </>
-  )
+  return <StandardListPageRecipe spec={spec} />
 }

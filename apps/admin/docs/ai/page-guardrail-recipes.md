@@ -233,20 +233,20 @@
 | `setup-guide` | Store setup guide | grouped: Home | custom / business override | 无本轮清理项 |
 | `orders` | Orders | grouped: Orders | standard list | 删除仅复述用途的摘要 |
 | `fulfillment` | Fulfillment | grouped: Orders | custom / business override | 删除仅复述用途的摘要 |
-| `catalog-products` | Catalog | grouped: Products | standard list | 无本轮清理项 |
+| `catalog-products` | Catalog | grouped: Products | standard list | 商品检查与真实发布保留；整店私有预览归在线商店 |
 | `catalog-collections` | Collections | grouped: Products | standard list | 无本轮清理项 |
 | `inventory` | Inventory | grouped: Products | standard list | 删除仅复述用途的摘要 |
 | `catalog-reviews` | Reviews | grouped: Products | custom / business override | 将审核后发布时间移到 moderation 决策旁 |
-| `content-pages` | Pages | grouped: Content | standard list | 发布候选与线上包含状态保留在记录行内 |
-| `content-articles` | Articles | grouped: Content | standard list | 发布候选与线上包含状态保留在记录行内 |
-| `storefront-navigation` | Navigation | grouped: Content | custom / business override | 菜单版本、候选与线上包含状态保留在编辑器状态区 |
-| `storefront-themes` | Storefront themes | grouped: Online store | custom / business override | 将 production theme caveat 移到 draft/package 控件旁 |
+| `content-pages` | Pages | grouped: Content | standard list | 列表保留来源状态；版本与历史部署放在编辑器闭合详情，不推断当前线上 |
+| `content-articles` | Articles | grouped: Content | standard list | 列表保留来源状态；版本与历史部署放在编辑器闭合详情，不推断当前线上 |
+| `storefront-navigation` | Navigation | grouped: Content | custom / business override | 来源状态在编辑器决策处；候选与历史部署进入闭合详情 |
+| `storefront-themes` | Storefront themes | grouped: Online store | custom / business override | 保存、私有预览与批准待正式发布分开表达；技术身份进入详情 |
 | `order-report` | Revenue report | grouped: Analytics | standard list | 销售总额、退款、净额定义放在各自表头右侧的信息图标 Tooltip 中；不保留筛选下方的范围摘要 |
-| `store-identity` | Store identity | grouped: Settings | top-level form via custom recipe | 无本轮清理项 |
-| `contact-settings` | Contact settings | grouped: Settings | top-level form via custom recipe | 将 publication guidance 移入 Global Contact Channels；不改 404、环境、请求或保存行为 |
-| `launch-settings` | Commercial settings | grouped: Settings | top-level form via custom recipe | 无本轮清理项 |
-| `shipping-settings` | Shipping settings | grouped: Settings | top-level form via custom recipe | 删除仅复述用途的摘要 |
-| `policies` | Policies | grouped: Settings | custom / business override | 无本轮清理项 |
+| `store-identity` | Store identity | grouped: Settings | top-level form via custom recipe | 已保存 published 来源与历史详情分开；保存旁说明旧快照不变 |
+| `contact-settings` | Contact settings | grouped: Settings | top-level form via custom recipe | Global Contact Channels 说明新快照使用，后续保存不改旧快照 |
+| `launch-settings` | Commercial settings | grouped: Settings | top-level form via custom recipe | 保存旁说明当前交易影响；联系、配送和政策跳到唯一 owner |
+| `shipping-settings` | Shipping settings | grouped: Settings | top-level form via custom recipe | 保存决策旁说明新 checkout 请求使用新配送规则 |
+| `policies` | Policies | grouped: Settings | custom / business override | 精确审核/发布保留；历史包含进入详情，不表示当前线上 |
 | `iam-users` | Users & invitations | grouped: Settings | custom / business override | 删除仅复述用途的摘要 |
 | `iam-roles` | Roles | grouped: Settings | standard list | 将 authority guidance 移到权限内容旁 |
 | `privacy` | Privacy requests | grouped: Settings | custom / business override | 身份核验说明只放在请求确认弹窗中 |

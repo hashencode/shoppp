@@ -135,6 +135,15 @@ export const scanTranslationCalls = (filePath: string, text: string) => {
 
 // These are catalogs of application-owned messages, not arbitrary API/user strings.
 export const dynamicCatalogs = [
+  {
+    filePath: "apps/admin/src/routes/routes.config.ts",
+    variable: "commerceRoutes",
+    fields: ["menuTitle", "menuGroup"],
+  },
+  {
+    filePath: "apps/admin/src/pages/catalog/published-product-revision-editor.tsx",
+    variable: "revisionStatusLabels",
+  },
   { filePath: "apps/admin/src/pages/orders/order-timeline-messages.ts", variable: "kindMessages" },
   { filePath: "apps/admin/src/pages/orders/order-timeline-messages.ts", variable: "orderMessages" },
   {
@@ -148,6 +157,10 @@ export const dynamicCatalogs = [
   },
   { filePath: "apps/admin/src/pages/storefront/theme-feedback.ts", variable: "diagnosticMessages" },
   { filePath: "apps/admin/src/pages/storefront/theme-feedback.ts", variable: "localThemeMessages" },
+  {
+    filePath: "apps/admin/src/pages/storefront/theme-feedback.ts",
+    variable: "candidateSourceMessages",
+  },
   {
     filePath: "apps/admin/src/pages/storefront/theme-feedback.ts",
     variable: "validationStatusMessages",

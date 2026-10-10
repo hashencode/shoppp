@@ -446,7 +446,7 @@ describe('CatalogFormPage', () => {
     )
     render(<MemoryRouter initialEntries={['/catalog/products/form?mode=modify&id=product-001']}><AuthTestProvider permissions={['catalog.read', 'catalog.write', 'catalog.publish']}><ThemeProvider><App><CatalogFormPage /></App></ThemeProvider></AuthTestProvider></MemoryRouter>)
     const editor = await screen.findByRole('region', { name: '已发布商品修订' })
-    await waitFor(() => expect(within(editor).getByLabelText('名称')).toHaveValue('Revised carry-on'))
+    await waitFor(() => expect((within(editor).getByLabelText('名称') as HTMLInputElement).value).toBe('Revised carry-on'))
     fireEvent.change(within(editor).getByLabelText('发布原因'), { target: { value: 'Publish reviewed revision' } })
     fireEvent.click(within(editor).getByRole('button', { name: '发布暂存修订' }))
     await waitFor(() => expect(publication).toMatchObject({ expectedDraftVersion: 1, expectedProductVersion: 3, expectedPublishedRevisionId: null, revisionId: 'revision-1', reason: 'Publish reviewed revision' }))
