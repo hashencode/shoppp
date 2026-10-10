@@ -191,7 +191,28 @@ export const PoliciesPage = () => {
                 >
                   <List.Item.Meta
                     title={policy.title}
-                    description={`${t(policy.kind)} · ${t('Version {version}', { version: policy.version })} · ${t(policy.inclusion?.live ? 'Deployed to storefront' : policy.inclusion?.candidate ? 'Included in candidate' : 'Not deployed')}`}
+                    description={
+                      <>
+                        <span>{`${t(policy.kind)} · ${t('Version {version}', { version: policy.version })}`}</span>
+                        {policy.inclusion?.live || policy.inclusion?.candidate ? (
+                          <details>
+                            <summary>{t('Version details')}</summary>
+                            <Space orientation="vertical">
+                              {policy.inclusion.live ? (
+                                <Typography.Text>
+                                  {t('Deployment history includes this version.')}
+                                </Typography.Text>
+                              ) : null}
+                              {policy.inclusion.candidate ? (
+                                <Typography.Text>
+                                  {t('Included in a private preview candidate.')}
+                                </Typography.Text>
+                              ) : null}
+                            </Space>
+                          </details>
+                        ) : null}
+                      </>
+                    }
                   />
                   <Tag>{t(policy.status)}</Tag>
                 </List.Item>

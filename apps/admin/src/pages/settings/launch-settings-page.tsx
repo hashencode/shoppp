@@ -46,13 +46,14 @@ const HEALTH_FAILURE_LABEL: Record<keyof OperationalHealth['failures'], string> 
 const SECTION_IDS = ['sales', 'payment', 'policies']
 
 export const LaunchSettingsPage = () => {
-  const { message } = App.useApp()
+  const { message, modal } = App.useApp()
   const { t } = useI18n()
   const translateNow = useCurrentTranslate()
   const localizeError = useLocalizedApiError()
   const { role, permissions } = useAuth()
   const canRead = hasPermission(role, 'settings.read', permissions)
   const canWrite = hasPermission(role, 'settings.write', permissions)
+  const canReadPolicies = hasPermission(role, 'policies.read', permissions)
   const location = useLocation()
   const navigate = useNavigate()
   const [form] = Form.useForm<FormValues>()
@@ -65,6 +66,7 @@ export const LaunchSettingsPage = () => {
   const [submitting, setSubmitting] = useState(false)
   const configurationRequest = useRef(0)
   const healthRequest = useRef(0)
+  const hasUserEdits = useRef(false)
 
   const loadConfiguration = useCallback(async () => {
     const request = ++configurationRequest.current
@@ -76,6 +78,7 @@ export const LaunchSettingsPage = () => {
       if (request !== configurationRequest.current) return
       setStatus(configuration)
       form.setFieldsValue({ ...configuration.configuration, reason: '' })
+      hasUserEdits.current = false
     } catch (error) {
       if (request === configurationRequest.current) setConfigurationError(normalizeApiError(error))
     } finally {
@@ -115,12 +118,45 @@ export const LaunchSettingsPage = () => {
     if (SECTION_IDS.includes(id)) document.getElementById(id)?.scrollIntoView?.({ block: 'start' })
   }, [loading, status, location.hash])
 
+  const ownerLink = (path: string, label: string) => (
+    <Link
+      to={{ pathname: path, search: location.search }}
+      onClick={(event) => {
+        if (event.button !== 0 || event.metaKey || event.altKey || event.ctrlKey || event.shiftKey)
+          return
+        if (!hasUserEdits.current || !status) return
+        const changed = Object.entries(form.getFieldsValue()).some(([key, value]) =>
+          key === 'policies'
+            ? Object.entries(value as LaunchConfiguration['policies']).some(
+                ([policy, url]) =>
+                  status.configuration.policies[policy as keyof LaunchConfiguration['policies']] !==
+                  url
+              )
+            : JSON.stringify(value) !==
+              JSON.stringify(
+                key === 'reason' ? '' : status.configuration[key as keyof LaunchConfiguration]
+              )
+        )
+        if (!changed) return
+        event.preventDefault()
+        modal.confirm({
+          title: t('Leave with unsaved business settings?'),
+          content: t('Continuing discards your unsaved business settings.'),
+          okText: t('Discard changes and continue'),
+          onOk: () => navigate({ pathname: path, search: location.search }),
+        })
+      }}
+    >
+      {t(label)}
+    </Link>
+  )
+
   const mode = canWrite ? 'modify' : 'readonly'
   const modeView = getFormModeViewModel(mode)
   return (
     <CustomPageRecipe
       title={t('Commercial settings')}
-      extra={canRead ? <Link to="/settings/contact">{t('Contact settings')}</Link> : null}
+      extra={canRead ? ownerLink('/settings/contact', 'Contact settings') : null}
     >
       <TemplateFormStateGate
         parsedMode={{ ok: true, mode, resourceKey: 'commercial-configuration' }}
@@ -138,6 +174,9 @@ export const LaunchSettingsPage = () => {
           className="space-y-4"
           disabled={!canWrite || submitting}
           scrollToFirstError={FORM_ERROR_SCROLL_OPTIONS}
+          onValuesChange={() => {
+            hasUserEdits.current = true
+          }}
           onFinish={async ({ reason, ...configuration }) => {
             if (!canRead || !canWrite || submitting || !status) return
             setSubmitting(true)
@@ -148,7 +187,8 @@ export const LaunchSettingsPage = () => {
               )
               setStatus(updated)
               form.setFieldsValue({ ...updated.configuration, reason: '' })
-              void message.success(translateNow('Launch configuration saved and audited.'))
+              hasUserEdits.current = false
+              void message.success(translateNow('Business settings saved.'))
             } catch (error) {
               void message.error(localizeError(error))
             } finally {
@@ -158,6 +198,7 @@ export const LaunchSettingsPage = () => {
         >
           <Card
             title={<span id="sales">{t('Sales and inventory')}</span>}
+            extra={ownerLink('/settings/shipping', 'Shipping settings')}
             classNames={{ body: FORM_CARD_BODY_WIDTH_CLASS_NAME.compact }}
           >
             <Form.Item
@@ -238,6 +279,7 @@ export const LaunchSettingsPage = () => {
           </Card>
           <Card
             title={<span id="policies">{t('Policies')}</span>}
+            extra={canReadPolicies ? ownerLink('/settings/policies', 'Edit policy content') : null}
             classNames={{ body: FORM_CARD_BODY_WIDTH_CLASS_NAME.compact }}
           >
             {(['privacy', 'terms', 'shipping', 'returns', 'contact', 'cookies'] as const).map(
@@ -270,9 +312,13 @@ export const LaunchSettingsPage = () => {
               submitHtmlType="submit"
               submitLoading={submitting}
               submitDisabled={submitting || !canWrite}
+              submitDescription={t(
+                'Changes apply to new checkout requests in the current environment.'
+              )}
               onReset={() => {
                 if (canWrite && status) {
                   form.setFieldsValue({ ...status.configuration, reason: '' })
+                  hasUserEdits.current = false
                 }
               }}
             />

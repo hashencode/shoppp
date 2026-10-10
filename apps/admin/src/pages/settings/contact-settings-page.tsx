@@ -265,7 +265,7 @@ export const ContactSettingsPage = () => {
             >
               <Typography.Paragraph type="secondary">
                 {t(
-                  'Only channels you explicitly publish will appear on the storefront after a new preview or release.'
+                  'New storefront previews and versions use these public channels. Saving later changes leaves existing versions unchanged.'
                 )}
               </Typography.Paragraph>
               <div className="grid">

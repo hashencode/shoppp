@@ -34,6 +34,45 @@ const identity = {
 }
 
 describe('StoreIdentityPage', () => {
+  it('shows the newly saved published source and keeps deployment history in details', async () => {
+    let submitted: unknown
+    const current = { ...identity, inclusion: { candidate: true, live: true } }
+    server.use(
+      http.get('*/admin/settings/store-identity', () => HttpResponse.json({ data: current })),
+      http.put('*/admin/settings/store-identity', async ({ request }) => {
+        submitted = await request.json()
+        return HttpResponse.json({
+          data: { ...identity, storefrontName: 'Updated Shoppp', version: 2 },
+        })
+      })
+    )
+    renderInLocale(
+      <AntApp>
+        <AuthTestProvider permissions={['identity.read', 'identity.write']}>
+          <MemoryRouter>
+            <StoreIdentityPage />
+          </MemoryRouter>
+        </AuthTestProvider>
+      </AntApp>
+    )
+    const name = await screen.findByLabelText('Storefront name')
+    expect(screen.getByText('Published store details · version 1')).toBeTruthy()
+    const history = screen.getByText('Deployment history includes this version.')
+    expect(history.closest('details')?.open).toBe(false)
+    expect(
+      screen.queryByText('This exact saved version is included in the deployed Release.')
+    ).toBeNull()
+    expect(
+      screen.getByText(
+        'Saving creates a published source version for the next store preview. Existing storefront versions stay unchanged.'
+      )
+    ).toBeTruthy()
+    fireEvent.change(name, { target: { value: 'Updated Shoppp' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save identity' }))
+    expect(await screen.findByText('Published store details · version 2')).toBeTruthy()
+    expect(submitted).toMatchObject({ expectedVersion: 1, storefrontName: 'Updated Shoppp' })
+    expect(screen.queryByText('Deployment history includes this version.')).toBeNull()
+  })
   it('preserves Form required and error associations on the primary media selector', async () => {
     server.use(http.get('*/admin/settings/store-identity', () => HttpResponse.json({ data: null })))
     renderInLocale(

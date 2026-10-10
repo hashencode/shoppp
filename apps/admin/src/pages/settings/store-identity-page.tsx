@@ -123,17 +123,26 @@ export const StoreIdentityPage = () => {
         <Typography.Text>Loading store identity…</Typography.Text>
       ) : (
         <Space direction="vertical" size="middle" className="w-full">
-          <Alert
-            type="info"
-            message={identity ? `Saved version ${identity.version}` : 'No Store Identity saved'}
-            description={
-              identity?.inclusion?.live
-                ? 'This exact saved version is included in the deployed Release.'
-                : identity?.inclusion?.candidate
-                  ? 'This exact saved version is included in a private candidate, but is not live.'
-                  : 'Saving changes does not change the deployed storefront. Build a new candidate Release to preview them.'
-            }
-          />
+          <Typography.Text>
+            {identity
+              ? t('Published store details · version {version}', { version: identity.version })
+              : t('No store details saved')}
+          </Typography.Text>
+          {identity?.inclusion?.live || identity?.inclusion?.candidate ? (
+            <details>
+              <summary>{t('Version details')}</summary>
+              <Space orientation="vertical">
+                {identity.inclusion.live ? (
+                  <Typography.Text>
+                    {t('Deployment history includes this version.')}
+                  </Typography.Text>
+                ) : null}
+                {identity.inclusion.candidate ? (
+                  <Typography.Text>{t('Included in a private preview candidate.')}</Typography.Text>
+                ) : null}
+              </Space>
+            </details>
+          ) : null}
           {error ? <Alert type="error" message={error.message} /> : null}
           {backlinks.length ? (
             <Alert
@@ -206,9 +215,16 @@ export const StoreIdentityPage = () => {
               </Form.Item>
             ) : null}
             {canWrite ? (
-              <Button htmlType="submit" type="primary" loading={saving}>
-                Save identity
-              </Button>
+              <>
+                <Typography.Paragraph type="secondary">
+                  {t(
+                    'Saving creates a published source version for the next store preview. Existing storefront versions stay unchanged.'
+                  )}
+                </Typography.Paragraph>
+                <Button htmlType="submit" type="primary" loading={saving}>
+                  Save identity
+                </Button>
+              </>
             ) : null}
           </Form>
         </Space>

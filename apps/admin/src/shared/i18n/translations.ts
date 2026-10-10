@@ -1,4 +1,22 @@
 export const zhCNMessages: Record<string, string> = {
+  'Edit policy content': '编辑政策内容',
+  'Leave with unsaved business settings?': '放弃未保存的经营设置并离开？',
+  'Continuing discards your unsaved business settings.': '继续后，未保存的经营设置将被放弃。',
+  'Discard changes and continue': '放弃修改并继续',
+  'Changes apply to new checkout requests in the current environment.':
+    '保存后，新结账请求将使用当前环境中的新配置。',
+  'Business settings saved.': '经营设置已保存。',
+  'Saving updates shipping options and rates for new checkout requests in the current environment.':
+    '保存后，当前环境中的新结账请求将使用新的配送方式和运费。',
+  'New storefront previews and versions use these public channels. Saving later changes leaves existing versions unchanged.':
+    '新的店铺预览和版本会使用这些公开联系方式。后续保存不会改变已有版本。',
+  'Published store details · version {version}': '已发布的店铺资料 · 版本 {version}',
+  'No store details saved': '尚未保存店铺资料',
+  'Version details': '版本详情',
+  'Deployment history includes this version.': '此版本曾被纳入部署记录。',
+  'Included in a private preview candidate.': '已纳入私有预览候选版本。',
+  'Saving creates a published source version for the next store preview. Existing storefront versions stay unchanged.':
+    '保存会生成可用于下次店铺预览的已发布来源版本，已有店铺版本保持不变。',
   'Publish review updates': '发布评价更新',
   'Product publication details': '商品发布详情',
   'Publishing starts a public storefront build. Changes appear only after deployment.':

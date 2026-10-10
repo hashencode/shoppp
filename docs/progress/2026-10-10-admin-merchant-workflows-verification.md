@@ -58,3 +58,11 @@ Owning plan: [管理后台商家任务与发布流程重构](../plans/2026-10-10
 - 使用 ce-simplify-code 的复用、质量、效率三个完整规则审查已提交 `c24e747…5422ff7` 的人写代码；不包括正在编写的 U4，也不改变 session-settled KTD 和 protected 页面。
 - 应用质量发现 1 项：content 发布/归档 Popconfirm 的重复禁用表达式改为两个局部派生布尔值。输出、顺序、Cancel 行为及运行时 version/reason/dirty/busy checks 保持；复用和效率无保留问题，无新增抽象。
 - content-editor 原 consumer suite 通过；局部 ESLint、Prettier 通过。没有行为变化，无新增镜像测试。最终 Admin typecheck 统一在 U6 稳定代码后运行。
+
+## U4 设置归属与保存验证
+
+- behavior_changed: true。经营页链接指向联系/配送/政策唯一 owner，保留查询与指南回程；实际编辑后局部 AntD 确认离开，取消保留修改。加载、复原、重置和保存后不误报 dirty。保持 whole-object PUT 与 preserveContactEmails。
+- 五个既有 settings suites 先更新再运行：31 tests，10 个目标失败；最终 32/32 通过，13.397 秒。测试覆盖 owner 权限/query/回退、未保存处理、非法政策 URL、来源/冻结联系边界与 policy 精确版本/reason/conflict。
+- Host 审查实际生产 diff。真实浏览器 Launch desktop 2/2、390px narrow 2/2 通过：Cancel 保留 EUR；显式 discard 跳转；原子保存精确 payload/preserveContactEmails；Save 就近说明在窄屏内可见。jsdom 不重复要求库弹层动画/重复标题 DOM，保留应用拥有的状态与导航断言。
+- 原 API contact-profile/candidate-release/experience-api/public-boundaries 4 suites：85 pass / 1 skipped（外部 U9 handshake 未配置）。较新邮箱后保存旧经营表单的既有 API 测试通过；没有服务合同改变。
+- Worker ESLint、diff check 通过；日志 `/private/tmp/shoppp-u4-green-confirmed.log`。没有 settings hub、复制表单、拆 writer 或 protected 内容变化。

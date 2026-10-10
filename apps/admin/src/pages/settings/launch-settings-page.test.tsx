@@ -4,11 +4,12 @@ import type {
   LaunchConfigurationStatus,
   OperationalHealth,
 } from '@shoppp/contracts'
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
+import type { PermissionKey } from '../../infrastructure/auth/permissions'
 import { AuthTestProvider } from '../../test/auth-context-fixture'
 import { ThemeProvider } from '../../shared/contexts/theme-context'
 import { renderInLocale } from '../../test/render-in-locale'
@@ -77,14 +78,33 @@ afterEach(() => {
   server.resetHandlers()
 })
 afterAll(() => server.close())
-const renderPage = (writable = true, initialEntry = '/settings/launch?from=setup-guide#payment') =>
+const LocationProbe = () => {
+  const location = useLocation()
+  const navigate = useNavigate()
+  return (
+    <>
+      <output data-testid="location">
+        {location.pathname}
+        {location.search}
+        {location.hash}
+      </output>
+      <button onClick={() => navigate(-1)}>Browser back</button>
+    </>
+  )
+}
+const renderPage = (
+  writable = true,
+  initialEntry = '/settings/launch?from=setup-guide#payment',
+  permissions: PermissionKey[] = writable
+    ? ['settings.read', 'settings.write', 'policies.read']
+    : ['settings.read']
+) =>
   renderInLocale(
-    <AuthTestProvider
-      permissions={writable ? ['settings.read', 'settings.write'] : ['settings.read']}
-    >
+    <AuthTestProvider permissions={permissions}>
       <ThemeProvider>
         <MemoryRouter initialEntries={[initialEntry]}>
           <LaunchSettingsPage />
+          <LocationProbe />
         </MemoryRouter>
       </ThemeProvider>
     </AuthTestProvider>
@@ -128,10 +148,125 @@ describe('LaunchSettingsPage', () => {
         },
       ])
     )
-    expect(await screen.findByText('Launch configuration saved and audited.')).toBeTruthy()
+    expect(await screen.findByText('Business settings saved.')).toBeTruthy()
     server.use(http.get('*/admin/operations/health', () => HttpResponse.json({ data: health })))
     fireEvent.click(screen.getByRole('button', { name: 'Retry health check' }))
     expect(await screen.findByText('Healthy')).toBeTruthy()
+  })
+  it('opens the unique setting owners without prompting for loaded values and preserves the return query', async () => {
+    renderPage(true, '/settings/launch?from=setup-guide&task=payment#payment')
+    await screen.findByLabelText('Default currency')
+    const targets = [
+      ['Contact settings', '/settings/contact'],
+      ['Shipping settings', '/settings/shipping'],
+      ['Edit policy content', '/settings/policies'],
+    ]
+    for (const [label, path] of targets) {
+      const link = screen.getByRole('link', { name: label })
+      expect(link.getAttribute('href')).toBe(`${path}?from=setup-guide&task=payment`)
+      fireEvent.click(link)
+      await waitFor(() =>
+        expect(screen.getByTestId('location').textContent).toBe(
+          `${path}?from=setup-guide&task=payment`
+        )
+      )
+      expect(screen.queryByText('Leave with unsaved business settings?')).toBeNull()
+      fireEvent.click(screen.getByRole('button', { name: 'Browser back' }))
+      await waitFor(() =>
+        expect(screen.getByTestId('location').textContent).toBe(
+          '/settings/launch?from=setup-guide&task=payment#payment'
+        )
+      )
+    }
+    expect(submitted).toEqual([])
+  })
+  it('keeps the current route and edits when an owner-link confirmation is cancelled', async () => {
+    renderPage()
+    const currency = await screen.findByLabelText('Default currency')
+    fireEvent.change(currency, { target: { value: 'EUR' } })
+    fireEvent.click(screen.getByRole('link', { name: 'Shipping settings' }))
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Leave with unsaved business settings?',
+    })
+    expect(screen.getByTestId('location').textContent).toBe(
+      '/settings/launch?from=setup-guide#payment'
+    )
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    expect((currency as HTMLInputElement).value).toBe('EUR')
+    expect(screen.getByTestId('location').textContent).toBe(
+      '/settings/launch?from=setup-guide#payment'
+    )
+    expect(submitted).toEqual([])
+  })
+  it('opens the requested owner only after confirming that edits will be discarded', async () => {
+    renderPage()
+    const currency = await screen.findByLabelText('Default currency')
+    fireEvent.change(currency, { target: { value: 'EUR' } })
+    fireEvent.click(screen.getByRole('link', { name: 'Contact settings' }))
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Leave with unsaved business settings?',
+    })
+    expect(screen.getByTestId('location').textContent).toBe(
+      '/settings/launch?from=setup-guide#payment'
+    )
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Discard changes and continue' }))
+    await waitFor(() =>
+      expect(screen.getByTestId('location').textContent).toBe('/settings/contact?from=setup-guide')
+    )
+    expect(submitted).toEqual([])
+  })
+  it('does not warn after edits are reverted, reset, or successfully saved', async () => {
+    renderPage()
+    const currency = await screen.findByLabelText('Default currency')
+    fireEvent.change(currency, { target: { value: 'EUR' } })
+    fireEvent.change(currency, { target: { value: 'USD' } })
+    fireEvent.click(screen.getByRole('link', { name: 'Contact settings' }))
+    await waitFor(() =>
+      expect(screen.getByTestId('location').textContent).toBe('/settings/contact?from=setup-guide')
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Browser back' }))
+    fireEvent.change(currency, { target: { value: 'EUR' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }))
+    await waitFor(() => expect((currency as HTMLInputElement).value).toBe('USD'))
+    fireEvent.click(screen.getByRole('link', { name: 'Contact settings' }))
+    await waitFor(() =>
+      expect(screen.getByTestId('location').textContent).toBe('/settings/contact?from=setup-guide')
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Browser back' }))
+    fireEvent.change(screen.getByLabelText('Change reason'), {
+      target: { value: 'Keep current configuration' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await screen.findByText('Business settings saved.')
+    fireEvent.click(screen.getByRole('link', { name: 'Contact settings' }))
+    await waitFor(() =>
+      expect(screen.getByTestId('location').textContent).toBe('/settings/contact?from=setup-guide')
+    )
+    expect(screen.queryByText('Leave with unsaved business settings?')).toBeNull()
+  })
+  it('uses original owner read permissions and shows the runtime boundary by Save', async () => {
+    renderPage(true, '/settings/launch', ['settings.read', 'settings.write'])
+    await screen.findByLabelText('Default currency')
+    expect(screen.getByRole('link', { name: 'Contact settings' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Shipping settings' })).toBeTruthy()
+    expect(screen.queryByRole('link', { name: 'Edit policy content' })).toBeNull()
+    const boundary = screen.getByText(
+      'Changes apply to new checkout requests in the current environment.'
+    )
+    expect(boundary.closest('.ax-fixed-toolbar')).toBeTruthy()
+  })
+  it('keeps invalid policy URLs in the form without submitting', async () => {
+    renderPage()
+    const privacy = await screen.findByLabelText('privacy policy URL')
+    fireEvent.change(privacy, { target: { value: 'invalid-url' } })
+    fireEvent.change(screen.getByLabelText('Change reason'), {
+      target: { value: 'Update policy links' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(privacy.getAttribute('aria-invalid')).toBe('true'))
+    expect((privacy as HTMLInputElement).value).toBe('invalid-url')
+    expect(submitted).toEqual([])
   })
   it('disables fields and hard-blocks a forced readonly form submission', async () => {
     renderPage(false)

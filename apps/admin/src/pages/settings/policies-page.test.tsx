@@ -1,5 +1,4 @@
 import React from 'react'
-import { App as AntApp } from 'antd'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
@@ -35,6 +34,30 @@ const policy = {
 }
 
 describe('PoliciesPage', () => {
+  it('keeps historical deployment inclusion in version details without claiming current storefront state', async () => {
+    server.use(
+      http.get('*/admin/settings/policies', () =>
+        HttpResponse.json({
+          data: [{ ...policy, status: 'published', inclusion: { candidate: true, live: true } }],
+        })
+      )
+    )
+    renderInLocale(
+      <AuthTestProvider permissions={['policies.read']}>
+        <MemoryRouter>
+          <PoliciesPage />
+        </MemoryRouter>
+      </AuthTestProvider>
+    )
+    await screen.findByText('Returns policy')
+    expect(screen.queryByText(/Deployed to storefront/)).toBeNull()
+    const history = screen.getByText('Deployment history includes this version.')
+    expect(history.closest('details')?.open).toBe(false)
+    expect(
+      screen.getByText('Included in a private preview candidate.').closest('details')
+    ).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Publish' })).toBeNull()
+  })
   it('associates an empty section submit error with the labelled content group', async () => {
     let submitted = false
     server.use(
@@ -47,13 +70,11 @@ describe('PoliciesPage', () => {
       })
     )
     renderInLocale(
-      <AntApp>
-        <AuthTestProvider permissions={['policies.read', 'policies.write']}>
-          <MemoryRouter>
-            <PoliciesPage />
-          </MemoryRouter>
-        </AuthTestProvider>
-      </AntApp>
+      <AuthTestProvider permissions={['policies.read', 'policies.write']}>
+        <MemoryRouter>
+          <PoliciesPage />
+        </MemoryRouter>
+      </AuthTestProvider>
     )
     await screen.findByDisplayValue('Returns policy')
     fireEvent.click(screen.getByRole('button', { name: 'Save draft' }))
@@ -77,13 +98,11 @@ describe('PoliciesPage', () => {
       })
     )
     renderInLocale(
-      <AntApp>
-        <AuthTestProvider permissions={['policies.read', 'policies.write']}>
-          <MemoryRouter>
-            <PoliciesPage />
-          </MemoryRouter>
-        </AuthTestProvider>
-      </AntApp>
+      <AuthTestProvider permissions={['policies.read', 'policies.write']}>
+        <MemoryRouter>
+          <PoliciesPage />
+        </MemoryRouter>
+      </AuthTestProvider>
     )
     await screen.findByDisplayValue('Returns policy')
     fireEvent.click(screen.getByRole('button', { name: 'Save draft' }))
@@ -93,10 +112,13 @@ describe('PoliciesPage', () => {
   })
 
   it('reviews exact rendered bytes before exposing separately permitted approval', async () => {
+    let submitted: unknown
+    let reviewedVersion: string | null = null
     server.use(
       http.get('*/admin/settings/policies', () => HttpResponse.json({ data: [policy] })),
-      http.get('*/admin/settings/policies/policy.returns/review', () =>
-        HttpResponse.json({
+      http.get('*/admin/settings/policies/policy.returns/review', ({ request }) => {
+        reviewedVersion = new URL(request.url).searchParams.get('version')
+        return HttpResponse.json({
           data: {
             current: policy,
             digest: 'a'.repeat(64),
@@ -105,22 +127,22 @@ describe('PoliciesPage', () => {
             renderedText: 'Returns in 30 days.',
           },
         })
-      ),
-      http.post('*/admin/settings/policies/policy.returns/approve', () =>
-        HttpResponse.json({ data: { ...policy, status: 'approved' } })
-      )
+      }),
+      http.post('*/admin/settings/policies/policy.returns/approve', async ({ request }) => {
+        submitted = await request.json()
+        return HttpResponse.json({ data: { ...policy, status: 'approved' } })
+      })
     )
     renderInLocale(
-      <AntApp>
-        <AuthTestProvider permissions={['policies.read', 'policies.approve']}>
-          <MemoryRouter>
-            <PoliciesPage />
-          </MemoryRouter>
-        </AuthTestProvider>
-      </AntApp>
+      <AuthTestProvider permissions={['policies.read', 'policies.approve']}>
+        <MemoryRouter>
+          <PoliciesPage />
+        </MemoryRouter>
+      </AuthTestProvider>
     )
     fireEvent.click(await screen.findByRole('button', { name: 'Review policy' }))
     expect(await screen.findByText('Returns in 30 days.')).toBeTruthy()
+    expect(reviewedVersion).toBe('1')
     expect(screen.getByText(`Digest: ${'a'.repeat(64)}`)).toBeTruthy()
     expect(screen.getByText('Effective date: 2026-10-01')).toBeTruthy()
     fireEvent.change(screen.getByRole('textbox', { name: 'Transition reason' }), {
@@ -128,12 +150,14 @@ describe('PoliciesPage', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Approve exact version' }))
     expect(await screen.findByText('Approve this exact Policy version?')).toBeTruthy()
+    expect(submitted).toBeUndefined()
     expect(screen.queryByRole('button', { name: 'Publish' })).toBeNull()
   })
 
   it('invalidates a stale review and recovers to the latest version after a conflict', async () => {
     const latest = { ...policy, title: 'Updated returns policy', version: 2 }
     let latestReview = false
+    let submitted: unknown
     server.use(
       http.get('*/admin/settings/policies', () =>
         HttpResponse.json({ data: [policy], meta: { nextCursor: null } })
@@ -151,21 +175,20 @@ describe('PoliciesPage', () => {
           },
         })
       }),
-      http.post('*/admin/settings/policies/policy.returns/approve', () =>
-        HttpResponse.json(
+      http.post('*/admin/settings/policies/policy.returns/approve', async ({ request }) => {
+        submitted = await request.json()
+        return HttpResponse.json(
           { error: { code: 'policy_conflict', message: 'The Policy changed.' } },
           { status: 409 }
         )
-      )
+      })
     )
     renderInLocale(
-      <AntApp>
-        <AuthTestProvider permissions={['policies.read', 'policies.approve']}>
-          <MemoryRouter>
-            <PoliciesPage />
-          </MemoryRouter>
-        </AuthTestProvider>
-      </AntApp>
+      <AuthTestProvider permissions={['policies.read', 'policies.approve']}>
+        <MemoryRouter>
+          <PoliciesPage />
+        </MemoryRouter>
+      </AuthTestProvider>
     )
     fireEvent.click(await screen.findByRole('button', { name: 'Review policy' }))
     expect(await screen.findByText('Returns in 30 days.')).toBeTruthy()
@@ -176,6 +199,11 @@ describe('PoliciesPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'OK' }))
 
     expect(await screen.findByText('Review · version 2')).toBeTruthy()
+    expect(submitted).toEqual({
+      confirm: true,
+      expectedVersion: 1,
+      reason: 'Approve the exact reviewed version',
+    })
     expect(latestReview).toBe(true)
     expect(screen.getByText('Updated returns policy')).toBeTruthy()
     expect(

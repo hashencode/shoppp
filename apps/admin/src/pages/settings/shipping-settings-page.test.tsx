@@ -99,6 +99,10 @@ describe('ShippingSettingsPage', () => {
     expect(screen.getByLabelText('Maximum grams')).toBeTruthy()
     expect(screen.getByLabelText('Change reason')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Confirm and save' })).toBeTruthy()
+    const boundary = screen.getByText(
+      'Saving updates shipping options and rates for new checkout requests in the current environment.'
+    )
+    expect(boundary.closest('.ant-modal')).toBeTruthy()
   })
 
   it('submits the complete reasoned update with an idempotency key', async () => {

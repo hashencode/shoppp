@@ -1,5 +1,17 @@
 import type { ShippingMethodConfiguration, ShippingZoneConfiguration } from '@shoppp/contracts'
-import { Button, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, App } from 'antd'
+import {
+  Button,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Select,
+  Space,
+  Table,
+  Tag,
+  Typography,
+  App,
+} from 'antd'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { hasPermission } from '../../infrastructure/auth/permissions'
@@ -308,6 +320,11 @@ export const ShippingSettingsPage = () => {
           >
             <Input.TextArea rows={3} maxLength={500} />
           </Form.Item>
+          <Typography.Paragraph type="secondary" className="mb-0">
+            {t(
+              'Saving updates shipping options and rates for new checkout requests in the current environment.'
+            )}
+          </Typography.Paragraph>
         </Form>
       </Modal>
     </CustomPageRecipe>

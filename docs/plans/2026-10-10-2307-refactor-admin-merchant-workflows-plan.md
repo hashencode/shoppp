@@ -278,11 +278,11 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 本节按仓库规则仅维护本计划自身执行状态。状态以实际代码与验证证据为准，REL 当前队列不在这里复制。
 
 - **Plan:** 已激活，实施中。
-- **Current unit:** U4 — 整理设置任务和同页保存边界。
-- **Next concrete action:** 整理唯一配置入口、保存影响与未保存表单的局部离开确认。
+- **Current unit:** U5 — 将私有候选融入在线商店预览。
+- **Next concrete action:** 在装修入口自动准备授权来源并保持候选、校验与快照的精确绑定。
 - **Order:** U1 → U2 → U3 → U4 → U5 → U6；U7 在 U6 和 REL 合同具备后开始。
 - **Blocker:** U1–U6 无规划级实施前置缺口；U7 缺 REL 正式发布接口及 active tuple 证据。
-- **Unit status:** U1–U3 已完成；U4 进行中；U5–U6 未开始；U7 前置阻塞。
+- **Unit status:** U1–U4 已完成；U5 进行中；U6 未开始；U7 前置阻塞。
 - **Update rule:** U 状态、当前/下一步、顺序或 tail 改变时，同一变更更新本节；只有产品级指针变化才同步 master。集中验证证据放 `docs/progress/`，不建立第二执行队列。
 
 ---
@@ -348,7 +348,7 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 
 **Requirements:** R4/R5/R9–R11；F2；AE9。**Dependencies:** U3。
 
-**Files:** `apps/admin/src/pages/settings/{launch-settings-page,contact-settings-page,shipping-settings-page,store-identity-page,policies-page}.tsx`；对应现有 test；`apps/admin/src/services/platform/api.ts`；`apps/api/test/operations/{contact-profile,shipping-settings,store-identity}.test.ts` 与 `test/content/policies.test.ts` 仅在实际服务合同受影响时验证。
+**Files:** `apps/admin/src/pages/settings/{launch-settings-page,contact-settings-page,shipping-settings-page,store-identity-page,policies-page}.tsx`；对应现有 test；`apps/admin/src/shared/i18n/translations.ts`；`apps/admin/src/services/platform/api.ts`；`apps/api/test/operations/{contact-profile,shipping-settings,store-identity}.test.ts` 与 `test/content/policies.test.ts` 仅在实际服务合同受影响时验证。
 
 **Approach:** KTD3/KTD5。按经营、支付、政策链接的现有区块整理 `/settings/launch`；配送实体、联系信息、政策内容跳转到唯一 owner。同页保持原子保存，必要生效说明靠近保存动作；不拆多页接口、不重复表单、不修改 protected 指南链接内容。
 
@@ -357,7 +357,7 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 - 保存经营设置读回正确字段；提示实际经营影响，合法校验失败留在原表单并指向可恢复字段。
 - 先打开经营表单、再在 contact 页面修改邮箱、最后保存旧经营表单，较新联系信息仍保留。
 - 店铺资料保存呈现真实新来源版本，不称草稿；政策 approve/publish/archive 仍有精确版本与权限确认。
-- 未保存表单跳到配置 owner 时沿用现有离开保护；后退不丢 query/provenance，不复制 writer。
+- 未保存表单跳到配置 owner 时使用现有局部 AntD 确认模式；Launch 原页没有离开 guard，因此仅为本次 owner links 增加实际用户编辑检查，不添加全局拦截。后退不丢 query/provenance，不复制 writer。
 
 **Verification:** 单页原子提交与 source authority 保持；按实际跨层变化选 L2/L3 验证，无新设置 hub 或额外审批机制。
 
