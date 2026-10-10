@@ -735,7 +735,6 @@ test("live browse-to-order journey converges on an authoritative paid return", a
 
   await page.goto("/", { waitUntil: "networkidle" });
   await expectLiveCanonicalShell(page, true);
-  await page.getByRole("button", { name: "Allow cookies" }).click();
   await page
     .locator("[data-fashion-store-product-card]")
     .filter({ hasText: "Relaxed corduroy shirt" })
@@ -764,7 +763,7 @@ test("live browse-to-order journey converges on an authoritative paid return", a
   await page.getByLabel("Town / City *").fill(shippingAddress.city);
   await page.getByLabel("State *").selectOption(shippingAddress.region);
   await page.getByLabel("ZIP *").fill(shippingAddress.postalCode);
-  await page.getByLabel("Phone *").fill("5125550100");
+  await page.getByLabel("Phone (optional)").fill("");
   await page.getByLabel("Email address *").fill("ada@example.test");
   await expect(page.getByRole("radio", { name: "Tracked delivery" })).toBeChecked();
   await page.locator(".your-order-box .terms-condition-box label").click();
@@ -782,6 +781,7 @@ test("live browse-to-order journey converges on an authoritative paid return", a
     currency: "USD",
     email: "ada@example.test",
     shippingMethodId,
+    shippingAddress: { phone: "" },
   });
   expect(cartRefreshesAfterCheckout).toBe(1);
 });
@@ -897,9 +897,6 @@ test("live Product requires a valid grouped option combination and stays truthfu
 test("live Product retains matched desktop and mobile composition geometry", async ({ page }) => {
   const requestedProductIds: string[] = [];
   let submitted: Record<string, unknown> | undefined;
-  await page.addInitScript(() =>
-    localStorage.setItem("shoppp.fashion-store.cookie-notice-dismissed", "true"),
-  );
   await installLiveCommerce(page, async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname.replace(/^\/api/, "");
@@ -1202,7 +1199,6 @@ test("live Home preserves all sections and card outcomes across input modes", as
       .filter({ hasText: "Textured sweater" })
       .first();
     await expect(touchCard).toHaveAttribute("data-action-state", "available");
-    await touchPage.getByRole("button", { name: "Allow cookies" }).click();
     await touchCard.getByRole("button", { name: "Add to cart" }).tap();
     await expect(touchCard).toHaveAttribute("data-action-state", "succeeded");
     await touchPage.goto("/", { waitUntil: "domcontentloaded" });
@@ -1544,7 +1540,6 @@ test("live checkout waits for a complete address, then applies one optionless sh
 
   await page.goto("/checkout", { waitUntil: "networkidle" });
   await page.locator("[data-fashion-store-checkout][data-runtime-status='ready']").waitFor();
-  await page.getByRole("button", { name: "Allow cookies" }).click();
   const shipping = page.getByRole("radio", { name: "Tracked delivery" });
   await expect(shipping).not.toBeChecked();
   await page.waitForTimeout(450);
@@ -1594,7 +1589,6 @@ test("live MiniCart stays mounted and reflects cart-page mutations in both direc
 
   await page.goto("/cart", { waitUntil: "networkidle" });
   await page.locator("[data-fashion-store-cart][data-runtime-status='ready']").waitFor();
-  await page.getByRole("button", { name: "Allow cookies" }).click();
   const headerCart = page.locator(".header-cart");
   await expect(headerCart).toHaveCount(1);
   await expect(headerCart).toHaveAttribute("data-fashion-store-commerce-mode", "live");
@@ -1657,7 +1651,6 @@ test("live quantity commits once, restores the authoritative value after failure
     await route.abort();
   });
   await page.goto("/cart", { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: "Allow cookies" }).click();
   const input = page.getByRole("spinbutton", { name: "Relaxed corduroy shirt quantity" });
   await input.fill("2");
   await input.press("Tab");

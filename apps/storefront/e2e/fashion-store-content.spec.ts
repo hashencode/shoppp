@@ -42,8 +42,6 @@ async function prepare(page: Page, path: "/account" | "/wishlist"): Promise<void
     .locator(`[data-fashion-store-${path.slice(1)}][data-runtime-status='ready']`)
     .waitFor();
   await page.evaluate(async () => document.fonts.ready);
-  const cookieButton = page.getByRole("button", { name: "Allow cookies" });
-  if (await cookieButton.isVisible()) await cookieButton.click();
 }
 
 test("Canonical Footer follows representative short and long route bodies", async ({

@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { afterEach, expect, describe, it } from '@rstest/core'
 import { page } from '@rstest/browser'
-import { cleanup, fireEvent, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import type { AdminStorefrontTheme } from '@shoppp/contracts'
 import { translateMessage } from '../../shared/contexts/i18n-context'
@@ -10,6 +10,7 @@ import {
   assertNativeBrowserAndCss,
   assertWithinViewport,
   installBrowserApi,
+  oppositeBrowserLocale,
   renderI18nBrowser,
   switchBrowserLocale,
 } from '../../test/i18n-browser-fixture'
@@ -180,8 +181,7 @@ const renderEditor = (failure: 'conflict' | 'persistent', staleCandidate = false
           id:
             body.command.kind === 'duplicate' ? 'browser-slide-server-copy' : 'browser-slide-added',
           settings: {
-            title:
-              body.command.kind === 'duplicate' ? 'Browser slide copy' : 'Added browser slide',
+            title: body.command.kind === 'duplicate' ? 'Browser slide copy' : 'Added browser slide',
           },
           type: 'hero.slide',
           visible: true,
@@ -308,7 +308,7 @@ describe('ThemeEditorPage browser behavior', () => {
         expect(target).toBeTruthy()
         return target!
       })
-      fireEvent.change(reason, { target: { value: 'Add a browser Block' } })
+      expect(reason.value).toBe('')
       const add = await waitFor(() => {
         const target = document.querySelector<HTMLButtonElement>('[data-block-focus="add:hero"]')
         expect(target).toBeTruthy()
@@ -420,6 +420,7 @@ describe('ThemeEditorPage browser behavior', () => {
       sessionStorage.setItem('storefront-editor-catalog-release', 'release-stale-candidate')
       sessionStorage.setItem('storefront-editor-private-candidate', 'release-stale-candidate')
       renderEditor('persistent', true)
+      const locale = oppositeBrowserLocale()
 
       await waitFor(() => {
         expect(
@@ -429,12 +430,15 @@ describe('ThemeEditorPage browser behavior', () => {
           )
         ).toBe(true)
         expect(document.body.textContent).toContain(
-          translateMessage('zh-CN', 'Private Catalog candidate is no longer available')
+          translateMessage(locale, 'Private Catalog candidate is no longer available')
         )
-        expect(document.body.textContent).toContain('release-browser')
         expect(sessionStorage.getItem('storefront-editor-catalog-release')).toBeNull()
         expect(sessionStorage.getItem('storefront-editor-private-candidate')).toBeNull()
       })
+      fireEvent.mouseDown(
+        await screen.findByRole('combobox', { name: translateMessage(locale, 'Catalog Release') })
+      )
+      await waitFor(() => expect(document.body.textContent).toContain('release-browser'))
     }
   )
 
@@ -461,9 +465,7 @@ describe('ThemeEditorPage browser behavior', () => {
       const message = page.getByText(messageText)
       await expect.element(message).toBeVisible()
       expect(visibilityElement.getAttribute('aria-checked')).toBe('true')
-      await waitFor(() =>
-        expect(document.activeElement?.textContent).toContain(messageText)
-      )
+      await waitFor(() => expect(document.activeElement?.textContent).toContain(messageText))
       expect(transport!.requests.filter(({ method }) => method !== 'get')).toHaveLength(
         beforeAttempt
       )
@@ -487,7 +489,7 @@ describe('ThemeEditorPage browser behavior', () => {
         .getByRole('textbox', { name: 'hero heading', exact: true })
         .fill('Unsaved / 中文 headline')
       await page
-        .getByRole('textbox', { name: '变更原因', exact: true })
+        .getByRole('textbox', { name: '备注（选填）', exact: true })
         .fill('Browser language recovery')
       await page.getByRole('combobox', { name: 'hero product', exact: true }).click()
       await page.getByText('Atlas / Carry-on · /products/atlas', { exact: true }).click()
@@ -547,7 +549,7 @@ describe('ThemeEditorPage browser behavior', () => {
         document.querySelector<HTMLInputElement>('input[aria-label="hero cta label"]')?.value
       ).toBe('Raw / Link 名称')
       expect(
-        document.querySelector<HTMLTextAreaElement>('[aria-label="Change reason"]')?.value
+        document.querySelector<HTMLTextAreaElement>('[aria-label="Notes (optional)"]')?.value
       ).toBe('Browser language recovery')
       expect(
         document.querySelector('input[aria-label="hero product"]')?.closest('.ant-select')

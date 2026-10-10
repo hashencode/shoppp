@@ -5,6 +5,7 @@ export const countryCodeSchema = z.string().regex(/^[A-Z]{2}$/);
 export const publicIdSchema = z.union([z.string().regex(/^[a-z]+_[A-Z0-9]{20,32}$/i), z.uuid()]);
 export const orderReferenceSchema = z.string().regex(/^[A-Z][A-Z0-9-]{1,11}-[A-Z0-9]{6,20}$/);
 export const isoDateTimeSchema = z.iso.datetime({ offset: true });
+export const optionalAuditReasonSchema = z.string().trim().max(500).default("");
 export const moneySchema = z
   .object({
     amount: z.int().nonnegative(),

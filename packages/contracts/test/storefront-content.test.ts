@@ -9,9 +9,11 @@ import {
   storeIdentitySchema,
   storefrontContentDocumentSchema,
   contentPageWriteRequestSchema,
+  contentArticleWriteRequestSchema,
   contentTransitionRequestSchema,
   publishableContentDocumentSchema,
   createPolicyRequestSchema,
+  updatePolicyRequestSchema,
   policyTransitionRequestSchema,
   updateStoreIdentityRequestSchema,
 } from "../src/storefront-content";
@@ -19,6 +21,67 @@ import {
 const at = "2026-09-22T00:00:00.000Z";
 
 describe("storefront content authority contracts", () => {
+  test("accepts optional draft notes and defaults SEO titles without weakening transitions", () => {
+    const page = {
+      body: [{ id: "section.intro", kind: "paragraph", text: "Our story." }],
+      seo: { description: "Our story" },
+      slug: "our-story",
+      summary: "",
+      title: "Our story",
+    };
+    for (const reason of [undefined, "  ", "好", "ok"]) {
+      expect(contentPageWriteRequestSchema.parse({ ...page, reason })).toMatchObject({
+        reason: reason?.trim() ?? "",
+        seo: { title: page.title },
+      });
+      expect(
+        contentArticleWriteRequestSchema.parse({ ...page, coverAssetId: null, reason }).seo.title,
+      ).toBe(page.title);
+      expect(navigationMenuWriteRequestSchema.parse({ items: [], reason }).reason).toBe(
+        reason?.trim() ?? "",
+      );
+      const policy = {
+        effectiveDate: "2026-10-01",
+        kind: "privacy",
+        sections: [{ id: "section.intro", kind: "paragraph", text: "Privacy terms." }],
+        slug: "privacy",
+        title: "Privacy",
+        reason,
+      };
+      expect(createPolicyRequestSchema.parse(policy).reason).toBe(reason?.trim() ?? "");
+      expect(updatePolicyRequestSchema.parse({ ...policy, expectedVersion: 1 }).reason).toBe(
+        reason?.trim() ?? "",
+      );
+      expect(
+        updateStoreIdentityRequestSchema.parse({
+          expectedVersion: null,
+          faviconAssetId: null,
+          logoAssets: [{ assetId: "asset.logo.primary", variant: "primary" }],
+          reason,
+          seo: { description: "Objects", title: "  " },
+          socialShareAssetId: null,
+          storefrontName: "Shoppp",
+          tagline: "",
+        }).seo.title,
+      ).toBe("Shoppp");
+      for (const schema of [
+        contentTransitionRequestSchema,
+        navigationTransitionRequestSchema,
+        policyTransitionRequestSchema,
+      ]) {
+        expect(schema.safeParse({ confirm: true, expectedVersion: 1, reason }).success).toBe(false);
+      }
+    }
+    expect(
+      contentPageWriteRequestSchema.parse({ ...page, seo: { description: "", title: "Custom" } })
+        .seo.title,
+    ).toBe("Custom");
+    expect(contentPageWriteRequestSchema.safeParse({ ...page, title: " " }).success).toBe(false);
+    expect(
+      contentPageWriteRequestSchema.safeParse({ ...page, reason: "x".repeat(501) }).success,
+    ).toBe(false);
+  });
+
   test("accepts typed identity with stable shared Logo asset IDs", () => {
     expect(
       storeIdentitySchema
@@ -40,6 +103,40 @@ describe("storefront content authority contracts", () => {
         })
         .logoAssets.map(({ assetId }) => assetId),
     ).toEqual(["asset.logo.primary", "asset.logo.dark"]);
+  });
+
+  test("accepts digit-leading Catalog UUIDs across all Identity media fields", () => {
+    const assets = Array.from(
+      { length: 6 },
+      (_, index) => `0f0dd0ad-8eaf-4aae-8a3b-773e05a4560${index}`,
+    );
+    const media = {
+      faviconAssetId: assets[4],
+      logoAssets: (["primary", "light", "dark", "compact"] as const).map((variant, index) => ({
+        assetId: assets[index],
+        variant,
+      })),
+      socialShareAssetId: assets[5],
+    };
+    const editable = {
+      ...media,
+      seo: { title: "Shoppp", description: "Objects" },
+      storefrontName: "Shoppp",
+      tagline: "Objects",
+    };
+    expect(
+      updateStoreIdentityRequestSchema.parse({ ...editable, expectedVersion: null }),
+    ).toMatchObject(media);
+    expect(
+      storeIdentitySchema.parse({
+        ...editable,
+        createdAt: at,
+        id: "identity.primary",
+        status: "published",
+        updatedAt: at,
+        version: 1,
+      }),
+    ).toMatchObject(media);
   });
 
   test("rejects duplicate Logo variants and stable IDs", () => {

@@ -441,6 +441,13 @@ export async function updateCollection(
       "The Collection changed before it was saved.",
     );
   }
+  if (current.status !== "draft" && input.reason.trim().length < 3) {
+    throw new ApiError(
+      422,
+      "collection_reason_required",
+      "A reason of at least 3 characters is required when editing a published or archived Collection.",
+    );
+  }
   await Promise.all([
     assertProducts(context.env.DB, input.productIds),
     assertCoverAsset(context.env.DB, input.coverAssetId),

@@ -77,6 +77,10 @@ async function resetCatalog(): Promise<void> {
     env.DB.prepare("DELETE FROM products"),
     env.DB.prepare("DELETE FROM settings WHERE key = 'storefront.redirects'"),
     env.DB.prepare("DELETE FROM admin_identities"),
+    env.DB.prepare(
+      "DELETE FROM admin_role_permissions WHERE role_id = 'custom_revision_media_identity_reader'",
+    ),
+    env.DB.prepare("DELETE FROM admin_roles WHERE id = 'custom_revision_media_identity_reader'"),
   ]);
 }
 
@@ -728,6 +732,77 @@ describe("catalog management and publishing", () => {
       )
         .bind(ADMIN_ROLE_IDS.catalogManager, NOW)
         .run();
+    }
+  });
+
+  test("allows no-note draft saves but keeps all published or archived Collection writes strict", async () => {
+    const { app } = appFor();
+    const { reason: _reason, seoTitle: _seoTitle, ...input } = collectionBody();
+    const created = await app.fetch(
+      request("/admin/catalog/collections", {
+        body: JSON.stringify(input),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(created.status).toBe(201);
+    const collection = (await created.json<{ data: { id: string; seo: { title: string } } }>())
+      .data;
+    expect(collection.seo.title).toBe(input.name);
+    const draftSaved = await app.fetch(
+      request(`/admin/catalog/collections/${collection.id}`, {
+        body: JSON.stringify({ ...input, expectedVersion: 1, reason: "好", seoTitle: "  " }),
+        headers: { "Content-Type": "application/json" },
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(draftSaved.status).toBe(200);
+    const audit = await env.DB.prepare(
+      "SELECT reason FROM audit_events WHERE target_id = ? ORDER BY created_at",
+    )
+      .bind(collection.id)
+      .all();
+    expect(audit.results).toEqual([{ reason: null }, { reason: "好" }]);
+    for (const status of ["published", "archived"] as const) {
+      expect(
+        (
+          await app.fetch(
+            request(`/admin/catalog/collections/${collection.id}`, {
+              body: JSON.stringify({ ...input, expectedVersion: 2, reason: " ", status }),
+              headers: { "Content-Type": "application/json" },
+              method: "PUT",
+            }),
+            env,
+          )
+        ).status,
+      ).toBe(422);
+      const strict = await createCollection(app, { slug: `strict-${status}`, status });
+      expect(
+        (
+          await app.fetch(
+            request(`/admin/catalog/collections/${strict.id}`, {
+              body: JSON.stringify({
+                ...input,
+                slug: `strict-${status}`,
+                expectedVersion: 1,
+                reason: "ok",
+              }),
+              headers: { "Content-Type": "application/json" },
+              method: "PUT",
+            }),
+            env,
+          )
+        ).status,
+      ).toBe(422);
+      expect(
+        await env.DB.prepare(
+          "SELECT version, status FROM collection_versions WHERE collection_id = ?",
+        )
+          .bind(strict.id)
+          .first(),
+      ).toEqual({ version: 1, status });
     }
   });
 
@@ -2065,6 +2140,25 @@ describe("catalog management and publishing", () => {
     )
       .bind(initialRelease.data.releaseId)
       .first<{ manifest_json: string }>();
+    const revisionMedia = {
+      altText: "Approved revision detail image",
+      height: 900,
+      id: crypto.randomUUID(),
+      r2Key: `catalog/products/${productId}/revision-detail.webp`,
+      width: 1200,
+    };
+    expect(
+      (
+        await app.fetch(
+          request(`/admin/media/${revisionMedia.r2Key}`, {
+            body: new Uint8Array([82, 73, 70, 70]),
+            headers: { "Content-Length": "4", "Content-Type": "image/webp" },
+            method: "PUT",
+          }),
+          env,
+        )
+      ).status,
+    ).toBe(201);
     const media = await env.DB.prepare(
       "SELECT id, r2_key, alt_text, width, height FROM product_media WHERE product_id = ?",
     )
@@ -2084,12 +2178,13 @@ describe("catalog management and publishing", () => {
       description: "Revision content bound to this Product ID.",
       media: [
         {
-          altText: media!.alt_text,
+          altText: "Revised main image",
           height: media!.height,
           id: media!.id,
           r2Key: media!.r2_key,
           width: media!.width,
         },
+        revisionMedia,
       ],
       name: "Revised carry-on",
       optionDefinitions: [{ name: "color", presentation: "text", values: [{ label: "Charcoal" }] }],
@@ -2155,6 +2250,12 @@ describe("catalog management and publishing", () => {
       env,
     );
     expect(await beforeDeploy.json()).toMatchObject({ data: { name: "Carry-on" } });
+    const beforeDeployMedia = await app.fetch(request("/admin/catalog/collections/media"), env);
+    expect(beforeDeployMedia.status).toBe(200);
+    expect(await beforeDeployMedia.json()).toMatchObject({
+      data: [{ id: media!.id, productName: "Carry-on" }],
+      meta: { total: 1 },
+    });
     expect(
       await env.DB.prepare("SELECT manifest_json FROM catalog_releases WHERE id = ?")
         .bind(initialRelease.data.releaseId)
@@ -2181,6 +2282,127 @@ describe("catalog management and publishing", () => {
         .bind(stagedRevision.data.id)
         .first(),
     ).toEqual({ status: "published" });
+    expect(
+      await env.DB.prepare("SELECT COUNT(*) AS count FROM product_media WHERE id = ?")
+        .bind(revisionMedia.id)
+        .first(),
+    ).toEqual({ count: 0 });
+    const historicalMedia = {
+      ...revisionMedia,
+      altText: "Historical published image",
+      id: crypto.randomUUID(),
+      r2Key: `catalog/products/${productId}/historical.webp`,
+    };
+    await env.DB.batch([
+      env.DB.prepare(
+        "INSERT INTO product_media_assets (id, product_id, r2_key, created_at) VALUES (?, ?, ?, ?)",
+      ).bind(historicalMedia.id, productId, historicalMedia.r2Key, NOW),
+      env.DB.prepare(
+        `INSERT INTO product_revisions
+          (id, product_id, base_product_version, version, status, content_json,
+           created_by, created_at, updated_at, published_at)
+         VALUES (?, ?, ?, 1, 'published', ?, 'admin-catalog-user', ?, ?, ?)`,
+      ).bind(
+        crypto.randomUUID(),
+        productId,
+        productVersionBeforeRevision,
+        JSON.stringify({ ...stagedContent, media: [historicalMedia], name: "Historical carry-on" }),
+        NOW,
+        NOW,
+        NOW,
+      ),
+    ]);
+    const listedMedia = await app.fetch(request("/admin/catalog/collections/media"), env);
+    expect(listedMedia.status).toBe(200);
+    const listed = await listedMedia.json<{
+      data: Array<{ id: string }>;
+      meta: { total: number };
+    }>();
+    expect(listed.meta.total).toBe(2);
+    expect(listed.data).toHaveLength(2);
+    expect(new Set(listed.data.map(({ id }) => id)).size).toBe(2);
+    expect(listed.data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: media!.id,
+          alt: "Revised main image",
+          productName: "Revised carry-on",
+        }),
+        expect.objectContaining({
+          id: revisionMedia.id,
+          alt: revisionMedia.altText,
+          height: revisionMedia.height,
+          key: revisionMedia.r2Key,
+          productName: "Revised carry-on",
+          width: revisionMedia.width,
+        }),
+      ]),
+    );
+    const searched = await app.fetch(
+      request("/admin/catalog/collections/media?query=Approved%20revision"),
+      env,
+    );
+    expect(await searched.json()).toMatchObject({
+      data: [{ id: revisionMedia.id }],
+      meta: { total: 1 },
+    });
+    const pages = await Promise.all(
+      [1, 2].map(async (page) => {
+        const response = await app.fetch(
+          request(`/admin/catalog/collections/media?page=${page}&pageSize=1`),
+          env,
+        );
+        expect(response.status).toBe(200);
+        return response.json<{ data: Array<{ id: string }>; meta: { total: number } }>();
+      }),
+    );
+    expect(pages.map(({ meta }) => meta.total)).toEqual([2, 2]);
+    expect(pages.flatMap(({ data }) => data.map(({ id }) => id)).sort()).toEqual(
+      [media!.id, revisionMedia.id].sort(),
+    );
+    const coverSaved = await app.fetch(
+      request("/admin/catalog/collections", {
+        body: JSON.stringify({
+          ...collectionBody({ slug: "revision-cover" }),
+          coverAssetId: revisionMedia.id,
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      }),
+      env,
+    );
+    expect(coverSaved.status, await coverSaved.clone().text()).toBe(201);
+    expect(await coverSaved.json()).toMatchObject({ data: { coverAssetId: revisionMedia.id } });
+    await env.DB.batch([
+      env.DB.prepare(
+        "INSERT INTO admin_roles (id, key, name, description, created_at, updated_at) VALUES ('custom_revision_media_identity_reader', 'revision_media_identity_reader', 'Identity media reader', '', ?, ?)",
+      ).bind(NOW, NOW),
+      env.DB.prepare(
+        "INSERT INTO admin_role_permissions (role_id, permission_key, created_at) VALUES ('custom_revision_media_identity_reader', 'identity.read', ?)",
+      ).bind(NOW),
+    ]);
+    await seedHumanAdmin(env.DB, {
+      id: "revision-media-identity-reader",
+      subject: "revision-media-identity-reader",
+      email: "revision-media-identity-reader@example.test",
+      roleId: "custom_revision_media_identity_reader",
+    });
+    const identityReader = appFor("revision-media-identity-reader").app;
+    const identityMedia = await identityReader.fetch(
+      request("/admin/settings/store-identity/media?query=Approved%20revision"),
+      env,
+    );
+    expect(identityMedia.status).toBe(200);
+    expect(await identityMedia.json()).toMatchObject({
+      data: [{ id: revisionMedia.id }],
+      meta: { total: 1 },
+    });
+    expect(
+      (await identityReader.fetch(request("/admin/catalog/collections/media"), env)).status,
+    ).toBe(403);
+    expect((await app.fetch(request("/admin/settings/store-identity/media"), env)).status).toBe(
+      403,
+    );
     const afterDeploy = await app.fetch(
       new Request("https://api.example.test/catalog/products/carry-on/live"),
       env,
@@ -2205,10 +2427,32 @@ describe("catalog management and publishing", () => {
     );
     expect(await productVersion(productId)).toBe(productVersionBeforeRevision);
 
+    const draftOnlyMedia = {
+      ...revisionMedia,
+      altText: "Unapproved draft-only image",
+      id: crypto.randomUUID(),
+      r2Key: `catalog/products/${productId}/draft-only.webp`,
+    };
+    expect(
+      (
+        await app.fetch(
+          request(`/admin/media/${draftOnlyMedia.r2Key}`, {
+            body: new Uint8Array([82, 73, 70, 70]),
+            headers: { "Content-Length": "4", "Content-Type": "image/webp" },
+            method: "PUT",
+          }),
+          env,
+        )
+      ).status,
+    ).toBe(201);
     const secondDraftResponse = await app.fetch(
       request(`/admin/catalog/products/${productId}/revisions/draft`, {
         body: JSON.stringify({
-          content: { ...stagedContent, name: "Unbuilt revision" },
+          content: {
+            ...stagedContent,
+            media: [...stagedContent.media, draftOnlyMedia],
+            name: "Unbuilt revision",
+          },
           expectedDraftVersion: null,
           expectedProductVersion: productVersionBeforeRevision,
           expectedPublishedRevisionId: stagedRevision.data.id,
@@ -2220,6 +2464,24 @@ describe("catalog management and publishing", () => {
     );
     expect(secondDraftResponse.status).toBe(200);
     const secondDraft = await secondDraftResponse.json<{ data: { id: string; version: number } }>();
+    expect(
+      await env.DB.prepare("SELECT id FROM product_media_assets WHERE id = ?")
+        .bind(draftOnlyMedia.id)
+        .first(),
+    ).toEqual({ id: draftOnlyMedia.id });
+    for (const [reader, path] of [
+      [app, "/admin/catalog/collections/media"],
+      [identityReader, "/admin/settings/store-identity/media"],
+    ] as const) {
+      const response = await reader.fetch(request(path), env);
+      expect(response.status).toBe(200);
+      const result = await response.json<{
+        data: Array<{ id: string }>;
+        meta: { total: number };
+      }>();
+      expect(result.meta.total).toBe(2);
+      expect(result.data.map(({ id }) => id).sort()).toEqual([media!.id, revisionMedia.id].sort());
+    }
     const failingApp = appFor(
       "catalog-user",
       vi.fn(async () => {

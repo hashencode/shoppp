@@ -52,6 +52,7 @@ describe("store identity", () => {
       env.DB.prepare("DELETE FROM store_identity_versions"),
       env.DB.prepare("DELETE FROM audit_events"),
       env.DB.prepare("DELETE FROM storefront_experience_drafts"),
+      env.DB.prepare("DELETE FROM product_media"),
       env.DB.prepare("DELETE FROM product_media_assets"),
       env.DB.prepare("DELETE FROM products"),
       env.DB.prepare("DELETE FROM admin_identities"),
@@ -59,6 +60,10 @@ describe("store identity", () => {
         "DELETE FROM admin_role_permissions WHERE role_id = 'custom_identity_manager'",
       ),
       env.DB.prepare("DELETE FROM admin_roles WHERE id = 'custom_identity_manager'"),
+      env.DB.prepare(
+        "DELETE FROM admin_role_permissions WHERE role_id LIKE 'custom_%_media_reader'",
+      ),
+      env.DB.prepare("DELETE FROM admin_roles WHERE id LIKE 'custom_%_media_reader'"),
     ]);
     await seedHumanAdmin(env.DB, {
       email: "identity-owner@example.test",
@@ -118,6 +123,139 @@ describe("store identity", () => {
         "SELECT action, reason FROM audit_events WHERE action = 'identity.update'",
       ).first(),
     ).toEqual({ action: "identity.update", reason: identityInput.reason });
+  });
+
+  test("saves identity without a note and defaults SEO at the version boundary", async () => {
+    const { reason: _reason, ...input } = identityInput;
+    const saved = await app.fetch(
+      request("/admin/settings/store-identity", {
+        body: JSON.stringify({ ...input, seo: { description: "", title: " " } }),
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(saved.status).toBe(200);
+    expect(await saved.json()).toMatchObject({ data: { seo: { title: "Shoppp" }, version: 1 } });
+    expect(
+      await env.DB.prepare(
+        "SELECT actor_id, action, target_id, reason, metadata_json FROM audit_events WHERE action = 'identity.update'",
+      ).first(),
+    ).toMatchObject({
+      actor_id: "identity-owner",
+      action: "identity.update",
+      target_id: "identity.primary",
+      reason: null,
+      metadata_json: expect.stringContaining('"toVersion":1'),
+    });
+    expect(
+      await env.DB.prepare(
+        "SELECT seo_json FROM store_identity_versions WHERE version = 1",
+      ).first(),
+    ).toEqual({ seo_json: JSON.stringify({ description: "", title: "Shoppp" }) });
+  });
+
+  test("saves and reads digit-leading Catalog UUIDs in all six Identity media fields", async () => {
+    const assets = Array.from(
+      { length: 6 },
+      (_, index) => `0f0dd0ad-8eaf-4aae-8a3b-773e05a4560${index}`,
+    );
+    const now = new Date().toISOString();
+    await env.DB.batch(
+      assets.map((id) =>
+        env.DB.prepare(
+          `INSERT INTO product_media_assets (id, product_id, r2_key, created_at)
+         VALUES (?, 'product.identity-assets', ?, ?)`,
+        ).bind(id, `catalog/${id}.png`, now),
+      ),
+    );
+    const media = {
+      faviconAssetId: assets[4],
+      logoAssets: (["primary", "light", "dark", "compact"] as const).map((variant, index) => ({
+        assetId: assets[index],
+        variant,
+      })),
+      socialShareAssetId: assets[5],
+    };
+    const saved = await app.fetch(
+      request("/admin/settings/store-identity", {
+        body: JSON.stringify({ ...identityInput, ...media }),
+        method: "PUT",
+      }),
+      env,
+    );
+    expect(saved.status).toBe(200);
+    expect(await saved.json()).toMatchObject({
+      data: { ...media, logoAssets: expect.arrayContaining(media.logoAssets), version: 1 },
+    });
+    const read = await app.fetch(request("/admin/settings/store-identity"), env);
+    expect(read.status).toBe(200);
+    expect(await read.json()).toMatchObject({
+      data: { ...media, logoAssets: expect.arrayContaining(media.logoAssets), version: 1 },
+    });
+    expect(
+      await env.DB.prepare(
+        "SELECT favicon_asset_id, social_share_asset_id FROM store_identity_versions WHERE version = 1",
+      ).first(),
+    ).toEqual({ favicon_asset_id: assets[4], social_share_asset_id: assets[5] });
+    expect(
+      (
+        await env.DB.prepare(
+          "SELECT asset_id AS assetId, variant FROM store_identity_logo_assets WHERE identity_version = 1 ORDER BY variant",
+        ).all()
+      ).results,
+    ).toEqual(
+      [...media.logoAssets].sort((left, right) => left.variant.localeCompare(right.variant)),
+    );
+  });
+
+  test("reads approved media through only the corresponding identity or catalog permission", async () => {
+    const now = new Date().toISOString();
+    await env.DB.prepare(
+      `INSERT INTO product_media
+      (id, product_id, r2_key, alt_text, width, height, position, created_at)
+      VALUES ('asset.identity.primary', 'product.identity-assets', 'catalog/identity-primary.svg', 'Identity logo', 100, 100, 0, ?)`,
+    )
+      .bind(now)
+      .run();
+    for (const [domain, path] of [
+      ["identity", "/admin/settings/store-identity/media"],
+      ["catalog", "/admin/catalog/collections/media"],
+    ] as const) {
+      const roleId = `custom_${domain}_media_reader`;
+      await env.DB.batch([
+        env.DB.prepare(
+          "INSERT INTO admin_roles (id, key, name, protected, system, enabled, version, created_at, updated_at) VALUES (?, ?, ?, 0, 0, 1, 1, ?, ?)",
+        ).bind(roleId, roleId, roleId, now, now),
+        env.DB.prepare(
+          "INSERT INTO admin_role_permissions (role_id, permission_key, created_at) VALUES (?, ?, ?)",
+        ).bind(roleId, `${domain}.read`, now),
+      ]);
+      await seedHumanAdmin(env.DB, {
+        email: `${domain}-media@example.test`,
+        id: `${domain}-media`,
+        roleId,
+        subject: `${domain}-media`,
+      });
+      const reader = createApp({
+        testIdentityVerifier: async () => ({
+          email: `${domain}-media@example.test`,
+          principalKind: "human",
+          subject: `${domain}-media`,
+        }),
+      });
+      const response = await reader.fetch(request(`${path}?page=1&pageSize=1&query=logo`), env);
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({
+        data: [{ id: "asset.identity.primary", alt: "Identity logo" }],
+        meta: { page: 1, pageSize: 1, total: 1 },
+      });
+      expect((await reader.fetch(request("/admin/content/media"), env)).status).toBe(403);
+      const otherPath =
+        domain === "identity"
+          ? "/admin/catalog/collections/media"
+          : "/admin/settings/store-identity/media";
+      expect((await reader.fetch(request(otherPath), env)).status).toBe(403);
+    }
   });
 
   test("blocks removing a Logo used by a mutable Theme draft and reports a repair link", async () => {

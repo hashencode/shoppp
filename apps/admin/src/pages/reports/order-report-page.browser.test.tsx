@@ -23,6 +23,80 @@ afterEach(() => {
 })
 
 describe('Revenue reporting locale in a native browser', () => {
+  it('reveals localized header definitions on hover and keyboard focus without overflowing', async () => {
+    transport = installBrowserApi(() => ({
+      data: {
+        data: [
+          {
+            createdAt: '2026-09-03T00:00:00.000Z',
+            currency: 'USD',
+            email: 'shopper@example.test',
+            fulfillmentStatus: 'unfulfilled',
+            grossContribution: 2500,
+            netContribution: 2000,
+            orderStatus: 'confirmed',
+            paymentStatus: 'partially_refunded',
+            publicReference: 'ORD-HELP',
+            refundContribution: 500,
+          } satisfies ReportOrderRow,
+        ],
+        meta: { page: 1, pageSize: 20, total: 1 },
+      },
+    }))
+    renderI18nBrowser(<OrderReportPage />, ['reporting.read'])
+    await expect.element(page.getByText('ORD-HELP')).toBeVisible()
+    assertNativeBrowserAndCss()
+
+    for (let index = 0; index < 2; index += 1) {
+      const chinese = document.documentElement.lang === 'zh-CN'
+      const definitions = chinese
+        ? [
+            ['销售总额说明', '按所选周期内创建的已支付订单总额统计。'],
+            ['退款说明', '按退款成功时间统计，可能包含此前创建的订单。'],
+            ['净销售额说明', '销售总额减去所选周期内成功的退款金额；退款超过销售额时可为负数。'],
+          ]
+        : [
+            ['About Gross sales', 'Paid order totals for orders created in the selected period.'],
+            [
+              'About Refunds',
+              'Successful refunds counted by completion time, including orders created before the selected period.',
+            ],
+            [
+              'About Net sales',
+              'Gross sales minus refunds completed in the selected period. This can be negative when refunds exceed sales.',
+            ],
+          ]
+
+      for (const [name, description] of definitions) {
+        const help = page.getByRole('button', { name })
+        await page.getByRole('button', { name: 'Switch language' }).focus()
+        await help.hover()
+        await expect.element(page.getByText(description!, { exact: true })).toBeVisible()
+        const button = document.querySelector<HTMLButtonElement>(`button[aria-label="${name}"]`)!
+        const header = button.closest('th')!
+        assertWithinViewport(button)
+        assertWithinViewport(
+          document.querySelector('.ant-tooltip:not(.ant-tooltip-hidden) [role="tooltip"]')!
+        )
+        expect(header.scrollWidth).toBeLessThanOrEqual(header.clientWidth + 1)
+        const label = button.parentElement!.querySelector('span')!
+        expect(button.getBoundingClientRect().left).toBeGreaterThanOrEqual(
+          label.getBoundingClientRect().right
+        )
+        await page.getByRole('button', { name: 'Switch language' }).hover()
+        await expect.element(page.getByText(description!, { exact: true })).not.toBeVisible()
+        await help.focus()
+        await expect.element(page.getByText(description!, { exact: true })).toBeVisible()
+        await help.press('Tab')
+        await expect.element(page.getByText(description!, { exact: true })).not.toBeVisible()
+      }
+      expect(document.body.textContent).not.toContain('Drill down from gross and refund events')
+      expect(document.body.textContent).not.toContain('从商品总额和退款事件下钻')
+      await switchBrowserLocale()
+    }
+    expect(transport.requests).toHaveLength(1)
+  })
+
   it('keeps UTC rows and date-only query values while the application switches against the native locale', async () => {
     const row: ReportOrderRow = {
       createdAt: '2026-09-03T00:00:00.000Z',

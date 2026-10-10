@@ -628,15 +628,13 @@ onBeforeUnmount(() => {
                   />
                 </div>
                 <div class="col-12 mb-20px">
-                  <label class="mb-10px" for="fashion-phone"
-                    >Phone <span class="text-red">*</span></label
-                  >
+                  <label class="mb-10px" for="fashion-phone">Phone (optional)</label>
                   <input
                     id="fashion-phone"
                     v-model="billingAddress.phone"
                     class="border-radius-4px input-small"
                     type="tel"
-                    required
+                    maxlength="40"
                     autocomplete="tel"
                   />
                 </div>

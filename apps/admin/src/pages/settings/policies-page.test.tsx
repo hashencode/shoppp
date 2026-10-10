@@ -1,6 +1,6 @@
 import React from 'react'
 import { App as AntApp } from 'antd'
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
 import { MemoryRouter } from 'react-router-dom'
@@ -13,7 +13,11 @@ import { PoliciesPage } from './policies-page'
 void React
 
 if (!window.ResizeObserver) {
-  class ResizeObserverMock { observe() {} unobserve() {} disconnect() {} }
+  class ResizeObserverMock {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
   window.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver
 }
 
@@ -31,6 +35,63 @@ const policy = {
 }
 
 describe('PoliciesPage', () => {
+  it('associates an empty section submit error with the labelled content group', async () => {
+    let submitted = false
+    server.use(
+      http.get('*/admin/settings/policies', () =>
+        HttpResponse.json({ data: [{ ...policy, sections: [] }] })
+      ),
+      http.put('*/admin/settings/policies/policy.returns', () => {
+        submitted = true
+        return HttpResponse.json({ data: policy })
+      })
+    )
+    renderInLocale(
+      <AntApp>
+        <AuthTestProvider permissions={['policies.read', 'policies.write']}>
+          <MemoryRouter>
+            <PoliciesPage />
+          </MemoryRouter>
+        </AuthTestProvider>
+      </AntApp>
+    )
+    await screen.findByDisplayValue('Returns policy')
+    fireEvent.click(screen.getByRole('button', { name: 'Save draft' }))
+    const error = await screen.findByText(/(?:sections|Structured content).*required/i)
+    const group = screen.getByRole('group', { name: 'Structured content' })
+    expect(group.id).toBeTruthy()
+    expect(group.getAttribute('aria-invalid')).toBe('true')
+    expect(group.getAttribute('aria-required')).toBe('true')
+    const descriptions = group.getAttribute('aria-describedby')?.split(' ') ?? []
+    expect(descriptions.some((id) => document.getElementById(id)?.contains(error))).toBe(true)
+    expect(submitted).toBe(false)
+  })
+
+  it('saves a Policy draft without handwritten notes', async () => {
+    let submitted: unknown
+    server.use(
+      http.get('*/admin/settings/policies', () => HttpResponse.json({ data: [policy] })),
+      http.put('*/admin/settings/policies/policy.returns', async ({ request }) => {
+        submitted = await request.json()
+        return HttpResponse.json({ data: { ...policy, version: 2 } })
+      })
+    )
+    renderInLocale(
+      <AntApp>
+        <AuthTestProvider permissions={['policies.read', 'policies.write']}>
+          <MemoryRouter>
+            <PoliciesPage />
+          </MemoryRouter>
+        </AuthTestProvider>
+      </AntApp>
+    )
+    await screen.findByDisplayValue('Returns policy')
+    fireEvent.click(screen.getByRole('button', { name: 'Save draft' }))
+    await waitFor(() =>
+      expect(submitted).toMatchObject({ reason: '', expectedVersion: 1, sections: policy.sections })
+    )
+  })
+
   it('reviews exact rendered bytes before exposing separately permitted approval', async () => {
     server.use(
       http.get('*/admin/settings/policies', () => HttpResponse.json({ data: [policy] })),
@@ -52,11 +113,13 @@ describe('PoliciesPage', () => {
     renderInLocale(
       <AntApp>
         <AuthTestProvider permissions={['policies.read', 'policies.approve']}>
-          <MemoryRouter><PoliciesPage /></MemoryRouter>
+          <MemoryRouter>
+            <PoliciesPage />
+          </MemoryRouter>
         </AuthTestProvider>
       </AntApp>
     )
-    fireEvent.click(await screen.findByRole('button', { name: 'Review' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Review policy' }))
     expect(await screen.findByText('Returns in 30 days.')).toBeTruthy()
     expect(screen.getByText(`Digest: ${'a'.repeat(64)}`)).toBeTruthy()
     expect(screen.getByText('Effective date: 2026-10-01')).toBeTruthy()
@@ -98,11 +161,13 @@ describe('PoliciesPage', () => {
     renderInLocale(
       <AntApp>
         <AuthTestProvider permissions={['policies.read', 'policies.approve']}>
-          <MemoryRouter><PoliciesPage /></MemoryRouter>
+          <MemoryRouter>
+            <PoliciesPage />
+          </MemoryRouter>
         </AuthTestProvider>
       </AntApp>
     )
-    fireEvent.click(await screen.findByRole('button', { name: 'Review' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Review policy' }))
     expect(await screen.findByText('Returns in 30 days.')).toBeTruthy()
     fireEvent.change(screen.getByRole('textbox', { name: 'Transition reason' }), {
       target: { value: 'Approve the exact reviewed version' },
@@ -110,10 +175,12 @@ describe('PoliciesPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Approve exact version' }))
     fireEvent.click(await screen.findByRole('button', { name: 'OK' }))
 
-    expect(await screen.findByText('Exact review · version 2')).toBeTruthy()
+    expect(await screen.findByText('Review · version 2')).toBeTruthy()
     expect(latestReview).toBe(true)
     expect(screen.getByText('Updated returns policy')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Approve exact version' }).hasAttribute('disabled')).toBe(true)
+    expect(
+      screen.getByRole('button', { name: 'Approve exact version' }).hasAttribute('disabled')
+    ).toBe(true)
   })
 })
 

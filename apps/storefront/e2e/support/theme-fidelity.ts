@@ -66,10 +66,6 @@ export async function captureThemeEvidence(
   if (!root || !viewport) return;
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.addStyleTag({ content: deterministicCaptureCss });
-  await page
-    .getByRole("button", { name: "Allow cookies" })
-    .click({ timeout: 1_500 })
-    .catch(() => undefined);
   const imageDiagnostics = await page.evaluate(async () => {
     const images = [...document.images];
     for (const image of images) image.loading = "eager";

@@ -190,9 +190,6 @@ describe('MenuEditor integration', () => {
     saveConflict = true
     renderEditor(['navigation.read', 'navigation.write'])
     await screen.findByDisplayValue('Home')
-    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
-      target: { value: 'Update order' },
-    })
     fireEvent.click(screen.getByRole('button', { name: 'Save draft' }))
     expect(
       await screen.findByText('This Navigation menu changed. Reload it before continuing.')
@@ -204,7 +201,7 @@ describe('MenuEditor integration', () => {
   it('publishes the exact mounted version through the confirmation control', async () => {
     renderEditor(['navigation.read', 'navigation.publish'])
     await screen.findByDisplayValue('Home')
-    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Transition reason' }), {
       target: { value: 'Publish menu' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
@@ -219,7 +216,7 @@ describe('MenuEditor integration', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Item label' }), {
       target: { value: 'Start here' },
     })
-    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Transition reason' }), {
       target: { value: 'Update menu label' },
     })
     expect(screen.getByRole('button', { name: 'Publish' }).hasAttribute('disabled')).toBe(true)
@@ -227,7 +224,7 @@ describe('MenuEditor integration', () => {
     expect(publishRequests).toBe(0)
     fireEvent.click(screen.getByRole('button', { name: 'Save draft' }))
     await waitFor(() => expect(screen.getByText('Saved v2')).toBeTruthy())
-    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Transition reason' }), {
       target: { value: 'Publish saved menu' },
     })
     expect(screen.getByRole('button', { name: 'Publish' }).hasAttribute('disabled')).toBe(false)

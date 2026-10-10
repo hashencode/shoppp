@@ -68,3 +68,35 @@ export const productsFixture = (query: ReportingQuery): ProductSalesReport => ({
     { productId: 'b', name: 'Archived product B', path: null, grossSales: 1000 },
   ],
 })
+
+export const emptyRevenueFixture = (query: ReportingQuery): RevenueReport => {
+  const report = revenueFixture(query)
+  const metrics = {
+    grossSales: 0,
+    netSales: 0,
+    orderCount: 0,
+    refundTotal: 0,
+    averageOrderValue: 0,
+  }
+  return {
+    ...report,
+    comparison: { ...report.comparison, metrics: { ...metrics } },
+    current: { ...report.current, metrics, series: [] },
+  }
+}
+
+export const emptyTrafficFixture = (query: TrafficQuery): TrafficReport => ({
+  ...trafficFixture(query),
+  collectionStartedAt: null,
+  uniqueVisitors: 0,
+  pageViews: 0,
+  series: [],
+  products: [],
+})
+
+export const emptyProductsFixture = (query: ReportingQuery): ProductSalesReport => ({
+  ...productsFixture(query),
+  products: [],
+})
+
+export const noActivityDescription = 'Not enough data to display the dashboard yet.'

@@ -1,6 +1,6 @@
 import React from 'react'
 import type { AdminPermission, ReportExport, ReportOrderRow } from '@shoppp/contracts'
-import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
@@ -140,14 +140,62 @@ describe('OrderReportPage', () => {
     expect(screen.getByRole('combobox', { name: 'Report currency' })).toBeTruthy()
     expect(screen.getByRole('combobox', { name: 'Report time zone' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Export CSV' })).toBeNull()
-    const scopeGuidance = screen.getByText(
-      'Drill down from gross and refund events without mixing currencies, environments, or test checkouts.'
-    )
     expect(
-      screen
-        .getByRole('combobox', { name: 'Report currency' })
-        .compareDocumentPosition(scopeGuidance) & Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy()
+      screen.queryByText(
+        'Drill down from gross and refund events without mixing currencies, environments, or test checkouts.'
+      )
+    ).toBeNull()
+  })
+
+  it('explains each amount from its header in the current language without requesting data', async () => {
+    renderPage(['reporting.read'])
+    await screen.findByText('ORD-REPORT01')
+
+    const locales = [
+      [
+        [
+          'Gross (USD)',
+          'About Gross sales',
+          'Paid order totals for orders created in the selected period.',
+        ],
+        [
+          'Refunds (USD)',
+          'About Refunds',
+          'Successful refunds counted by completion time, including orders created before the selected period.',
+        ],
+        [
+          'Net (USD)',
+          'About Net sales',
+          'Gross sales minus refunds completed in the selected period. This can be negative when refunds exceed sales.',
+        ],
+      ],
+      [
+        ['销售总额（USD）', '销售总额说明', '按所选周期内创建的已支付订单总额统计。'],
+        ['退款（USD）', '退款说明', '按退款成功时间统计，可能包含此前创建的订单。'],
+        [
+          '净额（USD）',
+          '净销售额说明',
+          '销售总额减去所选周期内成功的退款金额；退款超过销售额时可为负数。',
+        ],
+      ],
+    ]
+
+    for (const [index, definitions] of locales.entries()) {
+      if (index > 0) fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+      for (const [label, name, description] of definitions) {
+        const header = screen
+          .getAllByRole('columnheader')
+          .find((node) => within(node).queryByText(label!))!
+        const help = within(header).getByRole('button', { name })
+        fireEvent.focus(help)
+        expect(await screen.findByText(description!, { selector: '[role="tooltip"]' })).toBeTruthy()
+        fireEvent.blur(help)
+      }
+    }
+    expect(orderQueries).toHaveLength(1)
+    expect(
+      screen.queryByText('从商品总额和退款事件下钻，不混合币种、环境或测试结账数据。')
+    ).toBeNull()
   })
 
   it('requires a reason and explicit confirmation before creating an audited export', async () => {
@@ -187,8 +235,8 @@ describe('OrderReportPage', () => {
     expect(orderQueries[1]).toEqual({ ...orderQueries[0], query: 'ORD-REPORT01' })
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Report currency' }))
     fireEvent.click(await screen.findByText('EUR', { selector: '.ant-select-item-option-content' }))
-    expect(screen.getByRole('columnheader', { name: 'Gross (USD)' })).toBeTruthy()
-    expect(screen.queryByRole('columnheader', { name: 'Gross (EUR)' })).toBeNull()
+    expect(screen.getByRole('columnheader', { name: /^Gross \(USD\)/ })).toBeTruthy()
+    expect(screen.queryByRole('columnheader', { name: /^Gross \(EUR\)/ })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }))
     expect(
       screen.getByText(
@@ -255,12 +303,12 @@ describe('OrderReportPage', () => {
 
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Report currency' }))
     fireEvent.click(await screen.findByText('EUR', { selector: '.ant-select-item-option-content' }))
-    expect(screen.getByRole('columnheader', { name: 'Gross (USD)' })).toBeTruthy()
+    expect(screen.getByRole('columnheader', { name: /^Gross \(USD\)/ })).toBeTruthy()
     expect(orderQueries).toHaveLength(1)
 
     fireEvent.click(screen.getByRole('button', { name: /^(loading )?Search$/ }))
     await waitFor(() => expect(orderQueries.at(-1)?.currency).toBe('EUR'))
-    expect(await screen.findByRole('columnheader', { name: 'Gross (EUR)' })).toBeTruthy()
+    expect(await screen.findByRole('columnheader', { name: /^Gross \(EUR\)/ })).toBeTruthy()
   })
 
   it('normalizes invalid inbound report parameters before showing or requesting them', async () => {

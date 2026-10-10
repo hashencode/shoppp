@@ -7,7 +7,10 @@ import { ContentMediaSelect } from './content-media-select'
 
 void React
 
-type Props = {
+type Props = Pick<
+  React.HTMLAttributes<HTMLDivElement>,
+  'id' | 'aria-describedby' | 'aria-invalid' | 'aria-required'
+> & {
   contentMode?: 'policy' | 'publishable'
   disabled?: boolean
   onChange?: (value: StorefrontContentSection[]) => void
@@ -28,6 +31,7 @@ export const StructuredContentEditor = ({
   disabled = false,
   onChange = () => undefined,
   value = [],
+  ...fieldProps
 }: Props) => {
   const { t } = useI18n()
   const replace = (index: number, section: StorefrontContentSection) =>
@@ -55,7 +59,14 @@ export const StructuredContentEditor = ({
     onChange([...value, section])
   }
   return (
-    <Space orientation="vertical" className="w-full" size="middle">
+    <Space
+      {...fieldProps}
+      role="group"
+      aria-label={t('Structured content')}
+      orientation="vertical"
+      className="w-full"
+      size="middle"
+    >
       <Space wrap>
         {(contentMode === 'publishable'
           ? (['heading', 'paragraph', 'image', 'link'] as const)

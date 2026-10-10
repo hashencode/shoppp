@@ -4,18 +4,19 @@ import type {
   TrafficReport,
   ProductSalesReport,
 } from '@shoppp/contracts'
-import { ArrowDownOutlined, ArrowUpOutlined, QuestionCircleOutlined } from '@ant-design/icons'
+import { ArrowDownOutlined, ArrowUpOutlined, InfoCircleOutlined } from '@ant-design/icons'
 import {
   Alert,
   Button,
-  Card,
   Col,
   DatePicker,
+  Divider,
+  Statistic,
+  Space,
   Empty,
   Row,
   Skeleton,
   Select,
-  Tabs,
   Tooltip,
   Typography,
   theme,
@@ -31,7 +32,11 @@ import {
 } from '../../services/reporting/api'
 import { useI18n } from '../../shared/contexts/i18n-context'
 import { formatMinorCurrency } from '../../shared/i18n/format-currency'
-import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
+import {
+  AnalysisMetricCard,
+  AnalysisReportCard,
+  AnalysisRank,
+} from '../../shared/template-kit/dashboard/analysis-ui'
 import { resolveDefaultTimeZone } from '../../shared/utils/time-zones'
 import { DashboardChart } from './dashboard-chart'
 
@@ -96,11 +101,9 @@ type TrafficSnapshot = { key: string; report: TrafficReport | null }
 const Failure = ({ onRetry }: { onRetry: () => void }) => {
   const { t } = useI18n()
   return (
-    <Alert
-      type="error"
-      title={t('Reporting data is unavailable.')}
-      action={<Button onClick={onRetry}>{t('Retry')}</Button>}
-    />
+    <Button size="small" onClick={onRetry}>
+      {t('Retry')}
+    </Button>
   )
 }
 
@@ -113,8 +116,10 @@ const MetricCard = ({
   series,
   comparisonWindow,
   control,
+  empty,
   loading,
   retry,
+  bars = false,
 }: {
   label: string
   description: string
@@ -124,7 +129,9 @@ const MetricCard = ({
   series: { date: string; value: number }[]
   comparisonWindow?: string
   control?: React.ReactNode
+  empty: boolean
   loading: boolean
+  bars?: boolean
   retry: () => void
 }) => {
   const { locale, t } = useI18n()
@@ -136,74 +143,83 @@ const MetricCard = ({
   const delta = value !== undefined && previous !== undefined ? value - previous : undefined
   const Direction = delta !== undefined && delta < 0 ? ArrowDownOutlined : ArrowUpOutlined
   return (
-    <Card className="h-full" data-metric={label}>
-      <div className="flex flex-wrap items-center justify-between gap-1">
-        <span style={{ color: token.colorTextSecondary }}>
-          {label}
+    <AnalysisMetricCard
+      data-metric={label}
+      extra={control}
+      title={
+        <Space size={6}>
+          <span>{label}</span>
           <Tooltip title={description} trigger={['hover', 'focus']}>
             <Button
               type="text"
               size="small"
               aria-label={t('About {metric}', { metric: label })}
-              icon={<QuestionCircleOutlined aria-hidden />}
+              icon={<InfoCircleOutlined aria-hidden />}
             />
           </Tooltip>
-        </span>
-        {control}
-      </div>
+        </Space>
+      }
+    >
       {loading ? (
-        <>
-          <Skeleton active paragraph={{ rows: 2 }} title={false} />
-          <span>{t('Loading report…')}</span>
-        </>
+        <Skeleton active paragraph={{ rows: 2 }} title={false} />
       ) : value === undefined ? (
         <Failure onRetry={retry} />
+      ) : empty ? (
+        <div className="flex flex-grow items-center justify-center">
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        </div>
       ) : (
-        <>
-          <div className="my-2 text-2xl font-semibold" data-testid="metric-value">
-            {format(value)}
+        <div className="flex flex-grow flex-col">
+          <div className="flex flex-grow flex-col justify-between">
+            <div data-testid="metric-value">
+              <Statistic value={value} formatter={() => format(value)} />
+            </div>
+            <DashboardChart
+              label={t('Daily trend for {metric}', { metric: label })}
+              series={series}
+              currency={currency}
+              mini
+              bars={bars}
+            />
           </div>
-          <DashboardChart
-            label={t('Daily trend for {metric}', { metric: label })}
-            series={series}
-            currency={currency}
-            mini
-          />
-          <p
-            className="mb-0 mt-2 text-xs"
-            style={{
-              color:
-                delta !== undefined && delta !== 0
-                  ? delta > 0
-                    ? token.colorSuccessText
-                    : token.colorErrorText
-                  : token.colorTextSecondary,
-            }}
-          >
-            {delta === undefined ? (
-              t('Previous period unavailable')
-            ) : (
-              <Tooltip title={t('Previous {window}', { window: comparisonWindow ?? '—' })}>
-                <span>
-                  {delta !== 0 && (
-                    <Direction aria-label={delta > 0 ? t('Increase') : t('Decrease')} />
-                  )}{' '}
-                  {delta > 0 ? '+' : ''}
-                  {format(delta)}
-                  {' · '}
-                  {previous! > 0
-                    ? new Intl.NumberFormat(locale, {
-                        style: 'percent',
-                        maximumFractionDigits: 1,
-                      }).format(delta / previous!)
-                    : t('Percentage unavailable')}
-                </span>
-              </Tooltip>
-            )}
-          </p>
-        </>
+          {delta !== undefined && (
+            <>
+              <Divider className="!my-3" />
+              <p
+                className="mb-0 text-[13px]"
+                style={{
+                  color:
+                    delta !== 0
+                      ? delta > 0
+                        ? token.colorSuccessText
+                        : token.colorErrorText
+                      : token.colorTextSecondary,
+                }}
+              >
+                <Tooltip title={t('Previous {window}', { window: comparisonWindow ?? '—' })}>
+                  <span>
+                    {delta !== 0 && (
+                      <Direction aria-label={delta > 0 ? t('Increase') : t('Decrease')} />
+                    )}{' '}
+                    {delta > 0 ? '+' : ''}
+                    {format(delta)}
+                    {previous! > 0 && (
+                      <>
+                        {' · '}
+                        {new Intl.NumberFormat(locale, {
+                          style: 'percent',
+                          maximumFractionDigits: 1,
+                        }).format(delta / previous!)}
+                      </>
+                    )}
+                  </span>
+                </Tooltip>
+              </p>
+            </>
+          )}
+        </div>
       )}
-    </Card>
+    </AnalysisMetricCard>
   )
 }
 
@@ -216,6 +232,7 @@ export const DashboardPage = () => {
 }
 
 const DashboardContent = ({ storageKey }: { storageKey: string | null }) => {
+  const { token } = theme.useToken()
   const navigate = useNavigate()
   const { locale, t } = useI18n()
   const [query, setQuery] = useState<ReportingQuery>(() => initialQuery(storageKey))
@@ -313,6 +330,15 @@ const DashboardContent = ({ storageKey }: { storageKey: string | null }) => {
     }
     commitDates(start.format('YYYY-MM-DD'), today.format('YYYY-MM-DD'))
   }
+  const datePresets = [
+    { value: 'today', label: t('Today') },
+    { value: '7', label: t('Last 7 days') },
+    { value: '30', label: t('Last 30 days') },
+    { value: 'week', label: t('This week') },
+    { value: 'month', label: t('This month') },
+    { value: 'year', label: t('This year') },
+    { value: 'custom', label: t('Custom') },
+  ]
   const currencyControl = (
     <Select
       aria-label={t('Currency')}
@@ -337,6 +363,11 @@ const DashboardContent = ({ storageKey }: { storageKey: string | null }) => {
   const financialWindow = revenue
     ? `${revenue.comparison.startDate}–${revenue.comparison.endDate}`
     : undefined
+  const financialMetrics = revenue ? [revenue.current.metrics, revenue.comparison.metrics] : []
+  const hasFinancialActivity = financialMetrics.some(
+    ({ grossSales, netSales, orderCount, refundTotal }) =>
+      grossSales > 0 || netSales !== 0 || orderCount > 0 || refundTotal > 0
+  )
   const financialCards = [
     {
       key: 'grossSales' as const,
@@ -345,14 +376,16 @@ const DashboardContent = ({ storageKey }: { storageKey: string | null }) => {
         'Order totals counted once when paid orders are created. Later cancellations and refunds do not change this amount.'
       ),
       monetary: true,
+      empty: !financialMetrics.some(
+        ({ grossSales, orderCount }) => grossSales > 0 || orderCount > 0
+      ),
     },
     {
       key: 'orderCount' as const,
       label: t('Paid orders'),
-      description: t(
-        'Paid orders created in the selected period. Failed checkouts and test orders are excluded.'
-      ),
+      description: t('Paid orders created in the selected period.'),
       monetary: false,
+      empty: !financialMetrics.some(({ orderCount }) => orderCount > 0),
     },
     {
       key: 'netSales' as const,
@@ -361,10 +394,11 @@ const DashboardContent = ({ storageKey }: { storageKey: string | null }) => {
         'Gross sales minus refunds completed in the selected period. This can be negative when refunds exceed sales.'
       ),
       monetary: true,
+      empty: !hasFinancialActivity,
     },
   ]
   const renderFinancialCard = (card: (typeof financialCards)[number]) => (
-    <Col key={card.key} xs={24} sm={12} xl={6}>
+    <Col key={card.key} xs={24} sm={12} xl={6} className="flex">
       <MetricCard
         label={card.label}
         description={card.description}
@@ -376,6 +410,8 @@ const DashboardContent = ({ storageKey }: { storageKey: string | null }) => {
         }
         comparisonWindow={financialWindow}
         control={card.key === 'grossSales' ? currencyControl : undefined}
+        empty={card.empty}
+        bars={card.key === 'orderCount'}
         loading={!finances}
         retry={retryFinancial}
       />
@@ -384,7 +420,6 @@ const DashboardContent = ({ storageKey }: { storageKey: string | null }) => {
   const isSales = tab === 'sales'
   const chartReady = isSales ? finances : visits
   const chartData = isSales ? revenue : report
-  const rankingReady = isSales ? finances : visits
   const rankingReport = isSales ? finances?.products : report
   const series = isSales
     ? revenue?.current.series.map((row) => ({ date: row.date, value: row.grossSales }))
@@ -392,20 +427,94 @@ const DashboardContent = ({ storageKey }: { storageKey: string | null }) => {
   const rankings = isSales
     ? finances?.products?.products.map((product) => ({ ...product, value: product.grossSales }))
     : report?.products.map((product) => ({ ...product, value: product.pageViews }))
+  const showRanking = !!rankings?.length
   const retry = isSales ? retryFinancial : retryTraffic
-  const today = todayInZone(timeZone)
+  const hasTrafficActivity =
+    report &&
+    [
+      report.uniqueVisitors,
+      report.pageViews,
+      report.comparison.uniqueVisitors,
+      report.comparison.pageViews,
+    ].some((value) => value > 0)
+  const noActivity =
+    revenue &&
+    report &&
+    finances?.products &&
+    !hasFinancialActivity &&
+    !hasTrafficActivity &&
+    finances.products.products.length === 0 &&
+    report.products.length === 0
+
+  const dateControls = (
+    <div className="flex max-w-full flex-wrap items-center gap-2">
+      <Space size={8} className="hidden lg:inline-flex">
+        {datePresets
+          .filter(({ value }) => ['today', 'week', 'month', 'year'].includes(value))
+          .map(({ value, label }) => (
+            <Button
+              key={value}
+              type="text"
+              onClick={() => changePreset(value)}
+              style={{
+                color: preset === value ? token.colorPrimary : token.colorTextSecondary,
+              }}
+            >
+              {label}
+            </Button>
+          ))}
+      </Space>
+      <Select
+        aria-label={t('Date preset')}
+        value={preset}
+        onChange={changePreset}
+        style={{ minWidth: 130 }}
+        options={datePresets}
+      />
+      <DatePicker.RangePicker
+        variant="filled"
+        aria-label={t('Date range')}
+        value={[dayjs(startDate), dayjs(endDate)]}
+        allowClear={false}
+        format="YYYY-MM-DD"
+        placeholder={[t('Start date'), t('End date')]}
+        style={{ maxWidth: '100%' }}
+        onChange={(dates) => {
+          if (dates?.[0] && dates[1]) {
+            setPreset('custom')
+            commitDates(dates[0].format('YYYY-MM-DD'), dates[1].format('YYYY-MM-DD'))
+          }
+        }}
+      />
+    </div>
+  )
+  const rangeFeedback = rangeError && (
+    <Alert type="warning" title={t('Select an ordered date range of at most 367 days.')} />
+  )
+
+  if (noActivity) {
+    return (
+      <div className="flex min-h-[calc(100dvh-104px)] items-center justify-center">
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={t('Not enough data to display the dashboard yet.')}
+        />
+      </div>
+    )
+  }
 
   return (
-    <CustomPageRecipe title={t('Commerce dashboard')}>
-      <Row gutter={[16, 16]}>
+    <div className="space-y-4">
+      <Row gutter={[24, 16]}>
         {renderFinancialCard(financialCards[0]!)}
-        <Col xs={24} sm={12} xl={6}>
+        <Col xs={24} sm={12} xl={6} className="flex">
           <MetricCard
             label={t('Unique visitors')}
             description={t(
               'Distinct anonymous browsers across the selected period. Daily visitors are deduplicated separately.'
             )}
             value={report?.uniqueVisitors}
+            empty={report?.uniqueVisitors === 0 && report.comparison.uniqueVisitors === 0}
             previous={report?.comparison.available ? report.comparison.uniqueVisitors : undefined}
             comparisonWindow={
               report ? `${report.comparison.startDate}–${report.comparison.endDate}` : undefined
@@ -419,63 +528,20 @@ const DashboardContent = ({ storageKey }: { storageKey: string | null }) => {
         </Col>
         {financialCards.slice(1).map(renderFinancialCard)}
       </Row>
-      <Card>
-        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
-          <Tabs
-            activeKey={tab}
-            onChange={setTab}
-            items={[
-              { key: 'sales', label: t('Sales') },
-              { key: 'views', label: t('Page views') },
-            ]}
-          />
-          <div className="flex max-w-full flex-wrap items-center gap-2">
-            <Select
-              aria-label={t('Date preset')}
-              value={preset}
-              onChange={changePreset}
-              style={{ minWidth: 130 }}
-              options={[
-                ['today', 'Today'],
-                ['7', 'Last 7 days'],
-                ['30', 'Last 30 days'],
-                ['week', 'This week'],
-                ['month', 'This month'],
-                ['year', 'This year'],
-                ['custom', 'Custom'],
-              ].map(([value, label]) => ({ value, label: t(label!) }))}
-            />
-            <DatePicker.RangePicker
-              aria-label={t('Date range')}
-              value={[dayjs(startDate), dayjs(endDate)]}
-              allowClear={false}
-              format="YYYY-MM-DD"
-              placeholder={[t('Start date'), t('End date')]}
-              style={{ maxWidth: '100%' }}
-              onChange={(dates) => {
-                if (dates?.[0] && dates[1]) {
-                  setPreset('custom')
-                  commitDates(dates[0].format('YYYY-MM-DD'), dates[1].format('YYYY-MM-DD'))
-                }
-              }}
-            />
-          </div>
-        </div>
-        {rangeError && (
-          <Alert type="warning" title={t('Select an ordered date range of at most 367 days.')} />
-        )}
-        {startDate <= today && endDate >= today && (
-          <Typography.Paragraph type="secondary">
-            {t('Today is still in progress; comparisons include a partial day.')}
-          </Typography.Paragraph>
-        )}
-        <Row gutter={[32, 24]}>
-          <Col xs={24} lg={16}>
+      <AnalysisReportCard
+        tabList={[
+          { key: 'sales', tab: t('Sales') },
+          { key: 'views', tab: t('Page views') },
+        ]}
+        activeTabKey={tab}
+        onTabChange={setTab}
+        tabBarExtraContent={dateControls}
+      >
+        {rangeFeedback}
+        <Row gutter={[48, 16]}>
+          <Col xs={24} lg={showRanking ? 16 : 24}>
             {!chartReady ? (
-              <>
-                <Skeleton active />
-                <span>{t('Loading report…')}</span>
-              </>
+              <Skeleton active />
             ) : !chartData ? (
               <Failure onRetry={retry} />
             ) : (
@@ -494,43 +560,19 @@ const DashboardContent = ({ storageKey }: { storageKey: string | null }) => {
                 {t('View underlying orders')}
               </Button>
             )}
-            {!isSales && report?.collectionStartedAt && (
-              <Typography.Paragraph type="secondary">
-                {t('Recorded since {date}', {
-                  date: new Intl.DateTimeFormat(locale, { timeZone, dateStyle: 'medium' }).format(
-                    new Date(report.collectionStartedAt)
-                  ),
-                })}
-              </Typography.Paragraph>
-            )}
+            {chartData && !rankingReport && <Failure onRetry={retry} />}
           </Col>
-          <Col xs={24} lg={8}>
-            <Typography.Title level={5}>
-              {isSales ? t('Top products by sales') : t('Top products by page views')}
-            </Typography.Title>
-            {isSales && (
-              <Typography.Paragraph type="secondary">
-                {t('Product line totals, before refunds; excludes order-level adjustments.')}
-              </Typography.Paragraph>
-            )}
-            {!rankingReady ? (
-              <Skeleton active />
-            ) : !rankingReport ? (
-              <Failure onRetry={retry} />
-            ) : !rankings?.length ? (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={t('No product activity in this window.')}
-              >
-                <Button onClick={retry}>{t('Refresh')}</Button>
-              </Empty>
-            ) : (
-              <ol className="m-0 list-none space-y-4 p-0">
-                {rankings.map((product, index) => (
-                  <li key={product.productId} className="flex items-center gap-3">
-                    <span className="w-5 shrink-0 text-center">{index + 1}</span>
+          {showRanking && (
+            <Col xs={24} lg={8}>
+              <Typography.Title level={5}>
+                {isSales ? t('Top products by sales') : t('Top products by page views')}
+              </Typography.Title>
+              <ol className="mt-2.5 list-none p-0">
+                {rankings!.map((product, index) => (
+                  <li key={product.productId} className="mt-4 flex items-center gap-2">
+                    <AnalysisRank rank={index + 1} />
                     <span className="min-w-0 flex-1 break-words">
-                      {product.path && rankingReport.storefrontOrigin ? (
+                      {product.path && rankingReport?.storefrontOrigin ? (
                         <a
                           href={`${rankingReport.storefrontOrigin}${product.path}`}
                           target="_blank"
@@ -550,10 +592,10 @@ const DashboardContent = ({ storageKey }: { storageKey: string | null }) => {
                   </li>
                 ))}
               </ol>
-            )}
-          </Col>
+            </Col>
+          )}
         </Row>
-      </Card>
-    </CustomPageRecipe>
+      </AnalysisReportCard>
+    </div>
   )
 }

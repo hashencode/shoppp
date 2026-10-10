@@ -94,11 +94,6 @@ describe('AuditPage', () => {
     renderAudit()
     await screen.findByText('orders.first')
     expect(requests).toEqual([{ pageSize: '25' }])
-    const auditGuidance = screen.getByText(
-      'Redacted, permissioned records with stable cursor pagination.'
-    )
-    expect(auditGuidance.closest('.ant-card')?.textContent).toContain('orders.first')
-
     fireEvent.change(screen.getByRole('textbox', { name: 'Filter audit action' }), {
       target: { value: 'orders.refund' },
     })

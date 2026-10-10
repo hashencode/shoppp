@@ -31,10 +31,6 @@ async function prepare(page: Page, side: "implementation" | "source"): Promise<v
     await page
       .locator('[data-fashion-store-source-parity][data-runtime-status="ready"]')
       .waitFor({ state: "attached" });
-    await page
-      .getByRole("button", { name: "Allow cookies" })
-      .click({ timeout: 2_000 })
-      .catch(() => undefined);
   }
 }
 

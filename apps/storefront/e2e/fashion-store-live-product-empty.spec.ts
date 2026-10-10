@@ -7,9 +7,6 @@ test("published Product without reviews or assurance keeps each visible state tr
 }) => {
   const captureDirectory = "test-results/fs-f11-u7/20260917T-live-empty";
   await mkdir(captureDirectory, { recursive: true });
-  await page.addInitScript(() =>
-    localStorage.setItem("shoppp.fashion-store.cookie-notice-dismissed", "true"),
-  );
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
     await page.goto("/products/relaxed-corduroy-shirt", { waitUntil: "domcontentloaded" });

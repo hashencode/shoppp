@@ -4,6 +4,7 @@ import {
   currencyCodeSchema,
   isoDateTimeSchema,
   orderReferenceSchema,
+  optionalAuditReasonSchema,
   pricingTotalsSchema,
 } from "./common";
 import { guestOrderLineSchema, shippingAddressSchema } from "./checkout";
@@ -778,7 +779,7 @@ export const storefrontExperienceDraftInputSchema = z
 export const createStorefrontExperienceDraftRequestSchema = z
   .object({
     draft: storefrontExperienceDraftInputSchema,
-    reason: experienceReasonSchema,
+    reason: optionalAuditReasonSchema,
   })
   .strict();
 
@@ -787,7 +788,7 @@ export const updateStorefrontExperienceDraftRequestSchema = z
     bindings: z.array(experienceResourceBindingSchema).max(100),
     expectedVersion: z.int().positive(),
     overrides: z.array(themeOverrideSchema).max(10),
-    reason: experienceReasonSchema,
+    reason: optionalAuditReasonSchema,
   })
   .strict();
 
@@ -844,7 +845,7 @@ export const storefrontExperienceBlockCommandRequestSchema = z
     catalogReleaseId: z.string().trim().min(1).max(160).optional(),
     command: storefrontExperienceBlockCommandSchema,
     expectedVersion: z.int().positive(),
-    reason: experienceReasonSchema,
+    reason: optionalAuditReasonSchema,
   })
   .strict();
 
@@ -857,7 +858,7 @@ export const validateStorefrontExperienceDraftRequestSchema = z
   .object({
     catalogReleaseId: z.string().trim().min(1).max(160).optional(),
     expectedVersion: z.int().positive(),
-    reason: experienceReasonSchema,
+    reason: optionalAuditReasonSchema,
   })
   .strict();
 
@@ -867,6 +868,7 @@ export const resolveStorefrontExperienceDraftRequestSchema =
 export const approveStorefrontExperienceDraftRequestSchema =
   validateStorefrontExperienceDraftRequestSchema.extend({
     confirm: z.literal(true),
+    reason: experienceReasonSchema,
   });
 
 export const createStorefrontExperienceBuildRequestSchema = z
@@ -880,7 +882,7 @@ export const storefrontExperienceMigrationDryRunRequestSchema = z
   .object({
     catalogReleaseId: storefrontIdentifierSchema.optional(),
     expectedVersion: z.int().positive(),
-    reason: experienceReasonSchema,
+    reason: optionalAuditReasonSchema,
     targetConfigurationSchemaVersion: z.int().positive(),
     targetThemeVersion: storefrontSemverSchema,
   })
@@ -918,12 +920,12 @@ export const createStorefrontPreviewGrantRequestSchema = z
   .object({
     catalogReleaseId: z.string().trim().min(1).max(160).optional(),
     origin: z.url().refine((value) => new URL(value).protocol === "https:"),
-    reason: experienceReasonSchema,
+    reason: optionalAuditReasonSchema,
   })
   .strict();
 
 export const revokeStorefrontPreviewAccessRequestSchema = z
-  .object({ reason: experienceReasonSchema })
+  .object({ reason: optionalAuditReasonSchema })
   .strict();
 
 export const redeemStorefrontPreviewGrantRequestSchema = z

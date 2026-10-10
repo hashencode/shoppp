@@ -20,6 +20,7 @@
 - 本文用于迁移期“旧页逻辑 1:1 搬运”的执行规则。
 - 若是新增基础三态表单页，或迁移页已经能稳定同构到标准骨架，优先阅读 `docs/ai/page-guardrail-recipes.md`。
 - 满足基础表单条件的页面，优先接入 `BasicCrudFormRecipe`；复杂字段和特例流程仍按 `business override` 处理。
+- 表单输入必要性以 [AI Implementation Rules §4.2](ai-rules.md#42-form-input-necessity表单输入必要性) 为唯一规则来源；迁移时逐项检查，已获批准的输入必要性调整同时更新 UI、API 和审计契约，作为功能对照清单中的显式差异。
 
 ## 2. 迁移总原则（强约束）
 1. UI 可升级，逻辑不降级。

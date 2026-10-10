@@ -269,9 +269,6 @@ export const AuditPage = () => {
           />
         }
       >
-        <p className="mb-4 text-slate-500">
-          {t('Redacted, permissioned records with stable cursor pagination.')}
-        </p>
         <TemplateListContent
           showInitialLoading={controller.showInitialLoading}
           showError={controller.showError}

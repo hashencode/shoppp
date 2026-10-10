@@ -247,7 +247,7 @@ describe("hosted checkout and payment convergence", () => {
     await seedLaunchFixture(env.DB);
   });
 
-  test("creates one hosted session then one immutable paid order from a verified event", async () => {
+  test("creates a hosted session and immutable paid order without an optional phone", async () => {
     const provider = new FakePaymentProvider();
     const app = createApp({ paymentProvider: provider });
     const checkout = await seedCheckout();

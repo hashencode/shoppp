@@ -113,7 +113,6 @@ describe("Fashion Store complete static source home", () => {
       "announcement",
       "sticky-social-rail",
       "footer",
-      "cookie",
       "scroll-progress",
     ]);
     expect(fashionStoreDecorHomeContract.mountHost).toBe("fashion-store.product-merchandising");
@@ -349,7 +348,8 @@ describe("Fashion Store complete static source home", () => {
       )
     ).join("\n");
     let cursor = -1;
-    for (const region of fashionStoreSourceRegions) {
+    // The source notice is deliberately omitted from the product shell.
+    for (const region of fashionStoreSourceRegions.filter(({ key }) => key !== "cookie")) {
       const marker = regionMarkers[region.key] ?? "section class=";
       const next = component.indexOf(marker, cursor + 1);
       expect(next).toBeGreaterThan(cursor);

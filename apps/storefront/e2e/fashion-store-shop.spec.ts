@@ -25,16 +25,10 @@ const shopPages = [
   },
 ] as const;
 
-async function prepareImplementation(
-  page: Page,
-  route: string,
-  dismissCookie = true,
-): Promise<void> {
+async function prepareImplementation(page: Page, route: string): Promise<void> {
   await page.goto(route, { waitUntil: "networkidle" });
   await page.locator("[data-fashion-store-shop][data-runtime-status='ready']").waitFor();
   await page.evaluate(async () => document.fonts.ready);
-  const cookieButton = page.getByRole("button", { name: "Allow cookies" });
-  if (dismissCookie && (await cookieButton.isVisible())) await cookieButton.click();
 }
 
 async function productColumnCount(page: Page): Promise<number> {
@@ -48,7 +42,7 @@ for (const shopPage of shopPages) {
   test(`${shopPage.layout} Shop preserves source structure and responsive geometry`, async ({
     page,
   }, testInfo) => {
-    await prepareImplementation(page, shopPage.route, false);
+    await prepareImplementation(page, shopPage.route);
     const shop = page.locator("[data-fashion-store-shop]");
     await expect(shop).toHaveAttribute("data-layout", shopPage.layout);
     await expect(shop.locator("h1")).toHaveText("Shop");
@@ -58,8 +52,6 @@ for (const shopPage of shopPages) {
     await expect(shop.locator(".pagination .page-item.active .page-link")).toHaveText("02");
     await expect(shop.locator(".pagination [aria-current='page']")).toHaveCount(1);
     await expect(shop.locator(".shop-sidebar")).toHaveCount(shopPage.layout === "none" ? 0 : 1);
-    await expect(page.locator("#cookies-model")).toBeVisible();
-    await page.getByRole("button", { name: "Allow cookies" }).click();
     await expect(page.locator("#cookies-model")).toHaveCount(0);
 
     const expectedColumns =

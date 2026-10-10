@@ -201,8 +201,6 @@ async function prepareCheckout(
   await page.goto("/checkout", { waitUntil: "networkidle" });
   await page.locator("[data-fashion-store-checkout][data-runtime-status='ready']").waitFor();
   await page.evaluate(async () => document.fonts.ready);
-  const cookieButton = page.getByRole("button", { name: "Allow cookies" });
-  if (await cookieButton.isVisible()) await cookieButton.click();
 }
 
 async function fillBilling(page: Page): Promise<void> {
@@ -212,7 +210,7 @@ async function fillBilling(page: Page): Promise<void> {
   await page.getByLabel("Town / City *").fill(shippingAddress.city);
   await page.getByLabel("State *").selectOption(shippingAddress.region);
   await page.getByLabel("ZIP *").fill(shippingAddress.postalCode);
-  await page.getByLabel("Phone *").fill(shippingAddress.phone);
+  await page.getByLabel("Phone (optional)").fill(shippingAddress.phone);
   await page.getByLabel("Email address *").fill("ada@example.test");
 }
 
@@ -317,17 +315,32 @@ test("Checkout fixture validation records intent without creating a session", as
     },
   });
   await fillBilling(page);
+  const phone = page.getByLabel("Phone (optional)");
+  await phone.fill("");
+  await expect(phone).not.toHaveAttribute("required");
+  await expect(phone).toHaveAttribute("maxlength", "40");
   await page.getByLabel("Email address *").fill("invalid");
   await page.getByRole("button", { name: "Place order" }).click();
   await expect(page.getByLabel("Email address *")).toBeFocused();
   expect(checkoutCount).toBe(0);
   await page.getByLabel("Email address *").fill("ada@example.test");
   await page.locator(".your-order-box .terms-condition-box label").click();
+  expect(await phone.evaluate((input: HTMLInputElement) => input.form?.checkValidity())).toBe(true);
+  const localActionsBefore = Number(
+    await page.locator("[data-fashion-store-checkout]").getAttribute("data-local-action-count"),
+  );
   const submit = page.getByRole("button", { name: "Place order" });
   await submit.evaluate((button: HTMLButtonElement) => {
     button.click();
     button.click();
   });
+  await expect
+    .poll(async () =>
+      Number(
+        await page.locator("[data-fashion-store-checkout]").getAttribute("data-local-action-count"),
+      ),
+    )
+    .toBeGreaterThan(localActionsBefore);
   expect(checkoutCount).toBe(0);
   expect(checkoutBody).toBeUndefined();
   await expect(page.locator("[data-fashion-store-checkout]")).toHaveAttribute(

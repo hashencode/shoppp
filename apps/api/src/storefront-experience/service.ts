@@ -50,6 +50,7 @@ import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { prepareConditionalAuditEvent, recordAuditEvent } from "../iam/audit";
 import { redactForLog } from "../security/redaction";
+import { normalizeAuditReason } from "../security/audit-reason";
 import { getContactSettings } from "../settings/contact-profile";
 import {
   assertFashionStagingOperatorRunApprovable,
@@ -776,7 +777,7 @@ async function recordAuditOnce(
       input.targetType,
       input.targetId,
       input.result,
-      String(redactForLog(input.reason)),
+      input.reason ? normalizeAuditReason(input.reason) : null,
       context.get("requestId"),
       JSON.stringify(redactForLog(input.metadata ?? {})),
       new Date().toISOString(),
@@ -819,6 +820,7 @@ export async function createStorefrontExperienceDraft(
   request: CreateStorefrontExperienceDraftRequest,
   options?: StorefrontExperienceServiceOptions,
 ) {
+  const auditReason = normalizeAuditReason(request.reason);
   const selectedPackage = packageFor(
     request.draft.themeId,
     request.draft.themeVersion,
@@ -876,7 +878,7 @@ export async function createStorefrontExperienceDraft(
       themeId: request.draft.themeId,
       themeVersion: request.draft.themeVersion,
     },
-    reason: request.reason,
+    reason: auditReason,
     requestId: context.get("requestId"),
     result: "succeeded",
     targetId: id,
@@ -911,6 +913,7 @@ export async function updateStorefrontExperienceDraft(
   request: UpdateStorefrontExperienceDraftRequest,
   options?: StorefrontExperienceServiceOptions,
 ) {
+  const auditReason = normalizeAuditReason(request.reason);
   const current = await draftRow(context.env.DB, id);
   assertStorefrontThemeLifecycleWritable(current.theme_id);
   assertExpectedVersion(current, request.expectedVersion);
@@ -954,7 +957,7 @@ export async function updateStorefrontExperienceDraft(
     actorType: "admin",
     id: crypto.randomUUID(),
     metadata: { fromVersion: request.expectedVersion, toVersion: request.expectedVersion + 1 },
-    reason: request.reason,
+    reason: auditReason,
     requestId: context.get("requestId"),
     result: "succeeded",
     targetId: id,
@@ -1128,6 +1131,7 @@ export async function applyStorefrontExperienceBlockCommand(
   request: StorefrontExperienceBlockCommandRequest,
   options?: StorefrontExperienceServiceOptions,
 ) {
+  const auditReason = normalizeAuditReason(request.reason);
   const row = await draftRow(context.env.DB, id);
   assertStorefrontThemeLifecycleWritable(row.theme_id);
   assertExpectedVersion(row, request.expectedVersion);
@@ -1347,7 +1351,7 @@ export async function applyStorefrontExperienceBlockCommand(
         actorType: "admin",
         id: options?.blockCommandAuditId ?? crypto.randomUUID(),
         metadata: { fromVersion: request.expectedVersion, toVersion: request.expectedVersion + 1 },
-        reason: request.reason,
+        reason: auditReason,
         requestId: context.get("requestId"),
         result: "succeeded",
         targetId: id,
@@ -1367,6 +1371,7 @@ export async function createStorefrontExperienceSuccessor(
   request: CreateStorefrontExperienceSuccessorRequest,
   options?: StorefrontExperienceServiceOptions,
 ) {
+  const auditReason = normalizeAuditReason(request.reason);
   const source = await draftRow(context.env.DB, sourceId);
   packageFor(
     source.theme_id,
@@ -1426,7 +1431,7 @@ export async function createStorefrontExperienceSuccessor(
       sourceDraftId: sourceId,
       sourceVersion: request.sourceVersion,
     },
-    reason: request.reason,
+    reason: auditReason,
     requestId: context.get("requestId"),
     result: "succeeded",
     targetId: id,
@@ -1447,6 +1452,7 @@ export async function validateStorefrontExperienceDraft(
   const row = await draftRow(context.env.DB, id);
   assertStorefrontThemeLifecycleWritable(row.theme_id);
   assertExpectedVersion(row, expectedVersion);
+  const auditReason = reason ? normalizeAuditReason(reason) : "";
   const catalogRelease = catalogReleaseId
     ? await getCanonicalDeployedCatalogRelease(context.env.DB, catalogReleaseId, {
         allowPrivateCandidate: true,
@@ -1486,7 +1492,7 @@ export async function validateStorefrontExperienceDraft(
       issueCount: resolution.issues.length,
       version: expectedVersion,
     },
-    reason,
+    reason: auditReason,
     result: resolution.issues.length === 0 ? "succeeded" : "failed",
     targetId: id,
     targetType: "storefront_experience_draft",
@@ -1738,7 +1744,7 @@ async function insertSnapshot(
     principal.id,
     input.kind === "approved" ? "themes.experience.approve" : "themes.preview.snapshot.create",
     id,
-    String(redactForLog(input.reason)),
+    input.reason ? normalizeAuditReason(input.reason) : null,
     context.get("requestId"),
     JSON.stringify(
       redactForLog({
@@ -1769,7 +1775,7 @@ async function insertSnapshot(
         input.operatorApproval.auditId,
         principal.id,
         input.operatorApproval.runId,
-        String(redactForLog(input.reason)),
+        input.reason ? normalizeAuditReason(input.reason) : null,
         context.get("requestId"),
         JSON.stringify(
           redactForLog({
@@ -1830,6 +1836,7 @@ export async function createStorefrontExperiencePreviewSnapshot(
   catalogReleaseId?: string,
   options?: StorefrontExperienceServiceOptions,
 ) {
+  const auditReason = normalizeAuditReason(reason);
   const resolution = await validResolution(
     context,
     id,
@@ -1844,7 +1851,7 @@ export async function createStorefrontExperiencePreviewSnapshot(
     deduplicationKey: `${id}:${expectedVersion}:${catalogReleaseId ?? "fixture-preview"}:preview:contact:${contact.version}`,
     kind: "preview",
     package: resolution.package,
-    reason,
+    reason: auditReason,
     resolvedTemplates: resolution.resolvedTemplates,
     row: resolution.row,
     validation: resolution.validation,
@@ -1859,6 +1866,7 @@ export async function approveStorefrontExperienceDraft(
   catalogReleaseId?: string,
   options?: StorefrontExperienceServiceOptions,
 ) {
+  const auditReason = normalizeAuditReason(reason);
   const operatorApprovalTime = new Date();
   const operatorRun = await assertFashionStagingOperatorRunApprovable(
     context.env.DB,
@@ -1957,7 +1965,7 @@ export async function approveStorefrontExperienceDraft(
     deduplicationKey: deduplicationKey!,
     kind: "approved",
     package: resolution.package,
-    reason,
+    reason: auditReason,
     resolvedTemplates: resolution.resolvedTemplates,
     row: resolution.row,
     validation: resolution.validation,
@@ -2183,6 +2191,7 @@ export async function dryRunStorefrontExperienceMigration(
   const row = await draftRow(context.env.DB, id);
   assertStorefrontThemeLifecycleWritable(row.theme_id);
   assertExpectedVersion(row, request.expectedVersion);
+  const auditReason = request.reason ? normalizeAuditReason(request.reason) : "";
   const sourcePackage = packageFor(
     row.theme_id,
     row.theme_version,
@@ -2302,7 +2311,7 @@ export async function dryRunStorefrontExperienceMigration(
     action: "themes.migration.dry-run",
     id: `audit-${migrationId}`,
     metadata: { conflictCount: conflicts.length },
-    reason: request.reason,
+    reason: auditReason,
     result: conflicts.length === 0 ? "succeeded" : "failed",
     targetId: migrationId,
     targetType: "storefront_experience_migration",
@@ -2318,6 +2327,7 @@ export async function approveStorefrontExperienceMigration(
   reason: string,
   options?: StorefrontExperienceServiceOptions,
 ) {
+  const auditReason = normalizeAuditReason(reason);
   const draft = await draftRow(context.env.DB, draftId);
   assertStorefrontThemeLifecycleWritable(draft.theme_id);
   assertExpectedVersion(draft, expectedVersion);
@@ -2408,7 +2418,7 @@ export async function approveStorefrontExperienceMigration(
     action: "themes.migration.successor.create",
     id: `audit-successor-${migrationId}`,
     metadata: { migrationId, sourceDraftId: draftId, sourceDraftVersion: expectedVersion },
-    reason,
+    reason: auditReason,
     result: "succeeded",
     targetId: successorId,
     targetType: "storefront_experience_draft",

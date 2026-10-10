@@ -119,6 +119,95 @@ describe("content pages", () => {
     ]);
   });
 
+  test("saves optional notes and business-title SEO without bypassing publication reasons", async () => {
+    const { reason: _reason, ...input } = pageDraft;
+    const created = await app.fetch(
+      request("/admin/content/pages", { ...input, seo: { description: "" } }, "POST"),
+      env,
+    );
+    expect(created.status).toBe(201);
+    const page = (await created.json<{ data: { id: string; seo: { title: string } } }>()).data;
+    expect(page.seo.title).toBe(input.title);
+    const revised = await app.fetch(
+      request(
+        `/admin/content/pages/${page.id}`,
+        {
+          ...input,
+          expectedVersion: 1,
+          reason: "  ",
+          title: "Studio story",
+          seo: { description: "", title: " " },
+        },
+        "PUT",
+      ),
+      env,
+    );
+    expect(revised.status).toBe(200);
+    expect(await revised.json()).toMatchObject({
+      data: { seo: { title: "Studio story" }, version: 2 },
+    });
+    expect(
+      (
+        await env.DB.prepare(
+          "SELECT actor_id, action, target_id, reason, metadata_json FROM audit_events WHERE target_id = ? ORDER BY created_at",
+        )
+          .bind(page.id)
+          .all()
+      ).results,
+    ).toEqual([
+      expect.objectContaining({
+        actor_id: "content-owner",
+        action: "content.page.create",
+        target_id: page.id,
+        reason: null,
+        metadata_json: expect.stringContaining('"version":1'),
+      }),
+      expect.objectContaining({
+        actor_id: "content-owner",
+        action: "content.page.update",
+        target_id: page.id,
+        reason: null,
+        metadata_json: expect.stringContaining('"toVersion":2'),
+      }),
+    ]);
+    expect(
+      (
+        await app.fetch(
+          request(
+            `/admin/content/pages/${page.id}/publish`,
+            {
+              confirm: true,
+              expectedVersion: 2,
+              reason: "ok",
+            },
+            "POST",
+          ),
+          env,
+        )
+      ).status,
+    ).toBe(422);
+    expect(
+      (
+        await env.DB.prepare(
+          "SELECT version, status, seo_json FROM content_page_versions WHERE page_id = ? ORDER BY version",
+        )
+          .bind(page.id)
+          .all()
+      ).results,
+    ).toEqual([
+      {
+        version: 1,
+        status: "draft",
+        seo_json: JSON.stringify({ description: "", title: "About" }),
+      },
+      {
+        version: 2,
+        status: "draft",
+        seo_json: JSON.stringify({ description: "", title: "Studio story" }),
+      },
+    ]);
+  });
+
   test("rejects duplicate routes, unsafe sections, and server-owned lifecycle fields", async () => {
     expect((await app.fetch(request("/admin/content/pages", pageDraft, "POST"), env)).status).toBe(
       201,

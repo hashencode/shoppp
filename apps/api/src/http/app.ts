@@ -20,6 +20,7 @@ import {
   catalogBuildResultSchema,
   collectionListQuerySchema,
   collectionWriteRequestSchema,
+  optionalAuditReasonSchema,
   submitProductReviewSchema,
   moderateProductReviewSchema,
   createCartRequestSchema,
@@ -1575,7 +1576,7 @@ export function createApp(options: CreateAppOptions = {}) {
       }
       const input = await parseJson(
         context,
-        z.object({ reason: z.string().trim().min(3).max(500) }).strict(),
+        z.object({ reason: optionalAuditReasonSchema }).strict(),
       );
       const data = await buildPrivateCatalogCandidate(context, input.reason, {
         ...(options.catalogCandidateBeforeCommit
@@ -1670,7 +1671,7 @@ export function createApp(options: CreateAppOptions = {}) {
       }
       const input = await parseJson(
         context,
-        z.object({ reason: z.string().trim().min(3).max(500) }).strict(),
+        z.object({ reason: optionalAuditReasonSchema }).strict(),
       );
       const data = await abandonPrivateCatalogCandidate(
         context,
@@ -2225,6 +2226,25 @@ export function createApp(options: CreateAppOptions = {}) {
     return context.json({ data: await getStoreIdentity(context.env.DB) });
   });
 
+  app.get("/admin/settings/store-identity/media", async (context) => {
+    await requirePermission(context, "identity.read", { type: "identity_media" });
+    context.header("Cache-Control", "private, no-store");
+    const page = Math.max(Number.parseInt(context.req.query("page") ?? "1", 10) || 1, 1);
+    const pageSize = Math.min(
+      Math.max(Number.parseInt(context.req.query("pageSize") ?? "24", 10) || 24, 1),
+      100,
+    );
+    const result = await listCatalogMedia(context.env, {
+      page,
+      pageSize,
+      query: context.req.query("query") ?? "",
+    });
+    return context.json({
+      data: result.data,
+      meta: { page: result.page, pageSize: result.pageSize, total: result.total },
+    });
+  });
+
   app.put(
     "/admin/settings/store-identity",
     async (context, next) => {
@@ -2741,6 +2761,24 @@ export function createApp(options: CreateAppOptions = {}) {
     await requirePermission(context, "catalog.read", { type: "collection" });
     const input = validatedQuery(context, collectionListQuerySchema);
     return context.json(await listCollections(context, input));
+  });
+  app.get("/admin/catalog/collections/media", async (context) => {
+    await requirePermission(context, "catalog.read", { type: "collection_media" });
+    context.header("Cache-Control", "private, no-store");
+    const page = Math.max(Number.parseInt(context.req.query("page") ?? "1", 10) || 1, 1);
+    const pageSize = Math.min(
+      Math.max(Number.parseInt(context.req.query("pageSize") ?? "24", 10) || 24, 1),
+      100,
+    );
+    const result = await listCatalogMedia(context.env, {
+      page,
+      pageSize,
+      query: context.req.query("query") ?? "",
+    });
+    return context.json({
+      data: result.data,
+      meta: { page: result.page, pageSize: result.pageSize, total: result.total },
+    });
   });
   app.get("/admin/catalog/collections/:id", async (context) => {
     const id = context.req.param("id");

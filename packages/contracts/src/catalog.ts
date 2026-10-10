@@ -1,6 +1,6 @@
 import * as z from "zod";
 
-import { moneySchema, publicIdSchema } from "./common";
+import { moneySchema, optionalAuditReasonSchema, publicIdSchema } from "./common";
 import { navigationMenuSchema, storefrontContentDocumentSchema } from "./storefront-content";
 
 export const catalogPriceSchema = moneySchema
@@ -30,15 +30,22 @@ export const collectionWriteRequestSchema = z
     expectedVersion: z.int().positive().optional(),
     name: z.string().trim().min(1).max(300),
     productIds: z.array(publicIdSchema).max(10_000),
-    reason: z.string().trim().min(3).max(500),
+    reason: optionalAuditReasonSchema,
     redirectFromOldSlug: z.boolean().optional().default(false),
     seoDescription: z.string().trim().max(500),
-    seoTitle: z.string().trim().min(1).max(300),
+    seoTitle: z.string().trim().max(300).default(""),
     slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     status: collectionStatusSchema,
   })
   .strict()
   .superRefine((value, context) => {
+    if (value.status !== "draft" && value.reason.length < 3) {
+      context.addIssue({
+        code: "custom",
+        message: "A reason of at least 3 characters is required outside a draft.",
+        path: ["reason"],
+      });
+    }
     const seen = new Set<string>();
     value.productIds.forEach((id, index) => {
       if (seen.has(id)) {
@@ -50,7 +57,8 @@ export const collectionWriteRequestSchema = z
       }
       seen.add(id);
     });
-  });
+  })
+  .transform((value) => ({ ...value, seoTitle: value.seoTitle || value.name }));
 export const collectionListQuerySchema = z
   .object({
     page: z.coerce.number().int().positive().default(1),

@@ -276,11 +276,7 @@ export const ThemesPage = () => {
                 }))}
               />
             </Form.Item>
-            <Form.Item
-              name="reason"
-              label={t('Creation reason')}
-              rules={[{ required: true, min: 3, max: 500 }]}
-            >
+            <Form.Item name="reason" label={t('Notes (optional)')} rules={[{ max: 500 }]}>
               <Input.TextArea rows={3} maxLength={500} />
             </Form.Item>
           </Form>

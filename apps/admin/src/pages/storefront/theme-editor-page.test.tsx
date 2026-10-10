@@ -600,9 +600,6 @@ describe('ThemesPage', () => {
     await screen.findByText('Approved packages')
     expect(screen.getByText('synthetic')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Use package' }))
-    fireEvent.change(screen.getByRole('textbox', { name: 'Creation reason' }), {
-      target: { value: 'Start an approved Synthetic fixture draft' },
-    })
     fireEvent.click(screen.getByRole('button', { name: 'Create draft' }))
 
     await screen.findByText('CREATED_EDITOR')
@@ -614,7 +611,7 @@ describe('ThemesPage', () => {
         themeId: 'synthetic',
         themeVersion: '1.0.0',
       },
-      reason: 'Start an approved Synthetic fixture draft',
+      reason: '',
     })
   })
 
@@ -640,7 +637,7 @@ describe('ThemesPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Use package' }))
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Preset' }))
     fireEvent.click((await screen.findAllByText('Unified store')).at(-1)!)
-    fireEvent.change(screen.getByRole('textbox', { name: 'Creation reason' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Notes (optional)' }), {
       target: { value: 'Start from the unified Fashion defaults' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Create draft' }))
@@ -699,52 +696,53 @@ describe('ThemeEditorPage', () => {
     },
   ]
 
-  it.each(blockCommandCases)('dispatches the $name Block command from the editor page', async ({
-    expected,
-    perform,
-  }) => {
-    currentDraft = {
-      ...currentDraft,
-      overrides: [
-        {
-          operations: [
-            {
-              block: {
-                actions: [],
-                capabilities: [],
-                id: 'hero-action-second',
-                settings: { label: 'Second action' },
-                type: 'synthetic.action',
-                visible: true,
+  it.each(blockCommandCases)(
+    'dispatches the $name Block command from the editor page',
+    async ({ expected, perform }) => {
+      currentDraft = {
+        ...currentDraft,
+        overrides: [
+          {
+            operations: [
+              {
+                block: {
+                  actions: [],
+                  capabilities: [],
+                  id: 'hero-action-second',
+                  settings: { label: 'Second action' },
+                  type: 'synthetic.action',
+                  visible: true,
+                },
+                kind: 'add-block',
+                sectionId: 'home-hero',
               },
-              kind: 'add-block',
-              sectionId: 'home-hero',
-            },
-          ],
-          presetId: 'editorial',
-          schemaVersion: 1,
-          templateId: 'synthetic-home',
-        },
-      ],
-    }
-    server.use(
-      http.post('*/admin/storefront-experiences/drafts/:id/block-commands', async ({ request }) => {
-        blockCommandBody = (await request.json()) as Record<string, unknown>
-        currentDraft = { ...currentDraft, version: currentDraft.version + 1 }
-        return HttpResponse.json({ data: currentDraft })
+            ],
+            presetId: 'editorial',
+            schemaVersion: 1,
+            templateId: 'synthetic-home',
+          },
+        ],
+      }
+      server.use(
+        http.post(
+          '*/admin/storefront-experiences/drafts/:id/block-commands',
+          async ({ request }) => {
+            blockCommandBody = (await request.json()) as Record<string, unknown>
+            currentDraft = { ...currentDraft, version: currentDraft.version + 1 }
+            return HttpResponse.json({ data: currentDraft })
+          }
+        )
+      )
+      renderEditor()
+      fireEvent.click(await screen.findByText('2 bounded blocks'))
+      perform()
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 80))
       })
-    )
-    renderEditor()
-    fireEvent.click(await screen.findByText('2 bounded blocks'))
-    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
-      target: { value: 'Author bounded Block content' },
-    })
-    perform()
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 80))
-    })
-    expect(blockCommandBody?.command).toMatchObject(expected)
-  })
+      expect(blockCommandBody?.command).toMatchObject(expected)
+      expect(blockCommandBody?.reason).toBe('')
+    }
+  )
 
   it('surfaces a rejected Block command without reporting success', async () => {
     server.use(
@@ -757,7 +755,7 @@ describe('ThemeEditorPage', () => {
     )
     renderEditor()
     fireEvent.click(await screen.findByText('1 bounded blocks'))
-    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Notes (optional)' }), {
       target: { value: 'Reject invalid Block command' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Add synthetic.action' }))
@@ -777,7 +775,7 @@ describe('ThemeEditorPage', () => {
     )
     renderEditor()
     fireEvent.click(await screen.findByText('1 bounded blocks'))
-    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Notes (optional)' }), {
       target: { value: 'Keep the authored Block input' },
     })
     const input = screen.getByRole('textbox', { name: 'hero-action label' })
@@ -785,9 +783,9 @@ describe('ThemeEditorPage', () => {
     fireEvent.blur(input)
 
     await screen.findByText('The saved draft changed while local edits were open')
-    expect((screen.getByRole('textbox', { name: 'hero-action label' }) as HTMLInputElement).value).toBe(
-      'Keep this authored action'
-    )
+    expect(
+      (screen.getByRole('textbox', { name: 'hero-action label' }) as HTMLInputElement).value
+    ).toBe('Keep this authored action')
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Keep local edits' }))
   })
 
@@ -808,7 +806,7 @@ describe('ThemeEditorPage', () => {
     fireEvent.change(await screen.findByRole('textbox', { name: 'home-hero heading' }), {
       target: { value: 'Pending merchant draft' },
     })
-    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Notes (optional)' }), {
       target: { value: 'Pending save reason' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -845,7 +843,7 @@ describe('ThemeEditorPage', () => {
     )
     renderEditor()
     await screen.findByDisplayValue('Existing headline')
-    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Notes (optional)' }), {
       target: { value: 'Validate current draft' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Validate saved version' }))
@@ -903,7 +901,7 @@ describe('ThemeEditorPage', () => {
     fireEvent.change(await screen.findByRole('textbox', { name: 'home-hero heading' }), {
       target: { value: 'Keep and then discard' },
     })
-    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Notes (optional)' }), {
       target: { value: 'Conflict recovery' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -1221,7 +1219,7 @@ describe('ThemeEditorPage', () => {
     expect(screen.getAllByText(/release-editor-1/).length).toBeGreaterThan(0)
     expect(updateBody).toBeNull()
     expect(previewBody).toBeNull()
-    fireEvent.change(screen.getByRole('textbox', { name: '变更原因' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: '备注（选填）' }), {
       target: { value: 'Verify retained binding' },
     })
     fireEvent.click(screen.getByRole('button', { name: '保存' }))
@@ -1391,15 +1389,12 @@ describe('ThemeEditorPage', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'home-hero heading' }), {
       target: { value: 'Saved headline' },
     })
-    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
-      target: { value: 'Review the fixture presentation' },
-    })
     fireEvent.click(screen.getByRole('button', { name: 'Save and preview' }))
 
     await waitFor(() => expect(screen.getByText('Building')).toBeTruthy())
-    expect(updateBody).toMatchObject({ expectedVersion: 1 })
-    expect(validationBody).toMatchObject({ expectedVersion: 2 })
-    expect(previewBody).toMatchObject({ expectedVersion: 2 })
+    expect(updateBody).toMatchObject({ expectedVersion: 1, reason: '' })
+    expect(validationBody).toMatchObject({ expectedVersion: 2, reason: '' })
+    expect(previewBody).toMatchObject({ expectedVersion: 2, reason: '' })
     expect(screen.getByText('Draft v2')).toBeTruthy()
     expect(screen.getByText('Validated v2')).toBeTruthy()
   })
@@ -1423,7 +1418,7 @@ describe('ThemeEditorPage', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'home-hero heading' }), {
       target: { value: 'Keep this local edit' },
     })
-    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Notes (optional)' }), {
       target: { value: 'Attempt an optimistic save' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -1495,7 +1490,7 @@ describe('ThemeEditorPage', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'home-hero heading' }), {
       target: { value: 'Invalid saved headline' },
     })
-    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Notes (optional)' }), {
       target: { value: 'Validate capability protection' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Save and preview' }))
@@ -1554,7 +1549,7 @@ describe('ThemeEditorPage', () => {
     const summary = (await screen.findByText(/Validation validation-synthetic-invalid-1/)).closest(
       '[tabindex]'
     )
-    const reason = screen.getByRole('textbox', { name: 'Change reason' })
+    const reason = screen.getByRole('textbox', { name: 'Notes (optional)' })
     fireEvent.change(reason, { target: { value: 'Repeat persisted validation' } })
     reason.focus()
     fireEvent.click(screen.getByRole('button', { name: 'Validate saved version' }))
@@ -1576,7 +1571,7 @@ describe('ThemeEditorPage', () => {
     )
     renderEditor()
     await screen.findByDisplayValue('Existing headline')
-    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Notes (optional)' }), {
       target: { value: 'Assess the approved package upgrade' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Assess upgrade conflicts' }))
@@ -1647,11 +1642,17 @@ describe('ThemeEditorPage', () => {
     )
     renderEditor()
     await screen.findByDisplayValue('Existing headline')
-    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Notes (optional)' }), {
       target: { value: 'Migrate into a reviewable successor draft' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Assess upgrade conflicts' }))
     await screen.findByText('Migration-ready')
+    expect(
+      screen.getByRole('button', { name: 'Create migration successor' }).hasAttribute('disabled')
+    ).toBe(true)
+    fireEvent.change(screen.getByRole('textbox', { name: 'Migration approval reason' }), {
+      target: { value: 'Approve the assessed migration' },
+    })
     fireEvent.click(screen.getByRole('button', { name: 'Create migration successor' }))
 
     await screen.findByText('draft-migration-successor')
@@ -1667,6 +1668,7 @@ describe('ThemeEditorPage', () => {
       confirm: true,
       expectedVersion: 1,
       migrationId: 'migration-synthetic-ready',
+      reason: 'Approve the assessed migration',
     })
     expect(screen.getByText('Validation required')).toBeTruthy()
   })
@@ -1708,7 +1710,7 @@ describe('ThemeEditorPage', () => {
     )
     renderEditor('admin', 60_000, ['themes.read', 'themes.write'])
     await screen.findByDisplayValue('Existing headline')
-    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Notes (optional)' }), {
       target: { value: 'Assess without migration approval authority' },
     })
 
@@ -1737,7 +1739,7 @@ describe('ThemeEditorPage', () => {
     }
     renderEditor('admin', 1)
     await screen.findByDisplayValue('Existing headline')
-    fireEvent.change(screen.getByRole('textbox', { name: 'Change reason' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Notes (optional)' }), {
       target: { value: 'Open the immutable private preview' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Save and preview' }))

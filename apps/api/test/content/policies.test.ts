@@ -63,9 +63,33 @@ describe("policies", () => {
   });
 
   test("keeps edit, exact review, approval, and publication as independently audited gates", async () => {
-    const created = await humanApp.fetch(request("/admin/settings/policies", draft, "POST"), env);
+    const { reason: _reason, ...input } = draft;
+    const created = await humanApp.fetch(request("/admin/settings/policies", input, "POST"), env);
     expect(created.status).toBe(201);
     const policy = ((await created.json()) as { data: { id: string; version: number } }).data;
+    expect(
+      await env.DB.prepare(
+        "SELECT reason FROM audit_events WHERE target_id = ? AND action = 'policies.create'",
+      )
+        .bind(policy.id)
+        .first(),
+    ).toEqual({ reason: null });
+    expect(
+      (
+        await humanApp.fetch(
+          request(
+            `/admin/settings/policies/${policy.id}/approve`,
+            {
+              confirm: true,
+              expectedVersion: 1,
+              reason: "ok",
+            },
+            "POST",
+          ),
+          env,
+        )
+      ).status,
+    ).toBe(422);
 
     const review = await humanApp.fetch(
       request(`/admin/settings/policies/${policy.id}/review?version=${policy.version}`),
@@ -286,7 +310,7 @@ describe("policies", () => {
     const updated = await humanApp.fetch(
       request(
         `/admin/settings/policies/${policy.id}`,
-        { ...draft, expectedVersion: 1, reason: "Draft the successor", title: "Returns policy v2" },
+        { ...draft, expectedVersion: 1, reason: " ", title: "Returns policy v2" },
         "PUT",
       ),
       env,
@@ -299,7 +323,7 @@ describe("policies", () => {
       )
         .bind(policy.id)
         .first(),
-    ).toEqual({ reason: "Draft the successor" });
+    ).toEqual({ reason: null });
 
     const stale = await humanApp.fetch(
       request(

@@ -51,7 +51,11 @@ describe('Content editor browser recovery', () => {
       [{ path: '/content/pages/form', element: <PageEditorPage /> }],
       { initialEntries: ['/content/pages/form?mode=modify&id=page.browser-story'] }
     )
-    renderI18nBrowser(<RouterProvider router={router} />, ['content.read', 'content.write'], 'en-US')
+    renderI18nBrowser(
+      <RouterProvider router={router} />,
+      ['content.read', 'content.write'],
+      'en-US'
+    )
 
     const paragraph = await screen.findByRole('textbox', { name: 'Paragraph 1' })
     const pasted = 'Pasted browser draft that must survive.'
@@ -70,10 +74,11 @@ describe('Content editor browser recovery', () => {
     expect((paragraph as HTMLTextAreaElement).value).toBe(pasted)
 
     await slug.fill('browser-story')
-    await page.getByRole('textbox', { name: 'Reason' }).fill('Save pasted browser draft')
     await page.getByRole('button', { name: 'Save' }).click()
     await waitFor(() => expect(updates).toBe(1))
-    expect(await screen.findByText('This Content record changed. Reload it before continuing.')).toBeTruthy()
+    expect(
+      await screen.findByText('This Content record changed. Reload it before continuing.')
+    ).toBeTruthy()
     expect(document.body.textContent).not.toContain('PRIVATE CONFLICT DETAIL')
     expect((paragraph as HTMLTextAreaElement).value).toBe(pasted)
   })

@@ -1,5 +1,5 @@
 import React from 'react'
-import { screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
@@ -29,7 +29,7 @@ afterEach(() => server.resetHandlers())
 afterAll(() => server.close())
 
 describe('PrivacyPage', () => {
-  it('keeps verification guidance with the operation controls under one recipe heading', async () => {
+  it('shows identity verification guidance when recording a request', async () => {
     renderInLocale(
       <AuthTestProvider>
         <ThemeProvider>
@@ -44,9 +44,11 @@ describe('PrivacyPage', () => {
     expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(1)
     expect(screen.getByRole('button', { name: 'Record verified request' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeTruthy()
-    const guidance = screen.getByText(
-      'Verified access, correction, and deletion operations with immutable retention decisions.'
+    fireEvent.click(screen.getByRole('button', { name: 'Record verified request' }))
+    const guidance = await screen.findByText(
+      "Before proceeding, confirm that the requester's identity has been verified."
     )
+    expect(screen.getByRole('dialog').contains(guidance)).toBe(true)
     expect(heading.parentElement?.contains(guidance)).toBe(false)
     expect((await screen.findAllByText('No data')).length).toBeGreaterThan(0)
   })

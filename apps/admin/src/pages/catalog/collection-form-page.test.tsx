@@ -55,6 +55,7 @@ const collection = {
 
 let submitted: unknown
 const server = setupServer(
+  http.get('*/admin/catalog/collections/media', () => HttpResponse.json({ data: [] })),
   http.get('*/admin/catalog/collections/collection-001', () =>
     HttpResponse.json({ data: collection })
   ),
@@ -91,9 +92,7 @@ const renderPage = (entry = '/catalog/collections/form?mode=modify&id=collection
     <AuthTestProvider permissions={['catalog.read', 'catalog.write']}>
       <ThemeProvider>
         <App>
-          <MemoryRouter
-            initialEntries={[entry]}
-          >
+          <MemoryRouter initialEntries={[entry]}>
             <CollectionFormPage />
           </MemoryRouter>
         </App>
@@ -102,19 +101,109 @@ const renderPage = (entry = '/catalog/collections/form?mode=modify&id=collection
   )
 
 describe('CollectionFormPage', () => {
+  it('searches beyond the first media page and submits the selected cover stable ID', async () => {
+    const queries: string[] = []
+    server.use(
+      http.get('*/admin/catalog/collections/media', ({ request }) => {
+        const query = new URL(request.url).searchParams.get('query') ?? ''
+        queries.push(query)
+        return HttpResponse.json({
+          data:
+            query === 'Archive'
+              ? [{ id: 'media.archive-cover', productName: 'Archive', alt: 'Travel cover' }]
+              : Array.from({ length: 100 }, (_, index) => ({
+                  id: `media.recent-${index}`,
+                  productName: 'Recent',
+                  alt: `Cover ${index}`,
+                })),
+        })
+      })
+    )
+    renderPage()
+    const cover = await screen.findByRole('combobox', { name: '封面素材' })
+    await waitFor(() => expect(queries).toEqual(['']))
+    fireEvent.mouseDown(cover)
+    fireEvent.change(cover, { target: { value: 'Archive' } })
+    fireEvent.click(await screen.findByText('Archive · Travel cover'))
+    fireEvent.click(screen.getByRole('button', { name: /^保\s*存$/ }))
+    await waitFor(() =>
+      expect(submitted).toMatchObject({ coverAssetId: 'media.archive-cover', expectedVersion: 2 })
+    )
+    expect(queries).toContain('Archive')
+  })
+
+  it('clears an existing cover through the form and submits null', async () => {
+    server.use(
+      http.get('*/admin/catalog/collections/collection-001', () =>
+        HttpResponse.json({ data: { ...collection, coverAssetId: 'media.existing-cover' } })
+      ),
+      http.get('*/admin/catalog/collections/media', () =>
+        HttpResponse.json({
+          data: [{ id: 'media.existing-cover', productName: 'Travel', alt: 'Existing cover' }],
+        })
+      )
+    )
+    renderPage()
+    const cover = await screen.findByRole('combobox', { name: '封面素材' })
+    await waitFor(() =>
+      expect(cover.closest('.ant-select')?.textContent).toContain('Travel · Existing cover')
+    )
+    const clear = cover.closest('.ant-select')?.querySelector<HTMLElement>('.ant-select-clear')
+    expect(clear).toBeTruthy()
+    fireEvent.mouseDown(clear!)
+    fireEvent.click(clear!)
+    fireEvent.click(screen.getByRole('button', { name: /^保\s*存$/ }))
+    await waitFor(() => expect(submitted).toMatchObject({ coverAssetId: null, expectedVersion: 2 }))
+  })
+
+  it('prefills a new English slug and leaves SEO and notes optional', async () => {
+    server.use(
+      http.post('*/admin/catalog/collections', async ({ request }) => {
+        submitted = await request.json()
+        return HttpResponse.json({ data: collection }, { status: 201 })
+      })
+    )
+    renderPage('/catalog/collections/form?mode=add')
+    const name = await screen.findByLabelText('名称')
+    fireEvent.change(name, { target: { value: 'Travel Essentials' } })
+    fireEvent.blur(name)
+    expect((screen.getByLabelText('标识') as HTMLInputElement).value).toBe('travel-essentials')
+    fireEvent.click(screen.getByRole('button', { name: /^保\s*存$/ }))
+    await waitFor(() =>
+      expect(submitted).toMatchObject({
+        name: 'Travel Essentials',
+        slug: 'travel-essentials',
+        seoTitle: '',
+        reason: '',
+        status: 'draft',
+      })
+    )
+  })
+
+  it('still requires a reason for a currently published Collection', async () => {
+    server.use(
+      http.get('*/admin/catalog/collections/collection-001', () =>
+        HttpResponse.json({ data: { ...collection, status: 'published' } })
+      )
+    )
+    renderPage()
+    const reason = await screen.findByLabelText('变更原因')
+    expect(reason.getAttribute('aria-required')).toBe('true')
+    fireEvent.click(screen.getByRole('button', { name: /^保\s*存$/ }))
+    await waitFor(() => expect(reason.getAttribute('aria-invalid')).toBe('true'))
+    expect(submitted).toBeUndefined()
+  })
+
   it('saves ordered membership with the loaded expectedVersion', async () => {
     renderPage()
     expect(await screen.findByText('Carry-on')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '上移Checked luggage' }))
-    fireEvent.change(screen.getByLabelText('变更原因'), {
-      target: { value: 'Prioritize checked luggage' },
-    })
     fireEvent.click(screen.getByRole('button', { name: /^保\s*存$/ }))
     await waitFor(() =>
       expect(submitted).toMatchObject({
         expectedVersion: 2,
         productIds: ['product-002', 'product-001'],
-        reason: 'Prioritize checked luggage',
+        reason: '',
       })
     )
   })
@@ -131,7 +220,7 @@ describe('CollectionFormPage', () => {
     renderPage()
     const name = await screen.findByLabelText('名称')
     fireEvent.change(name, { target: { value: 'Unsaved travel edit' } })
-    fireEvent.change(screen.getByLabelText('变更原因'), {
+    fireEvent.change(screen.getByLabelText('备注（选填）'), {
       target: { value: 'Concurrent edit test' },
     })
     fireEvent.click(screen.getByRole('button', { name: /^保\s*存$/ }))
@@ -144,7 +233,7 @@ describe('CollectionFormPage', () => {
       '/catalog/collections/form?mode=modify&id=collection-001&handoffProductId=product-003'
     )
     expect(await screen.findByText('product-003')).toBeTruthy()
-    fireEvent.change(screen.getByLabelText('变更原因'), {
+    fireEvent.change(screen.getByLabelText('备注（选填）'), {
       target: { value: 'Add handed-off Product' },
     })
     fireEvent.click(screen.getByRole('button', { name: /^保\s*存$/ }))

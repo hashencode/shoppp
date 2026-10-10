@@ -100,12 +100,10 @@ test("Product preserves stable geometry while approved responsive regions remain
   expect(responsiveGeometry.footer.width).toBe(page.viewportSize()!.width);
 });
 
-async function prepareProduct(page: Page, dismissCookie = true): Promise<void> {
+async function prepareProduct(page: Page): Promise<void> {
   await page.goto(productRoute, { waitUntil: "networkidle" });
   await page.locator("[data-fashion-store-product][data-runtime-status='ready']").waitFor();
   await page.evaluate(async () => document.fonts.ready);
-  const cookieButton = page.getByRole("button", { name: "Allow cookies" });
-  if (dismissCookie && (await cookieButton.isVisible())) await cookieButton.click();
 }
 
 test("Product Reviews keeps legacy ratings honest and saves a pending review once", async ({
@@ -493,7 +491,7 @@ const cart = (quantity: number) => ({
 test("Product preserves source structure, facts, assets, and responsive geometry", async ({
   page,
 }, testInfo) => {
-  await prepareProduct(page, false);
+  await prepareProduct(page);
   const product = page.locator("[data-fashion-store-product]");
   const viewport = page.viewportSize()!.width >= 992 ? "desktop" : "mobile";
   await expectFashionStoreProductComposition(page, {
@@ -553,8 +551,6 @@ test("Product preserves source structure, facts, assets, and responsive geometry
       .locator("[data-fashion-store-product-card] a[href^='/products/']")
       .evaluateAll((links) => new Set(links.map((link) => link.getAttribute("href"))).size),
   ).toBe(4);
-  await expect(page.locator("#cookies-model")).toBeVisible();
-  await page.getByRole("button", { name: "Allow cookies" }).click();
   expect(
     await product
       .locator("img")

@@ -113,9 +113,6 @@ test("all 13 Product routes show their own content, approved demo review state, 
       "utf8",
     ),
   ) as { products: CatalogProduct[] };
-  await page.addInitScript(() =>
-    localStorage.setItem("shoppp.fashion-store.cookie-notice-dismissed", "true"),
-  );
   await page.setViewportSize({ width: 390, height: 844 });
 
   for (const product of catalog.products) {

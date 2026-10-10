@@ -139,6 +139,7 @@ export const MenuEditor = ({ placement }: { placement: NavigationPlacement }) =>
   const [record, setRecord] = useState<NavigationMenuRecord | null>(null)
   const [items, setItems] = useState<NavigationMenu['items']>(emptyMenu)
   const [reason, setReason] = useState('')
+  const [draftNote, setDraftNote] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
@@ -179,18 +180,18 @@ export const MenuEditor = ({ placement }: { placement: NavigationPlacement }) =>
     setItems((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)))
 
   const persist = async () => {
-    if (!canWrite || saving || reason.trim().length < 3) return
+    if (!canWrite || saving) return
     setSaving(true)
     setError(null)
     try {
       const next = await saveNavigationMenu(placement, {
         ...(record ? { expectedVersion: record.version } : {}),
         items,
-        reason,
+        reason: draftNote,
       })
       setRecord(next)
       setItems(next.items)
-      setReason('')
+      setDraftNote('')
       void message.success(t('Navigation draft saved'))
     } catch (cause) {
       setError(normalizeApiError(cause))
@@ -450,23 +451,27 @@ export const MenuEditor = ({ placement }: { placement: NavigationPlacement }) =>
           {t('Add menu item')}
         </Button>
       ) : null}
-      {canWrite || canPublish ? (
+      {canWrite ? (
         <Input
-          aria-label={t('Change reason')}
+          aria-label={t('Notes (optional)')}
+          placeholder={t('Notes (optional)')}
+          value={draftNote}
+          maxLength={500}
+          onChange={(event) => setDraftNote(event.target.value)}
+        />
+      ) : null}
+      {canPublish ? (
+        <Input
+          aria-label={t('Transition reason')}
           value={reason}
           maxLength={500}
           onChange={(event) => setReason(event.target.value)}
-          placeholder={t('Explain this Navigation change')}
+          placeholder={t('Reason for publish or archive')}
         />
       ) : null}
       <Space wrap>
         {canWrite ? (
-          <Button
-            type="primary"
-            loading={saving}
-            disabled={reason.trim().length < 3}
-            onClick={() => void persist()}
-          >
+          <Button type="primary" loading={saving} onClick={() => void persist()}>
             {t('Save draft')}
           </Button>
         ) : null}

@@ -53,9 +53,29 @@ describe("content articles", () => {
   });
 
   test("publishes a stable Article identity and activates a safe redirect on successor publish", async () => {
-    const created = await app.fetch(request("/admin/content/articles", draft, "POST"), env);
+    const { reason: _reason, ...input } = draft;
+    const created = await app.fetch(
+      request(
+        "/admin/content/articles",
+        {
+          ...input,
+          seo: { description: input.seo.description, title: " " },
+        },
+        "POST",
+      ),
+      env,
+    );
     expect(created.status).toBe(201);
-    const article = ((await created.json()) as { data: { id: string } }).data;
+    const article = ((await created.json()) as { data: { id: string; seo: { title: string } } })
+      .data;
+    expect(article.seo.title).toBe(input.title);
+    expect(
+      await env.DB.prepare(
+        "SELECT reason FROM audit_events WHERE target_id = ? AND action = 'content.article.create'",
+      )
+        .bind(article.id)
+        .first(),
+    ).toEqual({ reason: null });
     expect(
       (
         await app.fetch(

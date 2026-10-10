@@ -120,11 +120,6 @@ export const PrivacyPage = () => {
           </Button>
           <Button onClick={() => void load()}>{t('Refresh')}</Button>
         </Space>
-        <span className="text-sm text-slate-500">
-          {t(
-            'Verified access, correction, and deletion operations with immutable retention decisions.'
-          )}
-        </span>
       </div>
       <Table<PrivacyRequest>
         rowKey="id"
@@ -142,6 +137,9 @@ export const PrivacyPage = () => {
         onCancel={() => setOpen(false)}
         onOk={() => form.submit()}
       >
+        <p className="mb-4 text-slate-500">
+          {t("Before proceeding, confirm that the requester's identity has been verified.")}
+        </p>
         <Form<FormValues>
           form={form}
           layout="vertical"

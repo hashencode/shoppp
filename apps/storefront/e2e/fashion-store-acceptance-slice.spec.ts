@@ -76,10 +76,6 @@ async function prepareImplementation(page: Page, allowStatic = false): Promise<v
       ?.getAttribute("data-runtime-status");
     return status === "ready" || (staticAllowed && (status === "loading" || status === "static"));
   }, allowStatic);
-  await page
-    .getByRole("button", { name: "Allow cookies" })
-    .click({ timeout: 2_000 })
-    .catch(() => undefined);
 }
 
 async function revealInventorySurface(page: Page): Promise<void> {

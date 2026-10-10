@@ -26,9 +26,20 @@ export type ContentMediaAsset = {
   width: number
 }
 
-export async function fetchContentMedia(query = ''): Promise<ContentMediaAsset[]> {
-  const response = await apiClient.get<{ data: ContentMediaAsset[] }>('/admin/content/media', {
-    params: { page: 1, pageSize: 100, query: query || undefined },
+export type ContentMediaSource = 'content' | 'identity' | 'collection'
+
+export async function fetchContentMedia(
+  query = '',
+  source: ContentMediaSource = 'content',
+  page = 1
+): Promise<ContentMediaAsset[]> {
+  const paths: Record<ContentMediaSource, string> = {
+    content: '/admin/content/media',
+    identity: '/admin/settings/store-identity/media',
+    collection: '/admin/catalog/collections/media',
+  }
+  const response = await apiClient.get<{ data: ContentMediaAsset[] }>(paths[source], {
+    params: { page, pageSize: 100, query: query || undefined },
   })
   return response.data.data
 }

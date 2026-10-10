@@ -13,10 +13,6 @@ async function prepare(page: Page, path: "/magazine" | typeof articlePath): Prom
   const pageId = path === "/magazine" ? "magazine" : "article";
   await page.locator(`[data-fashion-store-${pageId}][data-runtime-status='ready']`).waitFor();
   await page.evaluate(async () => document.fonts.ready);
-  await page
-    .getByRole("button", { name: "Allow cookies" })
-    .click({ timeout: 2_000 })
-    .catch(() => undefined);
 }
 
 test("Magazine and article preserve independent source structure across responsive viewports", async ({

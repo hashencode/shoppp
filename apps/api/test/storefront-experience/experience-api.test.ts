@@ -88,6 +88,7 @@ const draftInput = storefrontExperienceDraftInputSchema.parse({
   themeId: "fashion-store",
   themeVersion: fashionStoreManifest.themeVersion,
 });
+const forbiddenNotes = ["a\u0007", "a\u202e", "x\ny"];
 
 function fixtureBindingsForPackage(themePackage: ThemePackage) {
   const instanceIds = new Set(
@@ -475,7 +476,6 @@ describe("storefront experience API", () => {
             templateId: "fashion-store-home",
           },
           expectedVersion: 1,
-          reason: "Duplicate the first bounded Hero slide",
         },
         "theme-block-command-duplicate",
       ),
@@ -486,6 +486,13 @@ describe("storefront experience API", () => {
       data: { overrides: ThemeOverride[]; version: number };
     }>();
     expect(duplicateBody.data.version).toBe(2);
+    expect(
+      await env.DB.prepare(
+        "SELECT reason FROM audit_events WHERE target_id = ? AND action = 'themes.block.duplicate'",
+      )
+        .bind(draftId)
+        .first(),
+    ).toEqual({ reason: null });
     const added = duplicateBody.data.overrides
       .flatMap(({ operations }) => operations)
       .find((operation) => operation.kind === "add-block");
@@ -3021,6 +3028,148 @@ describe("storefront experience API", () => {
     });
   });
 
+  test("persists automatic audit facts for draft actions without handwritten notes", async () => {
+    const app = appFor();
+    const created = await app.fetch(
+      writeRequest(
+        "/admin/storefront-experiences/drafts",
+        {
+          draft: draftInput,
+        },
+        "theme-optional-note-create-0001",
+      ),
+      env,
+    );
+    expect(created.status).toBe(201);
+    const { id } = (await created.json<{ data: { id: string } }>()).data;
+    const updated = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${id}`,
+        {
+          bindings: draftInput.bindings,
+          overrides: [],
+          expectedVersion: 1,
+          reason: "  ",
+        },
+        "theme-optional-note-update-0001",
+        "PUT",
+      ),
+      env,
+    );
+    expect(updated.status).toBe(200);
+    const rejectedNote = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${id}/validate`,
+        { expectedVersion: 2, reason: "invalid\u202enote" },
+        "theme-optional-note-invalid-validate",
+      ),
+      env,
+    );
+    expect(rejectedNote.status).toBe(422);
+    expect(await rejectedNote.json()).toMatchObject({ error: { code: "invalid_audit_reason" } });
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM storefront_experience_validations WHERE draft_id = ?",
+      )
+        .bind(id)
+        .first(),
+    ).toEqual({ count: 0 });
+    const validated = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${id}/validate`,
+        {
+          expectedVersion: 2,
+        },
+        "theme-optional-note-validate-0001",
+      ),
+      env,
+    );
+    expect(validated.status).toBe(200);
+    const audit = await env.DB.prepare(
+      "SELECT actor_id, action, target_id, reason, metadata_json FROM audit_events WHERE target_id = ? ORDER BY created_at",
+    )
+      .bind(id)
+      .all();
+    expect(audit.results).toHaveLength(3);
+    for (const row of audit.results)
+      expect(row).toMatchObject({ actor_id: "admin-theme-admin", target_id: id, reason: null });
+    expect(audit.results.map(({ action }) => action)).toEqual([
+      "themes.draft.create",
+      "themes.draft.update",
+      "themes.draft.validate",
+    ]);
+    expect(audit.results[1]).toMatchObject({
+      metadata_json: expect.stringContaining('"toVersion":2'),
+    });
+    expect(
+      (
+        await app.fetch(
+          writeRequest(
+            `/admin/storefront-experiences/drafts/${id}/approve`,
+            {
+              confirm: true,
+              expectedVersion: 2,
+              reason: "ok",
+            },
+            "theme-optional-note-approve-0001",
+          ),
+          env,
+        )
+      ).status,
+    ).toBe(422);
+  });
+
+  test.each(["create", "update", "successor"] as const)(
+    "rejects forbidden notes before Theme draft %s changes state",
+    async (action) => {
+      const app = appFor();
+      const created = await createDraft(app, `theme-note-${action}-source`);
+      expect(created.response.status).toBe(201);
+      const id = created.body.data.id;
+      const before = await env.DB.prepare(
+        "SELECT * FROM storefront_experience_drafts ORDER BY id",
+      ).all();
+      const auditBefore = await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM audit_events WHERE result = 'succeeded'",
+      ).first();
+      for (const [index, reason] of forbiddenNotes.entries()) {
+        const path =
+          action === "create"
+            ? "/admin/storefront-experiences/drafts"
+            : `/admin/storefront-experiences/drafts/${id}${action === "successor" ? "/successors" : ""}`;
+        const input =
+          action === "create"
+            ? { draft: draftInput, reason }
+            : {
+                bindings: draftInput.bindings,
+                overrides: [],
+                reason,
+                ...(action === "update" ? { expectedVersion: 1 } : { sourceVersion: 1 }),
+              };
+        const response = await app.fetch(
+          writeRequest(
+            path,
+            input,
+            `theme-note-${action}-${index}`,
+            action === "update" ? "PUT" : "POST",
+          ),
+          env,
+        );
+        expect(response.status).toBe(422);
+        expect(await response.json()).toMatchObject({ error: { code: "invalid_audit_reason" } });
+        expect(
+          (await env.DB.prepare("SELECT * FROM storefront_experience_drafts ORDER BY id").all())
+            .results,
+        ).toEqual(before.results);
+        expect(
+          await env.DB.prepare(
+            "SELECT COUNT(*) AS count FROM audit_events WHERE result = 'succeeded'",
+          ).first(),
+        ).toEqual(auditBefore);
+      }
+    },
+  );
+
   test("lists current validations for more drafts than one D1 binding batch", async () => {
     const catalogReleaseId = "release-draft-list-batch";
     await seedPreviewCatalogRelease(catalogReleaseId);
@@ -3321,7 +3470,7 @@ describe("storefront experience API", () => {
     const preview = await app.fetch(
       writeRequest(
         `/admin/storefront-experiences/drafts/${draftId}/preview`,
-        { expectedVersion: 2, reason: "Resolve an isolated fixture preview" },
+        { expectedVersion: 2, reason: "  " },
         "theme-preview-resolve-0001",
       ),
       env,
@@ -3343,6 +3492,13 @@ describe("storefront experience API", () => {
       snapshot: { approvedAt: null, kind: "preview" },
     });
     expect(triggerCalls).toHaveLength(1);
+    expect(
+      await env.DB.prepare(
+        "SELECT reason FROM audit_events WHERE target_id = ? AND action = 'themes.preview.snapshot.create'",
+      )
+        .bind(value.data.snapshot.id)
+        .first(),
+    ).toEqual({ reason: null });
     expect(value.data.snapshot.contentDigest).toMatch(/^[a-f0-9]{64}$/);
     const immutableDigest = value.data.snapshot.contentDigest;
     const advanced = await app.fetch(
@@ -4091,6 +4247,29 @@ describe("storefront experience API", () => {
     );
     const original = await originalApproval.json<{ data: { id: string } }>();
 
+    const rejectedMigrationNote = await app.fetch(
+      writeRequest(
+        `/admin/storefront-experiences/drafts/${draftId}/migrations/dry-run`,
+        {
+          expectedVersion: 1,
+          reason: "invalid\u202enote",
+          targetConfigurationSchemaVersion: 2,
+          targetThemeVersion: "1.1.0",
+        },
+        "theme-migration-invalid-note",
+      ),
+      env,
+    );
+    expect(rejectedMigrationNote.status).toBe(422);
+    expect(await rejectedMigrationNote.json()).toMatchObject({
+      error: { code: "invalid_audit_reason" },
+    });
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM storefront_experience_migrations",
+      ).first(),
+    ).toEqual(migrationsBeforeMismatch);
+
     const dryRun = await app.fetch(
       writeRequest(
         `/admin/storefront-experiences/drafts/${draftId}/migrations/dry-run`,
@@ -4181,6 +4360,44 @@ describe("storefront experience API", () => {
     );
     expect(writerDenied.status).toBe(403);
     expect(await writerDenied.json()).toMatchObject({ error: { code: "permission_denied" } });
+
+    const draftsBeforeInvalidApproval = await env.DB.prepare(
+      "SELECT * FROM storefront_experience_drafts ORDER BY id",
+    ).all();
+    const migrationBeforeInvalidApproval = await env.DB.prepare(
+      "SELECT * FROM storefront_experience_migrations WHERE id = ?",
+    )
+      .bind(migration.data.id)
+      .first();
+    const auditsBeforeInvalidApproval = await env.DB.prepare(
+      "SELECT COUNT(*) AS count FROM audit_events WHERE result = 'succeeded'",
+    ).first();
+    for (const [index, reason] of ["valid\u0007note", "valid\u202enote", "x\ny"].entries()) {
+      const rejected = await appForMigrationRole("migration-approver").fetch(
+        writeRequest(
+          `/admin/storefront-experiences/drafts/${draftId}/migrations/approve`,
+          { confirm: true, expectedVersion: 1, migrationId: migration.data.id, reason },
+          `theme-migration-invalid-approval-${index}`,
+        ),
+        env,
+      );
+      expect(rejected.status).toBe(422);
+      expect(await rejected.json()).toMatchObject({ error: { code: "invalid_audit_reason" } });
+      expect(
+        (await env.DB.prepare("SELECT * FROM storefront_experience_drafts ORDER BY id").all())
+          .results,
+      ).toEqual(draftsBeforeInvalidApproval.results);
+      expect(
+        await env.DB.prepare("SELECT * FROM storefront_experience_migrations WHERE id = ?")
+          .bind(migration.data.id)
+          .first(),
+      ).toEqual(migrationBeforeInvalidApproval);
+      expect(
+        await env.DB.prepare(
+          "SELECT COUNT(*) AS count FROM audit_events WHERE result = 'succeeded'",
+        ).first(),
+      ).toEqual(auditsBeforeInvalidApproval);
+    }
 
     const migratedSuccessor = await appForMigrationRole("migration-approver").fetch(
       writeRequest(
@@ -5253,6 +5470,41 @@ describe("storefront experience API", () => {
       env,
     );
     const unredeemedGrant = await unredeemedGrantResponse.json<{ data: { grant: string } }>();
+
+    const grantsBeforeInvalidNote = await env.DB.prepare(
+      "SELECT * FROM storefront_preview_grants ORDER BY id",
+    ).all();
+    const sessionsBeforeInvalidNote = await env.DB.prepare(
+      "SELECT * FROM storefront_preview_sessions ORDER BY id",
+    ).all();
+    const auditsBeforeInvalidNote = await env.DB.prepare(
+      "SELECT COUNT(*) AS count FROM audit_events WHERE result = 'succeeded'",
+    ).first();
+    for (const [index, reason] of forbiddenNotes.entries()) {
+      for (const action of ["grants", "revoke"] as const) {
+        const rejected = await app.fetch(
+          writeRequest(
+            `/admin/storefront-experiences/snapshots/${previewValue.data.snapshot.id}/${action}`,
+            action === "grants" ? { origin: env.PREVIEW_ORIGIN, reason } : { reason },
+            `theme-preview-invalid-${action}-${index}`,
+          ),
+          env,
+        );
+        expect(rejected.status).toBe(422);
+        expect(await rejected.json()).toMatchObject({ error: { code: "invalid_audit_reason" } });
+      }
+    }
+    expect(
+      (await env.DB.prepare("SELECT * FROM storefront_preview_grants ORDER BY id").all()).results,
+    ).toEqual(grantsBeforeInvalidNote.results);
+    expect(
+      (await env.DB.prepare("SELECT * FROM storefront_preview_sessions ORDER BY id").all()).results,
+    ).toEqual(sessionsBeforeInvalidNote.results);
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM audit_events WHERE result = 'succeeded'",
+      ).first(),
+    ).toEqual(auditsBeforeInvalidNote);
     const revoke = await app.fetch(
       writeRequest(
         `/admin/storefront-experiences/snapshots/${previewValue.data.snapshot.id}/revoke`,

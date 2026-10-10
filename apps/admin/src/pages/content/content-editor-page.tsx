@@ -17,6 +17,7 @@ import {
 } from '../../services/content/api'
 import { StructuredContentEditor } from '../../shared/content/structured-content-editor'
 import { ContentMediaSelect } from '../../shared/content/content-media-select'
+import { suggestEnglishSlug } from '../../shared/content/suggest-english-slug'
 import { useI18n } from '../../shared/contexts/i18n-context'
 import { localizeApiError } from '../../shared/i18n/api-error'
 import { BasicCrudFormRecipe, type BasicCrudFormSpec } from '../../shared/template-kit/form'
@@ -40,6 +41,7 @@ const defaults: Partial<Values> = {
   body: [],
   reason: '',
   seoDescription: '',
+  seoTitle: '',
   summary: '',
 }
 
@@ -88,24 +90,27 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
   const listRoute = `/content/${kind === 'page' ? 'pages' : 'articles'}`
   const singular = kind === 'page' ? t('Page') : t('Article')
 
-  const load = useCallback(async (generation = generationRef.current) => {
-    if (!modeView?.canFetch || !id) return
-    setDetailLoading(true)
-    setDetailError(null)
-    try {
-      const next =
-        kind === 'page'
-          ? await fetchContentRecord('page', id)
-          : await fetchContentRecord('article', id)
-      if (generation !== generationRef.current) return
-      setDetail(next)
-      form.setFieldsValue(toValues(next))
-    } catch (error) {
-      if (generation === generationRef.current) setDetailError(normalizeApiError(error))
-    } finally {
-      if (generation === generationRef.current) setDetailLoading(false)
-    }
-  }, [form, id, kind, modeView?.canFetch])
+  const load = useCallback(
+    async (generation = generationRef.current) => {
+      if (!modeView?.canFetch || !id) return
+      setDetailLoading(true)
+      setDetailError(null)
+      try {
+        const next =
+          kind === 'page'
+            ? await fetchContentRecord('page', id)
+            : await fetchContentRecord('article', id)
+        if (generation !== generationRef.current) return
+        setDetail(next)
+        form.setFieldsValue(toValues(next))
+      } catch (error) {
+        if (generation === generationRef.current) setDetailError(normalizeApiError(error))
+      } finally {
+        if (generation === generationRef.current) setDetailLoading(false)
+      }
+    },
+    [form, id, kind, modeView?.canFetch]
+  )
 
   useEffect(() => {
     const generation = ++generationRef.current
@@ -177,7 +182,8 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
       saveLoading ||
       transitionLoading ||
       transitionReason.trim().length < 3
-    ) return
+    )
+      return
     const generation = generationRef.current
     setTransitionLoading(true)
     setSaveError(null)
@@ -230,9 +236,23 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
                 <Tag>{t(statusLabel[detail.status])}</Tag>
                 <Tag>{t('Saved v{version}', { version: detail.version })}</Tag>
                 <Tag>
-                  {t(detail.inclusion.candidate ? 'Candidate included' : detail.inclusion.candidateStale ? 'Candidate stale: saved version is newer' : 'Not in candidate')}
+                  {t(
+                    detail.inclusion.candidate
+                      ? 'Candidate included'
+                      : detail.inclusion.candidateStale
+                        ? 'Candidate stale: saved version is newer'
+                        : 'Not in candidate'
+                  )}
                 </Tag>
-                <Tag>{t(detail.inclusion.live ? 'Live included' : detail.inclusion.liveStale ? 'Live stale: saved version is newer' : 'Not live')}</Tag>
+                <Tag>
+                  {t(
+                    detail.inclusion.live
+                      ? 'Live included'
+                      : detail.inclusion.liveStale
+                        ? 'Live stale: saved version is newer'
+                        : 'Not live'
+                  )}
+                </Tag>
               </Space>
             }
           />
@@ -252,9 +272,19 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
                   title={t('Publish this exact content version?')}
                   description={t('Published content reaches shoppers only after a new Release.')}
                   onConfirm={() => void transition('publish')}
-                  disabled={isDirty || transitionLoading || saveLoading || transitionReason.trim().length < 3}
+                  disabled={
+                    isDirty ||
+                    transitionLoading ||
+                    saveLoading ||
+                    transitionReason.trim().length < 3
+                  }
                 >
-                  <Button loading={transitionLoading} disabled={isDirty || saveLoading || transitionReason.trim().length < 3}>{t('Publish')}</Button>
+                  <Button
+                    loading={transitionLoading}
+                    disabled={isDirty || saveLoading || transitionReason.trim().length < 3}
+                  >
+                    {t('Publish')}
+                  </Button>
                 </Popconfirm>
               ) : null}
               {detail.status !== 'archived' ? (
@@ -262,9 +292,18 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
                   title={t('Archive this content version?')}
                   description={t('Current references must be repaired before archive succeeds.')}
                   onConfirm={() => void transition('archive')}
-                  disabled={isDirty || transitionLoading || saveLoading || transitionReason.trim().length < 3}
+                  disabled={
+                    isDirty ||
+                    transitionLoading ||
+                    saveLoading ||
+                    transitionReason.trim().length < 3
+                  }
                 >
-                  <Button danger loading={transitionLoading} disabled={isDirty || saveLoading || transitionReason.trim().length < 3}>
+                  <Button
+                    danger
+                    loading={transitionLoading}
+                    disabled={isDirty || saveLoading || transitionReason.trim().length < 3}
+                  >
                     {t('Archive')}
                   </Button>
                 </Popconfirm>
@@ -281,7 +320,14 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
         renderFields: () => (
           <>
             <Form.Item label={t('Title')} name="title" rules={[{ required: true, max: 160 }]}>
-              <Input />
+              <Input
+                onBlur={(event) => {
+                  if (id || detail || form.isFieldTouched('slug') || form.getFieldValue('slug'))
+                    return
+                  const slug = suggestEnglishSlug(event.target.value)
+                  if (slug) form.setFieldValue('slug', slug)
+                }}
+              />
             </Form.Item>
             <Form.Item
               label={t('Slug')}
@@ -329,7 +375,8 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
             <Form.Item
               label={t('SEO title')}
               name="seoTitle"
-              rules={[{ required: true, max: 160 }]}
+              rules={[{ max: 160 }]}
+              extra={t('Leave blank to use the title.')}
             >
               <Input />
             </Form.Item>
@@ -337,8 +384,8 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
               <Input.TextArea rows={3} />
             </Form.Item>
             {!isReadonly ? (
-              <Form.Item label={t('Reason')} name="reason" rules={[{ required: true, min: 3 }]}>
-                <Input />
+              <Form.Item label={t('Notes (optional)')} name="reason" rules={[{ max: 500 }]}>
+                <Input maxLength={500} />
               </Form.Item>
             ) : null}
           </>

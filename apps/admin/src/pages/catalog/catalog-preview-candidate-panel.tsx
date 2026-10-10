@@ -43,19 +43,14 @@ export const CatalogPreviewCandidatePanel = () => {
           )}
         </Typography.Text>
         <Input.TextArea
-          aria-label={t('Candidate build reason')}
+          aria-label={t('Notes (optional)')}
           value={reason}
           rows={2}
           maxLength={500}
-          placeholder={t('Why is this Preview candidate needed?')}
+          placeholder={t('Notes (optional)')}
           onChange={(event) => setReason(event.target.value)}
         />
-        <Button
-          type="primary"
-          loading={loading}
-          disabled={reason.trim().length < 3}
-          onClick={() => void build()}
-        >
+        <Button type="primary" loading={loading} onClick={() => void build()}>
           {candidate ? t('Retry candidate build') : t('Build preview candidate')}
         </Button>
         {loading ? <Tag color="processing">{t('Candidate build pending')}</Tag> : null}
@@ -92,10 +87,7 @@ export const CatalogPreviewCandidatePanel = () => {
                 </Space>
                 <Button
                   onClick={() => {
-                    window.sessionStorage.setItem(
-                      'storefront-editor-catalog-release',
-                      candidate.id
-                    )
+                    window.sessionStorage.setItem('storefront-editor-catalog-release', candidate.id)
                     window.sessionStorage.setItem(
                       'storefront-editor-private-candidate',
                       candidate.id

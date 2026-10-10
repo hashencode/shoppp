@@ -61,8 +61,6 @@ const stickySocials = computed(
 );
 
 const router = useRouter();
-const cookieNoticeStorageKey = "shoppp.fashion-store.cookie-notice-dismissed";
-const cookieVisible = ref(false);
 const documentReadyClass = ref<"js" | "no-js">("no-js");
 const headerHandle = ref<HeaderHandle>();
 const searchOpen = ref(false);
@@ -81,15 +79,6 @@ function sourceAsset(sourcePath: string): string {
 function scrollToTop(): void {
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   window.scrollTo({ behavior: reducedMotion ? "auto" : "smooth", top: 0 });
-}
-
-function dismissCookieNotice(): void {
-  try {
-    localStorage.setItem(cookieNoticeStorageKey, "true");
-  } catch {
-    // The notice still dismisses for this page when browser storage is unavailable.
-  }
-  cookieVisible.value = false;
 }
 
 useHead(() => ({
@@ -151,11 +140,6 @@ watch(
 );
 
 onMounted(() => {
-  try {
-    cookieVisible.value = localStorage.getItem(cookieNoticeStorageKey) !== "true";
-  } catch {
-    cookieVisible.value = true;
-  }
   documentReadyClass.value = "js";
   nextTick(() => {
     document.documentElement.classList.remove("no-js");
@@ -195,41 +179,6 @@ onMounted(() => {
     :resolve-asset="resolveAsset"
     :source-asset="sourceAsset"
   />
-  <div
-    id="cookies-model"
-    class="cookie-message bg-dark-gray border-radius-8px"
-    v-if="cookieVisible"
-    style="display: block"
-  >
-    <div class="cookie-description fs-14 text-white mb-20px lh-22">
-      Choose either option to hide this notice in this browser. No cookie preference is applied.
-    </div>
-    <div class="cookie-btn">
-      <button
-        type="button"
-        class="btn btn-transparent-white border-1 border-color-transparent-white-light btn-very-small btn-switch-text btn-rounded w-100 mb-15px"
-        data-cookie-choice="reject"
-        aria-label="Reject cookies"
-        @click="dismissCookieNotice"
-      >
-        <span>
-          <span class="btn-double-text" data-text="Reject cookies">Reject cookies</span>
-        </span>
-      </button>
-      <button
-        type="button"
-        class="btn btn-white btn-very-small btn-switch-text btn-box-shadow accept_cookies_btn btn-rounded w-100"
-        data-accept-btn=""
-        data-cookie-choice="accept"
-        aria-label="Allow cookies"
-        @click="dismissCookieNotice"
-      >
-        <span>
-          <span class="btn-double-text" data-text="Allow cookies">Allow cookies</span>
-        </span>
-      </button>
-    </div>
-  </div>
   <div
     v-if="showStickySocials && (!liveMode || stickySocials.length > 0)"
     class="sticky-wrap z-index-1 d-none d-xl-inline-block"

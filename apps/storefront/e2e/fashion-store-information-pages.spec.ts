@@ -16,10 +16,6 @@ async function prepare(
     .locator(`[data-fashion-store-${path.slice(1)}][data-runtime-status='ready']`)
     .waitFor();
   await page.evaluate(async () => document.fonts.ready);
-  await page
-    .getByRole("button", { name: "Allow cookies" })
-    .click({ timeout: 2_000 })
-    .catch(() => undefined);
 }
 
 test("About, FAQ, and Contact preserve source inventories across responsive viewports", async ({

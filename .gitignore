@@ -25,3 +25,15 @@ artifacts/theme-fidelity/
 artifacts/live/
 *.local
 *.log
+
+# Local screenshots and temporary verification artifacts.
+/.artifacts/
+
+# Historical local screenshots and galleries; keep verification reports versioned.
+/artifacts/ui-notices/**/index.html
+/artifacts/ui-notices/**/*.png
+/artifacts/ui-notices/**/*.jpg
+/artifacts/ui-notices/**/*.jpeg
+/artifacts/ui-notices/**/*.webp
+/artifacts/ui-notices/**/*.gif
+/artifacts/ui-notices/**/*.avif

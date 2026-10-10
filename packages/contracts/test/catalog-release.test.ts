@@ -129,6 +129,35 @@ describe("catalog release contracts", () => {
     ).toEqual(input.productIds.map((_, index) => `prd_01J0000000000000000000000${index}`));
   });
 
+  test("accepts optional draft notes and default SEO but requires reasons for Collection transitions", () => {
+    const input = {
+      description: "Travel",
+      name: "Travel",
+      productIds: [],
+      seoDescription: "Travel",
+      slug: "travel",
+      status: "draft",
+    };
+    for (const reason of [undefined, " ", "好", "ok"]) {
+      expect(collectionWriteRequestSchema.parse({ ...input, reason })).toMatchObject({
+        reason: reason?.trim() ?? "",
+        seoTitle: "Travel",
+      });
+      for (const status of ["published", "archived"]) {
+        expect(collectionWriteRequestSchema.safeParse({ ...input, reason, status }).success).toBe(
+          false,
+        );
+      }
+    }
+    expect(collectionWriteRequestSchema.parse({ ...input, seoTitle: "  " }).seoTitle).toBe(
+      "Travel",
+    );
+    expect(collectionWriteRequestSchema.parse({ ...input, seoTitle: "Custom" }).seoTitle).toBe(
+      "Custom",
+    );
+    expect(collectionWriteRequestSchema.safeParse({ ...input, name: " " }).success).toBe(false);
+  });
+
   test("accepts a private schema-v3 candidate with a normalized source vector", () => {
     const digest = "a".repeat(64);
     const candidate = catalogReleaseV3Schema.parse({

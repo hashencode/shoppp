@@ -229,7 +229,7 @@
 | --- | --- | --- | --- | --- |
 | `setup-guide` | Store setup guide | standalone | custom / business override | 无本轮清理项 |
 | `commerce-dashboard` | Commerce dashboard | standalone | custom / business override | 无标题副文案；筛选说明留在筛选/结果边界 |
-| `order-report` | Revenue report | standalone | standard list | 将报表范围说明移到筛选或结果旁 |
+| `order-report` | Revenue report | standalone | standard list | 销售总额、退款、净额定义放在各自表头右侧的信息图标 Tooltip 中；不保留筛选下方的范围摘要 |
 | `catalog-products` | Catalog | standalone | standard list | 无本轮清理项 |
 | `catalog-reviews` | Reviews | standalone | custom / business override | 将审核后发布时间移到 moderation 决策旁 |
 | `content-pages` | Pages | grouped: Content | standard list | 发布候选与线上包含状态保留在记录行内 |
@@ -243,8 +243,8 @@
 | `launch-settings` | Commercial settings | grouped: Store settings | top-level form via custom recipe | 无本轮清理项 |
 | `contact-settings` | Contact settings | grouped: Store settings | top-level form via custom recipe | 将 publication guidance 移入 Global Contact Channels；不改 404、环境、请求或保存行为 |
 | `shipping-settings` | Shipping settings | grouped: Store settings | top-level form via custom recipe | 删除仅复述用途的摘要 |
-| `audit` | Audit trail | standalone | custom / business override | 将 redaction / permission guidance 移到结果旁 |
-| `privacy` | Privacy requests | standalone | custom / business override | 将 verification / retention guidance 移到操作控件旁 |
+| `audit` | Audit trail | standalone | custom / business override | 移除结果区的脱敏、权限与分页实现介绍 |
+| `privacy` | Privacy requests | standalone | custom / business override | 身份核验说明只放在请求确认弹窗中 |
 | `iam-users` | Users & invitations | grouped: Access management | custom / business override | 删除仅复述用途的摘要 |
 | `iam-roles` | Roles | grouped: Access management | standard list | 将 authority guidance 移到权限内容旁 |
 

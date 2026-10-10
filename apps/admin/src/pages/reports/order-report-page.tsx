@@ -1,5 +1,6 @@
 import type { ReportExport, ReportOrderRow, ReportingQuery } from '@shoppp/contracts'
-import { Alert, App, Button, Form, Input, Modal, Table, Tag } from 'antd'
+import { InfoCircleOutlined } from '@ant-design/icons'
+import { Alert, App, Button, Form, Input, Modal, Table, Tag, Tooltip } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
@@ -21,7 +22,11 @@ import {
   type StandardListPageSpec,
   type TemplateListFilterField,
 } from '../../shared/template-kit/list'
-import { getTimeZoneOptions, isValidTimeZone, resolveDefaultTimeZone } from '../../shared/utils/time-zones'
+import {
+  getTimeZoneOptions,
+  isValidTimeZone,
+  resolveDefaultTimeZone,
+} from '../../shared/utils/time-zones'
 
 void React
 dayjs.extend(utc)
@@ -84,21 +89,52 @@ const bindCommittedCurrency = (
   currency: string,
   locale: string,
   t: (key: string, values?: Record<string, string | number>) => string
-): ColumnsType<ReportOrderRow> =>
-  columns.map((column) => {
+): ColumnsType<ReportOrderRow> => {
+  const metrics = {
+    gross: {
+      label: t('Gross ({currency})', { currency }),
+      name: t('Gross sales'),
+      description: t('Paid order totals for orders created in the selected period.'),
+    },
+    refund: {
+      label: t('Refunds ({currency})', { currency }),
+      name: t('Refunds'),
+      description: t(
+        'Successful refunds counted by completion time, including orders created before the selected period.'
+      ),
+    },
+    net: {
+      label: t('Net ({currency})', { currency }),
+      name: t('Net sales'),
+      description: t(
+        'Gross sales minus refunds completed in the selected period. This can be negative when refunds exceed sales.'
+      ),
+    },
+  } as const
+
+  return columns.map((column) => {
     const key = String(column.key)
     if (!['gross', 'refund', 'net'].includes(key)) return column
-    const labels = {
-      gross: 'Gross ({currency})',
-      refund: 'Refunds ({currency})',
-      net: 'Net ({currency})',
-    } as const
+    const metric = metrics[key as keyof typeof metrics]
     return {
       ...column,
-      title: t(labels[key as keyof typeof labels], { currency }),
+      title: (
+        <span className="inline-flex items-center gap-1 whitespace-nowrap">
+          <span>{metric.label}</span>
+          <Tooltip title={metric.description} trigger={['hover', 'focus']}>
+            <Button
+              type="text"
+              size="small"
+              aria-label={t('About {metric}', { metric: metric.name })}
+              icon={<InfoCircleOutlined aria-hidden />}
+            />
+          </Tooltip>
+        </span>
+      ),
       render: (value: number) => formatMinorCurrency(value, currency, locale),
     }
   })
+}
 
 const ReportExportAction = ({
   appliedFilters,
@@ -258,37 +294,26 @@ export const OrderReportPage = () => {
       selectItems: selectReportRows,
       mapError: (error) => new Error(localizeError(error)),
       filterFields,
-      renderBetweenFilterAndContent: (
-        <>
-          <Alert
-            type="info"
-            showIcon
-            title={t(
-              'Drill down from gross and refund events without mixing currencies, environments, or test checkouts.'
-            )}
-          />
-          {reportExport ? (
-            <Alert
-              type={reportExport.status === 'ready' ? 'success' : 'info'}
-              message={t('Export {id}: {status}', {
-                id: reportExport.id,
-                status: t(reportExport.status),
-              })}
-              description={
-                reportExport.status === 'ready' ? (
-                  <a href={reportExportDownloadUrl(reportExport.id)}>
-                    {t('Download export ({count} rows)', { count: reportExport.rowCount ?? 0 })}
-                  </a>
-                ) : (
-                  t('The export expires at {time}.', {
-                    time: dayjs(reportExport.expiresAt).format('YYYY-MM-DD HH:mm'),
-                  })
-                )
-              }
-            />
-          ) : null}
-        </>
-      ),
+      renderBetweenFilterAndContent: reportExport ? (
+        <Alert
+          type={reportExport.status === 'ready' ? 'success' : 'info'}
+          message={t('Export {id}: {status}', {
+            id: reportExport.id,
+            status: t(reportExport.status),
+          })}
+          description={
+            reportExport.status === 'ready' ? (
+              <a href={reportExportDownloadUrl(reportExport.id)}>
+                {t('Download export ({count} rows)', { count: reportExport.rowCount ?? 0 })}
+              </a>
+            ) : (
+              t('The export expires at {time}.', {
+                time: dayjs(reportExport.expiresAt).format('YYYY-MM-DD HH:mm'),
+              })
+            )
+          }
+        />
+      ) : null,
       toolbarExtra: ({ appliedFilters }) =>
         canExport ? (
           <ReportExportAction appliedFilters={appliedFilters} onCreated={setReportExport} />
@@ -318,9 +343,9 @@ export const OrderReportPage = () => {
           width: 150,
           render: (value: string) => t(value),
         },
-        { dataIndex: 'grossContribution', key: 'gross', title: 'Gross', width: 150 },
-        { dataIndex: 'refundContribution', key: 'refund', title: 'Refunds', width: 150 },
-        { dataIndex: 'netContribution', key: 'net', title: 'Net', width: 150 },
+        { dataIndex: 'grossContribution', key: 'gross', title: 'Gross', width: 180 },
+        { dataIndex: 'refundContribution', key: 'refund', title: 'Refunds', width: 180 },
+        { dataIndex: 'netContribution', key: 'net', title: 'Net', width: 180 },
       ],
       buildTableNode: ({
         columns,
@@ -341,7 +366,7 @@ export const OrderReportPage = () => {
           size={tableSize}
           pagination={pagination}
           virtual={virtualScroll.enabled}
-          scroll={virtualScroll.enabled ? virtualScroll.scroll : { x: 1330 }}
+          scroll={virtualScroll.enabled ? virtualScroll.scroll : { x: 1420 }}
         />
       ),
       stateCopy: {

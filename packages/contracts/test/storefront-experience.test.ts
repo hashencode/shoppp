@@ -838,4 +838,76 @@ describe("storefront experience contracts", () => {
       }),
     ).toMatchObject({ command: { blockId: "hero-slide-a", visible: false } });
   });
+
+  test("accepts optional draft and private-preview notes while keeping approvals strict", async () => {
+    const schemas = await import("../src/admin");
+    const requests = [
+      [
+        schemas.createStorefrontExperienceDraftRequestSchema,
+        {
+          draft: {
+            bindings: [],
+            experienceId: "experience.notes",
+            overrides: [],
+            presetId: "default",
+            themeId: "fashion-store",
+            themeVersion: "1.0.0",
+          },
+        },
+      ],
+      [
+        schemas.updateStorefrontExperienceDraftRequestSchema,
+        {
+          bindings: [],
+          overrides: [],
+          expectedVersion: 1,
+        },
+      ],
+      [schemas.validateStorefrontExperienceDraftRequestSchema, { expectedVersion: 1 }],
+      [schemas.resolveStorefrontExperienceDraftRequestSchema, { expectedVersion: 1 }],
+      [
+        schemas.storefrontExperienceBlockCommandRequestSchema,
+        {
+          command: { blockId: "hero-slide-1", kind: "duplicate", templateId: "fashion-store-home" },
+          expectedVersion: 1,
+        },
+      ],
+      [
+        schemas.createStorefrontPreviewGrantRequestSchema,
+        { origin: "https://preview.example.test" },
+      ],
+      [schemas.revokeStorefrontPreviewAccessRequestSchema, {}],
+      [
+        schemas.storefrontExperienceMigrationDryRunRequestSchema,
+        {
+          expectedVersion: 1,
+          targetConfigurationSchemaVersion: 1,
+          targetThemeVersion: "1.1.0",
+        },
+      ],
+    ] as const;
+    for (const [schema, input] of requests) {
+      for (const reason of [undefined, "  ", "好", "ok"]) {
+        expect(schema.parse({ ...input, reason }).reason).toBe(reason?.trim() ?? "");
+      }
+      expect(schema.safeParse({ ...input, reason: "x".repeat(501) }).success).toBe(false);
+    }
+    for (const reason of [undefined, "  ", "ok"]) {
+      expect(
+        schemas.approveStorefrontExperienceDraftRequestSchema.safeParse({
+          confirm: true,
+          expectedVersion: 1,
+          reason,
+        }).success,
+      ).toBe(false);
+      expect(
+        schemas.approveStorefrontExperienceMigrationRequestSchema.safeParse({
+          confirm: true,
+          expectedVersion: 1,
+          migrationId: "migration.notes",
+          reason,
+        }).success,
+      ).toBe(false);
+    }
+  });
 });

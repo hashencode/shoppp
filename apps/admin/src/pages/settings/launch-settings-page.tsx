@@ -118,7 +118,10 @@ export const LaunchSettingsPage = () => {
   const mode = canWrite ? 'modify' : 'readonly'
   const modeView = getFormModeViewModel(mode)
   return (
-    <CustomPageRecipe title={t('Commercial settings')}>
+    <CustomPageRecipe
+      title={t('Commercial settings')}
+      extra={canRead ? <Link to="/settings/contact">{t('Contact settings')}</Link> : null}
+    >
       <TemplateFormStateGate
         parsedMode={{ ok: true, mode, resourceKey: 'commercial-configuration' }}
         modeView={modeView}
@@ -276,14 +279,6 @@ export const LaunchSettingsPage = () => {
           ) : null}
         </Form>
       </TemplateFormStateGate>
-      {canRead ? (
-        <Alert
-          type="info"
-          showIcon
-          title={t('Public contact details have a dedicated settings page.')}
-          description={<Link to="/settings/contact">{t('Open contact settings')}</Link>}
-        />
-      ) : null}
       {canRead ? (
         <Card title={t('Checkout-impacting health')}>
           {healthLoading ? (

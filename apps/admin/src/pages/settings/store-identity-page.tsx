@@ -5,8 +5,14 @@ import { Link } from 'react-router-dom'
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { normalizeApiError, type ApiError } from '../../infrastructure/http/api-client'
-import { fetchStoreIdentity, updateStoreIdentity, type StoreIdentityView } from '../../services/platform/api'
+import {
+  fetchStoreIdentity,
+  updateStoreIdentity,
+  type StoreIdentityView,
+} from '../../services/platform/api'
 import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
+import { ContentMediaSelect } from '../../shared/content/content-media-select'
+import { useI18n } from '../../shared/contexts/i18n-context'
 
 void React
 
@@ -26,9 +32,10 @@ type Values = {
 
 type Backlink = { href: string; id: string }
 
-const optional = (value: string) => value.trim() || null
+const optional = (value?: string) => value?.trim() || null
 
 export const StoreIdentityPage = () => {
+  const { t } = useI18n()
   const { permissions, role } = useAuth()
   const canRead = hasPermission(role, 'identity.read', permissions)
   const canWrite = hasPermission(role, 'identity.write', permissions)
@@ -84,7 +91,9 @@ export const StoreIdentityPage = () => {
           ['dark', values.logoDark],
           ['compact', values.logoCompact],
         ] as const
-      ).flatMap(([variant, assetId]) => (assetId.trim() ? [{ assetId: assetId.trim(), variant }] : []))
+      ).flatMap(([variant, assetId]) =>
+        assetId?.trim() ? [{ assetId: assetId.trim(), variant }] : []
+      )
       const saved = await updateStoreIdentity({
         expectedVersion: identity?.version ?? null,
         faviconAssetId: optional(values.faviconAssetId),
@@ -117,11 +126,13 @@ export const StoreIdentityPage = () => {
           <Alert
             type="info"
             message={identity ? `Saved version ${identity.version}` : 'No Store Identity saved'}
-            description={identity?.inclusion?.live
-              ? 'This exact saved version is included in the deployed Release.'
-              : identity?.inclusion?.candidate
-                ? 'This exact saved version is included in a private candidate, but is not live.'
-                : 'Saving changes does not change the deployed storefront. Build a new candidate Release to preview them.'}
+            description={
+              identity?.inclusion?.live
+                ? 'This exact saved version is included in the deployed Release.'
+                : identity?.inclusion?.candidate
+                  ? 'This exact saved version is included in a private candidate, but is not live.'
+                  : 'Saving changes does not change the deployed storefront. Build a new candidate Release to preview them.'
+            }
           />
           {error ? <Alert type="error" message={error.message} /> : null}
           {backlinks.length ? (
@@ -131,35 +142,74 @@ export const StoreIdentityPage = () => {
               description={
                 <Space wrap>
                   {backlinks.map((backlink) => (
-                    <Link key={backlink.id} to={backlink.href}>Repair {backlink.id}</Link>
+                    <Link key={backlink.id} to={backlink.href}>
+                      Repair {backlink.id}
+                    </Link>
                   ))}
                 </Space>
               }
             />
           ) : null}
-          <Form form={form} layout="vertical" onFinish={(values) => void save(values)} disabled={saving}>
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={(values) => void save(values)}
+            disabled={saving}
+          >
             <Card title="Public identity">
               <Form.Item name="storefrontName" label="Storefront name" rules={[{ required: true }]}>
                 <Input maxLength={120} readOnly={!canWrite} />
               </Form.Item>
-              <Form.Item name="tagline" label="Tagline"><Input maxLength={240} readOnly={!canWrite} /></Form.Item>
-              <Form.Item name="seoTitle" label="SEO title" rules={[{ required: true }]}><Input maxLength={160} readOnly={!canWrite} /></Form.Item>
-              <Form.Item name="seoDescription" label="SEO description"><Input.TextArea maxLength={320} readOnly={!canWrite} /></Form.Item>
+              <Form.Item name="tagline" label="Tagline">
+                <Input maxLength={240} readOnly={!canWrite} />
+              </Form.Item>
+              <Form.Item
+                name="seoTitle"
+                label={t('SEO title')}
+                rules={[{ max: 160 }]}
+                extra={t('Leave blank to use the storefront name.')}
+              >
+                <Input maxLength={160} readOnly={!canWrite} />
+              </Form.Item>
+              <Form.Item name="seoDescription" label="SEO description">
+                <Input.TextArea maxLength={320} readOnly={!canWrite} />
+              </Form.Item>
             </Card>
             <Card title="Shared brand assets" className="mt-4">
-              <Form.Item name="logoPrimary" label="Primary Logo asset ID" rules={[{ required: true }]}><Input readOnly={!canWrite} /></Form.Item>
-              <Form.Item name="logoLight" label="Light Logo asset ID"><Input readOnly={!canWrite} /></Form.Item>
-              <Form.Item name="logoDark" label="Dark Logo asset ID"><Input readOnly={!canWrite} /></Form.Item>
-              <Form.Item name="logoCompact" label="Compact Logo asset ID"><Input readOnly={!canWrite} /></Form.Item>
-              <Form.Item name="faviconAssetId" label="Favicon asset ID"><Input readOnly={!canWrite} /></Form.Item>
-              <Form.Item name="socialShareAssetId" label="Social-share asset ID"><Input readOnly={!canWrite} /></Form.Item>
+              <Form.Item name="logoPrimary" label={t('Primary Logo')} rules={[{ required: true }]}>
+                <ContentMediaSelect source="identity" disabled={!canWrite || saving} />
+              </Form.Item>
+              <Form.Item name="logoLight" label={t('Light Logo')}>
+                <ContentMediaSelect source="identity" allowClear disabled={!canWrite || saving} />
+              </Form.Item>
+              <Form.Item name="logoDark" label={t('Dark Logo')}>
+                <ContentMediaSelect source="identity" allowClear disabled={!canWrite || saving} />
+              </Form.Item>
+              <Form.Item name="logoCompact" label={t('Compact Logo')}>
+                <ContentMediaSelect source="identity" allowClear disabled={!canWrite || saving} />
+              </Form.Item>
+              <Form.Item name="faviconAssetId" label={t('Favicon')}>
+                <ContentMediaSelect source="identity" allowClear disabled={!canWrite || saving} />
+              </Form.Item>
+              <Form.Item name="socialShareAssetId" label={t('Social-share image')}>
+                <ContentMediaSelect source="identity" allowClear disabled={!canWrite || saving} />
+              </Form.Item>
             </Card>
             {canWrite ? (
-              <Form.Item name="reason" label="Reason" rules={[{ required: true, min: 3 }]} className="mt-4">
+              <Form.Item
+                name="reason"
+                label={t('Notes (optional)')}
+                rules={[{ max: 500 }]}
+                className="mt-4"
+              >
                 <Input maxLength={500} />
               </Form.Item>
             ) : null}
-            {canWrite ? <Button htmlType="submit" type="primary" loading={saving}>Save identity</Button> : null}
+            {canWrite ? (
+              <Button htmlType="submit" type="primary" loading={saving}>
+                Save identity
+              </Button>
+            ) : null}
           </Form>
         </Space>
       )}

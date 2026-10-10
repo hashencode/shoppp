@@ -151,11 +151,7 @@ describe("storefront navigation", () => {
     });
 
     const created = await app.fetch(
-      request(
-        "/admin/storefront/navigation/header",
-        { items: headerItems, reason: "Create Header navigation" },
-        "PUT",
-      ),
+      request("/admin/storefront/navigation/header", { items: headerItems }, "PUT"),
       env,
     );
     expect(created.status).toBe(200);
@@ -172,6 +168,16 @@ describe("storefront navigation", () => {
     });
     expect(createdBody.data.items.map(({ id }) => id)).not.toEqual(headerItems.map(({ id }) => id));
     expect(createdBody.data.items[1]?.parentId).toBe(createdBody.data.items[0]?.id);
+    expect(
+      await env.DB.prepare(
+        "SELECT actor_id, action, target_id, reason, metadata_json FROM audit_events WHERE action = 'navigation.create'",
+      ).first(),
+    ).toMatchObject({
+      actor_id: "navigation-owner",
+      target_id: "menu.header",
+      reason: null,
+      metadata_json: expect.stringContaining('"version":1'),
+    });
 
     const published = await app.fetch(
       request(

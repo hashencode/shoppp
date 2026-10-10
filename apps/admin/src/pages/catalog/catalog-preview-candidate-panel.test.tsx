@@ -50,6 +50,28 @@ afterEach(() => {
 afterAll(() => server.close())
 
 describe('CatalogPreviewCandidatePanel', () => {
+  it('builds a private preview without handwritten notes', async () => {
+    let submitted: unknown
+    server.use(
+      http.post('*/admin/catalog/releases/preview-candidates', async ({ request }) => {
+        submitted = await request.json()
+        return HttpResponse.json({ data: candidate }, { status: 201 })
+      })
+    )
+    renderInLocale(
+      <MemoryRouter>
+        <CatalogPreviewCandidatePanel />
+      </MemoryRouter>
+    )
+    const build = screen.getByRole('button', {
+      name: 'Build preview candidate',
+    }) as HTMLButtonElement
+    expect(build.disabled).toBe(false)
+    fireEvent.click(build)
+    expect(await screen.findByText('Private candidate ready')).toBeTruthy()
+    expect(submitted).toEqual({ reason: '' })
+  })
+
   it('shows the persisted build phase as pending while the request is in flight', async () => {
     let release!: () => void
     server.use(
@@ -65,7 +87,7 @@ describe('CatalogPreviewCandidatePanel', () => {
         <CatalogPreviewCandidatePanel />
       </MemoryRouter>
     )
-    fireEvent.change(screen.getByLabelText('Candidate build reason'), {
+    fireEvent.change(screen.getByLabelText('Notes (optional)'), {
       target: { value: 'Observe pending candidate' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Build preview candidate' }))
@@ -84,7 +106,7 @@ describe('CatalogPreviewCandidatePanel', () => {
       </MemoryRouter>
     )
 
-    fireEvent.change(screen.getByLabelText('Candidate build reason'), {
+    fireEvent.change(screen.getByLabelText('Notes (optional)'), {
       target: { value: 'Review current storefront sources' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Build preview candidate' }))
@@ -118,7 +140,7 @@ describe('CatalogPreviewCandidatePanel', () => {
         <CatalogPreviewCandidatePanel />
       </MemoryRouter>
     )
-    const reason = screen.getByLabelText('Candidate build reason')
+    const reason = screen.getByLabelText('Notes (optional)')
     fireEvent.change(reason, { target: { value: 'Retry drifted candidate' } })
     fireEvent.click(screen.getByRole('button', { name: 'Build preview candidate' }))
     expect(await screen.findByText('Candidate build failed')).toBeTruthy()

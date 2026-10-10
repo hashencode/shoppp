@@ -199,7 +199,6 @@ export const fashionStoreImplementationRegions = [
   { key: "marquee", selector: '[data-home-section="marquee"]' },
   { key: "magazine", selector: '[data-home-section="magazine"]' },
   { key: "footer", selector: "footer.fashion-store-footer-canonical" },
-  { key: "cookie", selector: ".cookie-message" },
   { key: "sticky", selector: ".sticky-wrap" },
   { key: "scroll-progress", selector: ".scroll-progress" },
 ] as const;
@@ -254,13 +253,7 @@ export const fashionStoreSourceContract = {
 } as const;
 
 export const fashionStoreDecorHomeContract = {
-  approvedFashionRegions: [
-    "announcement",
-    "sticky-social-rail",
-    "footer",
-    "cookie",
-    "scroll-progress",
-  ],
+  approvedFashionRegions: ["announcement", "sticky-social-rail", "footer", "scroll-progress"],
   mountHost: "fashion-store.product-merchandising",
   regions: [
     { id: "hero", owner: "FashionStoreDecorHero", source: "hero", retained: true },

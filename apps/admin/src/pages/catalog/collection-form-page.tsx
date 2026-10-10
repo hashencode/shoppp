@@ -12,10 +12,9 @@ import {
   type CatalogCollection,
 } from '../../services/catalog/api'
 import { useI18n } from '../../shared/contexts/i18n-context'
-import {
-  BasicCrudFormRecipe,
-  type BasicCrudFormSpec,
-} from '../../shared/template-kit/form'
+import { ContentMediaSelect } from '../../shared/content/content-media-select'
+import { suggestEnglishSlug } from '../../shared/content/suggest-english-slug'
+import { BasicCrudFormRecipe, type BasicCrudFormSpec } from '../../shared/template-kit/form'
 import { goBackOrCloseWindow, useFormModeAccess } from '../../shared/template-kit/hooks'
 import {
   CollectionBlockedDependencies,
@@ -41,6 +40,7 @@ const defaults: Partial<Values> = {
   reason: '',
   redirectFromOldSlug: false,
   seoDescription: '',
+  seoTitle: '',
   status: 'draft',
 }
 
@@ -75,6 +75,8 @@ export const CollectionFormPage = () => {
   const returnTo = searchParams.get('returnTo')
   const handoffProductId = searchParams.get('handoffProductId')
   const [detail, setDetail] = useState<CatalogCollection | null>(null)
+  const targetStatus = Form.useWatch('status', form) ?? 'draft'
+  const requiresReason = (detail !== null && detail.status !== 'draft') || targetStatus !== 'draft'
   const [detailLoading, setDetailLoading] = useState(Boolean(modeView?.canFetch))
   const [detailError, setDetailError] = useState<ApiError | null>(null)
   const [saveLoading, setSaveLoading] = useState(false)
@@ -82,9 +84,7 @@ export const CollectionFormPage = () => {
   const [backlinks, setBacklinks] = useState<CollectionBacklink[]>([])
   const [products, setProducts] = useState<Array<{ id: string; name: string; slug: string }>>([])
   const [productQuery, setProductQuery] = useState('')
-  const [productIds, setProductIds] = useState<string[]>(
-    handoffProductId ? [handoffProductId] : []
-  )
+  const [productIds, setProductIds] = useState<string[]>(handoffProductId ? [handoffProductId] : [])
 
   const loadDetail = useCallback(async () => {
     if (!modeView?.canFetch || !id) return
@@ -126,7 +126,9 @@ export const CollectionFormPage = () => {
         setProducts((current) => {
           const selected = new Set(productIds)
           const byId = new Map(
-            current.filter(({ id: productId }) => selected.has(productId)).map((product) => [product.id, product])
+            current
+              .filter(({ id: productId }) => selected.has(productId))
+              .map((product) => [product.id, product])
           )
           data.forEach((product) => byId.set(product.id, product))
           return [...byId.values()]
@@ -231,14 +233,24 @@ export const CollectionFormPage = () => {
         renderFields: () => (
           <>
             <Form.Item label={t('Name')} name="name" rules={[{ required: true }]}>
-              <Input />
+              <Input
+                onBlur={(event) => {
+                  if (id || detail || form.isFieldTouched('slug') || form.getFieldValue('slug'))
+                    return
+                  const slug = suggestEnglishSlug(event.target.value)
+                  if (slug) form.setFieldValue('slug', slug)
+                }}
+              />
             </Form.Item>
             <Form.Item
               label={t('Slug')}
               name="slug"
               rules={[
                 { required: true },
-                { pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/, message: t('Use lowercase URL-safe text.') },
+                {
+                  pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+                  message: t('Use lowercase URL-safe text.'),
+                },
               ]}
             >
               <Input />
@@ -246,8 +258,8 @@ export const CollectionFormPage = () => {
             <Form.Item label={t('Description')} name="description">
               <Input.TextArea rows={5} />
             </Form.Item>
-            <Form.Item label={t('Cover media asset ID')} name="coverAssetId">
-              <Input allowClear />
+            <Form.Item label={t('Cover media')} name="coverAssetId">
+              <ContentMediaSelect allowClear disabled={isReadonly} source="collection" />
             </Form.Item>
             <Form.Item label={t('Status')} name="status" rules={[{ required: true }]}>
               <Select
@@ -281,7 +293,10 @@ export const CollectionFormPage = () => {
               value={undefined}
               options={products
                 .filter(({ id: productId }) => !productIds.includes(productId))
-                .map((product) => ({ label: `${product.name} — ${product.slug}`, value: product.id }))}
+                .map((product) => ({
+                  label: `${product.name} — ${product.slug}`,
+                  value: product.id,
+                }))}
               onChange={(productId: string) => setProductIds((current) => [...current, productId])}
             />
             {productIds.length ? (
@@ -309,7 +324,9 @@ export const CollectionFormPage = () => {
                       <Button
                         danger
                         disabled={isReadonly}
-                        onClick={() => setProductIds((current) => current.filter((id) => id !== productId))}
+                        onClick={() =>
+                          setProductIds((current) => current.filter((id) => id !== productId))
+                        }
                       >
                         {t('Remove')}
                       </Button>
@@ -328,18 +345,23 @@ export const CollectionFormPage = () => {
         title: t('SEO'),
         renderFields: () => (
           <>
-            <Form.Item label={t('SEO title')} name="seoTitle" rules={[{ required: true }]}>
-              <Input />
+            <Form.Item
+              label={t('SEO title')}
+              name="seoTitle"
+              rules={[{ max: 300 }]}
+              extra={t('Leave blank to use the name.')}
+            >
+              <Input maxLength={300} />
             </Form.Item>
             <Form.Item label={t('SEO description')} name="seoDescription">
               <Input.TextArea rows={3} />
             </Form.Item>
             <Form.Item
-              label={t('Change reason')}
+              label={t(requiresReason ? 'Change reason' : 'Notes (optional)')}
               name="reason"
-              rules={[{ required: true, min: 3 }]}
+              rules={[requiresReason ? { required: true, min: 3, max: 500 } : { max: 500 }]}
             >
-              <Input.TextArea rows={3} />
+              <Input.TextArea rows={3} maxLength={500} />
             </Form.Item>
           </>
         ),

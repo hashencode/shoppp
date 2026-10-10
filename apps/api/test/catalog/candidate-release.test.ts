@@ -725,7 +725,7 @@ describe("private candidate builder integration", () => {
     const app = appFor();
     const first = await app.fetch(
       adminRequest("/admin/catalog/releases/preview-candidates", {
-        body: JSON.stringify({ reason: "Abandon lifecycle" }),
+        body: JSON.stringify({}),
         method: "POST",
       }),
       env,
@@ -733,13 +733,25 @@ describe("private candidate builder integration", () => {
     const candidate = await first.json<{ data: { id: string } }>();
     const abandoned = await app.fetch(
       adminRequest(`/admin/catalog/releases/preview-candidates/${candidate.data.id}/abandon`, {
-        body: JSON.stringify({ reason: "No longer needed" }),
+        body: JSON.stringify({ reason: " " }),
         method: "POST",
       }),
       env,
     );
     expect(abandoned.status).toBe(200);
     expect(await abandoned.json()).toMatchObject({ data: { status: "abandoned" } });
+    expect(
+      (
+        await env.DB.prepare(
+          "SELECT action, reason FROM audit_events WHERE target_id = ? AND action IN ('catalog.candidate.build', 'catalog.candidate.abandon') ORDER BY action",
+        )
+          .bind(candidate.data.id)
+          .all()
+      ).results,
+    ).toEqual([
+      { action: "catalog.candidate.abandon", reason: null },
+      { action: "catalog.candidate.build", reason: null },
+    ]);
     const unavailable = await app.fetch(
       adminRequest(`/admin/catalog/releases/preview-candidates/${candidate.data.id}`),
       env,
@@ -766,6 +778,99 @@ describe("private candidate builder integration", () => {
     expect(status.status).toBe(200);
     expect(await status.json()).toMatchObject({ data: { status: "expired" } });
   });
+
+  test.each(["build", "abandon"] as const)(
+    "rejects forbidden notes before candidate %s mutates releases, artifacts, or expiry",
+    async (action) => {
+      const app = appFor();
+      const created = await app.fetch(
+        adminRequest("/admin/catalog/releases/preview-candidates", {
+          body: JSON.stringify({}),
+          method: "POST",
+        }),
+        env,
+      );
+      expect(created.status).toBe(201);
+      const { id } = (await created.json<{ data: { id: string } }>()).data;
+      if (action === "build") {
+        await env.DB.prepare(
+          "UPDATE catalog_releases SET candidate_expires_at = '2000-01-01T00:00:00.000Z' WHERE id = ?",
+        )
+          .bind(id)
+          .run();
+        const frozen = await env.MEDIA.list({ prefix: "catalog-release-media/sha256/" });
+        await Promise.all(frozen.objects.map(({ key }) => env.MEDIA.delete(key)));
+      } else {
+        await env.DB.prepare(
+          `INSERT INTO catalog_releases
+          (id, status, manifest_json, approved_at, created_at, updated_at, purpose, environment, manifest_digest, source_digest, candidate_status, candidate_expires_at)
+          SELECT 'candidate.invalid-note-expiry', status, manifest_json, approved_at, created_at, updated_at, purpose, environment, manifest_digest, ?, 'succeeded', '2000-01-01T00:00:00.000Z'
+          FROM catalog_releases WHERE id = ?`,
+        )
+          .bind("f".repeat(64), id)
+          .run();
+      }
+      const releasesBefore = await env.DB.prepare(
+        "SELECT * FROM catalog_releases WHERE purpose = 'private-preview' ORDER BY id",
+      ).all();
+      const sourcesBefore = await env.DB.prepare(
+        "SELECT * FROM catalog_release_sources ORDER BY release_id, source_kind, source_id",
+      ).all();
+      const ledgerBefore = await env.DB.prepare(
+        "SELECT * FROM catalog_release_media_ledger ORDER BY release_id, frozen_key",
+      ).all();
+      const objectsBefore = (
+        await env.MEDIA.list({ prefix: "catalog-release-media/sha256/" })
+      ).objects.map(({ key, etag }) => ({ key, etag }));
+      const auditBefore = await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM audit_events WHERE result = 'succeeded'",
+      ).first();
+      for (const [index, reason] of ["a\u0007", "a\u202e", "x\ny"].entries()) {
+        const path = `/admin/catalog/releases/preview-candidates${action === "abandon" ? `/${id}/abandon` : ""}`;
+        const rejected = await app.fetch(
+          adminRequest(path, {
+            body: JSON.stringify({ reason }),
+            headers: { "Idempotency-Key": `candidate-invalid-note-${action}-${index}` },
+            method: "POST",
+          }),
+          env,
+        );
+        expect(rejected.status).toBe(422);
+        expect(await rejected.json()).toMatchObject({ error: { code: "invalid_audit_reason" } });
+        expect(
+          (
+            await env.DB.prepare(
+              "SELECT * FROM catalog_releases WHERE purpose = 'private-preview' ORDER BY id",
+            ).all()
+          ).results,
+        ).toEqual(releasesBefore.results);
+        expect(
+          (
+            await env.DB.prepare(
+              "SELECT * FROM catalog_release_sources ORDER BY release_id, source_kind, source_id",
+            ).all()
+          ).results,
+        ).toEqual(sourcesBefore.results);
+        expect(
+          (
+            await env.DB.prepare(
+              "SELECT * FROM catalog_release_media_ledger ORDER BY release_id, frozen_key",
+            ).all()
+          ).results,
+        ).toEqual(ledgerBefore.results);
+        expect(
+          (await env.MEDIA.list({ prefix: "catalog-release-media/sha256/" })).objects.map(
+            ({ key, etag }) => ({ key, etag }),
+          ),
+        ).toEqual(objectsBefore);
+        expect(
+          await env.DB.prepare(
+            "SELECT COUNT(*) AS count FROM audit_events WHERE result = 'succeeded'",
+          ).first(),
+        ).toEqual(auditBefore);
+      }
+    },
+  );
 
   test("a published Navigation relation to a draft target fails with its backlink", async () => {
     const app = appFor();

@@ -21,8 +21,6 @@ async function prepareCollection(page: Page): Promise<void> {
   await page.goto("/collections", { waitUntil: "networkidle" });
   await page.locator("[data-fashion-store-collection][data-runtime-status='ready']").waitFor();
   await page.evaluate(async () => document.fonts.ready);
-  const cookieButton = page.getByRole("button", { name: "Allow cookies" });
-  if (await cookieButton.isVisible()) await cookieButton.click();
 }
 
 test("Collection preserves source cards, imagery, counts, order, links, and responsive composition", async ({
@@ -166,10 +164,6 @@ test("Shared header controls preserve route styling and truthful preview-cart st
   }
 
   await page.goto("/", { waitUntil: "networkidle" });
-  await page
-    .getByRole("button", { name: "Allow cookies" })
-    .click({ timeout: 2_000 })
-    .catch(() => undefined);
   const cartTrigger = page.getByRole("button", { name: "Open cart" });
   await cartTrigger.click();
   await expect(page.locator(".cart-item-list")).toContainText("Your cart is empty.");

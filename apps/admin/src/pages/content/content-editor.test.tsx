@@ -1,6 +1,6 @@
 import React from 'react'
 import { App } from 'antd'
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
@@ -20,7 +20,11 @@ if (!window.matchMedia) {
   })
 }
 if (!window.ResizeObserver) {
-  window.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver
+  window.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver
 }
 
 const page = {
@@ -70,6 +74,68 @@ afterEach(() => {
 afterAll(() => server.close())
 
 describe('Content editor', () => {
+  it('prefills only a new English slug and saves without duplicate SEO or notes', async () => {
+    server.use(
+      http.post('*/admin/content/pages', async ({ request }) => {
+        submitted = await request.json()
+        return HttpResponse.json({ data: page }, { status: 201 })
+      })
+    )
+    renderInLocale(
+      <AuthTestProvider permissions={['content.read', 'content.write']}>
+        <ThemeProvider>
+          <App>
+            <MemoryRouter initialEntries={['/content/pages/form?mode=add']}>
+              <PageEditorPage />
+            </MemoryRouter>
+          </App>
+        </ThemeProvider>
+      </AuthTestProvider>
+    )
+    await act(async () => {})
+    const title = screen.getByLabelText('Title')
+    const slug = screen.getByLabelText('Slug') as HTMLInputElement
+    fireEvent.change(title, { target: { value: 'Our Studio & Story' } })
+    fireEvent.blur(title)
+    expect(slug.value).toBe('our-studio-story')
+    fireEvent.change(slug, { target: { value: 'our-story' } })
+    fireEvent.change(title, { target: { value: 'Our Studio Stories' } })
+    fireEvent.blur(title)
+    expect(slug.value).toBe('our-story')
+    fireEvent.click(screen.getByRole('button', { name: 'Add Paragraph' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Paragraph 1' }), {
+      target: { value: 'Our story.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() =>
+      expect(submitted).toMatchObject({
+        title: 'Our Studio Stories',
+        slug: 'our-story',
+        reason: '',
+        seo: { title: '' },
+      })
+    )
+  })
+
+  it('leaves a new non-English slug for the author to supply', async () => {
+    renderInLocale(
+      <AuthTestProvider permissions={['content.read', 'content.write']}>
+        <ThemeProvider>
+          <App>
+            <MemoryRouter initialEntries={['/content/pages/form?mode=add']}>
+              <PageEditorPage />
+            </MemoryRouter>
+          </App>
+        </ThemeProvider>
+      </AuthTestProvider>
+    )
+    await act(async () => {})
+    const title = screen.getByLabelText('Title')
+    fireEvent.change(title, { target: { value: '关于我们的工作室' } })
+    fireEvent.blur(title)
+    expect((screen.getByLabelText('Slug') as HTMLInputElement).value).toBe('')
+  })
+
   it('preserves unsaved structured content when optimistic save fails', async () => {
     renderInLocale(
       <AuthTestProvider permissions={['content.read', 'content.write']}>
@@ -84,13 +150,20 @@ describe('Content editor', () => {
     )
     const paragraph = await screen.findByRole('textbox', { name: 'Paragraph 1' })
     fireEvent.change(paragraph, { target: { value: 'Unsaved story.' } })
-    fireEvent.change(screen.getByLabelText('Reason'), { target: { value: 'Revise the story' } })
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Edited business title' } })
+    fireEvent.blur(screen.getByLabelText('Title'))
+    expect((screen.getByLabelText('Slug') as HTMLInputElement).value).toBe('about')
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-    await waitFor(() => expect(submitted).toMatchObject({
-      body: [{ id: 'section.intro', kind: 'paragraph', text: 'Unsaved story.' }],
-      expectedVersion: 3,
-    }))
-    expect(await screen.findByText('This Content record changed. Reload it before continuing.')).toBeTruthy()
+    await waitFor(() =>
+      expect(submitted).toMatchObject({
+        body: [{ id: 'section.intro', kind: 'paragraph', text: 'Unsaved story.' }],
+        expectedVersion: 3,
+        reason: '',
+      })
+    )
+    expect(
+      await screen.findByText('This Content record changed. Reload it before continuing.')
+    ).toBeTruthy()
     expect((paragraph as HTMLTextAreaElement).value).toBe('Unsaved story.')
   })
 
@@ -106,7 +179,7 @@ describe('Content editor', () => {
         </ThemeProvider>
       </AuthTestProvider>
     )
-    expect((await screen.findByLabelText('Title') as HTMLInputElement).value).toBe('About')
+    expect(((await screen.findByLabelText('Title')) as HTMLInputElement).value).toBe('About')
     expect(screen.queryByRole('button', { name: 'Publish' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Archive' })).toBeNull()
   })
@@ -166,7 +239,9 @@ describe('Content editor', () => {
     fireEvent.change(screen.getByLabelText('Transition reason'), {
       target: { value: 'Publish reviewed copy' },
     })
-    expect((screen.getByRole('button', { name: 'Publish' }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: 'Publish' }) as HTMLButtonElement).disabled).toBe(
+      true
+    )
   })
 
   it('binds async detail state to the current route generation', async () => {
@@ -178,7 +253,9 @@ describe('Content editor', () => {
         return HttpResponse.json({ data: page })
       }),
       http.get('*/admin/content/pages/page.second', () =>
-        HttpResponse.json({ data: { ...page, id: 'page.second', slug: 'second', title: 'Second page' } })
+        HttpResponse.json({
+          data: { ...page, id: 'page.second', slug: 'second', title: 'Second page' },
+        })
       )
     )
     renderInLocale(
@@ -194,7 +271,9 @@ describe('Content editor', () => {
     )
     await waitFor(() => expect(firstStarted).toBe(true))
     fireEvent.click(screen.getByRole('button', { name: 'Open second page' }))
-    await waitFor(() => expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe('Second page'))
+    await waitFor(() =>
+      expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe('Second page')
+    )
     await new Promise((resolve) => setTimeout(resolve, 100))
     expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe('Second page')
   })

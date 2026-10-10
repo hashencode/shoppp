@@ -1,3 +1,9 @@
+import {
+  AnalysisMetricCard,
+  AnalysisReportCard,
+  AnalysisChart,
+  AnalysisRank,
+} from '../../../shared/template-kit/dashboard/analysis-ui'
 import { ArrowDownOutlined, ArrowUpOutlined, InfoCircleOutlined } from '@ant-design/icons'
 import {
   Button,
@@ -16,10 +22,17 @@ import {
 } from 'antd'
 import dayjs from 'dayjs'
 import ReactECharts from 'echarts-for-react'
-import { useState } from 'react'
-import { getPieSource, rankingStores, searchData, type SalesType } from '../../../infrastructure/msw/handlers/dashboard'
+import React, { useState } from 'react'
+import {
+  getPieSource,
+  rankingStores,
+  searchData,
+  type SalesType,
+} from '../../../infrastructure/msw/handlers/dashboard'
 import { useStandardPagination } from '../../../shared/hooks/use-standard-pagination'
 import { useTheme } from '../../../shared/contexts/theme-context'
+
+void React
 
 const metrics = {
   dailyActiveUsers: 1248,
@@ -49,71 +62,16 @@ export const AnalysisPage = () => {
   const { pagination } = useStandardPagination({ total: searchData.length })
   const accentText = token.colorPrimary
   const mutedText = token.colorTextSecondary
-  const chartAxisLine = token.colorBorderSecondary
-  const chartSplitLine = token.colorSplit
   const trendUpColor = token.colorSuccess
   const trendDownColor = token.colorError
-  const rankTopBg = token.colorText
-  const rankTopText = token.colorBgContainer
-  const rankOtherBg = token.colorFillSecondary
-  const rankOtherText = token.colorTextSecondary
-
-  const salesOption = {
-    tooltip: { trigger: 'axis' },
-    xAxis: {
-      type: 'category',
-      data: visitsData.map((item) => item.date),
-      boundaryGap: true,
-      axisLine: { lineStyle: { color: chartAxisLine } },
-      axisTick: { show: false },
-    },
-    yAxis: {
-      type: 'value',
-      splitLine: { lineStyle: { color: chartSplitLine } },
-    },
-    series: [
-      {
-        data: visitsData.map((item) => item.value),
-        type: 'bar',
-        barWidth: 26,
-        itemStyle: { color: token.colorPrimary, borderRadius: [6, 6, 0, 0] },
-      },
-    ],
-    grid: { left: 0, right: 0, top: 20, bottom: 20, containLabel: true },
-  }
-
-  const tinyAreaOption = {
-    xAxis: { type: 'category', show: false, boundaryGap: false, data: visitsData.map((item) => item.date) },
-    yAxis: { type: 'value', show: false },
-    series: [
-      {
-        data: visitsData.map((item) => item.value),
-        type: 'line',
-        smooth: true,
-        symbol: 'none',
-        lineStyle: { color: token.colorInfo, width: 2 },
-        areaStyle: { color: token.colorInfoBg },
-      },
-    ],
-    grid: { left: 0, right: 0, top: 0, bottom: 0 },
-  }
-
-  const tinyBarOption = {
-    xAxis: { type: 'category', show: false, boundaryGap: true, data: visitsData.map((item) => item.date) },
-    yAxis: { type: 'value', show: false },
-    series: [
-      {
-        data: visitsData.map((item) => item.value),
-        type: 'bar',
-        itemStyle: { color: token.colorPrimary },
-        barWidth: '55%',
-      },
-    ],
-    grid: { left: 0, right: 0, top: 0, bottom: 0 },
-  }
 
   const onlineAreaOption = {
-    xAxis: { type: 'category', show: false, boundaryGap: false, data: onlineTrend.map((item) => item.date) },
+    xAxis: {
+      type: 'category',
+      show: false,
+      boundaryGap: false,
+      data: onlineTrend.map((item) => item.date),
+    },
     yAxis: { type: 'value', show: false },
     series: [
       {
@@ -146,9 +104,7 @@ export const AnalysisPage = () => {
     <div className="space-y-4">
       <Row gutter={[24, 16]}>
         <Col xs={24} sm={12} xl={6} className="flex">
-          <Card
-            className="w-full [&_.ant-card-body]:!flex [&_.ant-card-body]:!min-h-[188px] [&_.ant-card-body]:!flex-col [&_.ant-card-body]:!px-5 [&_.ant-card-body]:!py-[18px] [&_.ant-card-head]:!px-5 [&_.ant-statistic-title]:!text-[var(--text-secondary)]"
-            variant="borderless"
+          <AnalysisMetricCard
             title={
               <Space size={6}>
                 总销售额
@@ -176,20 +132,16 @@ export const AnalysisPage = () => {
                 <span>日销售额 ￥12,423</span>
               </div>
             </div>
-          </Card>
+          </AnalysisMetricCard>
         </Col>
 
         <Col xs={24} sm={12} xl={6} className="flex">
-          <Card
-            className="w-full [&_.ant-card-body]:!flex [&_.ant-card-body]:!min-h-[188px] [&_.ant-card-body]:!flex-col [&_.ant-card-body]:!px-5 [&_.ant-card-body]:!py-[18px] [&_.ant-card-head]:!px-5 [&_.ant-statistic-title]:!text-[var(--text-secondary)]"
-            variant="borderless"
-            title="访问量"
-          >
+          <AnalysisMetricCard title="访问量">
             <div className="flex flex-grow flex-col">
               <div className={'flex-grow flex flex-col justify-between'}>
                 <Statistic value={metrics.dailyActiveUsers} />
                 <div>
-                  <ReactECharts option={tinyAreaOption} style={{ height: 46 }} theme={resolvedTheme === 'dark' ? 'dark' : undefined} />
+                  <AnalysisChart series={visitsData} kind="area" />
                 </div>
               </div>
               <Divider className="!my-3" />
@@ -197,20 +149,16 @@ export const AnalysisPage = () => {
                 <span>日访问量 1,234</span>
               </div>
             </div>
-          </Card>
+          </AnalysisMetricCard>
         </Col>
 
         <Col xs={24} sm={12} xl={6} className="flex">
-          <Card
-            className="w-full [&_.ant-card-body]:!flex [&_.ant-card-body]:!min-h-[188px] [&_.ant-card-body]:!flex-col [&_.ant-card-body]:!px-5 [&_.ant-card-body]:!py-[18px] [&_.ant-card-head]:!px-5 [&_.ant-statistic-title]:!text-[var(--text-secondary)]"
-            variant="borderless"
-            title="支付笔数"
-          >
+          <AnalysisMetricCard title="支付笔数">
             <div className="flex flex-grow flex-col">
               <div className={'flex-grow flex flex-col justify-between'}>
                 <Statistic value={6560} />
                 <div>
-                  <ReactECharts option={tinyBarOption} style={{ height: 46 }} theme={resolvedTheme === 'dark' ? 'dark' : undefined} />
+                  <AnalysisChart series={visitsData} kind="bars" />
                 </div>
               </div>
               <Divider className="!my-3" />
@@ -218,15 +166,11 @@ export const AnalysisPage = () => {
                 <span>转化率 13.4%</span>
               </div>
             </div>
-          </Card>
+          </AnalysisMetricCard>
         </Col>
 
         <Col xs={24} sm={12} xl={6} className="flex">
-          <Card
-            className="w-full [&_.ant-card-body]:!flex [&_.ant-card-body]:!min-h-[188px] [&_.ant-card-body]:!flex-col [&_.ant-card-body]:!px-5 [&_.ant-card-body]:!py-[18px] [&_.ant-card-head]:!px-5 [&_.ant-statistic-title]:!text-[var(--text-secondary)]"
-            variant="borderless"
-            title="运营活动效果"
-          >
+          <AnalysisMetricCard title="运营活动效果">
             <div className="flex flex-grow flex-col">
               <div className={'flex-grow flex flex-col justify-between'}>
                 <Statistic value={metrics.healthScore} suffix="%" />
@@ -255,13 +199,11 @@ export const AnalysisPage = () => {
                 <span>目标达成率稳定上升</span>
               </div>
             </div>
-          </Card>
+          </AnalysisMetricCard>
         </Col>
       </Row>
 
-      <Card
-        className="[&_.ant-card-head]:border-b [&_.ant-card-head]:border-[var(--border-muted)]"
-        variant="borderless"
+      <AnalysisReportCard
         tabList={[
           { key: 'sales', tab: '销售额' },
           { key: 'views', tab: '访问量' },
@@ -298,13 +240,16 @@ export const AnalysisPage = () => {
             >
               本年
             </Button>
-            <DatePicker.RangePicker variant={'filled'} value={[dayjs().subtract(6, 'day'), dayjs()]} />
+            <DatePicker.RangePicker
+              variant={'filled'}
+              value={[dayjs().subtract(6, 'day'), dayjs()]}
+            />
           </Space>
         }
       >
         <Row gutter={[48, 16]}>
           <Col xs={24} lg={16}>
-            <ReactECharts option={salesOption} style={{ height: 300 }} theme={resolvedTheme === 'dark' ? 'dark' : undefined} />
+            <AnalysisChart series={visitsData} />
           </Col>
           <Col xs={24} lg={8}>
             <Typography.Title level={5}>
@@ -312,17 +257,12 @@ export const AnalysisPage = () => {
             </Typography.Title>
             <ul className="mt-2.5 list-none p-0">
               {rankingStores.map((item) => (
-                <li key={item.rank} className="mt-4 flex items-center gap-2" style={{ color: token.colorText }}>
-                  <span
-                    className="inline-flex h-5 w-5 items-center justify-center rounded-full text-xs"
-                    style={
-                      item.rank <= 3
-                        ? { background: rankTopBg, color: rankTopText }
-                        : { background: rankOtherBg, color: rankOtherText }
-                    }
-                  >
-                    {item.rank}
-                  </span>
+                <li
+                  key={item.rank}
+                  className="mt-4 flex items-center gap-2"
+                  style={{ color: token.colorText }}
+                >
+                  <AnalysisRank rank={item.rank} />
                   <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                     {item.name}
                   </span>
@@ -337,7 +277,7 @@ export const AnalysisPage = () => {
             </ul>
           </Col>
         </Row>
-      </Card>
+      </AnalysisReportCard>
 
       <Row gutter={[24, 16]}>
         <Col xs={24} xl={12}>
@@ -345,11 +285,19 @@ export const AnalysisPage = () => {
             <Row gutter={[24, 16]}>
               <Col span={12}>
                 <Statistic title="搜索用户数" value={12321} />
-                <ReactECharts option={onlineAreaOption} style={{ height: 48 }} theme={resolvedTheme === 'dark' ? 'dark' : undefined} />
+                <ReactECharts
+                  option={onlineAreaOption}
+                  style={{ height: 48 }}
+                  theme={resolvedTheme === 'dark' ? 'dark' : undefined}
+                />
               </Col>
               <Col span={12}>
                 <Statistic title="人均搜索次数" value={2.7} />
-                <ReactECharts option={onlineAreaOption} style={{ height: 48 }} theme={resolvedTheme === 'dark' ? 'dark' : undefined} />
+                <ReactECharts
+                  option={onlineAreaOption}
+                  style={{ height: 48 }}
+                  theme={resolvedTheme === 'dark' ? 'dark' : undefined}
+                />
               </Col>
             </Row>
             <Table
@@ -395,7 +343,11 @@ export const AnalysisPage = () => {
               />
             }
           >
-            <ReactECharts option={proportionOption} style={{ height: 340 }} theme={resolvedTheme === 'dark' ? 'dark' : undefined} />
+            <ReactECharts
+              option={proportionOption}
+              style={{ height: 340 }}
+              theme={resolvedTheme === 'dark' ? 'dark' : undefined}
+            />
           </Card>
         </Col>
       </Row>

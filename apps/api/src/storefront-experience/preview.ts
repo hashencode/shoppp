@@ -4,6 +4,7 @@ import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
 import { opaqueAccessToken, sha256Hex } from "../orders/tokens";
+import { normalizeAuditReason } from "../security/audit-reason";
 import { getCanonicalDeployedCatalogRelease } from "./catalog-resources";
 import { toPreviewInputIdentity, type PreviewInputIdentityRow } from "./input-identity";
 import { parsePersistedMediaOrigins } from "./media-origins";
@@ -133,6 +134,7 @@ export async function createStorefrontPreviewGrant(
   catalogReleaseId?: string,
   options?: StorefrontExperienceServiceOptions,
 ) {
+  const auditReason = normalizeAuditReason(reason);
   requireConfiguredPreviewOrigin(context.env, origin);
   const snapshot = await getStorefrontExperienceSnapshot(context.env.DB, snapshotId);
   assertStorefrontThemePackageActivatable(
@@ -204,7 +206,7 @@ export async function createStorefrontPreviewGrant(
       expiresAt,
       snapshotId,
     },
-    reason,
+    reason: auditReason,
     requestId: context.get("requestId"),
     result: "succeeded",
     targetId: id,
@@ -409,6 +411,7 @@ export async function revokeStorefrontPreviewAccess(
   snapshotId: string,
   reason: string,
 ) {
+  const auditReason = normalizeAuditReason(reason);
   await getStorefrontExperienceSnapshot(context.env.DB, snapshotId);
   const now = new Date().toISOString();
   const [grants, sessions] = await context.env.DB.batch([
@@ -432,7 +435,7 @@ export async function revokeStorefrontPreviewAccess(
       sessionsRevoked,
       snapshotId,
     },
-    reason,
+    reason: auditReason,
     requestId: context.get("requestId"),
     result: "succeeded",
     targetId: snapshotId,

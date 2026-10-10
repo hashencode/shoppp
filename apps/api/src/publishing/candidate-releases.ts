@@ -11,6 +11,7 @@ import type { Context } from "hono";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
 import { recordAuditEvent } from "../iam/audit";
+import { normalizeAuditReason } from "../security/audit-reason";
 import { contentRoute } from "../content/resources";
 import { buildCatalogReleaseManifest } from "./build-manifest";
 import { candidateLedgerChunks, stableCandidateJson } from "./candidate-ledger";
@@ -925,6 +926,7 @@ export async function buildPrivateCatalogCandidate(
   if (principal.principalKind !== "human") {
     throw new ApiError(403, "human_principal_required", "A human operator must build candidates.");
   }
+  const auditReason = normalizeAuditReason(reason);
   const environment = context.env.ENVIRONMENT;
   const now = new Date().toISOString();
   await expirePrivateCatalogCandidates(context.env.DB, now);
@@ -1098,7 +1100,7 @@ export async function buildPrivateCatalogCandidate(
       sourceDigest,
       sourceCount: captured.sources.sources.length,
     },
-    reason,
+    reason: auditReason,
     requestId: context.get("requestId"),
     result: "succeeded",
     targetId: releaseId,
@@ -1226,6 +1228,7 @@ export async function abandonPrivateCatalogCandidate(
       "A human operator must abandon candidates.",
     );
   }
+  const auditReason = normalizeAuditReason(reason);
   const now = new Date().toISOString();
   await expirePrivateCatalogCandidates(context.env.DB, now);
   const current = await getPrivateCatalogCandidateStatus(
@@ -1263,7 +1266,7 @@ export async function abandonPrivateCatalogCandidate(
     actorType: "admin",
     id: crypto.randomUUID(),
     metadata: { environment: context.env.ENVIRONMENT },
-    reason,
+    reason: auditReason,
     requestId: context.get("requestId"),
     result: "succeeded",
     targetId: id,

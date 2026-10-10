@@ -1,6 +1,6 @@
 import * as z from "zod";
 
-import { isoDateTimeSchema, publicIdSchema } from "./common";
+import { isoDateTimeSchema, optionalAuditReasonSchema, publicIdSchema } from "./common";
 import {
   credentialFreeHttpsUrlSchema,
   storefrontLinkSchema,
@@ -48,6 +48,7 @@ const seoSchema = z
     title: z.string().trim().min(1).max(160),
   })
   .strict();
+const seoInputSchema = seoSchema.extend({ title: z.string().trim().max(160).default("") });
 const authorityMetadata = {
   createdAt: isoDateTimeSchema,
   id: stableAuthorityIdSchema,
@@ -139,12 +140,12 @@ export const publishableContentDocumentSchema = z
 export const storeIdentitySchema = z
   .object({
     ...authorityMetadata,
-    faviconAssetId: stableAuthorityIdSchema.optional(),
+    faviconAssetId: contentMediaAssetIdSchema.optional(),
     logoAssets: z
       .array(
         z
           .object({
-            assetId: stableAuthorityIdSchema,
+            assetId: contentMediaAssetIdSchema,
             variant: z.enum(["primary", "light", "dark", "compact"]),
           })
           .strict(),
@@ -152,7 +153,7 @@ export const storeIdentitySchema = z
       .min(1)
       .max(4),
     seo: seoSchema,
-    socialShareAssetId: stableAuthorityIdSchema.optional(),
+    socialShareAssetId: contentMediaAssetIdSchema.optional(),
     status: statusSchema,
     storefrontName: z.string().trim().min(1).max(120),
     tagline: safeTextSchema.trim().max(240),
@@ -240,7 +241,7 @@ export const contentArticleSchema = z
 
 const contentEditableFields = {
   body: publishableContentDocumentSchema,
-  seo: seoSchema,
+  seo: seoInputSchema,
   slug: slugSchema,
   summary: safeTextSchema.trim().max(500),
   title: z.string().trim().min(1).max(160),
@@ -250,18 +251,26 @@ export const contentPageWriteRequestSchema = z
   .object({
     ...contentEditableFields,
     expectedVersion: z.int().positive().optional(),
-    reason: z.string().trim().min(3).max(500),
+    reason: optionalAuditReasonSchema,
   })
-  .strict();
+  .strict()
+  .transform((value) => ({
+    ...value,
+    seo: { ...value.seo, title: value.seo.title || value.title },
+  }));
 
 export const contentArticleWriteRequestSchema = z
   .object({
     ...contentEditableFields,
     coverAssetId: contentMediaAssetIdSchema.nullable(),
     expectedVersion: z.int().positive().optional(),
-    reason: z.string().trim().min(3).max(500),
+    reason: optionalAuditReasonSchema,
   })
-  .strict();
+  .strict()
+  .transform((value) => ({
+    ...value,
+    seo: { ...value.seo, title: value.seo.title || value.title },
+  }));
 
 export const contentTransitionRequestSchema = z
   .object({
@@ -352,7 +361,7 @@ export const navigationMenuWriteRequestSchema = z
   .object({
     expectedVersion: z.int().positive().optional(),
     items: z.array(navigationMenuItemInputSchema).max(100),
-    reason: z.string().trim().min(3).max(500),
+    reason: optionalAuditReasonSchema,
   })
   .strict()
   .superRefine((input, context) => {
@@ -416,10 +425,10 @@ export const authorityWriteRequestSchema = z
   .strict();
 
 const identityEditableFields = {
-  faviconAssetId: stableAuthorityIdSchema.nullable(),
+  faviconAssetId: contentMediaAssetIdSchema.nullable(),
   logoAssets: storeIdentitySchema.shape.logoAssets,
-  seo: seoSchema,
-  socialShareAssetId: stableAuthorityIdSchema.nullable(),
+  seo: seoInputSchema,
+  socialShareAssetId: contentMediaAssetIdSchema.nullable(),
   storefrontName: z.string().trim().min(1).max(120),
   tagline: safeTextSchema.trim().max(240),
 };
@@ -428,9 +437,13 @@ export const updateStoreIdentityRequestSchema = z
   .object({
     ...identityEditableFields,
     expectedVersion: z.int().positive().nullable(),
-    reason: z.string().trim().min(3).max(500),
+    reason: optionalAuditReasonSchema,
   })
-  .strict();
+  .strict()
+  .transform((value) => ({
+    ...value,
+    seo: { ...value.seo, title: value.seo.title || value.storefrontName },
+  }));
 
 const policyEditableFields = {
   effectiveDate: z.iso.date(),
@@ -443,7 +456,7 @@ const policyEditableFields = {
 export const createPolicyRequestSchema = z
   .object({
     ...policyEditableFields,
-    reason: z.string().trim().min(3).max(500),
+    reason: optionalAuditReasonSchema,
   })
   .strict();
 
@@ -451,7 +464,7 @@ export const updatePolicyRequestSchema = z
   .object({
     ...policyEditableFields,
     expectedVersion: z.int().positive(),
-    reason: z.string().trim().min(3).max(500),
+    reason: optionalAuditReasonSchema,
   })
   .strict();
 
