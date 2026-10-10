@@ -44,3 +44,11 @@ Owning plan: [管理后台商家任务与发布流程重构](../plans/2026-10-10
 - Host 实际检查生产与测试 diff；另运行原 welcome/dashboard 2 suites，28/28 通过，覆盖正常、空、加载、错误、权限与数据状态。7/7 protected hashes 一致。
 - changed-file ESLint、Prettier 和 diff check 通过。类型和原生浏览器收尾留给 U6。测试运行器使用本地回环端口，sandbox EPERM 后同命令升级权限运行；失败不是产品行为失败。
 - 不引入导航 registry、焦点/ARIA 框架；保留原 AntD 与 recipe 合同。
+
+## U3 动作与真实状态验证
+
+- behavior_changed: true。移除无 storefront consumer 的商品 token 预览入口与 Admin adapter；保留商品检查、修订数据检查及真实发布。来源发布只表示供后续店铺版本使用，历史部署进入闭合详情；私有构建可预览与批准待正式发布明确区分。
+- 既有 10 个页面 consumer suites 更新后先观察旧入口、历史状态与反馈的预期失败；最终 94/94 通过（`--pool.maxWorkers 2`，59.4 秒）。未修改超时；先前重型并行的七项超时未复现。Catalog 再检查 7/7 通过。纯按钮文案改名以 diff/引用检查验证，调用保持不变。
+- 只读 content 编辑器中，发布确认的 OK/Cancel 继承了 Form 禁用状态。隔离测试先证明 OK disabled，再以局部按钮属性恢复已授权的确认与取消；保留 dirty、busy、reason、version 和权限 guards，没有 dirty 豁免。
+- Host 审查生产 diff、测试变更和最终日志；changed-file ESLint 与 diff check 通过。Protected 页面、既有翻译值及后端合同保持；未实现 token 前台、新发布平台或 active 状态推断。
+- 临时运行日志：`/tmp/shoppp-u3-focused-final.log`、`/tmp/shoppp-u3-content-confirm-red.log`、`/tmp/shoppp-u3-revision-red.log`。执行体以本计划 U3 完成项为准，日志不承担队列权威。

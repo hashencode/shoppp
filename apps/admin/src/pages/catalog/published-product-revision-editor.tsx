@@ -68,7 +68,7 @@ export function PublishedProductRevisionEditor({ canEdit, detail, onChanged }: P
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
+  const [notice, setNotice] = useState<{ message: string; releaseId?: string } | null>(null)
   const [preview, setPreview] = useState<Awaited<
     ReturnType<typeof previewPublishedProductRevision>
   > | null>(null)
@@ -168,7 +168,7 @@ export function PublishedProductRevisionEditor({ canEdit, detail, onChanged }: P
       setPendingFiles({})
       setNewMediaIds([])
       setPreview(null)
-      setNotice(t('Product revision saved as draft. The published page has not changed.'))
+      setNotice({ message: t('Product revision saved as draft. The published page has not changed.') })
       onChanged()
     } catch (cause) {
       setError(normalizeApiError(cause).message)
@@ -193,9 +193,10 @@ export function PublishedProductRevisionEditor({ canEdit, detail, onChanged }: P
       const next = await fetchPublishedProductRevisions(productId)
       setState(next)
       setPreview(null)
-      setNotice(
-        `${t('Catalog release build started')}: ${build.releaseId}. ${t('The live page changes only after deployment.')}`
-      )
+      setNotice({
+        message: t('Revision publication started. The storefront changes after deployment.'),
+        releaseId: build.releaseId,
+      })
       onChanged()
     } catch (cause) {
       setError(normalizeApiError(cause).message)
@@ -222,17 +223,27 @@ export function PublishedProductRevisionEditor({ canEdit, detail, onChanged }: P
       <h2 className="text-lg font-semibold">{t('Published Product revision')}</h2>
       <p>
         {t(
-          'Edits are staged separately. Publishing builds a new release and preserves older releases and Product IDs.'
+          'This editor changes product content and presentation. Price, SKU, weight and dimensions remain read-only.'
         )}
       </p>
       {error ? <Alert showIcon type="error" title={error} /> : null}
-      {notice ? <Alert showIcon type="info" title={notice} /> : null}
+      {notice ? (
+        <div className="space-y-2">
+          <p>{notice.message}</p>
+          {notice.releaseId ? (
+            <details>
+              <summary>{t('Product publication details')}</summary>
+              {notice.releaseId}
+            </details>
+          ) : null}
+        </div>
+      ) : null}
       {preview ? (
         <section
-          aria-label={t('Staged Product preview')}
+          aria-label={t('Saved revision data')}
           className="rounded border border-solid border-gray-200 p-3"
         >
-          <h3 className="font-medium">{t('Staged Product preview')}</h3>
+          <h3 className="font-medium">{t('Saved revision data')}</h3>
           <p>
             {preview.product.name} · /products/{preview.product.slug}
           </p>
@@ -248,7 +259,14 @@ export function PublishedProductRevisionEditor({ canEdit, detail, onChanged }: P
       ) : null}
       <p>
         {t('Product version')}: {state?.productVersion ?? detail.product.version} ·{' '}
-        {t('Revision status')}: {state?.draft?.status ?? t('No draft')}
+        {t('Revision status')}:{' '}
+        {state?.draft
+          ? t(
+              { draft: 'Draft', building: 'Building', published: 'Published', failed: 'Failed' }[
+                state.draft.status
+              ] ?? state.draft.status
+            )
+          : t('No draft')}
       </p>
       <label className="block space-y-1">
         <span>{t('Name')}</span>
@@ -570,8 +588,9 @@ export function PublishedProductRevisionEditor({ canEdit, detail, onChanged }: P
         {t('Save staged revision')}
       </Button>
       <Button disabled={!state?.draft || busy} onClick={() => void inspectDraft()}>
-        {t('Preview staged data')}
+        {t('Inspect saved revision')}
       </Button>
+      <p>{t('Publishing starts a public storefront build. Changes appear only after deployment.')}</p>
       <label className="block space-y-1">
         <span>{t('Publication reason')}</span>
         <Input.TextArea
@@ -600,7 +619,7 @@ export function PublishedProductRevisionEditor({ canEdit, detail, onChanged }: P
           loading={busy}
           onClick={() => void publish(null)}
         >
-          {t('Build review-only release')}
+          {t('Publish review updates')}
         </Button>
       </div>
     </section>

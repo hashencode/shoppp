@@ -204,7 +204,9 @@ describe('Content editor', () => {
   it('renders the editor lifecycle status with a complete translation key', async () => {
     server.use(
       http.get('*/admin/content/pages/page.about', () =>
-        HttpResponse.json({ data: { ...page, status: 'published' } })
+        HttpResponse.json({
+          data: { ...page, status: 'published', inclusion: { candidate: true, live: true } },
+        })
       )
     )
     renderInLocale(
@@ -221,6 +223,60 @@ describe('Content editor', () => {
     )
     expect(await screen.findByText('已发布')).toBeTruthy()
     expect(screen.queryByText('published')).toBeNull()
+    const details = screen.getByText('内容版本详情').closest('details')
+    expect(details?.open).toBe(false)
+    expect(screen.getByText('此来源曾被已部署的店铺版本使用。')).toBeTruthy()
+    expect(screen.queryByText('已上线')).toBeNull()
+  })
+
+  it('publishes a saved source with its version confirmation and future-storefront boundary', async () => {
+    let publication: unknown
+    server.use(
+      http.post('*/admin/content/pages/page.about/publish', async ({ request }) => {
+        publication = await request.json()
+        return HttpResponse.json({
+          data: { ...page, status: 'published', inclusion: { candidate: true, live: true } },
+        })
+      })
+    )
+    renderInLocale(
+      <AuthTestProvider permissions={['content.read', 'content.publish']}>
+        <ThemeProvider>
+          <App>
+            <MemoryRouter initialEntries={['/content/pages/form?mode=readonly&id=page.about']}>
+              <PageEditorPage />
+            </MemoryRouter>
+          </App>
+        </ThemeProvider>
+      </AuthTestProvider>
+    )
+    await screen.findByRole('button', { name: 'Publish' })
+    fireEvent.change(screen.getByLabelText('Transition reason'), {
+      target: { value: 'Publish reviewed copy' },
+    })
+    expect(screen.getByRole('button', { name: 'Publish' }).hasAttribute('disabled')).toBe(false)
+    expect((screen.getByLabelText('Title') as HTMLInputElement).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
+    expect(
+      await screen.findByText(
+        'This content becomes available to future storefront versions. The current storefront is unchanged.'
+      )
+    ).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'OK' }).hasAttribute('disabled')).toBe(false)
+    expect(screen.getByRole('button', { name: 'Cancel' }).hasAttribute('disabled')).toBe(false)
+    fireEvent.click(screen.getByRole('button', { name: 'OK' }))
+    await waitFor(() =>
+      expect(publication).toMatchObject({
+        confirm: true,
+        expectedVersion: 3,
+        reason: 'Publish reviewed copy',
+        redirectFromOldSlug: true,
+      })
+    )
+    expect(
+      await screen.findByText('Content published for future storefront versions.')
+    ).toBeTruthy()
+    expect(screen.queryByText('Live included')).toBeNull()
   })
 
   it('blocks lifecycle actions while authoring input is unsaved', async () => {

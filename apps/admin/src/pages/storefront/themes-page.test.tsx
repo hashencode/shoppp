@@ -54,7 +54,9 @@ describe('ThemesPage', () => {
     expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(1)
     expect(await screen.findByRole('button', { name: 'New experience draft' })).toBeTruthy()
     expect(
-      screen.getByText('Production keeps its current theme until a draft is approved and deployed.')
+      screen.getByText(
+        'Saving or approving a design does not update the storefront. Approved designs await formal release.'
+      )
     ).toBeTruthy()
     expect(
       screen.queryByText(

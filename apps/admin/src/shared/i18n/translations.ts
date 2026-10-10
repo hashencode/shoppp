@@ -1,4 +1,40 @@
 export const zhCNMessages: Record<string, string> = {
+  'Publish review updates': '发布评价更新',
+  'Product publication details': '商品发布详情',
+  'Publishing starts a public storefront build. Changes appear only after deployment.':
+    '发布会开始构建公开店铺版本，部署后才会更新展示。',
+  'Product publication started. The storefront changes after deployment.':
+    '商品发布已开始，店铺展示将在部署后更新。',
+  'Content version details': '内容版本详情',
+  'Navigation version details': '菜单版本详情',
+  'Collection version details': '系列版本详情',
+  'This version was included in a deployed storefront version.': '此来源曾被已部署的店铺版本使用。',
+  'A deployed storefront version used an earlier source version.':
+    '曾部署的店铺版本使用了较早的来源版本。',
+  'This content becomes available to future storefront versions. The current storefront is unchanged.':
+    '发布后，此内容可供后续店铺版本使用；当前店铺展示不变。',
+  'This menu becomes available to future storefront versions. The current storefront is unchanged.':
+    '发布后，此菜单可供后续店铺版本使用；当前店铺展示不变。',
+  'This collection becomes available to future storefront versions. The current storefront is unchanged.':
+    '发布后，此系列可供后续店铺版本使用；当前店铺展示不变。',
+  'Content published for future storefront versions.': '内容已发布，可供后续店铺版本使用。',
+  'Menu published for future storefront versions.': '菜单已发布，可供后续店铺版本使用。',
+  'Collection published for future storefront versions.': '系列已发布，可供后续店铺版本使用。',
+  'Saved revision data': '已保存修订数据',
+  'Inspect saved revision': '检查已保存修订',
+  'This editor changes product content and presentation. Price, SKU, weight and dimensions remain read-only.':
+    '这里可修订商品内容和展示，价格、SKU、重量和尺寸暂不可修改。',
+  'Revision publication started. The storefront changes after deployment.':
+    '修订发布已开始，店铺展示将在部署后更新。',
+  'Saving or approving a design does not update the storefront. Approved designs await formal release.':
+    '保存或批准装修不会更新店铺展示；批准后仍待正式发布。',
+  'Ready to preview': '可预览',
+  'Store preview': '店铺预览',
+  'Design draft saved. The storefront is unchanged.': '装修草稿已保存，店铺展示不变。',
+  'Approval freezes this design for formal release. It does not update the storefront.':
+    '批准会固定此装修版本供正式发布使用，不会更新店铺展示。',
+  'Design approved. Formal release is still required.': '装修已批准，仍待正式发布。',
+  'Approved, awaiting formal release': '已批准，待正式发布',
   'Effective date': '生效日期',
   Digest: '内容摘要',
   'Currently published · version {version}': '已发布版本 · {version}',

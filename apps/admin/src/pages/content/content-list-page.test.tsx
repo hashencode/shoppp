@@ -27,7 +27,7 @@ const serverRecord = {
   body: [{ id: 'section.intro', kind: 'paragraph', text: 'Useful notes.' }],
   createdAt: '2026-09-23T00:00:00.000Z',
   id: 'article.useful-notes',
-  inclusion: { candidate: true, live: false },
+  inclusion: { candidate: true, live: true },
   route: '/magazine/useful-notes',
   seo: { description: 'Useful notes', title: 'Useful notes' },
   slug: 'useful-notes',
@@ -88,7 +88,10 @@ describe.sequential('ContentArticlesListPage', () => {
     )
     await waitFor(() => expect(screen.getByText('Useful notes')).toBeTruthy())
     expect(screen.getByText('/magazine/useful-notes')).toBeTruthy()
-    expect(screen.getByText('Candidate included')).toBeTruthy()
+    expect(screen.getByText('Published')).toBeTruthy()
+    expect(screen.queryByText('Live included')).toBeNull()
+    expect(screen.queryByText('Not live')).toBeNull()
+    expect(screen.queryByText('Candidate included')).toBeNull()
     expect(screen.queryByRole('button', { name: 'New article' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Publish' })).toBeNull()

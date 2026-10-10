@@ -183,7 +183,15 @@ export const CollectionFormPage = () => {
       setDetail(saved)
       setProductIds(saved.productIds)
       form.setFieldsValue({ ...toValues(saved), reason: '' })
-      void message.success(t(detail ? 'Collection saved' : 'Collection created'))
+      void message.success(
+        t(
+          saved.status === 'published'
+            ? 'Collection published for future storefront versions.'
+            : detail
+              ? 'Collection saved'
+              : 'Collection created'
+        )
+      )
     } catch (error) {
       const normalized = normalizeApiError(error)
       setSaveError(normalized.message)
@@ -261,7 +269,18 @@ export const CollectionFormPage = () => {
             <Form.Item label={t('Cover media')} name="coverAssetId">
               <ContentMediaSelect allowClear disabled={isReadonly} source="collection" />
             </Form.Item>
-            <Form.Item label={t('Status')} name="status" rules={[{ required: true }]}>
+            <Form.Item
+              label={t('Status')}
+              name="status"
+              rules={[{ required: true }]}
+              extra={
+                targetStatus === 'published'
+                  ? t(
+                      'This collection becomes available to future storefront versions. The current storefront is unchanged.'
+                    )
+                  : undefined
+              }
+            >
               <Select
                 options={[
                   { label: t('Draft'), value: 'draft' },
@@ -370,27 +389,31 @@ export const CollectionFormPage = () => {
     renderAfterForm: (
       <Space orientation="vertical" className="w-full">
         {detail ? (
-          <Alert
-            type={detail.candidate.liveReleaseId ? 'success' : 'info'}
-            title={t('Saved Collection version {version}', { version: detail.version })}
-            description={
+          <Space orientation="vertical" className="w-full">
+            <Tag>
+              {t(
+                detail.status === 'draft'
+                  ? 'Draft'
+                  : detail.status === 'published'
+                    ? 'Published'
+                    : 'Archived'
+              )}
+            </Tag>
+            <details>
+              <summary>{t('Collection version details')}</summary>
               <Space wrap>
-                <Tag>
-                  {t(
-                    detail.status === 'draft'
-                      ? 'Draft'
-                      : detail.status === 'published'
-                        ? 'Published'
-                        : 'Archived'
-                  )}
-                </Tag>
+                <Tag>{t('Saved Collection version {version}', { version: detail.version })}</Tag>
                 {detail.candidate.candidateReleaseId ? (
                   <Tag color="blue">{t('Candidate')}</Tag>
                 ) : null}
-                {detail.candidate.liveReleaseId ? <Tag color="green">{t('Live')}</Tag> : null}
+                {detail.candidate.liveReleaseId ? (
+                  <span>{t('This version was included in a deployed storefront version.')}</span>
+                ) : detail.candidate.liveStaleCause ? (
+                  <span>{t('A deployed storefront version used an earlier source version.')}</span>
+                ) : null}
               </Space>
-            }
-          />
+            </details>
+          </Space>
         ) : null}
         {saveError ? <Alert type="error" title={saveError} /> : null}
         <CollectionBlockedDependencies backlinks={backlinks} />

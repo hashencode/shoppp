@@ -101,6 +101,32 @@ const renderPage = (entry = '/catalog/collections/form?mode=modify&id=collection
   )
 
 describe('CollectionFormPage', () => {
+  it('shows a published collection as a future source and keeps historical deployment in closed details', async () => {
+    server.use(
+      http.get('*/admin/catalog/collections/collection-001', () =>
+        HttpResponse.json({
+          data: {
+            ...collection,
+            status: 'published',
+            candidate: {
+              ...collection.candidate,
+              liveReleaseId: 'historical-release',
+              liveStaleCause: null,
+            },
+          },
+        })
+      )
+    )
+    renderPage('/catalog/collections/form?mode=readonly&id=collection-001')
+    expect(
+      await screen.findByText('发布后，此系列可供后续店铺版本使用；当前店铺展示不变。')
+    ).toBeTruthy()
+    expect(screen.getByText('系列版本详情').closest('details')?.open).toBe(false)
+    expect(screen.getByText('此来源曾被已部署的店铺版本使用。')).toBeTruthy()
+    expect(screen.queryByText('已上线')).toBeNull()
+    expect(screen.queryByRole('button', { name: /^保\s*存$/ })).toBeNull()
+  })
+
   it('searches beyond the first media page and submits the selected cover stable ID', async () => {
     const queries: string[] = []
     server.use(

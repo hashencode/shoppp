@@ -131,7 +131,7 @@ export const ThemesPage = () => {
             {t('Approved packages')}
           </Typography.Title>
           <Typography.Paragraph type="secondary">
-            {t('Production keeps its current theme until a draft is approved and deployed.')}
+            {t('Saving or approving a design does not update the storefront. Approved designs await formal release.')}
           </Typography.Paragraph>
           <Row gutter={[16, 16]}>
             {themes.map((theme) => (

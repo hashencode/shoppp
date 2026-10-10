@@ -98,8 +98,9 @@ describe('CollectionListPage', () => {
 
     await waitFor(() => expect(requestedProductId).toBe('product-001'))
     expect(screen.getByText('Carry-on')).toBeTruthy()
-    expect(screen.getByText(/Candidate included/)).toBeTruthy()
-    expect(screen.getByText('Live stale: saved version is newer')).toBeTruthy()
+    expect(screen.getByText('Draft')).toBeTruthy()
+    expect(screen.queryByText(/Candidate included/)).toBeNull()
+    expect(screen.queryByText('Live stale: saved version is newer')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Publish' })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
     expect(

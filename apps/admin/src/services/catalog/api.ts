@@ -475,15 +475,6 @@ export const uploadCatalogMedia = async (
   return response.data.data
 }
 
-export const previewCatalogProduct = async (
-  id: string
-): Promise<{ token: string; expiresAt: string }> => {
-  const response = await apiClient.post<{ data: { token: string; expiresAt: string } }>(
-    `/admin/catalog/products/${id}/preview`
-  )
-  return response.data.data
-}
-
 export const publishCatalogProduct = async (
   id: string,
   reason: string,

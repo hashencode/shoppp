@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react'
-import { Alert, Button, Space, Table, Tag } from 'antd'
+import { Alert, Button, Table, Tag } from 'antd'
 import dayjs from 'dayjs'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { hasPermission } from '../../infrastructure/auth/permissions'
@@ -99,31 +99,10 @@ export const CollectionListPage = () => {
           {
             dataIndex: 'status',
             key: 'status',
-            title: t('Release state'),
-            width: 260,
-            render: (status: CatalogCollection['status'], record) => (
-              <Space wrap size={[4, 4]}>
-                <Tag color={statusStyle[status].color}>{t(statusStyle[status].label)}</Tag>
-                <Tag>{t('Saved v{version}', { version: record.version })}</Tag>
-                {record.candidate.candidateReleaseId ? (
-                  <Tag color="blue">
-                    {t('Candidate included')} · {record.candidate.candidateDigest?.slice(0, 8)}
-                  </Tag>
-                ) : record.candidate.candidateStaleCause ? (
-                  <Tag color="orange">{t('Candidate stale: saved version is newer')}</Tag>
-                ) : (
-                  <Tag>{t('Not in candidate')}</Tag>
-                )}
-                {record.candidate.liveReleaseId ? (
-                  <Tag color="green">
-                    {t('Live included')} · {record.candidate.liveDigest?.slice(0, 8)}
-                  </Tag>
-                ) : record.candidate.liveStaleCause ? (
-                  <Tag color="orange">{t('Live stale: saved version is newer')}</Tag>
-                ) : (
-                  <Tag>{t('Not live')}</Tag>
-                )}
-              </Space>
+            title: t('Status'),
+            width: 120,
+            render: (status: CatalogCollection['status']) => (
+              <Tag color={statusStyle[status].color}>{t(statusStyle[status].label)}</Tag>
             ),
           },
           {

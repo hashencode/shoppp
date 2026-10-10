@@ -50,6 +50,7 @@ const server = setupServer(
           name: 'Carry-on',
           slug: 'carry-on',
           status: 'draft',
+          version: 1,
           updated_at: '2026-07-30T00:00:00.000Z',
         },
       ],
@@ -84,6 +85,8 @@ describe('CatalogListPage', () => {
     renderPage()
     await waitFor(() => expect(screen.getByText('Carry-on')).toBeTruthy())
     expect(requestedPageSizes).toEqual([10])
+    expect(screen.queryByRole('button', { name: 'Preview' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'View' })).toBeTruthy()
 
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Page Size' }))
     await waitFor(() => expect(screen.getByText('100 per page')).toBeTruthy())
@@ -104,6 +107,39 @@ describe('CatalogListPage', () => {
     expect(requestCount).toBe(1)
     fireEvent.submit(document.querySelector('form') as HTMLFormElement)
     await waitFor(() => expect(requestCount).toBe(2))
+  })
+
+  it('starts an explicit public build without claiming the storefront is updated', async () => {
+    let publication: unknown
+    server.use(
+      http.post('*/admin/catalog/products/product-001/publish', async ({ request }) => {
+        publication = await request.json()
+        return HttpResponse.json({
+          data: { buildCorrelationId: 'build-1', releaseId: 'release-1', status: 'queued' },
+        })
+      })
+    )
+    renderPage()
+    await screen.findByText('Carry-on')
+    fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
+    expect(
+      await screen.findByText(
+        'Publishing starts a public storefront build. Changes appear only after deployment.'
+      )
+    ).toBeTruthy()
+    fireEvent.change(screen.getByPlaceholderText('Publication reason'), {
+      target: { value: 'Publish reviewed product' },
+    })
+    fireEvent.click(screen.getAllByRole('button', { name: 'Publish' }).at(-1)!)
+    await waitFor(() =>
+      expect(publication).toMatchObject({ reason: 'Publish reviewed product', expectedVersion: 1 })
+    )
+    expect(
+      await screen.findByText(
+        'Product publication started. The storefront changes after deployment.'
+      )
+    ).toBeTruthy()
+    expect(screen.queryByText('Deployed to storefront')).toBeNull()
   })
 
   it('hides all mutation actions from a view-only operator', async () => {

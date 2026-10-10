@@ -427,8 +427,36 @@ describe('CatalogFormPage', () => {
         },
       })
     })
-    fireEvent.click(within(editor).getByRole('button', { name: '预览暂存数据' }))
-    expect(await within(editor).findByRole('region', { name: '商品暂存预览' })).toBeTruthy()
+    fireEvent.click(within(editor).getByRole('button', { name: '检查已保存修订' }))
+    expect(await within(editor).findByRole('region', { name: '已保存修订数据' })).toBeTruthy()
+  })
+
+  it.each([false, true])('reports only a started revision build or its failure (fails: %s)', async (fails) => {
+    const content = { name: 'Revised carry-on', description: 'New description', media: [], seoTitle: '', seoDescription: '', presentation: null }
+    let publication: unknown
+    server.use(
+      http.get('*/admin/catalog/products/product-001', () => HttpResponse.json({ data: { ...detail, product: { ...detail.product, status: 'published' } } })),
+      http.get('*/admin/catalog/products/product-001/revisions', () => HttpResponse.json({ data: { draft: { id: 'revision-1', status: 'draft', version: 1, content }, productVersion: 3, published: null } })),
+      http.post('*/admin/catalog/products/product-001/revisions/publish', async ({ request }) => {
+        publication = await request.json()
+        return fails
+          ? HttpResponse.json({ error: { code: 'build_failed', message: 'Publication could not start. Retry publishing.' } }, { status: 503 })
+          : HttpResponse.json({ data: { releaseId: 'release-1', buildCorrelationId: 'build-1', status: 'queued' } })
+      })
+    )
+    render(<MemoryRouter initialEntries={['/catalog/products/form?mode=modify&id=product-001']}><AuthTestProvider permissions={['catalog.read', 'catalog.write', 'catalog.publish']}><ThemeProvider><App><CatalogFormPage /></App></ThemeProvider></AuthTestProvider></MemoryRouter>)
+    const editor = await screen.findByRole('region', { name: '已发布商品修订' })
+    await waitFor(() => expect(within(editor).getByLabelText('名称')).toHaveValue('Revised carry-on'))
+    fireEvent.change(within(editor).getByLabelText('发布原因'), { target: { value: 'Publish reviewed revision' } })
+    fireEvent.click(within(editor).getByRole('button', { name: '发布暂存修订' }))
+    await waitFor(() => expect(publication).toMatchObject({ expectedDraftVersion: 1, expectedProductVersion: 3, expectedPublishedRevisionId: null, revisionId: 'revision-1', reason: 'Publish reviewed revision' }))
+    if (fails) {
+      expect(await within(editor).findByText('Publication could not start. Retry publishing.')).toBeTruthy()
+      expect(within(editor).queryByText('修订发布已开始，店铺展示将在部署后更新。')).toBeNull()
+    } else {
+      expect(await within(editor).findByText('修订发布已开始，店铺展示将在部署后更新。')).toBeTruthy()
+    }
+    expect(within(editor).queryByText('已上线')).toBeNull()
   })
 
   it('authors ordered Product presentation through the versioned aggregate endpoint', async () => {

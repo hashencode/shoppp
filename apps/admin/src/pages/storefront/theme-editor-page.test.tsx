@@ -821,11 +821,11 @@ describe('ThemeEditorPage', () => {
     complete(
       HttpResponse.json({ data: { ...currentDraft, overrides: updateBody!.overrides, version: 2 } })
     )
-    expect(await screen.findByText('草稿已保存为新版本。')).toBeTruthy()
-    const toast = screen.getByText('草稿已保存为新版本。')
+    expect(await screen.findByText('装修草稿已保存，店铺展示不变。')).toBeTruthy()
+    const toast = screen.getByText('装修草稿已保存，店铺展示不变。')
     fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
-    expect(screen.getByText('草稿已保存为新版本。')).toBe(toast)
-    expect(screen.queryByText('Draft saved with a new version.')).toBeNull()
+    expect(screen.getByText('装修草稿已保存，店铺展示不变。')).toBe(toast)
+    expect(screen.queryByText('Design draft saved. The storefront is unchanged.')).toBeNull()
     expect(saves).toBe(1)
   })
 
@@ -1319,7 +1319,7 @@ describe('ThemeEditorPage', () => {
     expect(previewBuildStatus(null).label).toBe('Not requested')
     expect(previewBuildStatus({ ...build(), status: 'pending' }).label).toBe('Queued')
     expect(previewBuildStatus({ ...build(), status: 'building' }).label).toBe('Building')
-    expect(previewBuildStatus({ ...build(), status: 'deployed' }).label).toBe('Ready')
+    expect(previewBuildStatus({ ...build(), status: 'deployed' }).label).toBe('Ready to preview')
     expect(previewBuildStatus({ ...build(), status: 'failed' }).label).toBe('Failed')
     expect(previewBuildStatus({ ...build(), status: 'expired' }).label).toBe('Expired')
   })
@@ -1743,7 +1743,7 @@ describe('ThemeEditorPage', () => {
       target: { value: 'Open the immutable private preview' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Save and preview' }))
-    await waitFor(() => expect(screen.getByText('Ready')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('Ready to preview')).toBeTruthy())
     fireEvent.click(screen.getByRole('button', { name: 'Open authenticated preview' }))
     await waitFor(() =>
       expect(submitted).toEqual({
@@ -1817,6 +1817,8 @@ describe('ThemeEditorPage', () => {
       reason: 'Approved after accessible fixture review',
     })
     expect(screen.getByText(/audit succeeded/)).toBeTruthy()
+    expect(screen.getByText('Approved, awaiting formal release')).toBeTruthy()
+    expect(screen.queryByText('Deployed to storefront')).toBeNull()
   })
 
   it('hydrates the exact deployed preview so an approver without draft-write access can approve', async () => {
@@ -1873,7 +1875,7 @@ describe('ThemeEditorPage', () => {
       'themes.approve',
       'catalog.read',
     ])
-    await screen.findByText('Ready')
+    await screen.findByText('Ready to preview')
     expect(screen.getByRole('combobox', { name: 'Catalog Release' }).hasAttribute('disabled')).toBe(
       true
     )

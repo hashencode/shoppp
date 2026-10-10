@@ -278,11 +278,11 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 本节按仓库规则仅维护本计划自身执行状态。状态以实际代码与验证证据为准，REL 当前队列不在这里复制。
 
 - **Plan:** 已激活，实施中。
-- **Current unit:** U3 — 统一动作表达与真实状态。
-- **Next concrete action:** 核验商品预览消费并整理商品、内容和装修的真实动作结果。
+- **Current unit:** U4 — 整理设置任务和同页保存边界。
+- **Next concrete action:** 整理唯一配置入口、保存影响与未保存表单的局部离开确认。
 - **Order:** U1 → U2 → U3 → U4 → U5 → U6；U7 在 U6 和 REL 合同具备后开始。
 - **Blocker:** U1–U6 无规划级实施前置缺口；U7 缺 REL 正式发布接口及 active tuple 证据。
-- **Unit status:** U1–U2 已完成；U3 进行中；U4–U6 未开始；U7 前置阻塞。
+- **Unit status:** U1–U3 已完成；U4 进行中；U5–U6 未开始；U7 前置阻塞。
 - **Update rule:** U 状态、当前/下一步、顺序或 tail 改变时，同一变更更新本节；只有产品级指针变化才同步 master。集中验证证据放 `docs/progress/`，不建立第二执行队列。
 
 ---
@@ -328,7 +328,7 @@ Shopify 官方资料用于任务组织参考，不作为 Shoppp 生命周期依�
 
 **Requirements:** R4/R5/R7/R8/R10/R11；F2/F4/F5；AE3/AE4/AE8。**Dependencies:** U2。
 
-**Files:** `apps/admin/src/pages/catalog/{catalog-list-page,catalog-form-page,published-product-revision-editor,collection-list-page,collection-form-page,review-moderation-page}.tsx`；`pages/content/{content-list-page,page-editor-page,article-editor-page}.tsx`；`pages/storefront/{navigation-page,themes-page,theme-editor-page}.tsx`；对应现有 test；`apps/admin/src/shared/i18n/translations.ts`。API 源码仅作为状态事实，新增后端合同不属本 U。
+**Files:** `apps/admin/src/pages/catalog/{catalog-list-page,catalog-form-page,published-product-revision-editor,collection-list-page,collection-form-page,review-moderation-page}.tsx`；`pages/content/{content-list-page,content-editor-page,page-editor-page,article-editor-page}.tsx`；`pages/storefront/{navigation-page,themes-page,theme-editor-page}.tsx`；对应现有 test；`apps/admin/src/services/catalog/api.ts`；`apps/admin/src/shared/i18n/translations.ts`。共享 content-editor 是页面实际消费者；无消费的 Admin token adapter 随入口移除。API 源码仅作为状态事实，新增后端合同不属本 U。
 
 **Approach:** KTD3/KTD6；整理按钮、保存结果、来源发布确认与必要失败恢复。核验商品 token 预览缺口，保留已证实的局部检查与真实 public publish。历史 inclusion 保留在详情或改为准确表述，不重新标为当前线上；没有可证明状态就省略该状态。
 

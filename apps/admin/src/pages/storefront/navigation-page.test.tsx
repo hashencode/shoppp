@@ -205,9 +205,16 @@ describe('MenuEditor integration', () => {
       target: { value: 'Publish menu' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
+    expect(
+      await screen.findByText(
+        'This menu becomes available to future storefront versions. The current storefront is unchanged.'
+      )
+    ).toBeTruthy()
     fireEvent.click(await screen.findByRole('button', { name: 'OK' }))
     await waitFor(() => expect(publishRequests).toBe(1))
     expect(await screen.findByText('Published')).toBeTruthy()
+    expect(screen.queryByText('Live included')).toBeNull()
+    expect(screen.queryByText('Not live')).toBeNull()
   })
 
   it('keeps unsaved menu edits from being discarded by publish', async () => {

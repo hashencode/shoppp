@@ -7,7 +7,6 @@ import { useAuth } from '../../infrastructure/auth/use-auth'
 import { normalizeApiError, type ApiError } from '../../infrastructure/http/api-client'
 import {
   fetchCatalogProducts,
-  previewCatalogProduct,
   publishCatalogProduct,
   type CatalogListFilters,
   type CatalogListResponse,
@@ -26,13 +25,12 @@ import {
 
 void React
 
-// Longest localized labels are budgeted at 58px each; the four-action state wraps at 280px.
-const ACTION_CONTENT_WIDTHS = { view: 58, preview: 58, edit: 58, publish: 58 } as const
+// Budget the longest localized labels for every visible action combination.
+const ACTION_CONTENT_WIDTHS = { view: 58, edit: 58, publish: 58 } as const
 const ACTION_LAYOUT_COMBINATIONS = [
-  [ACTION_CONTENT_WIDTHS.view, ACTION_CONTENT_WIDTHS.preview],
+  [ACTION_CONTENT_WIDTHS.view],
   [
     ACTION_CONTENT_WIDTHS.view,
-    ACTION_CONTENT_WIDTHS.preview,
     ACTION_CONTENT_WIDTHS.edit,
     ACTION_CONTENT_WIDTHS.publish,
   ],
@@ -79,7 +77,7 @@ const PublishAction = ({
           }
         }}
       >
-        <p>{t('This creates an immutable release and starts one storefront build.')}</p>
+        <p>{t('Publishing starts a public storefront build. Changes appear only after deployment.')}</p>
         <Input.TextArea
           value={reason}
           rows={3}
@@ -147,9 +145,9 @@ export const CatalogListPage = () => {
   const handlePublish = useCallback(
     async (product: CatalogProductListItem, reason: string, reload: () => Promise<void>) => {
       try {
-        const release = await publishCatalogProduct(product.id, reason, product.version)
+        await publishCatalogProduct(product.id, reason, product.version)
         void message.success(
-          translateNow('Build started: {id}', { id: release.buildCorrelationId })
+          translateNow('Product publication started. The storefront changes after deployment.')
         )
         await reload()
       } catch (error) {
@@ -157,23 +155,6 @@ export const CatalogListPage = () => {
       }
     },
     [message, localizeError, translateNow]
-  )
-
-  const handlePreview = useCallback(
-    async (product: CatalogProductListItem) => {
-      try {
-        const preview = await previewCatalogProduct(product.id)
-        const origin = import.meta.env.PUBLIC_STOREFRONT_ORIGIN?.replace(/\/$/, '') ?? ''
-        window.open(
-          `${origin}/preview?token=${encodeURIComponent(preview.token)}`,
-          '_blank',
-          'noopener'
-        )
-      } catch (error) {
-        void message.error(localizeError(error))
-      }
-    },
-    [message, localizeError]
   )
 
   const spec = useMemo<
@@ -273,12 +254,6 @@ export const CatalogListPage = () => {
                   onClick: () => openFormPage('readonly', record.id),
                 },
                 {
-                  key: 'preview',
-                  label: t('Preview'),
-                  contentWidth: ACTION_CONTENT_WIDTHS.preview,
-                  onClick: () => handlePreview(record),
-                },
-                {
                   key: 'edit',
                   label: t('Edit'),
                   contentWidth: ACTION_CONTENT_WIDTHS.edit,
@@ -334,7 +309,7 @@ export const CatalogListPage = () => {
         emptyDescription: t('Reset the filters or create the first product.'),
       },
     }),
-    [canPublish, canWrite, filters, fromSetupGuide, handlePreview, handlePublish, navigate, t]
+    [canPublish, canWrite, filters, fromSetupGuide, handlePublish, navigate, t]
   )
 
   return (

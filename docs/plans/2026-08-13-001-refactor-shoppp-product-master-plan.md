@@ -6,7 +6,7 @@ topic: shoppp-product-master-plan
 execution: knowledge-work
 plan_role: product-master
 current_plan: 2026-10-10-2307-refactor-admin-merchant-workflows-plan.md
-current_unit: U3
+current_unit: U4
 ---
 
 # Shoppp Product Master Plan
@@ -46,8 +46,8 @@ template-specific repair does not change product membership or candidate scope b
 ## Current execution pointer
 
 - **Active product plan:** [管理后台商家任务与发布流程重构](2026-10-10-2307-refactor-admin-merchant-workflows-plan.md) — 用户已授权实施的产品后继。
-- **Current unit:** U3 — 统一动作表达与真实状态。
-- **Next action:** 核验商品预览消费并整理商品、内容和装修的真实动作结果。
+- **Current unit:** U4 — 整理设置任务和同页保存边界。
+- **Next action:** 整理唯一配置入口、保存影响与未保存表单的局部离开确认。
 - **Blockers:** 管理后台 U1–U6 无实施前置缺口；U7 依赖 REL 的精确公开化、激活与 active tuple 合同。候选未冻结，DC/PG 未开始。
 - **Tail ownership:** 管理后台计划拥有本地实施、回归与交接；REL 保留 candidate readiness、候选冻结、正式部署、DC/PG 权限。FS-F14 完成基线继续有效。
 

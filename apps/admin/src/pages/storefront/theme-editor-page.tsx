@@ -344,7 +344,7 @@ export const previewBuildStatus = (build: StorefrontPreviewBuild | null) => {
     case 'building':
       return { color: 'processing', label: 'Building' }
     case 'deployed':
-      return { color: 'success', label: 'Ready' }
+      return { color: 'success', label: 'Ready to preview' }
     case 'failed':
       return { color: 'error', label: 'Failed' }
     case 'expired':
@@ -1101,7 +1101,7 @@ export const ThemeEditorPage = ({
                 onClick={() =>
                   void runAction(async () => {
                     await save(changeReason)
-                    void message.success(currentT('Draft saved with a new version.'))
+                    void message.success(currentT('Design draft saved. The storefront is unchanged.'))
                   })
                 }
               >
@@ -1302,7 +1302,6 @@ export const ThemeEditorPage = ({
         </Descriptions.Item>
         <Descriptions.Item label={t('Last saved')}>{draft.updatedAt}</Descriptions.Item>
         <Descriptions.Item label={t('Resource bindings')}>{bindings.length}</Descriptions.Item>
-        <Descriptions.Item label={t('Production theme')}>{t('Unchanged')}</Descriptions.Item>
       </Descriptions>
 
       {requiresCatalogRelease ? (
@@ -2330,7 +2329,7 @@ export const ThemeEditorPage = ({
       </Card>
 
       <Card
-        title={t('Private preview artifact')}
+        title={t('Store preview')}
         extra={<Tag color={status.color}>{t(status.label)}</Tag>}
       >
         <Space orientation="vertical" className="w-full">
@@ -2460,7 +2459,7 @@ export const ThemeEditorPage = ({
         <Card title={t('Approve draft')}>
           <Space orientation="vertical" className="w-full">
             <Typography.Text type="secondary">
-              {t('Approving this version does not update the storefront until it is deployed.')}
+              {t('Approval freezes this design for formal release. It does not update the storefront.')}
             </Typography.Text>
             <Input.TextArea
               aria-label={t('Approval reason')}
@@ -2501,7 +2500,7 @@ export const ThemeEditorPage = ({
                     }
                   }
                   void message.success(
-                    currentT('Immutable experience snapshot approved and audited.')
+                    currentT('Design approved. Formal release is still required.')
                   )
                 })
               }
@@ -2512,7 +2511,7 @@ export const ThemeEditorPage = ({
               <Alert
                 type="success"
                 showIcon
-                title={t('Immutable snapshot approved')}
+                title={t('Approved, awaiting formal release')}
                 description={t('{id} · source draft v{version} · audit succeeded', {
                   id: approvedSnapshot.id,
                   version: approvedSnapshot.sourceDraftVersion,

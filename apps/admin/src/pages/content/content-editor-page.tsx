@@ -199,7 +199,13 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
       setTransitionReason('')
       form.resetFields()
       form.setFieldsValue(toValues(next))
-      void message.success(t(action === 'publish' ? 'Content published' : 'Content archived'))
+      void message.success(
+        t(
+          action === 'publish'
+            ? 'Content published for future storefront versions.'
+            : 'Content archived'
+        )
+      )
     } catch (error) {
       if (generation === generationRef.current) setSaveError(normalizeApiError(error))
     } finally {
@@ -228,12 +234,11 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
       <Space orientation="vertical" className="w-full">
         {saveError ? <Alert type="error" title={localizeApiError(saveError, t)} /> : null}
         {detail ? (
-          <Alert
-            type="info"
-            title={t('Release state')}
-            description={
+          <Space orientation="vertical" className="w-full">
+            <Tag>{t(statusLabel[detail.status])}</Tag>
+            <details>
+              <summary>{t('Content version details')}</summary>
               <Space wrap>
-                <Tag>{t(statusLabel[detail.status])}</Tag>
                 <Tag>{t('Saved v{version}', { version: detail.version })}</Tag>
                 <Tag>
                   {t(
@@ -244,18 +249,14 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
                         : 'Not in candidate'
                   )}
                 </Tag>
-                <Tag>
-                  {t(
-                    detail.inclusion.live
-                      ? 'Live included'
-                      : detail.inclusion.liveStale
-                        ? 'Live stale: saved version is newer'
-                        : 'Not live'
-                  )}
-                </Tag>
+                {detail.inclusion.live ? (
+                  <span>{t('This version was included in a deployed storefront version.')}</span>
+                ) : detail.inclusion.liveStale ? (
+                  <span>{t('A deployed storefront version used an earlier source version.')}</span>
+                ) : null}
               </Space>
-            }
-          />
+            </details>
+          </Space>
         ) : null}
         {detail && canPublish ? (
           <Space orientation="vertical" className="w-full">
@@ -270,7 +271,17 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
               {detail.status === 'draft' ? (
                 <Popconfirm
                   title={t('Publish this exact content version?')}
-                  description={t('Published content reaches shoppers only after a new Release.')}
+                  description={t(
+                    'This content becomes available to future storefront versions. The current storefront is unchanged.'
+                  )}
+                  okButtonProps={{
+                    disabled:
+                      isDirty ||
+                      transitionLoading ||
+                      saveLoading ||
+                      transitionReason.trim().length < 3,
+                  }}
+                  cancelButtonProps={{ disabled: false }}
                   onConfirm={() => void transition('publish')}
                   disabled={
                     isDirty ||
@@ -291,6 +302,14 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
                 <Popconfirm
                   title={t('Archive this content version?')}
                   description={t('Current references must be repaired before archive succeeds.')}
+                  okButtonProps={{
+                    disabled:
+                      isDirty ||
+                      transitionLoading ||
+                      saveLoading ||
+                      transitionReason.trim().length < 3,
+                  }}
+                  cancelButtonProps={{ disabled: false }}
                   onConfirm={() => void transition('archive')}
                   disabled={
                     isDirty ||

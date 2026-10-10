@@ -213,7 +213,13 @@ export const MenuEditor = ({ placement }: { placement: NavigationPlacement }) =>
       setRecord(next)
       setItems(next.items)
       setReason('')
-      void message.success(t(action === 'publish' ? 'Navigation published' : 'Navigation archived'))
+      void message.success(
+        t(
+          action === 'publish'
+            ? 'Menu published for future storefront versions.'
+            : 'Navigation archived'
+        )
+      )
     } catch (cause) {
       setError(normalizeApiError(cause))
     } finally {
@@ -248,28 +254,27 @@ export const MenuEditor = ({ placement }: { placement: NavigationPlacement }) =>
               )
             : t('Unsaved')}
         </Tag>
-        {record ? <Tag>{t('Saved v{version}', { version: record.version })}</Tag> : null}
         {record ? (
-          <Tag color={record.inclusion.candidate ? 'blue' : 'default'}>
-            {t(
-              record.inclusion.candidate
-                ? 'Candidate included'
-                : record.inclusion.candidateStale
-                  ? 'Candidate stale: menu order or targets changed'
-                  : 'Not in candidate'
-            )}
-          </Tag>
-        ) : null}
-        {record ? (
-          <Tag color={record.inclusion.live ? 'green' : 'default'}>
-            {t(
-              record.inclusion.live
-                ? 'Live included'
-                : record.inclusion.liveStale
-                  ? 'Live stale: menu order or targets changed'
-                  : 'Not live'
-            )}
-          </Tag>
+          <details>
+            <summary>{t('Navigation version details')}</summary>
+            <Space wrap>
+              <Tag>{t('Saved v{version}', { version: record.version })}</Tag>
+              <Tag>
+                {t(
+                  record.inclusion.candidate
+                    ? 'Candidate included'
+                    : record.inclusion.candidateStale
+                      ? 'Candidate stale: menu order or targets changed'
+                      : 'Not in candidate'
+                )}
+              </Tag>
+              {record.inclusion.live ? (
+                <span>{t('This version was included in a deployed storefront version.')}</span>
+              ) : record.inclusion.liveStale ? (
+                <span>{t('A deployed storefront version used an earlier source version.')}</span>
+              ) : null}
+            </Space>
+          </details>
         ) : null}
         {record?.inclusion.staleCauses.map((cause) => (
           <Tag key={cause} color="error">
@@ -478,6 +483,9 @@ export const MenuEditor = ({ placement }: { placement: NavigationPlacement }) =>
         {canPublish && record?.status === 'draft' ? (
           <Popconfirm
             title={t('Publish this exact Navigation version?')}
+            description={t(
+              'This menu becomes available to future storefront versions. The current storefront is unchanged.'
+            )}
             disabled={isDirty || saving || reason.trim().length < 3}
             onConfirm={() => void transition('publish')}
           >

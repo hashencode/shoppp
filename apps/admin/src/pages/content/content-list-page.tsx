@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react'
-import { Button, Space, Table, Tag } from 'antd'
+import { Button, Table, Tag } from 'antd'
 import dayjs from 'dayjs'
 
 import { hasPermission } from '../../infrastructure/auth/permissions'
@@ -108,19 +108,10 @@ const ContentList = ({ kind }: { kind: ContentKind }) => {
           {
             dataIndex: 'status',
             key: 'status',
-            title: t('Release state'),
-            width: 290,
-            render: (status: ContentRecord['status'], record) => (
-              <Space wrap size={[4, 4]}>
-                <Tag color={statusColor[status]}>{t(statusLabel[status])}</Tag>
-                <Tag>{t('Saved v{version}', { version: record.version })}</Tag>
-                <Tag color={record.inclusion.candidate ? 'blue' : 'default'}>
-                  {t(record.inclusion.candidate ? 'Candidate included' : record.inclusion.candidateStale ? 'Candidate stale: saved version is newer' : 'Not in candidate')}
-                </Tag>
-                <Tag color={record.inclusion.live ? 'green' : 'default'}>
-                  {t(record.inclusion.live ? 'Live included' : record.inclusion.liveStale ? 'Live stale: saved version is newer' : 'Not live')}
-                </Tag>
-              </Space>
+            title: t('Status'),
+            width: 120,
+            render: (status: ContentRecord['status']) => (
+              <Tag color={statusColor[status]}>{t(statusLabel[status])}</Tag>
             ),
           },
           {
