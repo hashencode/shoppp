@@ -454,7 +454,6 @@ export const AppShell = ({ routes = [], headerExtra }: AppShellProps) => {
             onBreakpoint={(broken) => setCollapsed(broken)}
           >
             <Menu
-              key={`menu-${collapsed ? 'collapsed' : (activeGroupKey ?? 'default')}`}
               className="min-h-0 flex-1 overflow-auto !border-e-0 pt-2.5 [&_.ant-menu-item-group-title]:!hidden"
               style={{ background: token.colorBgContainer }}
               theme={resolvedTheme === 'dark' ? 'dark' : 'light'}

@@ -59,6 +59,8 @@ describe('merchant navigation in a native browser', () => {
       expect(screen.getByTestId('native-route').textContent).toBe('/dashboard|Commerce dashboard')
     )
     expect(document.querySelector('.ant-breadcrumb')).toBeNull()
+    await page.getByRole('menuitem', { name: /Content$/ }).press('Enter')
+    await page.getByRole('menuitem', { name: /Settings$/ }).press('Enter')
     await page.getByRole('menuitem', { name: /Online store/ }).press('Enter')
     await page.getByRole('menuitem', { name: 'Store design', exact: true }).press('Enter')
     await waitFor(() =>
@@ -66,6 +68,11 @@ describe('merchant navigation in a native browser', () => {
         '/storefront/themes|Storefront themes'
       )
     )
+    for (const name of ['Home', 'Content', 'Settings', 'Online store']) {
+      expect(
+        screen.getByRole('menuitem', { name: new RegExp(`${name}$`) }).getAttribute('aria-expanded')
+      ).toBe('true')
+    }
     await page.getByRole('img', { name: 'menu-fold' }).click()
     await waitFor(() => expect(sidebar.getBoundingClientRect().width).toBe(80))
     assertWithinViewport(sidebar)

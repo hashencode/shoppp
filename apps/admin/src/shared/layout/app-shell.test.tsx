@@ -468,6 +468,49 @@ describe('AppShell', () => {
     }
   )
 
+  it.each(['', '/admin'])(
+    'preserves expanded and manually closed groups across navigation under basename "%s"',
+    async (basename) => {
+      renderShell({
+        basename: basename || undefined,
+        initialEntry: `${basename}/welcome`,
+        locale: 'en-US',
+        routes: templateRoutes,
+      })
+      const groupTitle = (name: string) =>
+        Array.from(screen.getAllByRole('menu')[0]!.children)
+          .map((item) => item.querySelector('[role="menuitem"]')!)
+          .find((item) => item.textContent === name)!
+
+      fireEvent.click(groupTitle('Content'))
+      fireEvent.click(groupTitle('Settings'))
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Contact information' }))
+      await waitFor(() =>
+        expect(screen.getByTestId('location-probe').textContent).toBe('/settings/contact')
+      )
+      for (const name of ['Home', 'Content', 'Settings']) {
+        expect(groupTitle(name).getAttribute('aria-expanded')).toBe('true')
+      }
+      expect(screen.getByRole('menuitem', { name: 'Contact information' }).className).toContain(
+        'ant-menu-item-selected'
+      )
+
+      fireEvent.click(groupTitle('Content'))
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Commerce dashboard' }))
+      await waitFor(() =>
+        expect(screen.getByTestId('location-probe').textContent).toBe('/dashboard')
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'Browser back' }))
+      await waitFor(() =>
+        expect(screen.getByTestId('location-probe').textContent).toBe('/settings/contact')
+      )
+      expect(groupTitle('Content').getAttribute('aria-expanded')).toBe('false')
+      for (const name of ['Home', 'Settings']) {
+        expect(groupTitle(name).getAttribute('aria-expanded')).toBe('true')
+      }
+    }
+  )
+
   it('opens and selects a direct Settings route while retaining the original English breadcrumbs', () => {
     const { container } = renderShell({
       initialEntry: '/settings/contact',
