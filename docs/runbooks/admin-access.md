@@ -50,7 +50,7 @@ durable identity and must not create a run-scoped account.
 
 Production additionally requires the exact confirmation defined by the bootstrap command. The
 invitation email contains a signed, expiring activation link. The recipient sets the first password;
-no default or checked-in administrator password exists.
+no default or checked-in remote administrator password exists.
 
 ## Additional users
 
@@ -110,15 +110,19 @@ migration suite verifies both facts.
 
 ## Local development
 
-Copy `.env.example` to the ignored `.env`, set a local-only password, then run:
+Run local development with the checked-in defaults from the repository `.env.development`:
+
+```sh
+bun --filter @shoppp/admin dev
+```
+
+The default local account is `admin@local.test`; its development-only password is defined in
+`.env.development`. To keep a personal local account, put its settings in the ignored repository
+`.env.development.local`, which overrides the defaults:
 
 ```sh
 LOCAL_ADMIN_EMAIL=admin@local.test
 LOCAL_ADMIN_PASSWORD=<at-least-12-characters>
-```
-
-```sh
-bun --filter @shoppp/admin dev
 ```
 
 This command applies migrations to the persistent local Wrangler D1, initializes the local
@@ -127,14 +131,21 @@ on `127.0.0.1:8787`, and starts Admin on `127.0.0.1:3418`. Wrangler runs with `-
 bindings are disabled. Changing `LOCAL_ADMIN_PASSWORD` updates only the local credential and
 revokes its local sessions.
 
-Use Fashion staging only for intentional remote integration or acceptance work:
+Use Fashion staging only for intentional remote integration or acceptance work. Copy the repository
+`.env.test.example` to the ignored `.env.test`, then run:
 
 ```sh
 bun --filter @shoppp/admin dev:staging
 ```
 
 The staging preflight requires the exact Fashion staging API and `shoppp-fashion-staging` D1
-identity from `.env`, and continues to reject production.
+identity from `.env.test`, and continues to reject production. Remote administrator passwords and
+service credentials remain outside committed files.
+
+For an existing checkout, move `LOCAL_ADMIN_EMAIL` and `LOCAL_ADMIN_PASSWORD` from `.env` to
+`.env.development.local`, and move the staging profile, test API/database identifiers, and production
+comparison identifier to `.env.test`. Remove those migrated entries from `.env` so a parent Bun
+process cannot inherit stale values before invoking the development script.
 
 ## Verification
 

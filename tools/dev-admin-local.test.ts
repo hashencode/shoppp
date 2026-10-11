@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 
 import {
   buildLocalAdminSeedSql,
@@ -95,6 +96,9 @@ describe("local admin development", () => {
     ).toEqual({ email: "admin@local.test", password: "local-password-123" });
     expect(() => resolveLocalAdminCredentials({})).toThrow(/LOCAL_ADMIN_PASSWORD/);
     expect(() =>
+      resolveLocalAdminCredentials({ LOCAL_ADMIN_PASSWORD: "local-password-123" }),
+    ).toThrow(/LOCAL_ADMIN_EMAIL/);
+    expect(() =>
       resolveLocalAdminCredentials({
         LOCAL_ADMIN_EMAIL: "not-an-email",
         LOCAL_ADMIN_PASSWORD: "local-password-123",
@@ -144,13 +148,49 @@ describe("local admin development", () => {
     );
   });
 
-  test("exposes local dev and explicit Fashion staging scripts", async () => {
+  test("loads local defaults and optional personal overrides through the dev script", async () => {
     const packageJson = JSON.parse(
       await readFile(resolve(import.meta.dir, "../apps/admin/package.json"), "utf8"),
-    ) as { scripts: Record<string, string> };
+    ) as { scripts: { dev: string } };
 
     expect(packageJson.scripts.dev).toBe(
-      "bun --env-file=../../.env ../../tools/dev-admin-local.ts",
+      "bun --env-file=../../.env.development --env-file=../../.env.development.local ../../tools/dev-admin-local.ts",
     );
+
+    const directory = await mkdtemp(join(tmpdir(), "shoppp-admin-env-"));
+    try {
+      await writeFile(
+        join(directory, ".env.development"),
+        await readFile(resolve(import.meta.dir, "../.env.development"), "utf8"),
+      );
+      // Run the dev script's actual env flags without inheriting personal credentials.
+      const flags = packageJson.scripts.dev
+        .split(" ")
+        .filter((argument) => argument.startsWith("--env-file="))
+        .map((argument) => argument.replace("../../", ""));
+      const code = `import { resolveLocalAdminCredentials } from ${JSON.stringify(resolve(import.meta.dir, "dev-admin-local.ts"))}; console.log(JSON.stringify(resolveLocalAdminCredentials(process.env)));`;
+      const loadCredentials = () => {
+        const child = Bun.spawnSync([process.execPath, ...flags, "-e", code], {
+          cwd: directory,
+          env: { PATH: process.env.PATH ?? "", NODE_ENV: "development" },
+        });
+        expect(child.exitCode).toBe(0);
+        return JSON.parse(child.stdout.toString()) as { email: string; password: string };
+      };
+
+      const defaults = loadCredentials();
+      expect(defaults.email).toBe("admin@local.test");
+      expect(defaults.password.length).toBeGreaterThanOrEqual(12);
+      await writeFile(
+        join(directory, ".env.development.local"),
+        "LOCAL_ADMIN_EMAIL=custom@local.test\nLOCAL_ADMIN_PASSWORD=custom-local-password\n",
+      );
+      expect(loadCredentials()).toEqual({
+        email: "custom@local.test",
+        password: "custom-local-password",
+      });
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 });

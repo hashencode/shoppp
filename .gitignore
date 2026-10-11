@@ -3,6 +3,8 @@
 .env.*
 !.env.example
 !.env.*.example
+# Checked-in defaults are exclusively for the local development administrator.
+!/.env.development
 .nuxt/
 .output/
 .wrangler/

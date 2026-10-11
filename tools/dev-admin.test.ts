@@ -77,7 +77,7 @@ describe("password-authenticated admin development preflight", () => {
   });
 
   test("ships an example environment that passes the canonical preflight", async () => {
-    const source = await readFile(resolve(import.meta.dir, "../.env.example"), "utf8");
+    const source = await readFile(resolve(import.meta.dir, "../.env.test.example"), "utf8");
     const example = Object.fromEntries(
       source
         .split(/\r?\n/)
@@ -105,7 +105,7 @@ describe("password-authenticated admin development preflight", () => {
       await readFile(resolve(import.meta.dir, "../apps/admin/package.json"), "utf8"),
     ) as { scripts: Record<string, string> };
     expect(packageJson.scripts["dev:staging"]).toBe(
-      "bun --env-file=../../.env ../../tools/dev-admin.ts",
+      "bun --env-file=../../.env.test ../../tools/dev-admin.ts",
     );
     expect(JSON.stringify(packageJson.scripts)).not.toMatch(/cloudflared|tunnel/i);
   });

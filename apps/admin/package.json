@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "bun run build:production",
-    "dev": "bun --env-file=../../.env ../../tools/dev-admin-local.ts",
-    "dev:staging": "bun --env-file=../../.env ../../tools/dev-admin.ts",
+    "dev": "bun --env-file=../../.env.development --env-file=../../.env.development.local ../../tools/dev-admin-local.ts",
+    "dev:staging": "bun --env-file=../../.env.test ../../tools/dev-admin.ts",
     "dev:test": "bun run dev:staging",
     "lint": "eslint .",
     "typecheck": "tsc -b",

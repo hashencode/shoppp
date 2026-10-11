@@ -54,8 +54,8 @@ export function resolveLocalAdminCredentials(environment: Environment): LocalAdm
   if (!password || password.length < 12 || password.length > 128) {
     throw new Error("LOCAL_ADMIN_PASSWORD must contain between 12 and 128 characters.");
   }
-  const email = (environment.LOCAL_ADMIN_EMAIL?.trim() || "admin@local.test").toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+  const email = environment.LOCAL_ADMIN_EMAIL?.trim().toLowerCase();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
     throw new Error("LOCAL_ADMIN_EMAIL must be a valid email address.");
   }
   return { email, password };

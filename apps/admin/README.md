@@ -13,10 +13,11 @@ A reusable admin template built with React, TypeScript, Ant Design v6, Tailwind 
 
 ## Scripts (Bun)
 
-- `bun run dev` / `bun run dev:test` - load the repository `.env`, run the fail-closed preflight, local Rsbuild server, and named Cloudflare Tunnel against the test API and test D1 only
+- `bun run dev` - load the repository `.env.development` and optional `.env.development.local`, initialize the local administrator, and start the local API and Admin
+- `bun run dev:staging` / `bun run dev:test` - load the repository `.env.test`, validate the Fashion staging API/D1 identities, and start Admin against that isolated remote API
 - `bun run build` - typecheck and build production bundle
-- `bun run build:test` - build with `.env.test`
-- `bun run build:production` - build with `.env.production`
+- `bun run build:test` - typecheck and build with Rsbuild test mode
+- `bun run build:production` - typecheck and build with Rsbuild production mode
 - `bun run test` - run unit tests
 - `bun run test:browser` - run real-browser component tests
 - `bun run test:e2e` - run Playwright end-to-end tests
@@ -53,7 +54,10 @@ import { UploadFormItem } from '../components/upload-form-item'
 
 void React
 
-type BusinessUploadFormItemProps<TValues extends object> = Omit<FormItemProps<TValues>, 'children'> & {
+type BusinessUploadFormItemProps<TValues extends object> = Omit<
+  FormItemProps<TValues>,
+  'children'
+> & {
   readonly?: boolean
 }
 
