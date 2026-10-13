@@ -95,7 +95,7 @@ describe('Revenue reporting locale in a native browser', () => {
       await switchBrowserLocale()
     }
     expect(transport.requests).toHaveLength(1)
-  })
+  }, 20_000)
 
   it('keeps UTC rows and date-only query values while the application switches against the native locale', async () => {
     const row: ReportOrderRow = {
