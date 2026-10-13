@@ -1,6 +1,10 @@
-version: 1
-updatedAt: "2026-05-08"
-project: codex-admin-quick-start
+version: 2
+updatedAt: "2026-10-13"
+project: shoppp-admin
+
+# referencePage(s) 仅供阅读参考；sharedRecipe 与 requiredPieces 才是运行时复用入口。
+# 示例 API 不属于 requiredPieces；业务 API 放在当前业务域并使用真实接口合同。
+# exampleRoutePattern 保留上游示例路径，仅供参考，当前 Admin 未注册示例入口；业务 routePattern 以当前合同为准。
 
 formTemplateDecisionMatrix:
   defaultRule: 除非用户主动要求复杂表单或多步骤表单，否则一律使用基础三态表单；实现者不得因为字段数量、模块标题、多 Card、远程下拉或上传字段自行升级。
@@ -36,8 +40,10 @@ recipes:
       - 运营列表
       - 规则列表
       - 资源列表
-    routePattern: /dev/list/<feature>
-    chooseTemplate: src/pages/templates/list/table-query-page.tsx
+    routePattern: "业务列表路径，以当前项目路由及菜单合同为准"
+    exampleRoutePattern: "/dev/list/table"
+    referencePage: src/pages/templates/list/table-query-page.tsx
+    sharedRecipe: src/shared/template-kit/recipes/standard-list-page-recipe.tsx
     requiredPieces:
       - src/shared/template-kit/specs/standard-list-page-spec.ts
       - src/shared/template-kit/recipes/standard-list-page-recipe.tsx
@@ -45,7 +51,6 @@ recipes:
       - src/shared/template-kit/list/template-list-filter-form.tsx
       - src/shared/template-kit/list/template-list-content.tsx
       - src/shared/hooks/use-standard-pagination.ts
-      - src/pages/templates/list/api.ts
     optionalPieces:
       - src/shared/components/query-state-block.tsx
       - src/shared/components/list-toolbar-actions.tsx
@@ -54,8 +59,8 @@ recipes:
     buildSteps:
       - 先确认是否满足 docs/ai/page-guardrail-recipes.md 的标准列表页接入条件
       - 页面通过 StandardListPageSpec 接入 StandardListPageRecipe，禁止直接散装拼装 controller 与状态区
-      - 在 routes.config.ts 增加 route，绑定 permission=list.read 或业务权限
-      - 定义 api.ts 中的 filters、response contract、fetch 函数
+      - 在 routes.config.ts 注册业务路由，按当前业务权威声明授权，不复制示例 list.read
+      - 在 src/pages/<domain>/api.ts 定义业务 filters、response contract 和 fetch 函数，不导入示例 API
       - 用控制器串联 filter + table + pagination
       - 处理 partial/empty/error 展示
       - 补测试（控制器 + 页面渲染）
@@ -67,7 +72,7 @@ recipes:
       - 弹窗内分页查询结果
       - 不需要独立路由的辅助列表
     routePattern: none
-    chooseTemplate: src/shared/template-kit/recipes/modal-list-page-recipe.tsx
+    sharedRecipe: src/shared/template-kit/recipes/modal-list-page-recipe.tsx
     requiredPieces:
       - src/shared/template-kit/specs/standard-list-page-spec.ts
       - src/shared/template-kit/recipes/modal-list-page-recipe.tsx
@@ -92,8 +97,8 @@ recipes:
       - 业务 override 页面
       - 工作台、生成器、复杂组合页
       - 不适合标准列表或表单 recipe 的一级路由页
-    routePattern: "/dev/<domain>/<feature> 或 /page/<domain>/<feature>"
-    chooseTemplate: src/shared/template-kit/recipes/custom-page-recipe.tsx
+    routePattern: "业务一级页面路径，以当前项目路由及菜单合同为准"
+    sharedRecipe: src/shared/template-kit/recipes/custom-page-recipe.tsx
     requiredPieces:
       - src/shared/template-kit/recipes/custom-page-recipe.tsx
       - src/shared/layout/route-page-meta-context.tsx
@@ -112,15 +117,16 @@ recipes:
     appliesTo:
       - 创建与编辑共用页面
       - 只读详情复用同一表单结构
-    routePattern: /dev/form/<feature>?mode=add|modify|readonly&id=<resourceKey>
-    chooseTemplate: src/pages/templates/form/basic-form-page.tsx
+    routePattern: "现有业务独立表单入口，mode/id 以当前合同为准"
+    exampleRoutePattern: "/dev/form/basic-form?mode=add|modify|readonly&id=<resourceKey>"
+    referencePage: src/pages/templates/form/basic-form-page.tsx
+    sharedRecipe: src/shared/template-kit/recipes/basic-crud-form-recipe.tsx
     requiredPieces:
       - src/routes/form-route-contract.ts
       - src/shared/template-kit/specs/basic-crud-form-spec.ts
       - src/shared/template-kit/recipes/basic-crud-form-recipe.tsx
       - src/shared/template-kit/form/use-template-form-controller.ts
       - src/shared/template-kit/form/template-form-state-gate.tsx
-      - src/pages/templates/form/api.ts
     buildSteps:
       - 先确认是否满足 docs/ai/page-guardrail-recipes.md 的基础表单接入条件
       - 页面通过 BasicCrudFormSpec 接入 BasicCrudFormRecipe，禁止页面内重复手写固定底部操作条与基础错误态
@@ -141,8 +147,10 @@ recipes:
     appliesTo:
       - 新增后查看详情
       - 列表点击查看记录详情
-    routePattern: /dev/form/<feature>?mode=readonly&id=<resourceKey>
-    chooseTemplate: src/pages/templates/form/basic-form-page.tsx
+    routePattern: "复用现有业务表单入口的 readonly 模式"
+    exampleRoutePattern: "/dev/form/basic-form?mode=readonly&id=<resourceKey>"
+    referencePage: src/pages/templates/form/basic-form-page.tsx
+    sharedRecipe: src/shared/template-kit/recipes/basic-crud-form-recipe.tsx
     principle:
       - 默认复用表单 readonly 模式，不单独创建详情页
       - 只有在业务确认“展示结构与编辑结构完全不同”时，才新建 profile/detail 页面
@@ -159,8 +167,10 @@ recipes:
     appliesTo:
       - 多阶段录入
       - 后续步骤依赖前一步确认结果
-    routePattern: /dev/form/<feature-step>
-    chooseTemplate: src/pages/templates/form/step-form-page.tsx
+    routePattern: "业务列表同前缀的分步表单子路径，以当前项目合同为准"
+    exampleRoutePattern: "/dev/form/step-form"
+    referencePage: src/pages/templates/form/step-form-page.tsx
+    sharedRecipe: src/shared/template-kit/recipes/step-form-recipe.tsx
     requiredPieces:
       - src/shared/template-kit/specs/step-form-spec.ts
       - src/shared/template-kit/recipes/step-form-recipe.tsx
@@ -176,12 +186,13 @@ recipes:
     appliesTo:
       - 提交后反馈
       - 异步任务完成反馈
-    routePattern: /dev/result/<success|fail>
-    chooseTemplates:
+    routePattern: "业务结果页路径，以当前项目路由合同为准"
+    exampleRoutePattern: "/dev/result/<success|fail>"
+    referencePages:
       - src/pages/templates/dashboard/result-success-page.tsx
       - src/pages/templates/dashboard/result-fail-page.tsx
     buildSteps:
-      - 统一 Result 组件表达状态
+      - 参考示例，在业务目录中使用 Antd Result 表达状态，不导入示例页面
       - 提供回退动作（返回列表/返回首页/重试）
       - 在触发来源页面补跳转逻辑
 
@@ -191,13 +202,14 @@ recipes:
       - 权限拒绝
       - 未找到
       - 服务器异常
-    routePattern: /dev/exception/<403|404|500>
-    chooseTemplates:
+    routePattern: "当前项目公共异常页及 fallback 合同"
+    exampleRoutePattern: "/dev/exception/<403|500> 或 \"*\""
+    referencePages:
       - src/pages/templates/exception/forbidden-page.tsx
       - src/pages/templates/exception/not-found-page.tsx
       - src/pages/templates/exception/server-error-page.tsx
     buildSteps:
-      - 按异常类型渲染模板
+      - 参考示例，在当前项目公共页面目录中按异常类型实现反馈，不以示例页作为新增业务依赖
       - 保证回到可用路径的引导动作
       - 与路由 fallback 对齐（* -> 404）
 
@@ -223,7 +235,8 @@ decisionTree:
 
 qualityGate:
   - 新页面必须在 routes.config.ts 注册
-  - 新页面必须声明 permission
+  - 新业务页面位于业务目录；参考示例与运行时复用依赖分别列出
+  - 新页面按当前业务权威声明授权，不复制示例 permission
   - 有异步请求必须覆盖 empty/error/partial
   - 业务 API contract 必须有类型定义
   - 新增详情需求默认先验证是否可复用 readonly 表单

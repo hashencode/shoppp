@@ -10,6 +10,10 @@
 
 它是 `docs/ai/page-recipes.yaml` 与 `docs/ai/page-guardrail-recipes.md` 的执行索引，帮助在真正开始写代码前先选对路径。
 
+`src/pages/templates/` 中的路径是参考示例，不是业务文件放置位置或运行时导入入口。
+正式业务页面放在 `src/pages/<domain>/`，运行时复用 `shared/template-kit` 和通用组件。
+结果页、异常页等轻量页面可参考示例实现于业务或公共页面目录，无需额外抽取 recipe。
+
 ## 2. 总览
 
 | 页面类型       | 当前路径                                             | 推荐接入路径                               | 当前状态       |
@@ -20,8 +24,8 @@
 | 高级表单页     | `src/pages/templates/form/advanced-form-page.tsx`    | `business override`                        | 明确保留特例   |
 | 默认详情展示   | 优先复用 `readonly` 表单                             | `BasicCrudFormRecipe` readonly             | 推荐默认路径   |
 | 特殊详情页     | `src/pages/templates/profile/basic-profile-page.tsx` | `business override` 或后续 `ProfileRecipe` | 暂不抽象       |
-| 结果页         | `src/pages/templates/dashboard/result-*.tsx`         | 页面级模板直接复用                         | 暂不 recipe 化 |
-| 异常页         | `src/pages/templates/exception/*.tsx`                | 页面级模板直接复用                         | 暂不 recipe 化 |
+| 结果页         | `src/pages/templates/dashboard/result-*.tsx`         | 参考示例，在业务或公共页面目录实现                         | 暂不 recipe 化 |
+| 异常页         | `src/pages/templates/exception/*.tsx`                | 参考示例，在业务或公共页面目录实现                         | 暂不 recipe 化 |
 | 仪表盘/分析页  | `src/pages/templates/dashboard/analysis-page.tsx`    | `business override`                        | 暂不 recipe 化 |
 
 ## 3. 列表页
@@ -165,7 +169,7 @@
 - `src/pages/templates/dashboard/result-success-page.tsx`
 - `src/pages/templates/dashboard/result-fail-page.tsx`
 
-推荐路径：页面级模板直接复用
+推荐路径：参考示例，在业务或公共页面目录实现
 
 原因：
 
@@ -181,7 +185,7 @@
 - `src/pages/templates/exception/server-error-page.tsx`
 - `src/pages/templates/exception/not-found-page.tsx`
 
-推荐路径：页面级模板直接复用
+推荐路径：参考示例，在业务或公共页面目录实现
 
 原因：
 

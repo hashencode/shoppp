@@ -17,6 +17,10 @@ Before implementing a new or standard admin page, read:
 For legacy-page migration, follow the read order in
 `docs/ai/legacy-page-migration-workflow.md` instead.
 
+## Page placement
+
+- Follow `docs/ai/ai-rules.md` section 6 for page placement and dependencies: templates are reference examples; business modules belong in their business directories.
+
 ## Proportional Verification
 
 - Before running verification, select `L0-L4` from `docs/testing-standards.md` based on the actual

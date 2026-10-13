@@ -435,6 +435,7 @@ componentCatalog:
       - 独立登录页或纯公共页面
 
 crossCuttingRules:
+  - templates 页面仅供参考；业务目录与示例目录的放置及依赖边界遵守 docs/ai/ai-rules.md 第 6 节
   - 先复用 template-kit 再考虑新造轮子
   - 列表页优先走 useTemplateListController + TemplateListContent 组合
   - 标准查询列表页分页必须复用 useStandardPagination，禁止散装分页状态实现

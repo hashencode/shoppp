@@ -21,7 +21,7 @@
 ## 3. Engineering Constraints
 
 - 路由、菜单、权限都走已有 route contract。
-- 新页面先复用 `src/pages/templates/*` 与 `src/shared/template-kit/*`。
+- 新页面先参考 `src/pages/templates/*` 的适用示例，运行时优先复用 `src/shared/template-kit/*` 与 `src/shared/components/*`；参考示例不等于导入示例页面或 API。
 - 若需求是“从其他项目迁移页面”，优先阅读 `docs/ai/form-migration-rules.md` 或 `docs/ai/list-migration-rules.md`，先做旧新对照清单，再决定是否接入 recipe。
 - 标准列表筛选模板必须优先支持字段：`input`、`select`、`date`、`date-range`；开始和结束日期默认拆成两个 `date` 字段，只有业务要求两个值成对填写、共同提交为一个完整区间时才使用 `date-range`。可搜索下拉优先通过 `selectProps.showSearch/filterOption/onSearch` 表达。
 - 普通筛选项（如 `Input / Select / DatePicker / RangePicker`）禁止使用 `custom` 实现；`custom` 仅用于真正的业务特例字段。
@@ -156,11 +156,14 @@
 - 修改后必须运行严格表宽审计和虚拟表格 Browser Mode，确认 `scroll.x`、固定列与单双行混排一致
 
 ## 6. File Placement Convention
-
-- 新业务页面: `src/pages/templates/<domain>/`
-- 模板化复用逻辑: `src/shared/template-kit/`
-- 页面 API: `src/pages/templates/<domain>/api.ts`
-- 路由配置: `src/routes/routes.config.ts`
+- 参考示例: `src/pages/templates/`，仅承载可运行的模板页面及其示例 API、示例数据，不放正式业务模块。
+- 新业务页面: `src/pages/<domain>/`；项目已有清晰的业务目录时沿用其结构，不强制增加目录层级。
+- 业务 API、局部组件、类型和测试: 优先与业务页面同目录，例如 `src/pages/<domain>/api.ts`。
+- 运行时复用逻辑: `src/shared/template-kit/`；通用组件: `src/shared/components/`。
+- 业务模块不得直接导入 `templates` 中的示例页面、示例 API、示例数据或示例权限；接口、路由和权限合同必须来自当前项目的业务权威。
+- 模板示例不得依赖具体业务模块；确需运行时共享的能力应放入 `shared`，不以示例文件作为公共依赖。
+- 示例路由注册、示例测试及示例 MSW handler 可引用示例文件；迁移已有业务目录时保留 URL、菜单、接口和权限行为，仅调整文件位置与引用。
+- 路由配置: `src/routes/routes.config.ts`；示例路由路径不是业务路由约定。
 
 ## 7. Output Contract for AI
 
@@ -169,7 +172,7 @@ AI 在输出实现方案时，必须包含：
 1. 业务归类（对应 business domain / recipe）
 2. 页面模块划分（至少标出筛选区/内容区/反馈区/权限区中适用项）
 3. 表单选型结论（基础/分步/高级）及判别依据
-4. 将复用的现有文件列表
+4. 分别列出参考示例与实际复用的现有代码
 5. 将新增或修改的文件列表
 6. 测试计划（至少 2 条）
 7. 风险点（权限、参数、空态、错误态、主题适配）
@@ -182,6 +185,7 @@ AI 在输出实现方案时，必须包含：
 
 如果 AI 方案出现以下任一项，视为不合格并重做：
 
+- 将正式业务模块放入 `src/pages/templates/`，或把示例页面/API/权限当作业务依赖
 - 新造一个和 template-kit 重复的控制器
 - 忽略权限声明
 - 忽略 `mode` 参数校验

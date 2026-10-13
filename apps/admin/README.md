@@ -30,7 +30,9 @@ A reusable admin template built with React, TypeScript, Ant Design v6, Tailwind 
 - `src/infrastructure/http` - shared HTTP client and error normalization
 - `src/infrastructure/msw` - dev-only MSW bootstrap and handlers (`/dev` routes only)
 - `src/pages/home/*` - public pages
-- `src/pages/templates/*` - template pages and feature API modules
+- `src/pages/templates/*` - reference examples with example APIs and data; not business modules
+- `src/pages/<domain>/*` - business pages, APIs, local components, and tests
+- `src/shared/template-kit` - reusable runtime recipes, controllers, and hooks
 - `src/shared/layout` - admin shell layout
 - `src/shared/contexts` - global cross-page runtime contexts (for example theme mode)
 - `src/shared/components/upload-form-item.tsx` - shared form-field upload control; business projects inject upload APIs through adapters

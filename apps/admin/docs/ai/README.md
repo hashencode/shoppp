@@ -15,6 +15,9 @@
 若旧页迁移工作流与通用页面规则冲突，以迁移工作流为准；接口、权限、路由等事实以当前项目
 源码和明确的业务权威文档为准，不从模板或来源项目猜测。
 
+页面目录与复用边界以 `ai-rules.md` 第 6 节为准：`templates` 放参考示例，业务页面放在 `src/pages/<domain>/`，运行时公共能力放在 `shared`。
+`business-map.yaml` 分开记录实际业务与示例映射；`page-recipes.yaml` 分开声明参考页面和运行时复用入口。
+
 ## 核心规则
 
 - [ai-rules.md](./ai-rules.md)
