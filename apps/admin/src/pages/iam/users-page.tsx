@@ -7,7 +7,7 @@ import {
   type AdminUser,
   type AdminUserStatus,
 } from '@shoppp/contracts'
-import { Alert, App, Button, Card, Form, Input, Modal, Select, Table, Tag } from 'antd'
+import { Alert, App, Button, Card, Form, Input, Modal, Select, Table, Tabs, Tag, theme } from 'antd'
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -123,7 +123,7 @@ const deliveryTag = (invitation: AdminInvitation, t: Translate) => {
   )
 }
 
-type IndependentListCardProps<TItem> = {
+type IndependentListContentProps<TItem> = {
   activeTabKey: ActiveTab
   tabList: Array<{ key: ActiveTab; tab: React.ReactNode }>
   onTabChange: (key: ActiveTab) => void
@@ -146,7 +146,7 @@ type IndependentListCardProps<TItem> = {
   onResetEmpty: () => void
 }
 
-const IndependentListCard = <TItem extends object>({
+const IndependentListContent = <TItem extends object>({
   activeTabKey,
   tabList,
   onTabChange,
@@ -159,7 +159,7 @@ const IndependentListCard = <TItem extends object>({
   emptyTitle,
   onReload,
   onResetEmpty,
-}: IndependentListCardProps<TItem>) => {
+}: IndependentListContentProps<TItem>) => {
   const { data, error, loading, showEmpty, showError, showInitialLoading, showPartial } = queryState
   const defaultColumnKeys = useMemo(
     () =>
@@ -222,28 +222,27 @@ const IndependentListCard = <TItem extends object>({
   )
 
   return (
-    <Card
-      className="iam-users-list-card"
-      tabList={tabList}
-      activeTabKey={activeTabKey}
-      onTabChange={(key) => onTabChange(key as ActiveTab)}
-      tabProps={{ size: 'middle' }}
-      variant="borderless"
-      tabBarExtraContent={
-        <ListToolbarActions
-          tableSize={tableSize}
-          onTableSizeChange={setTableSize}
-          onClearColumnSort={clearColumnOrder}
-          clearColumnSortDisabled={!hasCustomColumnOrder}
-          reloadLoading={loading}
-          onReload={onReload}
-          columnSettingOptions={buildListToolbarColumnSettingOptions(orderedColumns)}
-          selectedColumnKeys={selectedColumnKeys}
-          onSelectedColumnKeysChange={setSelectedColumnKeys}
-          onColumnSettingOrderChange={setColumnOrder}
-        />
-      }
-    >
+    <div className="p-4">
+      <Tabs
+        className="iam-users-list-tabs"
+        items={tabList.map(({ key, tab }) => ({ key, label: tab }))}
+        activeKey={activeTabKey}
+        onChange={(key) => onTabChange(key as ActiveTab)}
+        tabBarExtraContent={
+          <ListToolbarActions
+            tableSize={tableSize}
+            onTableSizeChange={setTableSize}
+            onClearColumnSort={clearColumnOrder}
+            clearColumnSortDisabled={!hasCustomColumnOrder}
+            reloadLoading={loading}
+            onReload={onReload}
+            columnSettingOptions={buildListToolbarColumnSettingOptions(orderedColumns)}
+            selectedColumnKeys={selectedColumnKeys}
+            onSelectedColumnKeysChange={setSelectedColumnKeys}
+            onColumnSettingOrderChange={setColumnOrder}
+          />
+        }
+      />
       <TemplateListContent
         showInitialLoading={showInitialLoading}
         showError={showError}
@@ -261,11 +260,12 @@ const IndependentListCard = <TItem extends object>({
         }}
         tableNode={tableNode}
       />
-    </Card>
+    </div>
   )
 }
 
 export const UsersPage = () => {
+  const { token } = theme.useToken()
   const { message } = App.useApp()
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const { locale, t } = useI18n()
@@ -652,57 +652,59 @@ export const UsersPage = () => {
         />
       ) : null}
 
-      <Card variant="borderless" styles={{ body: { paddingRight: 8 } }}>
-        <TemplateListFilterForm<FilterValues>
-          form={filterForm}
-          formProps={{ initialValues: {} }}
-          fields={filterFields}
-          fieldColProps={searchGridProps.formItem}
-          labelCol={searchGridProps.labelItem}
-          wrapperCol={searchGridProps.inputItem}
-          actionsColProps={searchGridProps.actions}
-          compactLayout={searchCompactLayout}
-          submitLoading={
-            activeTab === 'users' ? usersController.loading : invitationsController.loading
-          }
-          onSubmit={applyVisibleFilters}
-          onReset={resetVisibleFilters}
-        />
-      </Card>
+      <Card variant="borderless" styles={{ body: { padding: 0 } }}>
+        <div className="p-4" style={{ borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+          <TemplateListFilterForm<FilterValues>
+            form={filterForm}
+            formProps={{ initialValues: {} }}
+            fields={filterFields}
+            fieldColProps={searchGridProps.formItem}
+            labelCol={searchGridProps.labelItem}
+            wrapperCol={searchGridProps.inputItem}
+            actionsColProps={searchGridProps.actions}
+            compactLayout={searchCompactLayout}
+            submitLoading={
+              activeTab === 'users' ? usersController.loading : invitationsController.loading
+            }
+            onSubmit={applyVisibleFilters}
+            onReset={resetVisibleFilters}
+          />
+        </div>
 
-      {activeTab === 'users' ? (
-        <IndependentListCard<AdminUser>
-          key="iam-users-list"
-          activeTabKey={activeTab}
-          tabList={listTabs}
-          onTabChange={setActiveTab}
-          tableId="iam-users-list"
-          columns={userColumns}
-          rowKey="id"
-          queryState={usersController}
-          pagination={buildStandardListPagination(userPagination, locale)}
-          scrollX={720}
-          emptyTitle={t('No users match these filters.')}
-          onReload={() => void loadUsers()}
-          onResetEmpty={resetVisibleFilters}
-        />
-      ) : (
-        <IndependentListCard<AdminInvitation>
-          key="iam-invitations-list"
-          activeTabKey={activeTab}
-          tabList={listTabs}
-          onTabChange={setActiveTab}
-          tableId="iam-invitations-list"
-          columns={invitationColumns}
-          rowKey="id"
-          queryState={invitationsController}
-          pagination={buildStandardListPagination(invitationPagination, locale)}
-          scrollX={670 + INVITATION_ACTION_LAYOUT.columnWidth}
-          emptyTitle={t('No invitations match these filters.')}
-          onReload={() => void loadInvitations()}
-          onResetEmpty={resetVisibleFilters}
-        />
-      )}
+        {activeTab === 'users' ? (
+          <IndependentListContent<AdminUser>
+            key="iam-users-list"
+            activeTabKey={activeTab}
+            tabList={listTabs}
+            onTabChange={setActiveTab}
+            tableId="iam-users-list"
+            columns={userColumns}
+            rowKey="id"
+            queryState={usersController}
+            pagination={buildStandardListPagination(userPagination, locale)}
+            scrollX={720}
+            emptyTitle={t('No users match these filters.')}
+            onReload={() => void loadUsers()}
+            onResetEmpty={resetVisibleFilters}
+          />
+        ) : (
+          <IndependentListContent<AdminInvitation>
+            key="iam-invitations-list"
+            activeTabKey={activeTab}
+            tabList={listTabs}
+            onTabChange={setActiveTab}
+            tableId="iam-invitations-list"
+            columns={invitationColumns}
+            rowKey="id"
+            queryState={invitationsController}
+            pagination={buildStandardListPagination(invitationPagination, locale)}
+            scrollX={670 + INVITATION_ACTION_LAYOUT.columnWidth}
+            emptyTitle={t('No invitations match these filters.')}
+            onReload={() => void loadInvitations()}
+            onResetEmpty={resetVisibleFilters}
+          />
+        )}
+      </Card>
 
       {selectedUserId ? (
         <UserDetailPage

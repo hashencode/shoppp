@@ -131,6 +131,15 @@ describe('Revenue reporting locale in a native browser', () => {
     renderI18nBrowser(<OrderReportPage />, ['reporting.read'])
     await expect.element(page.getByText('ORD-BOUNDARY')).toBeVisible()
     assertNativeBrowserAndCss()
+    const listCard = document.querySelector('.ant-table-wrapper')!.closest('.ant-card')!
+    expect(document.querySelectorAll('.ant-card')).toHaveLength(1)
+    const queryRegion = listCard.querySelector('form')!.parentElement!
+    const listRegion = listCard.querySelector('.ant-table-wrapper')!.parentElement!
+    expect(getComputedStyle(queryRegion).padding).toBe('16px')
+    expect(getComputedStyle(queryRegion).borderBottomWidth).toBe('1px')
+    expect(getComputedStyle(queryRegion).borderBottomStyle).toBe('solid')
+    expect(getComputedStyle(listRegion).padding).toBe('16px')
+    expect(listCard.querySelector('.ant-card-body')?.children).toHaveLength(2)
     expect(document.documentElement.lang).not.toBe(navigator.language)
     for (let index = 0; index < 2; index += 1) {
       const chinese = document.documentElement.lang === 'zh-CN'

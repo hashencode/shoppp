@@ -1,5 +1,5 @@
 version: 2
-updatedAt: "2026-10-14"
+updatedAt: "2026-10-15"
 project: shoppp-admin
 
 # referencePage(s) 仅供阅读参考；sharedRecipe 与 requiredPieces 才是运行时复用入口。
@@ -72,6 +72,8 @@ recipes:
       - 在 routes.config.ts 注册业务路由，按当前业务权威声明授权，不复制示例 list.read
       - 在 src/pages/<domain>/api.ts 定义业务 filters、response contract 和 fetch 函数，不导入示例 API
       - 用控制器串联 filter + table + pagination
+      - 查询、可选业务摘要与列表共用一个 Card，区域内边距 16px 并用主题横线分隔；无查询或摘要时省略对应空区
+      - 顶部指标、独立模块及前后插槽保持既有边界，动态标题、工具栏和抽屉刷新合同不变
       - 处理 partial/empty/error 展示
       - 补测试（控制器 + 页面渲染）
 

@@ -1,5 +1,5 @@
 import { auditQuerySchema, type AuditEvent, type AuditQuery } from '@shoppp/contracts'
-import { Button, Card, Form, Space, Table, Tag } from 'antd'
+import { Button, Card, Form, Space, Table, Tag, theme } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
@@ -40,6 +40,7 @@ const normalizeFilters = (values: AuditFilterValues): AuditFilterValues => ({
 })
 
 export const AuditPage = () => {
+  const { token } = theme.useToken()
   const { t } = useI18n()
   const { searchCompactLayout } = useTheme()
   const localizeError = useLocalizedApiError()
@@ -236,75 +237,75 @@ export const AuditPage = () => {
 
   return (
     <CustomPageRecipe title={t('Audit trail')}>
-      <Card variant="borderless" styles={{ body: { paddingRight: 8 } }}>
-        <TemplateListFilterForm<AuditFilterValues>
-          form={filterForm}
-          formProps={{ initialValues: {} }}
-          fields={filterFields}
-          fieldColProps={searchGridProps.formItem}
-          labelCol={searchGridProps.labelItem}
-          wrapperCol={searchGridProps.inputItem}
-          actionsColProps={searchGridProps.actions}
-          compactLayout={searchCompactLayout}
-          submitLoading={controller.loading}
-          onSubmit={commitFilters}
-          onReset={resetFilters}
-        />
-      </Card>
-
-      <Card
-        variant="borderless"
-        extra={
-          <ListToolbarActions
-            tableSize={tableSize}
-            onTableSizeChange={setTableSize}
-            onClearColumnSort={clearColumnOrder}
-            clearColumnSortDisabled={!hasCustomColumnOrder}
-            reloadLoading={controller.loading}
-            onReload={() => void load()}
-            columnSettingOptions={buildListToolbarColumnSettingOptions(orderedColumns)}
-            selectedColumnKeys={selectedColumnKeys}
-            onSelectedColumnKeysChange={setSelectedColumnKeys}
-            onColumnSettingOrderChange={setColumnOrder}
+      <Card variant="borderless" styles={{ body: { padding: 0 } }}>
+        <div className="p-4" style={{ borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+          <TemplateListFilterForm<AuditFilterValues>
+            form={filterForm}
+            formProps={{ initialValues: {} }}
+            fields={filterFields}
+            fieldColProps={searchGridProps.formItem}
+            labelCol={searchGridProps.labelItem}
+            wrapperCol={searchGridProps.inputItem}
+            actionsColProps={searchGridProps.actions}
+            compactLayout={searchCompactLayout}
+            submitLoading={controller.loading}
+            onSubmit={commitFilters}
+            onReset={resetFilters}
           />
-        }
-      >
-        <TemplateListContent
-          showInitialLoading={controller.showInitialLoading}
-          showError={controller.showError}
-          showPartial={controller.showPartial}
-          showEmpty={controller.showEmpty}
-          errorMessage={controller.error ? localizeError(controller.error) : undefined}
-          partialMessage={controller.error ? localizeError(controller.error) : undefined}
-          onRetry={retry}
-          onReloadPartial={() => void load()}
-          onResetEmpty={resetFilters}
-          copy={{
-            loadingTitle: t('Loading audit events…'),
-            errorTitle: t('Audit events could not be loaded'),
-            errorActionLabel: invalidCursor ? t('Restart') : t('Retry'),
-            partialTitle: t('Audit events could not be refreshed'),
-            emptyTitle: t('No audit events match these filters'),
-            emptyDescription: t('Reset the filters and search again.'),
-          }}
-          tableNode={tableNode}
-        />
-        {controller.response && (controller.data.length > 0 || cursorIndex > 0) ? (
-          <Space wrap className="mt-4">
-            <Button disabled={cursorIndex === 0 || controller.loading} onClick={goToFirstPage}>
-              {t('First page')}
-            </Button>
-            <Button disabled={cursorIndex === 0 || controller.loading} onClick={goToPreviousPage}>
-              {t('Previous page')}
-            </Button>
-            <Button
-              disabled={!controller.response.nextCursor || controller.loading}
-              onClick={goToNextPage}
-            >
-              {t('Next page')}
-            </Button>
-          </Space>
-        ) : null}
+        </div>
+
+        <div className="p-4">
+          <div className="mb-4 flex flex-wrap justify-end gap-2">
+            <ListToolbarActions
+              tableSize={tableSize}
+              onTableSizeChange={setTableSize}
+              onClearColumnSort={clearColumnOrder}
+              clearColumnSortDisabled={!hasCustomColumnOrder}
+              reloadLoading={controller.loading}
+              onReload={() => void load()}
+              columnSettingOptions={buildListToolbarColumnSettingOptions(orderedColumns)}
+              selectedColumnKeys={selectedColumnKeys}
+              onSelectedColumnKeysChange={setSelectedColumnKeys}
+              onColumnSettingOrderChange={setColumnOrder}
+            />
+          </div>
+          <TemplateListContent
+            showInitialLoading={controller.showInitialLoading}
+            showError={controller.showError}
+            showPartial={controller.showPartial}
+            showEmpty={controller.showEmpty}
+            errorMessage={controller.error ? localizeError(controller.error) : undefined}
+            partialMessage={controller.error ? localizeError(controller.error) : undefined}
+            onRetry={retry}
+            onReloadPartial={() => void load()}
+            onResetEmpty={resetFilters}
+            copy={{
+              loadingTitle: t('Loading audit events…'),
+              errorTitle: t('Audit events could not be loaded'),
+              errorActionLabel: invalidCursor ? t('Restart') : t('Retry'),
+              partialTitle: t('Audit events could not be refreshed'),
+              emptyTitle: t('No audit events match these filters'),
+              emptyDescription: t('Reset the filters and search again.'),
+            }}
+            tableNode={tableNode}
+          />
+          {controller.response && (controller.data.length > 0 || cursorIndex > 0) ? (
+            <Space wrap className="mt-4">
+              <Button disabled={cursorIndex === 0 || controller.loading} onClick={goToFirstPage}>
+                {t('First page')}
+              </Button>
+              <Button disabled={cursorIndex === 0 || controller.loading} onClick={goToPreviousPage}>
+                {t('Previous page')}
+              </Button>
+              <Button
+                disabled={!controller.response.nextCursor || controller.loading}
+                onClick={goToNextPage}
+              >
+                {t('Next page')}
+              </Button>
+            </Space>
+          ) : null}
+        </div>
       </Card>
     </CustomPageRecipe>
   )

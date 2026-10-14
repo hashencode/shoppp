@@ -37,11 +37,18 @@ Revision 用于复核本轮证据，不表示后续自动同步。新的回流�
 `fzzx-admin@6203d672641fcabded34ef4563931a514fc3e949` 的本地适配。该轮只吸收
 操作列有界布局与 PDF 反向增量，不改变 Shoppp 的权限、接口、下载认证或产品计划。
 
+2026-10-15 的 Card 分区布局来源为
+`codex-admin-quick-start@4369688c2bf2190043c12ba5a6888c39170969fe`，目标起始版本为
+`6d0bf1041989aaeb27e0371d32170ffaa758cd12`。只采用标准列表呈现与通用布局规则，
+Users/Invitations 和 Audit 由本地列表 owner 调整容器；能力门禁与逐消费者证据分开记录在
+[card-layout-adoption.md](card-layout-adoption.md)。本轮为独立限定 refactor，不改变产品主计划。
+
 ## 当前清单
 
 | Capability ID                    | Source evidence                                                                                                                                        | Generic contract                                                                                                                        | Local adapters / exclusions                                                                      | Status         | Local verification                                                                                                |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `form-recipes`                   | `fzzx-admin:src/shared/template-kit/recipes/basic-crud-form-recipe.test.tsx`; `fzzx-admin:src/shared/template-kit/recipes/step-form-recipe.test.tsx`   | 多 Card 三态表单和分步表单的宽度、对齐、必填标识与重复提交边界。                                                                        | 页面保留业务校验和步骤状态机；不新增 `AdvancedFormRecipe`。                                      | `verified`     | BasicCrud/StepForm 聚焦测试、全量测试、typecheck。                                                                |
+| `card-section-layout` | `codex-admin-quick-start@4369688c2bf2190043c12ba5a6888c39170969fe:src/shared/template-kit/recipes/standard-list-page-recipe.tsx` | 按操作关联归组；标准列表查询、非空摘要、结果共用 Card，16px 分区与主题横线，前后插槽保持外置。 | 保留 locale、IAM、请求/分页与恢复；Users/Audit 本地适配，独立纵向编辑、详情和主题快照预览保留。 | `adapting` | 本地 recipe 前置证明已观察预期失败；Admin L3 权威门禁待执行，见采用记录。 |
 | `form-error-scroll`              | `fzzx-admin:src/shared/template-kit/form/form-validation-scroll.test.ts`; `fzzx-admin:src/shared/template-kit/recipes/basic-crud-form-recipe.test.tsx` | 全页面标准 submit 校验失败时平滑滚动并聚焦首个错误字段；手动 `validateFields` 复用同一滚动参数并继续抛出原错误。                        | `BasicCrudFormRecipe` 自动继承；分步模板显式调用 helper；短表单、Modal、登录即时校验不强制接入。 | `verified`     | 本地 8 条聚焦测试、48 文件/227 用例全量测试、typecheck、定向 ESLint、YAML、差异检查与真实基础表单浏览器验证通过。 |
 | `form-save-result-modal`         | `fzzx-admin:src/shared/template-kit/form/form-save-success-modal.test.ts`                                                                              | 关闭按钮留页，确认按钮执行既有离页回调。                                                                                                | 页面提供文案和回调；删除、发布、审核等非保存行为不纳入。                                         | `verified`     | 配置纯函数测试与全量测试。                                                                                        |
 | `table-width-audit`              | `gmxgy-admin-new:src/test/table-width-audit.test.ts`                                                                                                   | AST 审计识别操作列 resolver 的密度增量和上限。                                                                                          | 保留当前项目列宽规则和既有脏文件基线。                                                           | `verified`     | 表宽审计单测与 `qa:table-widths`。                                                                                |
@@ -62,7 +69,7 @@ Revision 用于复核本轮证据，不表示后续自动同步。新的回流�
 
 1. 先补能复现当前缺口的测试或审计证据。
 2. 实现只复制通用行为，业务合同留在目标项目 adapter。
-3. 聚焦测试、全量测试、typecheck 和适用的构建/E2E 门禁通过后，才能把本地状态改为 `verified`。
+3. 按 [testing-standards.md](../testing-standards.md) 所选等级完成本地适用门禁后，才能把本地状态改为 `verified`；来源测试不能替代目标验证。
 4. 计划、测试或外部环境受阻时保持 `adapting`，并记录具体缺口；不得从来源项目状态推断本项目通过。
 
 ## 2026-09-03 approved adapters

@@ -310,6 +310,9 @@ describe('StandardListPageRecipe', () => {
       tableId: 'recipe-test-list',
       formRoute: '/test/form',
       initialFilters: {},
+      renderBeforeFilter: <div>顶部指标</div>,
+      renderBetweenFilterAndContent: <div>业务摘要</div>,
+      renderAfterContent: <div>独立结果反馈</div>,
       toFilters: (values) => ({
         name: values.name?.trim() || undefined,
       }),
@@ -356,6 +359,13 @@ describe('StandardListPageRecipe', () => {
     await waitFor(() => {
       expect(requestCalls).toHaveLength(1)
     })
+
+    const listCard = screen.getByTestId('table-node').closest('.ant-card')
+    expect(listCard).toBeTruthy()
+    expect(screen.getByPlaceholderText('请输入名称').closest('.ant-card')).toBe(listCard)
+    expect(screen.getByText('业务摘要').closest('.ant-card')).toBe(listCard)
+    expect(screen.getByText('顶部指标').closest('.ant-card')).toBeNull()
+    expect(screen.getByText('独立结果反馈').closest('.ant-card')).toBeNull()
 
     fireEvent.change(screen.getByPlaceholderText('请输入名称'), {
       target: { value: '  alpha  ' },
@@ -599,7 +609,7 @@ describe('StandardListPageRecipe', () => {
     })
   })
 
-  it('does not render the filter card when there are no filter fields', async () => {
+  it('omits empty query and summary sections when there are no filter fields', async () => {
     const spec: StandardListPageSpec<
       FilterValues,
       RequestFilters,
@@ -641,6 +651,7 @@ describe('StandardListPageRecipe', () => {
     expect(screen.queryByRole('button', { name: /查\s*询/ })).toBeNull()
     expect(container.querySelector('.ant-card')).toBeTruthy()
     expect(container.querySelectorAll('.ant-card').length).toBe(1)
+    expect(container.querySelector('.ant-card-body')?.children).toHaveLength(1)
     expect(screen.getAllByText('测试列表')).toHaveLength(1)
   })
 
@@ -691,7 +702,7 @@ describe('StandardListPageRecipe', () => {
     expect(createButton.className).not.toContain('ant-btn-variant-filled')
 
     const refreshButton = screen.getByRole('button', { name: '刷新' })
-    const divider = document.querySelector('.ant-card-extra .ant-divider-vertical')
+    const divider = refreshButton.parentElement?.querySelector('.ant-divider-vertical')
     const createBeforeDivider = Boolean(
       divider && createButton.compareDocumentPosition(divider) & Node.DOCUMENT_POSITION_FOLLOWING
     )
@@ -791,7 +802,7 @@ describe('StandardListPageRecipe', () => {
 
     const exportButton = screen.getByRole('button', { name: '导出' })
     const refreshButton = screen.getByRole('button', { name: '刷新' })
-    const divider = document.querySelector('.ant-card-extra .ant-divider-vertical')
+    const divider = refreshButton.parentElement?.querySelector('.ant-divider-vertical')
 
     expect(divider).toBeTruthy()
     expect(
@@ -803,30 +814,40 @@ describe('StandardListPageRecipe', () => {
 
     unmount()
 
-    const { container: emptyContainer, unmount: unmountEmpty } = renderWithTheme(
+    const { unmount: unmountEmpty } = renderWithTheme(
       <StandardListPageRecipe spec={buildSpec(false, false)} />
     )
 
     await screen.findByText('demo')
-    expect(emptyContainer.querySelector('.ant-card-extra .ant-divider-vertical')).toBeNull()
+    expect(
+      screen
+        .getByRole('button', { name: '刷新' })
+        .parentElement?.querySelector('.ant-divider-vertical')
+    ).toBeNull()
 
     unmountEmpty()
 
-    const { container: emptyArrayContainer } = renderWithTheme(
+    const { unmount: unmountEmptyArray } = renderWithTheme(
       <StandardListPageRecipe spec={buildSpec([false, null], false)} />
     )
 
     await screen.findByText('demo')
-    expect(emptyArrayContainer.querySelector('.ant-card-extra .ant-divider-vertical')).toBeNull()
+    expect(
+      screen
+        .getByRole('button', { name: '刷新' })
+        .parentElement?.querySelector('.ant-divider-vertical')
+    ).toBeNull()
 
-    unmountEmpty()
+    unmountEmptyArray()
 
-    const { container: emptyFragmentContainer } = renderWithTheme(
-      <StandardListPageRecipe spec={buildSpec(<></>, false)} />
-    )
+    renderWithTheme(<StandardListPageRecipe spec={buildSpec(<></>, false)} />)
 
     await screen.findByText('demo')
-    expect(emptyFragmentContainer.querySelector('.ant-card-extra .ant-divider-vertical')).toBeNull()
+    expect(
+      screen
+        .getByRole('button', { name: '刷新' })
+        .parentElement?.querySelector('.ant-divider-vertical')
+    ).toBeNull()
   })
 
   it('omits the divider when the configured create action is not permitted', async () => {
@@ -854,12 +875,16 @@ describe('StandardListPageRecipe', () => {
       buildTableNode: ({ dataSource }) => <div>{dataSource[0]?.name}</div>,
     }
 
-    const { container } = renderWithTheme(<StandardListPageRecipe spec={spec} />, ['catalog.read'])
+    renderWithTheme(<StandardListPageRecipe spec={spec} />, ['catalog.read'])
 
     await screen.findByText('demo')
 
     expect(screen.queryByRole('button', { name: '新增数据' })).toBeNull()
-    expect(container.querySelector('.ant-card-extra .ant-divider-vertical')).toBeNull()
+    expect(
+      screen
+        .getByRole('button', { name: '刷新' })
+        .parentElement?.querySelector('.ant-divider-vertical')
+    ).toBeNull()
   })
 
   it('passes reload helper to custom table nodes', async () => {

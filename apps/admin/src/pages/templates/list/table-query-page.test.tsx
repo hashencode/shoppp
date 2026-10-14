@@ -85,6 +85,9 @@ describe('TableQueryPage', () => {
       expect(screen.getByText('TradeCode 0')).toBeTruthy()
       expect(screen.getByText('规则列表')).toBeTruthy()
     })
+    const listCard = screen.getByText('TradeCode 0').closest('.ant-card')
+    expect(listCard).toBeTruthy()
+    expect(screen.getByRole('button', { name: /查\s*询/ }).closest('.ant-card')).toBe(listCard)
   })
 
   it('shows complete rule details in the standard 720px right Drawer without form actions', async () => {

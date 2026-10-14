@@ -132,11 +132,19 @@ describe('IAM controls in a real browser', () => {
     )
     await expect.element(page.getByText('operator@example.test')).toBeVisible()
     assertNativeBrowserAndCss()
+    const tabs = document.querySelector('[role="tablist"]')!
+    const listCard = tabs.closest('.ant-card')!
+    expect(listCard).toBeTruthy()
+    expect(document.querySelectorAll('.ant-card')).toHaveLength(1)
+    const queryForm = listCard.querySelector('form')!
+    const queryRegion = queryForm.parentElement!
+    const listRegion = tabs.closest('.iam-users-list-tabs')!.parentElement!
+    expect(getComputedStyle(queryRegion).padding).toBe('16px')
+    expect(getComputedStyle(queryRegion).borderBottomWidth).toBe('1px')
+    expect(getComputedStyle(queryRegion).borderBottomStyle).toBe('solid')
+    expect(getComputedStyle(listRegion).padding).toBe('16px')
     expect(
-      document.querySelector('[role="tablist"]')?.closest('.ant-card-head-tabs')
-    ).not.toBeNull()
-    expect(
-      getComputedStyle(document.querySelector('.ant-card-head-tabs > .ant-tabs-nav')!, '::before')
+      getComputedStyle(document.querySelector('.iam-users-list-tabs > .ant-tabs-nav')!, '::before')
         .borderBottomWidth
     ).toBe('0px')
     expect(document.documentElement.lang).not.toBe(navigator.language)
@@ -146,9 +154,8 @@ describe('IAM controls in a real browser', () => {
       })
       .click()
     await expect.element(page.getByText('invite@example.test')).toBeVisible()
-    expect(
-      document.querySelector('[role="tablist"]')?.closest('.ant-card-head-tabs')
-    ).not.toBeNull()
+    expect(document.querySelector('[role="tablist"]')?.closest('.ant-card')).toBe(listCard)
+    expect(listCard.querySelector('.ant-table-wrapper')).toBeTruthy()
     const requests = transport.requests.length
     for (let index = 0; index < 2; index += 1) {
       await expect

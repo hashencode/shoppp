@@ -1,5 +1,5 @@
 version: 1
-updatedAt: '2026-10-14'
+updatedAt: '2026-10-15'
 project: shoppp-admin
 
 pageModules:
@@ -106,6 +106,7 @@ componentCatalog:
     useWhen:
       - 标准列表页需要刷新、密度切换或列设置
       - 页面通过 StandardListPageRecipe 接入工具栏
+      - 工具栏位于单 Card 的列表分区顶部，继续保留动态标题和可见业务动作的条件分隔线
     avoidWhen:
       - 页面没有表格列配置
       - 业务需要完全不同的工具区状态机

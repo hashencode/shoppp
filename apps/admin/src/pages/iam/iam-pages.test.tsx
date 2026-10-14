@@ -374,15 +374,24 @@ describe('IAM management pages', () => {
     expect(screen.queryByRole('button', { name: /Invite user/i })).toBeNull()
   })
 
-  it('keeps the resource tabs in the native card tab header', async () => {
+  it('keeps resource tabs, query, and results in one Card across resource changes', async () => {
     renderPage(<UsersPage />)
 
     await screen.findByText('Alice Admin')
-    expect(screen.getByRole('tablist').closest('.ant-card-head-tabs')).toBeTruthy()
+    const listCard = screen.getByText('Alice Admin').closest('.ant-card')
+    expect(listCard).toBeTruthy()
+    expect(screen.getByRole('tablist').closest('.ant-card')).toBe(listCard)
+    expect(screen.getByLabelText('Search users and invitations').closest('.ant-card')).toBe(
+      listCard
+    )
 
     fireEvent.click(screen.getByRole('tab', { name: /Invitations/i }))
     await screen.findByText('expired@example.test')
-    expect(screen.getByRole('tablist').closest('.ant-card-head-tabs')).toBeTruthy()
+    expect(screen.getByRole('tablist').closest('.ant-card')).toBe(listCard)
+    expect(screen.getByText('expired@example.test').closest('.ant-card')).toBe(listCard)
+    expect(screen.getByLabelText('Search users and invitations').closest('.ant-card')).toBe(
+      listCard
+    )
   })
 
   it('keeps filters draft-only and commits shared search to both independent resources', async () => {
