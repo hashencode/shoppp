@@ -22,7 +22,7 @@
 | 基础三态表单页 | `src/pages/templates/form/basic-form-page.tsx`       | `BasicCrudFormRecipe`                      | 已接入         |
 | 分步表单页     | `src/pages/templates/form/step-form-page.tsx`        | `StepFormRecipe`                           | 已接入         |
 | 高级表单页     | `src/pages/templates/form/advanced-form-page.tsx`    | `business override`                        | 明确保留特例   |
-| 默认详情展示   | 优先复用 `readonly` 表单                             | `BasicCrudFormRecipe` readonly             | 推荐默认路径   |
+| 默认详情展示   | 优先复用已选容器的 `readonly` 表单                   | Drawer或独立页的基础表单                   | 推荐默认路径   |
 | 特殊详情页     | `src/pages/templates/profile/basic-profile-page.tsx` | `business override` 或后续 `ProfileRecipe` | 暂不抽象       |
 | 结果页         | `src/pages/templates/dashboard/result-*.tsx`         | 参考示例，在业务或公共页面目录实现                         | 暂不 recipe 化 |
 | 异常页         | `src/pages/templates/exception/*.tsx`                | 参考示例，在业务或公共页面目录实现                         | 暂不 recipe 化 |
@@ -58,9 +58,11 @@
 
 ## 4. 表单页
 
+先按 `ai-rules.md` 第3.1节选容器，再选结构：普通维护用 `CrudFormDrawerRecipe`；轻量一步输入直接 `Modal + Form`；必须独立访问或持续大工作空间时用独立页。右 Drawer720，布局读 `drawer-form-layout-rules.md`。现有参考路径是独立页示例，不构成业务容器默认。
+
 ### 4.1 基础三态表单页
 
-推荐路径：`BasicCrudFormRecipe`
+已选独立页的推荐路径：`BasicCrudFormRecipe`
 
 适用条件：
 
@@ -142,7 +144,7 @@
 
 推荐做法：
 
-- 直接走 `BasicCrudFormRecipe` 的 `readonly` 模式
+- 复用已选容器的 `readonly` 模式；独立页用 `BasicCrudFormRecipe`，普通 Drawer 用 `CrudFormDrawerRecipe`
 - 不额外新建 profile 页面
 
 ### 5.2 特殊详情页

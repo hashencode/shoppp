@@ -1,4 +1,11 @@
 export const zhCNMessages: Record<string, string> = {
+  'Closing will discard these changes.': '关闭后，这些修改将丢失。',
+  'Discard changes and close': '放弃修改并关闭',
+  'Continue editing': '继续编辑',
+  'Invalid form parameters': '表单参数错误',
+  'You do not have permission to access this form.': '无权访问此表单',
+  'Close and select another record.': '请关闭后重新选择记录。',
+  'Save failed': '保存失败',
   'Publish storefront': '发布店铺',
   'Publishing environment: {environment}': '发布环境：{environment}',
   'Publish approved storefront snapshots and restore previously activated versions.':

@@ -1,5 +1,5 @@
 import React from 'react'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from '@rstest/core'
 import { Form, Input } from 'antd'
 import { MemoryRouter } from 'react-router-dom'
@@ -229,5 +229,77 @@ describe('BasicCrudFormRecipe', () => {
     await waitFor(() => {
       expect(document.activeElement).toBe(screen.getByPlaceholderText('请输入名称'))
     })
+  })
+  it('blocks valid programmatic readonly submission', async () => {
+    let submissions = 0
+    const Demo = () => {
+      const [form] = Form.useForm<DemoValues>()
+      return (
+        <BasicCrudFormRecipe
+          spec={{
+            ...createBaseSpec(form),
+            parsedMode: { ok: true, mode: 'readonly', resourceKey: '7' },
+            modeView: getFormModeViewModel('readonly'),
+            isReadonly: true,
+            onSubmit: async () => {
+              submissions += 1
+            },
+          }}
+        />
+      )
+    }
+    const { container } = render(
+      <MemoryRouter>
+        <Demo />
+      </MemoryRouter>
+    )
+    await act(async () => {
+      fireEvent.submit(container.querySelector('form') as HTMLFormElement)
+    })
+    expect(submissions).toBe(0)
+  })
+
+  it('preserves disabled edit actions when a business shape is locked readonly', () => {
+    const Demo = () => {
+      const [form] = Form.useForm<DemoValues>()
+      return <BasicCrudFormRecipe spec={{ ...createBaseSpec(form), isReadonly: true }} />
+    }
+    render(<MemoryRouter><Demo /></MemoryRouter>)
+    expect((screen.getByRole('button', { name: /保\s*存/ }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: /重\s*置/ }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('locks same-tick programmatic submissions until the ordinary write finishes', async () => {
+    let submissions = 0
+    let resolve!: () => void
+    const pending = new Promise<void>((done) => {
+      resolve = done
+    })
+    const Demo = () => {
+      const [form] = Form.useForm<DemoValues>()
+      return (
+        <BasicCrudFormRecipe
+          spec={{
+            ...createBaseSpec(form),
+            onSubmit: async () => {
+              submissions += 1
+              await pending
+            },
+          }}
+        />
+      )
+    }
+    const { container } = render(
+      <MemoryRouter>
+        <Demo />
+      </MemoryRouter>
+    )
+    const form = container.querySelector('form') as HTMLFormElement
+    fireEvent.submit(form)
+    fireEvent.submit(form)
+    await waitFor(() => expect(submissions).toBeGreaterThan(0))
+    const pendingSubmissions = submissions
+    await act(async () => resolve())
+    expect(pendingSubmissions).toBe(1)
   })
 })

@@ -1,13 +1,23 @@
 version: 2
-updatedAt: "2026-10-13"
+updatedAt: "2026-10-14"
 project: shoppp-admin
 
 # referencePage(s) 仅供阅读参考；sharedRecipe 与 requiredPieces 才是运行时复用入口。
 # 示例 API 不属于 requiredPieces；业务 API 放在当前业务域并使用真实接口合同。
 # exampleRoutePattern 保留上游示例路径，仅供参考，当前 Admin 未注册示例入口；业务 routePattern 以当前合同为准。
 
+# 容器合同权威为 ai-rules.md 第 3.1 节；先选容器，再选结构。
+presentationDecisionMatrix:
+  authority: docs/ai/ai-rules.md#31-表单容器与生命周期强制
+  order:
+    - 独立页：必须独立分享/收藏/访问或持续大工作空间
+    - Modal：否则轻量、单目标、一步结束，仅实现实际模式
+    - Drawer：其余普通单对象维护，右 Drawer 固定 720px
+  layoutAuthority: docs/ai/drawer-form-layout-rules.md
+  drawerViewport: 不小于 720px 的桌面窗口
+
 formTemplateDecisionMatrix:
-  defaultRule: 除非用户主动要求复杂表单或多步骤表单，否则一律使用基础三态表单；实现者不得因为字段数量、模块标题、多 Card、远程下拉或上传字段自行升级。
+  defaultRule: 除非用户主动要求复杂表单或多步骤表单，否则默认基础表单；Drawer/独立页复用三态，轻量 Modal 仅实现实际模式；实现者不得因为字段数量、模块标题、多 Card、远程下拉或上传字段自行升级。
   chooseBasicFormWhen:
     - 用户未主动要求复杂表单或多步骤表单
     - 单阶段提交或可按单阶段提交表达
@@ -112,13 +122,52 @@ recipes:
       - 首个主 Card title 只表达内容分区，不重复页面主标题
       - 补测试（route title 注入、标题覆盖或隐藏、关键业务内容渲染）
 
-  - id: form-three-mode
-    name: 三态表单页（add/modify/readonly）
+  - id: form-drawer-basic
+    name: 普通单对象维护 Drawer
     appliesTo:
+      - 无独立访问/大工作空间依据且不属于轻量一步操作的单对象维护
+    routePattern: none
+    sharedRecipe: src/shared/template-kit/recipes/crud-form-drawer-recipe.tsx
+    requiredPieces:
+      - src/shared/template-kit/specs/crud-form-drawer-spec.ts
+      - src/shared/template-kit/form/use-template-form-controller.ts
+      - src/shared/components/form-submit-toolbar.tsx
+    buildSteps:
+      - 先按 ai-rules.md 第 3.1 节选择容器，再按结构矩阵选择 basic
+      - 通过 CrudFormDrawerSpec 接入，字段/完整 payload/纯值 dirty 基线/业务 reset 由页面提供
+      - 右 Drawer 固定 720px；字段空间读取 drawer-form-layout-rules.md
+      - 父页固定本次目标，关闭动画结束才卸载，期间拒绝新打开
+      - 上传与附加写入接 actionBusy，内层 Modal 接 nestedModalOpen
+      - 普通成功立即关闭和一次 onSaved 刷新，确认只关闭结果 Modal；父内容持有读取错误与重试
+      - 原独立 URL 保持可达，路由包装与 Drawer 共享业务字段、转换和校验
+      - 验证 dirty 关闭、readonly、同步锁、退出/迟到回调及写成功后读取失败
+
+  - id: form-modal-lightweight
+    name: 轻量单目标 Modal 表单
+    appliesTo:
+      - 无独立访问要求、轻量、单目标、一步结束的输入
+    routePattern: none
+    requiredPieces:
+      - Antd Modal
+      - Antd Form
+      - src/shared/template-kit/form/form-validation-scroll.ts
+    buildSteps:
+      - 直接页面级组合，不新增通用 Modal 表单 recipe、不补造三态或路由
+      - 实际模式、权限、字段、完整 store 与业务 reset 由页面持有
+      - footer 默认一个主提交，header 关闭，不重复取消且不默认加重置
+      - dirty 关闭、busy 同步锁、独立实例及迟到回调按 ai-rules.md 第 3.1 节
+      - 成功关闭并一次刷新，错误分校验/写入/读取；父内容仅重读恢复
+      - 保留现有标准 Modal 定位及表格密度合同
+
+  - id: form-three-mode
+    name: 已选独立页的基础三态表单（add/modify/readonly）
+    appliesTo:
+      - 已确认必须独立分享/收藏/访问或持续大工作空间
       - 创建与编辑共用页面
       - 只读详情复用同一表单结构
     routePattern: "现有业务独立表单入口，mode/id 以当前合同为准"
     exampleRoutePattern: "/dev/form/basic-form?mode=add|modify|readonly&id=<resourceKey>"
+    exampleScope: 当前未注册的独立路由示例；grade/campus fixture 的 noDrawerEdit 仅约束示例，不是业务容器默认
     referencePage: src/pages/templates/form/basic-form-page.tsx
     sharedRecipe: src/shared/template-kit/recipes/basic-crud-form-recipe.tsx
     requiredPieces:
@@ -159,7 +208,7 @@ recipes:
       - 是否需要专门的时间轴、审批流、审计轨迹展示？
       - 是否需要双栏/多卡片布局且与编辑结构完全不同？
     buildSteps:
-      - 列表“查看”按钮统一跳转 readonly form 路由
+      - 查看复用已选容器的 readonly；已选独立页时使用同前缀 readonly form 路由
       - 若命中特例清单，先评审再落地独立详情页
 
   - id: form-step-standard
@@ -219,11 +268,11 @@ decisionTree:
   - if: "需求关键词包含 弹窗列表/选择列表/弹窗分页"
     thenRecipe: modal-list-standard
   - if: "需求关键词包含 新建/编辑/详情同构"
-    thenRecipe: form-three-mode
+    thenRecipe: 先按 presentationDecisionMatrix 选择容器，Drawer 用 form-drawer-basic，Modal 用 form-modal-lightweight，独立页用 form-three-mode
   - if: "需求关键词包含 分步/多阶段/步骤条"
     thenRecipe: form-step-standard
   - if: "需求关键词包含 角色管理/权限树/菜单授权"
-    thenRecipe: form-three-mode
+    thenRecipe: 先按 presentationDecisionMatrix 选择容器，Drawer 用 form-drawer-basic，Modal 用 form-modal-lightweight，独立页用 form-three-mode
   - if: "需求关键词包含 查看详情/查看记录，且无特殊展示结构"
     thenRecipe: form-as-detail-default
   - if: "需求关键词包含 工作台/生成器/业务 override/自定义页"
@@ -234,7 +283,7 @@ decisionTree:
     thenRecipe: exception-page
 
 qualityGate:
-  - 新页面必须在 routes.config.ts 注册
+  - 独立页面必须在 routes.config.ts 注册；Drawer/Modal 不补造路由
   - 新业务页面位于业务目录；参考示例与运行时复用依赖分别列出
   - 新页面按当前业务权威声明授权，不复制示例 permission
   - 有异步请求必须覆盖 empty/error/partial

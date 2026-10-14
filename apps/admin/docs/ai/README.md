@@ -12,11 +12,15 @@
 
 新页面或标准页面按 `AGENTS.md` 的 Mandatory Read Order 执行。旧页迁移时，先读
 `legacy-page-migration-workflow.md`，再按其中顺序读取核心规则、路由、权限和专项迁移规则。
-若旧页迁移工作流与通用页面规则冲突，以迁移工作流为准；接口、权限、路由等事实以当前项目
+本次已批准的容器、布局、关闭及普通保存结果合同以 `ai-rules.md` 第 3.1 节为准；业务保留按迁移工作流执行。其他迁移冲突以迁移工作流为准；接口、权限、路由等事实以当前项目
 源码和明确的业务权威文档为准，不从模板或来源项目猜测。
 
 页面目录与复用边界以 `ai-rules.md` 第 6 节为准：`templates` 放参考示例，业务页面放在 `src/pages/<domain>/`，运行时公共能力放在 `shared`。
 `business-map.yaml` 分开记录实际业务与示例映射；`page-recipes.yaml` 分开声明参考页面和运行时复用入口。
+
+## 统一表单入口
+
+表单容器与结构分别按 [ai-rules.md §3.1](./ai-rules.md#31-表单容器与生命周期强制) 选择；右 Drawer 的内容空间读取 [drawer-form-layout-rules.md](./drawer-form-layout-rules.md)。[form-standard-adoption.md](./form-standard-adoption.md) 记录本地采用边界与证据，不替代业务合同或页面迁移验收。
 
 ## 核心规则
 

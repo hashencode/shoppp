@@ -1,6 +1,6 @@
 version: 1
-updatedAt: '2026-09-16'
-project: codex-admin-quick-start
+updatedAt: '2026-10-14'
+project: shoppp-admin
 
 pageModules:
   - module: 筛选区
@@ -307,12 +307,26 @@ componentCatalog:
       - readonly 模式
       - 页面已有复杂业务提交状态机
 
+  - name: CrudFormDrawerRecipe
+    source: src/shared/template-kit/recipes/crud-form-drawer-recipe.tsx
+    type: form-recipe
+    sharedCapability: crud-form-drawer
+    responsibilities:
+      - 右侧720px字段壳、有效差异关闭确认、同步提交锁与退出动画
+      - 普通保存立即退出、本地语言成功Modal、一次父内容读取；读取失败由父内容恢复
+      - readonly硬阻断普通写；附加业务结果由页面保有owner
+    useWhen:
+      - 按 ai-rules.md 第3.1节选定普通单对象维护Drawer
+    avoidWhen:
+      - 轻量一步Modal或必须独立访问和大工作空间
+      - 凭据、重新认证、结果未知等专用流程不可直接套普通结果
+
   - name: BasicCrudFormRecipe
     source: src/shared/template-kit/recipes/basic-crud-form-recipe.tsx
     type: form-recipe
     sharedCapability: form-recipes
     responsibilities:
-      - 统一 add/modify/readonly 基础表单壳与底部提交区
+      - 已选独立页的 add/modify/readonly 基础表单壳与底部提交区
       - 支持单 Card 和多 Card 分区，并为每个分区应用共享内容宽度与对齐规则
       - 标准 submit 校验失败时滚动到首个错误字段
     useWhen:
@@ -439,7 +453,7 @@ crossCuttingRules:
   - 先复用 template-kit 再考虑新造轮子
   - 列表页优先走 useTemplateListController + TemplateListContent 组合
   - 标准查询列表页分页必须复用 useStandardPagination，禁止散装分页状态实现
-  - 表单页优先走 form-route-contract + TemplateFormStateGate 组合
+  - 表单先按 ai-rules.md 第3.1节选容器；Drawer/独立页复用模式合同，轻量Modal仅实际模式
   - 权限必须走 PermissionKey，不允许硬编码角色分支
   - 页面设计先拆模块（筛选区/内容区/反馈区/权限区），再映射组件
   - 静态 OSS 模板/文件链接若使用前端 blob 下载工具包装下载，必须把原始静态链接作为 fallbackUrl；后端同源 blob 下载接口不适用此规则

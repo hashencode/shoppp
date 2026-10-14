@@ -32,8 +32,8 @@
 - 有异步请求必须处理 `loading / empty / error / partial`。
 - 列表查询默认行为为：筛选项变更不自动触发请求，请求仅在点击“查询”后发送，`重置` 除外。
 - 标准列表控制区固定为：筛选动作“搜索设置 → 重置 → 查询”，内容区动作“可见业务动作 → 条件分隔线 → 刷新 → 密度 → 列设置”；刷新按钮必须显示图标和“刷新”文本，分隔线只在前方存在最终可见业务动作时显示。
-- 表单模式必须遵守 `add / modify / readonly`（见 `src/routes/form-route-contract.ts`）。
-- 表单类型必须按 `docs/ai/page-recipes.yaml#formTemplateDecisionMatrix` 判别，禁止拍脑袋选型；除非用户主动要求复杂表单或多步骤表单，否则一律使用普通三态表单（`BasicCrudFormRecipe`）。
+- 普通 Drawer/独立表单模式遵守 `add / modify / readonly`（见 `src/routes/form-route-contract.ts`）；轻量 Modal 仅实现实际模式，不补造路由。
+- 表单类型必须按 `docs/ai/page-recipes.yaml#formTemplateDecisionMatrix` 判别，禁止拍脑袋选型；除非用户主动要求复杂表单或多步骤表单，否则默认基础表单；容器按第 3.1 节选择，独立页用 `BasicCrudFormRecipe`、普通 Drawer 用 `CrudFormDrawerRecipe`。
 - 模块标题、多 Card、字段数量偏多、远程下拉、上传字段、富文本或普通字段分组都不构成脱离普通表单的理由；若实现者判断必须升级为复杂/多步骤表单，必须先在计划里说明原因并等待用户确认。
 - 默认不新建详情页，优先复用表单 `readonly` 模式；独立详情页需满足特例条件。
 - 基础 CRUD 表单默认保留必填标识，禁止在基础 recipe 中默认设置 `requiredMark={false}`。
@@ -50,7 +50,7 @@
 - 重置行为必须是“全状态重置”：除表单字段外，需同步重置复杂组件状态（如树勾选/半勾选、展开态、搜索关键字、临时列表缓存）。
 - 初始化加载相关副作用必须保证依赖稳定：传入 hook/controller 的请求函数默认使用稳定引用（如 `useCallback`），避免重复请求与渲染抖动。
 - `mode/id` 等关键路由参数校验失败时，必须提供首层可见错误态与恢复动作，禁止静默失败。
-- 二级及更深层级页面（非一级列表落地页）必须使用统一页头组件 `PageHeaderWithBack`（定义于 `src/shared/components/form-page-header.tsx`），包含标题与返回 icon，禁止页面内重复手写返回头部。
+- 已选独立页的二级及更深层级页面（非一级列表落地页）必须使用统一页头组件 `PageHeaderWithBack`（定义于 `src/shared/components/form-page-header.tsx`），包含标题与返回 icon，禁止页面内重复手写返回头部。
 - 当页面已使用 `PageHeaderWithBack` 承载主标题时，页面主容器 `Card` 不得重复设置同义 `title`；基础表单页与分步表单页必须去掉主 `Card title`。
 - 标准一级列表页主标题由 `StandardListPageRecipe.pageTitle` 承载，并应与 route `title` 保持同义。
 - 一级业务 override、自定义页和一级表单页必须使用 `CustomPageRecipe` 承载内容区主标题；默认标题来自 `AppShell` 暴露的当前 route title，可通过 `title` 保留语义等价的业务标题，禁止页面内散装手写同义 `Typography.Title`。
@@ -61,13 +61,36 @@
 - 旧页迁移或业务接入中，启用/禁用、状态切换、审核、绑定、过滤等非表单写动作必须冻结请求合同：`endpoint / method / payload 来源 / 完整对象更新还是局部 patch / 状态值映射 / null 与 undefined 处理 / 成功判定`。
 - 默认值必须区分三层：用户首屏看到什么、组件/表单内部持有什么值、请求 payload 实际发什么；三层不一致时必须在边界层显式映射。
 - 枚举展示必须对未知值兜底，禁止因为后端返回新增枚举或脏值导致空白、崩溃或错误文案。
-- 列表页的编辑/表单/详情路由必须使用“列表路径前缀 + 子路径”编排（例如 `.../list/edit`、`.../list/form`），禁止跨级跳到平级路径（例如从 `.../fission-apply-list` 跳到 `.../fission-apply-edit`）；否则会导致左侧菜单高亮失焦。
+- 已选独立页和保留兼容 URL 的编辑/表单/详情路由必须使用“列表路径前缀 + 子路径”编排（例如 `.../list/edit`、`.../list/form`），禁止跨级跳到平级路径（例如从 `.../fission-apply-list` 跳到 `.../fission-apply-edit`）；否则会导致左侧菜单高亮失焦。
 - 新增或修改跳转时，`navigate/window.open/useCrudFormNavigation` 的目标路径必须与对应列表路由保持同前缀。
-- 列表操作列中用于打开表单、详情或子页面的跳转按钮默认新开页，使用 `window.open(url, '_blank', 'noopener,noreferrer')` 或等价 `target="_blank" rel="noopener noreferrer"`；只有旧页或产品明确要求当前页跳转时才允许例外，并需在实现说明中写明。
+- 已选独立页的列表操作列跳转按钮默认安全新开页，使用 `window.open(url, '_blank', 'noopener,noreferrer')` 或等价 `target="_blank" rel="noopener noreferrer"`；只有旧页或产品明确要求当前页跳转时才允许例外，并需在实现说明中写明。
 - 列表页主创建按钮若语义为“新增/新建某业务对象”，默认不使用 `PlusOutlined` 等加号 icon；文案按业务语义保持“新增/新建<业务对象>”。
 - 查询列表页顶部主新增按钮统一使用 `type="primary"`；即使包裹权限守卫，也不得回退为 `color="primary" variant="filled"`。
 - 组件库约束：当前项目为 `antd@6`，禁止产出任何已标记 deprecated 的 API/props；若出现冲突，以 Ant Design v6 迁移指南为准完成替换。
 - 代码卫生约束：禁止保留未使用的 import/变量；提交前必须通过 ESLint（包含 `unused-imports` 规则）。
+
+## 3.1 表单容器与生命周期（强制）
+
+容器与基础/分步/高级结构分别决策。按以下顺序选择，不因旧 URL、字段数量或旧 UI 习惯跳过判断：
+
+1. 必须独立分享、收藏、访问，或需要持续的大工作空间：独立页，保留合法路由、来源参数和安全新开页。
+2. 否则，轻量、单目标、一步结束的输入：页面级 `Modal + Form`，仅实现实际模式，不补造三态、路由或通用 Modal 表单 recipe。
+3. 其余普通单对象维护：`CrudFormDrawerRecipe`。独立页由 `BasicCrudFormRecipe` 承载；特殊业务流程保有原 owner，但仍执行适用的容器、布局与关闭合同。
+
+- 所有右 Drawer 固定 `size={720}`，包含表单、详情、教程和示例。仅设计、验收不小于 720px 的桌面窗口，不新增窄窗口适配或测试；其他页面既有适配继续保留。
+- Drawer 由组件提供标题、滚动 body 和 footer，不嵌套整页 recipe、页头或固定页级工具条。字段空间按 [drawer-form-layout-rules.md](drawer-form-layout-rules.md) 判断；独立页继续使用第 4 节内容宽度与对齐。
+- 普通 Drawer 编辑 footer 为重置、保存；普通 Modal footer 默认一个主提交，header 关闭，不重复取消且不默认加重置。危险确认、审核分支、复制凭据、多种业务提交保留必要动作。
+- 查看或没有有效未保存差异时，header、遮罩、Esc 可关闭；存在差异时所有入口共用一次放弃确认，继续编辑保留值。按业务提交纯值与完整回填后的基线比较，回填和改回原值不误报；重置后的差异由原清空/恢复合同决定。
+- 普通提交使用同步锁；业务写、上传预处理/上传、富文本图片、附加写入计入 `actionBusy`，禁止关闭和重复写。内层 Modal 通过 `nestedModalOpen` 先消费 Esc；保留局部浮层冲突处理，不新建焦点管理。
+- 每次打开挂载独立实例。关闭先 `open=false`，退出动画结束才卸载；父页在此期间固定目标并拒绝新的打开，迟到详情/提交回调和关闭清理只能作用于所属实例。每次打开清理旧输入、校验和请求错误。
+- readonly 和 `showActions=false` 隐藏/禁用并硬阻断普通写；只读资料的审核、退款、预览等独立业务动作按原权限和业务状态保留。字段、Form 外集合、树、上传及动态数组仍进入原完整 payload、校验和 reset。
+- 校验错误就地展示、零写，不进入 API 错误反馈；确定写失败保留输入并提供恢复动作。结果未知、409、重新认证、operation identity、一次性凭据沿用原领域恢复，不盲目重放。
+- 普通 Drawer 确认写成功后立即关闭，根级 `App.useApp().modal.success` 使用业务成功标题、footer 仅当前语言的确认动作，同时每个受影响父内容刷新一次。确认仅关闭结果提示，不再读；凭据结果由原专用 Modal 唯一承接，不叠普通成功提示。附加动作可用 `complete()` 共用退出和刷新，反馈仍由原业务 owner 承接。
+- 普通 Modal 成功关闭并一次刷新，反馈按有效业务合同；独立页保留适用的“× 留页、确定离页”成功确认。当前页直调 `reload` 与跨标签频道每入口只选一个，不双刷新。
+- 刷新失败由父内容持有：保留旧列表、持续显示读取失败，重试仅同一已提交查询，不能误报保存失败或重放 POST/PUT。`onSaved` 负责该读取边界，recipe 接住其 rejection，不改变已成功写结果。
+- 不新增全局反馈服务、草稿、URL 同步、导航拦截、乐观更新、配置引擎或无消费者抽象。
+
+Shoppp 继续使用 `I18nProvider`、`useCurrentTranslate` 和本地 `ApiError` 映射。持久错误按当前语言渲染；切换语言不重挂载表单实例、不重读数据、不清理草稿。IAM 的 reauth、operation identity、copy-once、版本冲突和发布结果 owner 保持原合同。
 
 ## 4. Design Baseline (Authoritative)
 
@@ -82,7 +105,7 @@
 - Query 状态文案必须页面语义化，禁止跨页面复制同一句文案。
 - 默认详情展示复用表单 `readonly`；仅当信息结构与编辑结构显著不同时才允许独立详情页。
 - 列表筛选区禁止因散装自定义字段导致桌面端换行或错位；模板字段应保证同行布局稳定。
-- 编辑页/表单页默认使用单列布局，优先沿用基础表单页的 `compact` 窄栏单列基线；只有旧页合同明确要求、字段密度过高，或存在复杂审核/编辑器混排等业务 override 场景，才允许显式使用双列/多列，并在实现说明中写明例外原因。
+- 表单默认单列；右 Drawer 按 `drawer-form-layout-rules.md` 判断普通双列、关联组合行和全宽区域。已选独立页沿用下列内容宽度与对齐合同；字段数量本身不决定列数。
 - `BasicCrudFormRecipe` 接入页默认不传 `contentWidthPreset`，等同 `compact`（最大宽度 800px）；富文本不单独触发 `wide`。单 Card 内容命中单行表单项超过 3 个的动态表单、多层级动态表单、或列数大于等于 4 个的列表时，才可显式声明 `wide`（最大宽度 1200px）。`full` 不设置最大宽度，仅用于工作台/编排器/矩阵/画布/超宽批量编辑等 `wide` 仍明显影响操作效率的模块，必须特殊声明。
 - 普通表单允许通过 `BasicCrudFormRecipe` 的标准分区能力承载模块标题；禁止因为出现“基本信息/考试信息/资质信息”等模块标题就改用复杂表单或页面内散装分组。
 - 多 Card 表单页的外层 Card 必须保持页面全宽；`compact/wide` 宽度限制应按每个 Card 独立判断并落在 Card body 内容区或 Card 内表单内容容器上，不得挂在包裹多个 Card 的 Form 根节点上。
@@ -101,8 +124,8 @@
 - 列表 Result 错误态的“重试/重新加载”按钮，以及空态的“重置筛选/重新筛选”按钮，使用默认 Button，不使用 `type="primary"`。
 - 若同一页面确需出现 3 个及以上 `primary` 按钮，必须在实现说明中写明原因与分区边界，不能默认生成。
 - 操作列不再按宽度预算折叠隐藏操作项；所有可见操作项默认直出，超过单行预算时使用稳定连续双行，不得以运行时测量结果控制列宽。
-- 反馈语义必须分层：轻量结果用 `message`，高风险/强确认写操作用 `modal`（如删除、发布、不可撤销操作）；同类行为在同页面保持一致。
-- 二级及更深层级页面必须展示“标题 + 返回 icon”统一头部，交互与样式以 `PageHeaderWithBack` 为基线。
+- 表单保存结果按第 3.1 节执行；其他轻量结果用 `message`，高风险/强确认写操作用原 `modal`（如删除、发布、不可撤销操作），保留必要安全流程。
+- 已选独立页的二级及更深层级页面必须展示“标题 + 返回 icon”统一头部，交互与样式以 `PageHeaderWithBack` 为基线。
 - 动态表格、远程下拉、多选器、上传、富文本等运行时交互必须至少覆盖一次真实交互验证，不能只做静态渲染断言。
 
 ## 4.1 Internationalization（国际化）

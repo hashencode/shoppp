@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormInstance } from 'antd'
 import { useLatestRequest } from '../hooks/use-latest-request'
 import type { FormModeViewModel, ParsedFormMode } from '../../../routes/form-route-contract'
@@ -50,10 +50,20 @@ export const useTemplateFormController = <TValues, TEntity, TPayload, TError = u
   type SetFieldsValueArg = Parameters<FormInstance<TValues>['setFieldsValue']>[0]
   const [detailData, setDetailData] = useState<TEntity | null>(null)
   const [saveLoading, setSaveLoading] = useState(false)
+  const alive = useRef(true)
+  const detailGeneration = useRef(0)
+  const submitLock = useRef(false)
+  useEffect(() => {
+    alive.current = true
+    return () => {
+      alive.current = false
+      detailGeneration.current += 1
+    }
+  }, [])
   const {
     loading: detailLoading,
     error: detailError,
-    run: runDetailRequest,
+    runWithResult: runDetailRequest,
     clearError: clearDetailError,
   } = useLatestRequest<TEntity, [string], TError>({
     request: fetchDetail,
@@ -61,21 +71,25 @@ export const useTemplateFormController = <TValues, TEntity, TPayload, TError = u
   })
 
   const loadDetail = useCallback(async () => {
+    const generation = ++detailGeneration.current
     if (!parsedMode.ok || !modeView?.canFetch || !parsedMode.resourceKey) {
       return
     }
 
-    const response = await runDetailRequest(parsedMode.resourceKey)
-    if (!response) {
+    const result = await runDetailRequest(parsedMode.resourceKey)
+    if (!alive.current || generation !== detailGeneration.current || result.status === 'ignored')
+      return
+    if (result.status === 'error') {
       setDetailData(null)
       return
     }
 
-    setDetailData(response)
-    form.setFieldsValue(toValues(response) as SetFieldsValueArg)
+    setDetailData(result.data)
+    form.setFieldsValue(toValues(result.data) as SetFieldsValueArg)
   }, [form, modeView?.canFetch, parsedMode, runDetailRequest, toValues])
 
   const initializeForm = useCallback(async () => {
+    detailGeneration.current += 1
     if (!parsedMode.ok || !modeView) {
       return
     }
@@ -111,9 +125,18 @@ export const useTemplateFormController = <TValues, TEntity, TPayload, TError = u
         return { success: false, error: unavailableModeError }
       }
 
-      const payload = toPayload(values)
+      if (parsedMode.mode === 'readonly' || !modeView.canEdit || submitLock.current) {
+        const blockedError = new Error('form is readonly or a save is already in progress')
+        return {
+          success: false,
+          error: mapError ? mapError(blockedError) : (blockedError as TError),
+        }
+      }
+
+      submitLock.current = true
       setSaveLoading(true)
       try {
+        const payload = toPayload(values)
         if (parsedMode.mode === 'add') {
           await createEntity(payload)
         } else {
@@ -131,7 +154,8 @@ export const useTemplateFormController = <TValues, TEntity, TPayload, TError = u
         const normalized = mapError ? mapError(requestError) : (requestError as TError)
         return { success: false, error: normalized }
       } finally {
-        setSaveLoading(false)
+        submitLock.current = false
+        if (alive.current) setSaveLoading(false)
       }
     },
     [createEntity, mapError, modeView, parsedMode, toPayload, updateEntity]
@@ -139,8 +163,8 @@ export const useTemplateFormController = <TValues, TEntity, TPayload, TError = u
 
   return {
     detailData,
-    detailLoading,
-    detailError,
+    detailLoading: Boolean(modeView?.canFetch) && detailLoading,
+    detailError: modeView?.canFetch ? detailError : null,
     saveLoading,
     isReadonly: !modeView?.canEdit,
     initializeForm,

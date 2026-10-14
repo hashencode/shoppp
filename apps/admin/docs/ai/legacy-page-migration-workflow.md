@@ -15,7 +15,7 @@
    - 列表页：`docs/ai/list-migration-rules.md`
    - 表单页：`docs/ai/form-migration-rules.md`
 
-如果规则冲突，以更具体的页面类型规则为准；若页面规则与源码事实冲突，以源码事实为准，并在方案中说明取舍。
+本次批准的容器、布局和普通生命周期以 `ai-rules.md` 第 3.1 节为准，业务 API、权限、校验、状态、完整 payload 与 reset 按迁移合同 1:1 保留。其他规则冲突，以更具体的页面类型规则为准；若页面规则与源码事实冲突，以源码事实为准，并在方案中说明取舍。
 
 ## 2. Source Audit
 
@@ -42,7 +42,7 @@
 
 - 标准查询列表：`StandardListPageRecipe`
 - 弹窗内列表或轻量选择列表：`ModalListPageRecipe`
-- 三态基础表单：`BasicCrudFormRecipe`
+- 先按第 3.1 节选容器，再选结构；普通 Drawer：`CrudFormDrawerRecipe`；已选独立页：`BasicCrudFormRecipe`；轻量 Modal：页面级 `Modal + Form`，仅实际模式
 - 分步表单：`StepFormRecipe`
 
 默认不迁移来源项目的：

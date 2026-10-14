@@ -7,7 +7,7 @@
 - 各项目独立保存源码、依赖、测试和发布，不使用跨仓 import、软链接、相邻目录运行时读取或私有共享包。
 - 来源仓库只提供设计和错误模式证据；目标仓库必须拥有自己的实现、adapter 和测试。
 - endpoint、payload、权限、菜单、品牌、登录会话和单业务域状态机不进入通用合同。
-- 目标项目已有规则与来源实现冲突时，以当前项目规则为准。
+- 用户已批准的统一容器、布局和普通生命周期按本地 `ai-rules.md` 第3.1节执行；目标业务、locale、权限及安全恢复保留。其他来源实现冲突以当前项目规则为准。
 - 没有当前消费者或稳定错误模式的能力保持 `project-only`，不提前抽象。
 
 ## 状态口径
@@ -84,3 +84,7 @@ Source paths below are at frozen `5b732ffd17fac02cd10088ba0a1b5ff456e819a7`, not
 C-S-03 Card heading remains rejected. C-S-05 stable upload remains deferred; UploadFormItem in this diff only migrates its feedback owner. No endpoint, permission, brand, date span or business error code has been imported from another project.
 
 Final L4: `bun run --cwd apps/admin test --pool.maxWorkers 2` passed64 files/341 tests; `bun run --cwd apps/admin build:test` includes typecheck. Focused Browser Mode passed2/2. Changed-file ESLint/Prettier and diff checks pass. Built-candidate visual checks at1440×900 and390×844 confirm one App owner, dark feedback and no page errors. See linked evidence for test-development failures, exact commands, no-op exclusions and changed-file manifest.
+
+## 2026-10-14 统一表单增量
+
+批准来源为 `codex-admin-quick-start@7088da9b151278faf22db5910ec7c734db382a01`，目标起点为 `13a0beba031c945b702820d39a436c8e03a932ea`。本次仅采用 Admin 内的容器/布局规范、controller与基础壳保护、Drawer recipe/spec/barrel及本地测试；保留 locale、权限、API类型、独立页导航/成功确认和刷新频道。采用范围、RED及本地验证详见 [form-standard-adoption.md](form-standard-adoption.md)。目标采用commit及宿主门禁待登记，不将来源L4计入目标证明。

@@ -1,5 +1,5 @@
 import { Card, Form } from 'antd'
-import React from 'react'
+import React, { useLayoutEffect, useRef, useState } from 'react'
 import { PageHeaderWithBack } from '../../components/form-page-header'
 import { FormSubmitToolbar } from '../../components/form-submit-toolbar'
 import {
@@ -32,11 +32,42 @@ export const BasicCrudFormRecipe = <TValues extends object>({
 }: {
   spec: BasicCrudFormSpec<TValues>
 }) => {
+  const submitLock = useRef(false)
+  const [submitting, setSubmitting] = useState(false)
+  const currentSpec = useRef(spec)
+  useLayoutEffect(() => {
+    currentSpec.current = spec
+  }, [spec])
+  const busy = spec.saveLoading || submitting
+  const submit = async (values: TValues) => {
+    const current = currentSpec.current
+    if (
+      submitLock.current ||
+      current.saveLoading ||
+      current.isReadonly ||
+      !current.modeView?.canEdit ||
+      !current.modeView.showActions ||
+      !current.parsedMode.ok ||
+      current.permissionDenied ||
+      current.detailLoading ||
+      current.detailError
+    )
+      return
+    submitLock.current = true
+    setSubmitting(true)
+    try {
+      await current.onSubmit(values)
+    } finally {
+      submitLock.current = false
+      setSubmitting(false)
+    }
+  }
   const formActions = spec.modeView?.showActions ? (
     <FormSubmitToolbar
       submitHtmlType="submit"
-      submitLoading={spec.saveLoading}
-      submitDisabled={spec.saveLoading || spec.isReadonly}
+      submitLoading={busy}
+      submitDisabled={busy || spec.isReadonly}
+      resetDisabled={busy || spec.isReadonly}
       onReset={spec.onResetAll}
     />
   ) : null
@@ -61,8 +92,9 @@ export const BasicCrudFormRecipe = <TValues extends object>({
             layout="vertical"
             initialValues={spec.initialValues}
             className="space-y-4"
-            disabled={spec.isReadonly || spec.saveLoading}
-            onFinish={spec.onSubmit}
+            disabled={spec.isReadonly || busy}
+            onFinish={submit}
+            autoComplete={spec.autoComplete}
             scrollToFirstError={FORM_ERROR_SCROLL_OPTIONS}
           >
             {sections.map((section) => (
@@ -84,8 +116,9 @@ export const BasicCrudFormRecipe = <TValues extends object>({
               layout="vertical"
               initialValues={spec.initialValues}
               className={`${FORM_CONTENT_ALIGN_CLASS_NAME} mt-2 ${resolveFormContentWidthClassName(spec)}`}
-              disabled={spec.isReadonly || spec.saveLoading}
-              onFinish={spec.onSubmit}
+              disabled={spec.isReadonly || busy}
+              onFinish={submit}
+              autoComplete={spec.autoComplete}
               scrollToFirstError={FORM_ERROR_SCROLL_OPTIONS}
             >
               {spec.renderFields?.()}
