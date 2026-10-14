@@ -1,7 +1,9 @@
 import React from 'react'
 import { App } from 'antd'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
+import axios from 'axios'
+import { apiClient } from '../../infrastructure/http/api-client'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { afterAll, afterEach, beforeAll, describe, expect, it, rstest } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
@@ -13,6 +15,7 @@ import type {
   PublishedProductRevisionContent,
   PublishedProductRevisionState,
 } from '../../services/catalog/api'
+import * as catalogApi from '../../services/catalog/api'
 import { CatalogFormPage } from './catalog-form-page'
 
 void React
@@ -85,6 +88,8 @@ const detail: ProductDetail = {
   ],
 }
 
+const originalAdapter = apiClient.defaults.adapter
+
 const server = setupServer(
   http.get('*/admin/catalog/products/product-001', () => HttpResponse.json({ data: detail })),
   http.get('*/admin/catalog/products/product-001/revisions', () =>
@@ -133,7 +138,11 @@ const deferredResponse = () => {
 }
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
-afterEach(() => server.resetHandlers())
+afterEach(() => {
+  server.resetHandlers()
+  rstest.restoreAllMocks()
+  apiClient.defaults.adapter = originalAdapter
+})
 afterAll(() => server.close())
 
 describe('CatalogFormPage', () => {
@@ -141,6 +150,17 @@ describe('CatalogFormPage', () => {
     renderReadonly()
     await waitFor(() => expect(screen.getByDisplayValue('Carry-on')).toBeTruthy())
     expect(screen.queryByRole('button', { name: 'Submit' })).toBeNull()
+    let writes = 0
+    server.use(
+      http.put('*/admin/catalog/products/product-001', () => {
+        writes += 1
+        return HttpResponse.json({ data: detail })
+      })
+    )
+    await act(async () => {
+      fireEvent.submit(screen.getByDisplayValue('Carry-on').closest('form')!)
+    })
+    expect(writes).toBe(0)
   })
 
   it('shows the standard not-found state when detail loading fails', async () => {
@@ -209,7 +229,46 @@ describe('CatalogFormPage', () => {
     fireEvent.change(compareAtInput, { target: { value: '16900' } })
     fireEvent.click(screen.getByRole('button', { name: /^保\s*存$/ }))
 
-    await waitFor(() => expect(submitted?.variants[0]?.prices[0]?.compareAtAmount).toBe(16900))
+    await waitFor(() => expect(submitted).toBeDefined())
+    await waitFor(() =>
+      expect(submitted).toEqual({
+        categories: [],
+        collections: [],
+        description: 'International carry-on',
+        expectedVersion: 3,
+        media: [
+          {
+            altText: 'Black carry-on',
+            height: 1200,
+            r2Key: 'catalog/products/carry-on.webp',
+            width: 1200,
+          },
+        ],
+        name: 'Carry-on',
+        seoDescription: 'Shop a lightweight international carry-on.',
+        seoTitle: 'Carry-on suitcase',
+        slug: 'carry-on',
+        publicationStatus: 'draft',
+        scheduledAt: null,
+        variants: [
+          {
+            optionValues: {},
+            dimensionsMm: { height: 0, length: 0, width: 0 },
+            prices: [
+              {
+                amount: 12900,
+                compareAtAmount: 16900,
+                currency: 'USD',
+                priceListCode: 'GLOBAL-USD',
+              },
+            ],
+            sku: 'CASE-CARRY-BLK',
+            title: 'Black',
+            weightGrams: 2900,
+          },
+        ],
+      })
+    )
   })
 
   it('shows read-only Collection membership and guards the filtered management handoff', async () => {
@@ -223,9 +282,7 @@ describe('CatalogFormPage', () => {
       )
     )
     render(
-      <MemoryRouter
-        initialEntries={['/catalog/products/form?mode=modify&id=product-001']}
-      >
+      <MemoryRouter initialEntries={['/catalog/products/form?mode=modify&id=product-001']}>
         <AuthTestProvider permissions={['catalog.read', 'catalog.write']}>
           <ThemeProvider>
             <App>
@@ -309,7 +366,7 @@ describe('CatalogFormPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '保存选项展示' }))
 
     await waitFor(() =>
-      expect(submitted).toMatchObject({
+      expect(submitted).toEqual({
         expectedVersion: 3,
         optionDefinitions: [
           {
@@ -320,7 +377,7 @@ describe('CatalogFormPage', () => {
               { label: 'Green', swatch: '#87a968' },
             ],
           },
-          { name: 'Size', presentation: 'text' },
+          { name: 'Size', presentation: 'text', values: [{ label: 'M' }, { label: 'XL' }] },
         ],
       })
     )
@@ -426,15 +483,38 @@ describe('CatalogFormPage', () => {
     fireEvent.click(within(editor).getAllByRole('button', { name: /下\s*移/ })[0]!)
     fireEvent.click(within(editor).getByRole('button', { name: '保存暂存修订' }))
     await waitFor(() => {
-      expect(staged).toMatchObject({
+      expect(staged).toEqual({
+        expectedDraftVersion: null,
         expectedProductVersion: 3,
         expectedPublishedRevisionId: null,
         content: {
           name: 'Revised carry-on',
-          media: [{ id: 'media-002' }, { id: 'media-001' }],
+          description: 'International carry-on',
+          seoDescription: 'Shop a lightweight international carry-on.',
+          seoTitle: 'Carry-on suitcase',
+          optionDefinitions: [
+            { name: 'color', presentation: 'text', values: [{ label: 'Black' }] },
+          ],
+          variantOptions: [{ id: 'variant-001', optionValues: { color: 'Black' }, title: 'Black' }],
+          media: [
+            {
+              id: 'media-002',
+              altText: 'Carry-on side',
+              height: 1200,
+              r2Key: 'catalog/products/carry-on-side.webp',
+              width: 1200,
+            },
+            {
+              id: 'media-001',
+              altText: 'Black carry-on',
+              height: 1200,
+              r2Key: 'catalog/products/carry-on.webp',
+              width: 1200,
+            },
+          ],
           presentation: {
             purchaseStatus: 'unverified',
-            detail: { heading: 'Verified appearance' },
+            detail: { heading: 'Verified appearance', bullets: [] },
             specifications: [{ label: 'Color', value: 'Black' }],
           },
         },
@@ -444,33 +524,93 @@ describe('CatalogFormPage', () => {
     expect(await within(editor).findByRole('region', { name: '已保存修订数据' })).toBeTruthy()
   })
 
-  it.each([false, true])('reports only a started revision build or its failure (fails: %s)', async (fails) => {
-    const content = { name: 'Revised carry-on', description: 'New description', media: [], seoTitle: '', seoDescription: '', presentation: null }
-    let publication: unknown
-    server.use(
-      http.get('*/admin/catalog/products/product-001', () => HttpResponse.json({ data: { ...detail, product: { ...detail.product, status: 'published' } } })),
-      http.get('*/admin/catalog/products/product-001/revisions', () => HttpResponse.json({ data: { draft: { id: 'revision-1', status: 'draft', version: 1, content }, productVersion: 3, published: null } })),
-      http.post('*/admin/catalog/products/product-001/revisions/publish', async ({ request }) => {
-        publication = await request.json()
-        return fails
-          ? HttpResponse.json({ error: { code: 'build_failed', message: 'Publication could not start. Retry publishing.' } }, { status: 503 })
-          : HttpResponse.json({ data: { releaseId: 'release-1', buildCorrelationId: 'build-1', status: 'queued' } })
+  it.each([false, true])(
+    'reports only a started revision build or its failure (fails: %s)',
+    async (fails) => {
+      const content = {
+        name: 'Revised carry-on',
+        description: 'New description',
+        media: [],
+        seoTitle: '',
+        seoDescription: '',
+        presentation: null,
+      }
+      let publication: unknown
+      server.use(
+        http.get('*/admin/catalog/products/product-001', () =>
+          HttpResponse.json({
+            data: { ...detail, product: { ...detail.product, status: 'published' } },
+          })
+        ),
+        http.get('*/admin/catalog/products/product-001/revisions', () =>
+          HttpResponse.json({
+            data: {
+              draft: { id: 'revision-1', status: 'draft', version: 1, content },
+              productVersion: 3,
+              published: null,
+            },
+          })
+        ),
+        http.post('*/admin/catalog/products/product-001/revisions/publish', async ({ request }) => {
+          publication = await request.json()
+          return fails
+            ? HttpResponse.json(
+                {
+                  error: {
+                    code: 'build_failed',
+                    message: 'Publication could not start. Retry publishing.',
+                  },
+                },
+                { status: 503 }
+              )
+            : HttpResponse.json({
+                data: { releaseId: 'release-1', buildCorrelationId: 'build-1', status: 'queued' },
+              })
+        })
+      )
+      render(
+        <MemoryRouter initialEntries={['/catalog/products/form?mode=modify&id=product-001']}>
+          <AuthTestProvider permissions={['catalog.read', 'catalog.write', 'catalog.publish']}>
+            <ThemeProvider>
+              <App>
+                <CatalogFormPage />
+              </App>
+            </ThemeProvider>
+          </AuthTestProvider>
+        </MemoryRouter>
+      )
+      const editor = await screen.findByRole('region', { name: '已发布商品修订' })
+      await waitFor(() =>
+        expect((within(editor).getByLabelText('名称') as HTMLInputElement).value).toBe(
+          'Revised carry-on'
+        )
+      )
+      fireEvent.change(within(editor).getByLabelText('发布原因'), {
+        target: { value: 'Publish reviewed revision' },
       })
-    )
-    render(<MemoryRouter initialEntries={['/catalog/products/form?mode=modify&id=product-001']}><AuthTestProvider permissions={['catalog.read', 'catalog.write', 'catalog.publish']}><ThemeProvider><App><CatalogFormPage /></App></ThemeProvider></AuthTestProvider></MemoryRouter>)
-    const editor = await screen.findByRole('region', { name: '已发布商品修订' })
-    await waitFor(() => expect((within(editor).getByLabelText('名称') as HTMLInputElement).value).toBe('Revised carry-on'))
-    fireEvent.change(within(editor).getByLabelText('发布原因'), { target: { value: 'Publish reviewed revision' } })
-    fireEvent.click(within(editor).getByRole('button', { name: '发布暂存修订' }))
-    await waitFor(() => expect(publication).toMatchObject({ expectedDraftVersion: 1, expectedProductVersion: 3, expectedPublishedRevisionId: null, revisionId: 'revision-1', reason: 'Publish reviewed revision' }))
-    if (fails) {
-      expect(await within(editor).findByText('Publication could not start. Retry publishing.')).toBeTruthy()
-      expect(within(editor).queryByText('修订发布已开始，店铺展示将在部署后更新。')).toBeNull()
-    } else {
-      expect(await within(editor).findByText('修订发布已开始，店铺展示将在部署后更新。')).toBeTruthy()
+      fireEvent.click(within(editor).getByRole('button', { name: '发布暂存修订' }))
+      await waitFor(() =>
+        expect(publication).toEqual({
+          expectedDraftVersion: 1,
+          expectedProductVersion: 3,
+          expectedPublishedRevisionId: null,
+          revisionId: 'revision-1',
+          reason: 'Publish reviewed revision',
+        })
+      )
+      if (fails) {
+        expect(
+          await within(editor).findByText('Publication could not start. Retry publishing.')
+        ).toBeTruthy()
+        expect(within(editor).queryByText('修订发布已开始，店铺展示将在部署后更新。')).toBeNull()
+      } else {
+        expect(
+          await within(editor).findByText('修订发布已开始，店铺展示将在部署后更新。')
+        ).toBeTruthy()
+      }
+      expect(within(editor).queryByText('已上线')).toBeNull()
     }
-    expect(within(editor).queryByText('已上线')).toBeNull()
-  })
+  )
 
   it('authors ordered Product presentation through the versioned aggregate endpoint', async () => {
     const presentationDetail: ProductDetail = {
@@ -515,10 +655,16 @@ describe('CatalogFormPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '保存商品展示' }))
 
     await waitFor(() =>
-      expect(submitted).toMatchObject({
+      expect(submitted).toEqual({
         expectedVersion: 3,
         presentation: {
           brand: 'Shoppp',
+          detail: {
+            body: 'Soft structured finish.',
+            bullets: ['Organic cotton', 'Relaxed fit'],
+            eyebrow: 'Everyday comfort',
+            heading: 'Built for daily wear',
+          },
           defaultVariantId: 'variant-001',
           detailMediaId: 'media-001',
           specifications: [
@@ -576,14 +722,30 @@ describe('CatalogFormPage', () => {
         expectedVersion: 3,
         name: 'Unsaved Carry-on',
         collections: [],
-        media: [{ altText: 'Black carry-on', height: 1200, r2Key: 'catalog/products/carry-on.webp', width: 1200 }],
-        variants: [{
-          optionValues: {},
-          prices: [{ amount: 12900, compareAtAmount: 15900, currency: 'USD', priceListCode: 'GLOBAL-USD' }],
-          sku: 'CASE-CARRY-BLK',
-          title: 'Black',
-          weightGrams: 2900,
-        }],
+        media: [
+          {
+            altText: 'Black carry-on',
+            height: 1200,
+            r2Key: 'catalog/products/carry-on.webp',
+            width: 1200,
+          },
+        ],
+        variants: [
+          {
+            optionValues: {},
+            prices: [
+              {
+                amount: 12900,
+                compareAtAmount: 15900,
+                currency: 'USD',
+                priceListCode: 'GLOBAL-USD',
+              },
+            ],
+            sku: 'CASE-CARRY-BLK',
+            title: 'Black',
+            weightGrams: 2900,
+          },
+        ],
       })
       expect(updates[0]).not.toHaveProperty('optionDefinitions')
       fireEvent.click(screen.getByRole('button', { name: '保存选项展示' }))
@@ -601,16 +763,22 @@ describe('CatalogFormPage', () => {
 
       fireEvent.click(screen.getByRole('button', { name: '保存选项展示' }))
       expect(await screen.findByText('选项展示已保存')).toBeTruthy()
-      expect(optionUpdates).toEqual([{
-        expectedVersion: 3,
-        optionDefinitions: [{ name: 'color', presentation: 'text', values: [{ label: 'Black' }] }],
-      }])
+      expect(optionUpdates).toEqual([
+        {
+          expectedVersion: 3,
+          optionDefinitions: [
+            { name: 'color', presentation: 'text', values: [{ label: 'Black' }] },
+          ],
+        },
+      ])
       fireEvent.click(screen.getByRole('button', { name: '保存商品展示' }))
       expect(await screen.findByText('商品展示设置已保存')).toBeTruthy()
-      expect(presentationUpdates).toEqual([{
-        expectedVersion: 4,
-        presentation: { brand: 'Shoppp', specifications: [] },
-      }])
+      expect(presentationUpdates).toEqual([
+        {
+          expectedVersion: 4,
+          presentation: { brand: 'Shoppp', specifications: [] },
+        },
+      ])
       expect(updates).toHaveLength(1)
     } finally {
       response.resolve()
@@ -623,7 +791,15 @@ describe('CatalogFormPage', () => {
     const publishResponse = deferredResponse()
     const content: PublishedProductRevisionContent = {
       description: detail.product.description,
-      media: [{ altText: 'Black carry-on', height: 1200, id: 'media-001', r2Key: 'catalog/products/carry-on.webp', width: 1200 }],
+      media: [
+        {
+          altText: 'Black carry-on',
+          height: 1200,
+          id: 'media-001',
+          r2Key: 'catalog/products/carry-on.webp',
+          width: 1200,
+        },
+      ],
       name: 'Reviewed Carry-on',
       optionDefinitions: [{ name: 'color', presentation: 'text', values: [{ label: 'Black' }] }],
       presentation: null,
@@ -656,7 +832,9 @@ describe('CatalogFormPage', () => {
     let mediaUploads = 0
     server.use(
       http.get('*/admin/catalog/products/product-001', () =>
-        HttpResponse.json({ data: { ...detail, product: { ...detail.product, status: 'published' } } })
+        HttpResponse.json({
+          data: { ...detail, product: { ...detail.product, status: 'published' } },
+        })
       ),
       http.get('*/admin/catalog/products/product-001/revisions', () =>
         HttpResponse.json({ data: revisionState })
@@ -667,7 +845,12 @@ describe('CatalogFormPage', () => {
         if (stages.length === 1) {
           await stageResponse.promise
           return HttpResponse.json(
-            { error: { code: 'revision_save_failed', message: 'Revision save failed. Retry saving.' } },
+            {
+              error: {
+                code: 'revision_save_failed',
+                message: 'Revision save failed. Retry saving.',
+              },
+            },
             { status: 503 }
           )
         }
@@ -684,7 +867,13 @@ describe('CatalogFormPage', () => {
         await previewResponse.promise
         return HttpResponse.json({
           data: {
-            product: { description: content.description, id: 'product-001', media: [], name: 'Revised Carry-on', slug: 'carry-on' },
+            product: {
+              description: content.description,
+              id: 'product-001',
+              media: [],
+              name: 'Revised Carry-on',
+              slug: 'carry-on',
+            },
             revisionId: 'revision-001',
             sourceProductVersion: 3,
           },
@@ -693,7 +882,9 @@ describe('CatalogFormPage', () => {
       http.post('*/admin/catalog/products/product-001/revisions/publish', async ({ request }) => {
         publications.push((await request.json()) as Record<string, unknown>)
         await publishResponse.promise
-        return HttpResponse.json({ data: { releaseId: 'release-1', buildCorrelationId: 'build-1', status: 'queued' } })
+        return HttpResponse.json({
+          data: { releaseId: 'release-1', buildCorrelationId: 'build-1', status: 'queued' },
+        })
       }),
       http.put('*/admin/media/*', () => {
         mediaUploads += 1
@@ -703,16 +894,28 @@ describe('CatalogFormPage', () => {
     render(
       <MemoryRouter initialEntries={['/catalog/products/form?mode=modify&id=product-001']}>
         <AuthTestProvider permissions={['catalog.read', 'catalog.write', 'catalog.publish']}>
-          <ThemeProvider><App><CatalogFormPage /></App></ThemeProvider>
+          <ThemeProvider>
+            <App>
+              <CatalogFormPage />
+            </App>
+          </ThemeProvider>
         </AuthTestProvider>
       </MemoryRouter>
     )
 
     try {
       const editor = await screen.findByRole('region', { name: '已发布商品修订' })
-      await waitFor(() => expect((within(editor).getByLabelText('名称') as HTMLInputElement).value).toBe('Reviewed Carry-on'))
-      fireEvent.change(within(editor).getByLabelText('名称'), { target: { value: 'Revised Carry-on' } })
-      fireEvent.change(within(editor).getByLabelText('发布原因'), { target: { value: '  Publish reviewed revision  ' } })
+      await waitFor(() =>
+        expect((within(editor).getByLabelText('名称') as HTMLInputElement).value).toBe(
+          'Reviewed Carry-on'
+        )
+      )
+      fireEvent.change(within(editor).getByLabelText('名称'), {
+        target: { value: 'Revised Carry-on' },
+      })
+      fireEvent.change(within(editor).getByLabelText('发布原因'), {
+        target: { value: '  Publish reviewed revision  ' },
+      })
       const save = within(editor).getByRole('button', { name: '保存暂存修订' })
       const inspect = within(editor).getByRole('button', { name: '检查已保存修订' })
       const publish = within(editor).getByRole('button', { name: '发布暂存修订' })
@@ -731,15 +934,21 @@ describe('CatalogFormPage', () => {
       expect(stages).toHaveLength(1)
       expect(previews).toHaveLength(0)
       expect(publications).toHaveLength(0)
-      expect((within(editor).getByLabelText('名称') as HTMLInputElement).value).toBe('Revised Carry-on')
+      expect((within(editor).getByLabelText('名称') as HTMLInputElement).value).toBe(
+        'Revised Carry-on'
+      )
       fireEvent.click(save)
-      expect(await within(editor).findByText('商品修订已保存为草稿，已发布页面没有变化。')).toBeTruthy()
-      expect(stages).toEqual(Array.from({ length: 2 }, () => ({
-        content: { ...content, name: 'Revised Carry-on' },
-        expectedDraftVersion: 7,
-        expectedProductVersion: 3,
-        expectedPublishedRevisionId: 'revision-live',
-      })))
+      expect(
+        await within(editor).findByText('商品修订已保存为草稿，已发布页面没有变化。')
+      ).toBeTruthy()
+      expect(stages).toEqual(
+        Array.from({ length: 2 }, () => ({
+          content: { ...content, name: 'Revised Carry-on' },
+          expectedDraftVersion: 7,
+          expectedProductVersion: 3,
+          expectedPublishedRevisionId: 'revision-live',
+        }))
+      )
 
       fireEvent.click(inspect)
       await waitFor(() => expect(previews).toEqual(['revision-001']))
@@ -757,19 +966,25 @@ describe('CatalogFormPage', () => {
 
       await waitFor(() => expect(publish.classList.contains('ant-btn-loading')).toBe(false))
       fireEvent.click(publish)
-      await waitFor(() => expect(publications).toEqual([{
-        expectedDraftVersion: 8,
-        expectedProductVersion: 3,
-        expectedPublishedRevisionId: 'revision-live',
-        reason: 'Publish reviewed revision',
-        revisionId: 'revision-001',
-      }]))
+      await waitFor(() =>
+        expect(publications).toEqual([
+          {
+            expectedDraftVersion: 8,
+            expectedProductVersion: 3,
+            expectedPublishedRevisionId: 'revision-live',
+            reason: 'Publish reviewed revision',
+            revisionId: 'revision-001',
+          },
+        ])
+      )
       fireEvent.click(save)
       fireEvent.click(inspect)
       fireEvent.click(publish)
       fireEvent.click(publishReviews)
       publishResponse.resolve()
-      expect(await within(editor).findByText('修订发布已开始，店铺展示将在部署后更新。')).toBeTruthy()
+      expect(
+        await within(editor).findByText('修订发布已开始，店铺展示将在部署后更新。')
+      ).toBeTruthy()
       expect(stages).toHaveLength(2)
       expect(previews).toEqual(['revision-001'])
       expect(publications).toHaveLength(1)
@@ -813,4 +1028,185 @@ it('returns to the catalog list in the same guide journey', async () => {
   await screen.findByDisplayValue('Carry-on')
   fireEvent.click(screen.getByLabelText('返回'))
   expect(await screen.findByText('/catalog/products?from=setup-guide')).toBeTruthy()
+})
+
+it('creates a scheduled product with the entire original taxonomy, option, media and price request', async () => {
+  const uuid = '11111111-1111-4111-8111-111111111111'
+  rstest.spyOn(crypto, 'randomUUID').mockReturnValue(uuid)
+  const requests: unknown[] = []
+  const uploads: { path: string; type: string | null }[] = []
+  const upload = rstest.spyOn(catalogApi, 'uploadCatalogMedia')
+  const image = new File(['picture'], 'Case.webp', { type: 'image/webp' })
+  const delegate = axios.getAdapter(originalAdapter)
+  // jsdom File transport does not reach MSW; keep the real upload API and observe its Axios boundary.
+  apiClient.defaults.adapter = async (config) => {
+    if (config.url === `/admin/media/catalog/products/${uuid}-case.webp`) {
+      expect(config.method).toBe('put')
+      expect(config.data).toBe(image)
+      uploads.push({ path: config.url, type: String(config.headers.get('Content-Type')) })
+      return {
+        data: { data: { key: `catalog/products/${uuid}-case.webp`, size: image.size } },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config,
+      }
+    }
+    return delegate(config)
+  }
+  server.use(
+    http.post('*/admin/catalog/products', async ({ request }) => {
+      requests.push(await request.json())
+      return HttpResponse.json(
+        { data: { id: 'product-001', status: 'scheduled' } },
+        { status: 201 }
+      )
+    })
+  )
+  render(
+    <MemoryRouter initialEntries={['/catalog/products/form?mode=add']}>
+      <AuthTestProvider permissions={['catalog.read', 'catalog.write']}>
+        <ThemeProvider>
+          <App>
+            <CatalogFormPage />
+          </App>
+        </ThemeProvider>
+      </AuthTestProvider>
+    </MemoryRouter>
+  )
+  await screen.findByLabelText('名称')
+  for (const [label, value] of [
+    ['名称', 'New carry-on'],
+    ['标识', 'new-carry-on'],
+    ['描述', 'New product details'],
+    ['分类标识', ' travel , carry-on '],
+    ['SKU', 'NEW-CASE'],
+    ['变体标题', 'Blue'],
+    ['初始颜色选项值', 'Blue'],
+    ['替代文本', 'Blue case'],
+    ['SEO 标题', 'Case SEO'],
+    ['SEO 描述', 'Case summary'],
+    ['币种', 'eur'],
+  ])
+    fireEvent.change(screen.getByLabelText(label!), { target: { value } })
+  const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+  fireEvent.change(fileInput, { target: { files: [image] } })
+  await waitFor(() =>
+    expect((screen.getByLabelText('媒体 Key') as HTMLInputElement).value).toBe(
+      `catalog/products/${uuid}-case.webp`
+    )
+  )
+  fireEvent.mouseDown(screen.getByRole('combobox', { name: '发布状态' }))
+  fireEvent.click(
+    await screen.findByText('已计划', { selector: '.ant-select-item-option-content' })
+  )
+  fireEvent.change(screen.getByLabelText('发布时间'), { target: { value: '2026-10-16T09:00' } })
+  fireEvent.click(screen.getByRole('button', { name: /^保\s*存$/ }))
+  await waitFor(() => expect(requests.length).toBe(1))
+  await waitFor(() =>
+    expect(requests).toEqual([
+      {
+        categories: [
+          { name: 'Travel', slug: 'travel' },
+          { name: 'Carry On', slug: 'carry-on' },
+        ],
+        collections: [],
+        description: 'New product details',
+        media: [
+          {
+            altText: 'Blue case',
+            height: 1200,
+            r2Key: `catalog/products/${uuid}-case.webp`,
+            width: 1200,
+          },
+        ],
+        name: 'New carry-on',
+        optionDefinitions: [{ name: 'color', presentation: 'text', values: [{ label: 'Blue' }] }],
+        seoDescription: 'Case summary',
+        seoTitle: 'Case SEO',
+        slug: 'new-carry-on',
+        publicationStatus: 'scheduled',
+        scheduledAt: new Date('2026-10-16T09:00').toISOString(),
+        variants: [
+          {
+            optionValues: { color: 'Blue' },
+            dimensionsMm: { height: 0, length: 0, width: 0 },
+            prices: [{ amount: 0, currency: 'EUR', priceListCode: 'GLOBAL-USD' }],
+            sku: 'NEW-CASE',
+            title: 'Blue',
+            weightGrams: 0,
+          },
+        ],
+      },
+    ])
+  )
+  expect(uploads).toEqual([
+    { path: `/admin/media/catalog/products/${uuid}-case.webp`, type: 'image/webp' },
+  ])
+  expect(upload).toHaveBeenCalledExactlyOnceWith(`catalog/products/${uuid}-case.webp`, image)
+})
+
+it('publishes review-only updates without replacing a staged revision identity', async () => {
+  let submitted: unknown
+  const published = { ...detail, product: { ...detail.product, status: 'published' as const } }
+  server.use(
+    http.get('*/admin/catalog/products/product-001', () => HttpResponse.json({ data: published })),
+    http.get('*/admin/catalog/products/product-001/revisions', () =>
+      HttpResponse.json({
+        data: {
+          draft: null,
+          productVersion: 3,
+          published: {
+            id: 'revision-live',
+            version: 2,
+            status: 'published',
+            content: {
+              name: 'Carry-on',
+              description: 'International carry-on',
+              media: [],
+              presentation: null,
+              seoTitle: 'Carry-on suitcase',
+              seoDescription: 'Shop a lightweight international carry-on.',
+            },
+          },
+        },
+      })
+    ),
+    http.post('*/admin/catalog/products/product-001/revisions/publish', async ({ request }) => {
+      submitted = await request.json()
+      return HttpResponse.json({
+        data: { releaseId: 'release-review', buildCorrelationId: 'build-review', status: 'queued' },
+      })
+    })
+  )
+  render(
+    <MemoryRouter initialEntries={['/catalog/products/form?mode=modify&id=product-001']}>
+      <AuthTestProvider permissions={['catalog.read', 'catalog.write', 'catalog.publish']}>
+        <ThemeProvider>
+          <App>
+            <CatalogFormPage />
+          </App>
+        </ThemeProvider>
+      </AuthTestProvider>
+    </MemoryRouter>
+  )
+  const editor = await screen.findByRole('region', { name: '已发布商品修订' })
+  fireEvent.change(within(editor).getByLabelText('发布原因'), {
+    target: { value: '  Publish approved reviews  ' },
+  })
+  await waitFor(() =>
+    expect(
+      (within(editor).getByRole('button', { name: '发布评价更新' }) as HTMLButtonElement).disabled
+    ).toBe(false)
+  )
+  fireEvent.click(within(editor).getByRole('button', { name: '发布评价更新' }))
+  await waitFor(() =>
+    expect(submitted).toEqual({
+      expectedDraftVersion: null,
+      expectedProductVersion: 3,
+      expectedPublishedRevisionId: 'revision-live',
+      reason: 'Publish approved reviews',
+      revisionId: null,
+    })
+  )
 })

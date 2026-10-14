@@ -226,6 +226,8 @@ let migrationBody: Record<string, unknown> | null = null
 let createDraftBody: Record<string, unknown> | null = null
 let successorBody: Record<string, unknown> | null = null
 let blockCommandBody: Record<string, unknown> | null = null
+let grantBody: unknown
+let revokeBody: unknown
 let buildStatus: 'building' | 'deployed' = 'building'
 const requestLog: string[] = []
 
@@ -417,8 +419,9 @@ const server = setupServer(
     buildStatus = 'deployed'
     return HttpResponse.json({ data: build() })
   }),
-  http.post('*/admin/storefront-experiences/snapshots/:id/grants', () =>
-    HttpResponse.json(
+  http.post('*/admin/storefront-experiences/snapshots/:id/grants', async ({ request }) => {
+    grantBody = await request.json()
+    return HttpResponse.json(
       {
         data: {
           expiresAt: '2099-07-30T00:00:00.000Z',
@@ -429,9 +432,10 @@ const server = setupServer(
       },
       { status: 201 }
     )
-  ),
-  http.post('*/admin/storefront-experiences/snapshots/:id/revoke', () =>
-    HttpResponse.json({
+  }),
+  http.post('*/admin/storefront-experiences/snapshots/:id/revoke', async ({ request }) => {
+    revokeBody = await request.json()
+    return HttpResponse.json({
       data: {
         grantsRevoked: 1,
         revokedAt: '2026-07-30T00:20:00.000Z',
@@ -439,7 +443,7 @@ const server = setupServer(
         snapshotId: previewSnapshot.id,
       },
     })
-  ),
+  }),
   http.post('*/admin/storefront-experiences/drafts/:id/approve', async ({ request }) => {
     approvalBody = (await request.json()) as Record<string, unknown>
     rememberPublicationApproval('snapshot-approved-fashion-store')
@@ -636,6 +640,8 @@ afterEach(() => {
   createDraftBody = null
   successorBody = null
   blockCommandBody = null
+  grantBody = undefined
+  revokeBody = undefined
   buildStatus = 'building'
   window.sessionStorage.clear()
   window.history.replaceState(null, '', '/')
@@ -663,8 +669,19 @@ describe('ThemesPage', () => {
 
     await screen.findByText('CREATED_EDITOR')
     expect(router.state.location.search).toBe('?from=setup-guide')
-    expect(createDraftBody).toMatchObject({
+    expect(createDraftBody).toEqual({
       draft: {
+        bindings: [
+          {
+            fixtureId: 'fixture-home',
+            id: 'binding-home',
+            instanceId: 'home-hero',
+            kind: 'fixture',
+            resource: 'home',
+            state: 'populated',
+          },
+        ],
+        overrides: [],
         experienceId: 'storefront-synthetic',
         presetId: 'editorial',
         themeId: 'synthetic',
@@ -730,12 +747,23 @@ describe('ThemeEditorPage', () => {
     perform: () => void
   }> = [
     {
-      expected: { blockType: 'synthetic.action', kind: 'add', sectionId: 'home-hero' },
+      expected: {
+        blockType: 'synthetic.action',
+        kind: 'add',
+        sectionId: 'home-hero',
+        templateId: 'synthetic-home',
+        settings: { label: 'Shop now' },
+      },
       name: 'add',
       perform: () => fireEvent.click(screen.getByRole('button', { name: 'Add synthetic.action' })),
     },
     {
-      expected: { blockId: 'hero-action', kind: 'set-visibility', visible: false },
+      expected: {
+        blockId: 'hero-action',
+        kind: 'set-visibility',
+        visible: false,
+        templateId: 'synthetic-home',
+      },
       name: 'visibility',
       perform: () => fireEvent.click(screen.getByRole('switch', { name: 'Show hero-action' })),
     },
@@ -744,6 +772,7 @@ describe('ThemeEditorPage', () => {
         blockId: 'hero-action',
         kind: 'set-setting',
         settingId: 'label',
+        templateId: 'synthetic-home',
         value: 'Edited action',
       },
       name: 'setting',
@@ -798,8 +827,7 @@ describe('ThemeEditorPage', () => {
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 80))
       })
-      expect(blockCommandBody?.command).toMatchObject(expected)
-      expect(blockCommandBody?.reason).toBe('')
+      expect(blockCommandBody).toEqual({ command: expected, expectedVersion: 1, reason: '' })
     },
     20_000
   )
@@ -1454,9 +1482,37 @@ describe('ThemeEditorPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Preview store' }))
 
     await waitFor(() => expect(screen.getByText('Building')).toBeTruthy())
-    expect(updateBody).toMatchObject({ expectedVersion: 1, reason: '' })
-    expect(validationBody).toMatchObject({ expectedVersion: 2, reason: '' })
-    expect(previewBody).toMatchObject({ expectedVersion: 2, reason: '' })
+    expect(updateBody).toEqual({
+      bindings: [
+        {
+          fixtureId: 'fixture-home',
+          id: 'binding-home',
+          instanceId: 'home-hero',
+          kind: 'fixture',
+          resource: 'home',
+          state: 'populated',
+        },
+      ],
+      expectedVersion: 1,
+      overrides: [
+        {
+          operations: [
+            {
+              instanceId: 'home-hero',
+              kind: 'set-setting',
+              settingId: 'heading',
+              value: 'Saved headline',
+            },
+          ],
+          presetId: 'editorial',
+          schemaVersion: 1,
+          templateId: 'synthetic-home',
+        },
+      ],
+      reason: '',
+    })
+    expect(validationBody).toEqual({ expectedVersion: 2, reason: '' })
+    expect(previewBody).toEqual({ expectedVersion: 2, reason: '' })
     expect(screen.getByText('Draft v2')).toBeTruthy()
     expect(screen.getByText('Validated v2')).toBeTruthy()
   })
@@ -1648,7 +1704,8 @@ describe('ThemeEditorPage', () => {
       screen.getByText('未知主题诊断，请检查技术代码后再继续。（future-migration）')
     ).toBeTruthy()
     expect(screen.queryByText('Private migration sentence')).toBeNull()
-    expect(migrationBody).toMatchObject({
+    expect(migrationBody).toEqual({
+      reason: 'Assess the approved package upgrade',
       expectedVersion: 1,
       targetConfigurationSchemaVersion: 2,
       targetThemeVersion: '1.1.0',
@@ -1727,7 +1784,7 @@ describe('ThemeEditorPage', () => {
         screen.getByRole('heading', { name: 'storefront-synthetic' })
       )
     )
-    expect(successorRequest).toMatchObject({
+    expect(successorRequest).toEqual({
       confirm: true,
       expectedVersion: 1,
       migrationId: 'migration-synthetic-ready',
@@ -1816,9 +1873,16 @@ describe('ThemeEditorPage', () => {
         target: '_blank',
       })
     )
+    expect(grantBody).toEqual({
+      origin: 'https://preview.example.test',
+      reason: 'Open the immutable private preview',
+    })
     expect(submitted?.action).not.toContain('grant_')
     expect(screen.getByText('c'.repeat(64))).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Revoke preview access' }))
+    await waitFor(() =>
+      expect(revokeBody).toEqual({ reason: 'Open the immutable private preview' })
+    )
     await waitFor(() =>
       expect(
         screen.getByRole('button', { name: 'Open authenticated preview' }).hasAttribute('disabled')
@@ -1891,7 +1955,7 @@ describe('ThemeEditorPage', () => {
 
     await waitFor(() => expect(screen.getByText(/snapshot-approved-fashion-store/)).toBeTruthy())
     await waitFor(() => expect(screen.getByText('Approved')).toBeTruthy())
-    expect(approvalBody).toMatchObject({
+    expect(approvalBody).toEqual({
       confirm: true,
       expectedVersion: 1,
       reason: 'Approved after accessible fixture review',

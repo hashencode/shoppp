@@ -1,6 +1,6 @@
 import React from 'react'
 import { App as AntApp } from 'antd'
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
 import { MemoryRouter } from 'react-router-dom'
@@ -70,7 +70,16 @@ describe('StoreIdentityPage', () => {
     fireEvent.change(name, { target: { value: 'Updated Shoppp' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save identity' }))
     expect(await screen.findByText('Published store details · version 2')).toBeTruthy()
-    expect(submitted).toMatchObject({ expectedVersion: 1, storefrontName: 'Updated Shoppp' })
+    expect(submitted).toEqual({
+      expectedVersion: 1,
+      faviconAssetId: null,
+      logoAssets: [{ assetId: 'asset.logo.primary', variant: 'primary' }],
+      reason: '',
+      seo: { description: 'Design objects', title: 'Shoppp' },
+      socialShareAssetId: null,
+      storefrontName: 'Updated Shoppp',
+      tagline: 'Objects with a point of view',
+    })
     expect(screen.queryByText('Deployment history includes this version.')).toBeNull()
   })
   it('preserves Form required and error associations on the primary media selector', async () => {
@@ -139,6 +148,13 @@ describe('StoreIdentityPage', () => {
   })
 
   it('hides mutation controls with read-only domain permission', async () => {
+    let writes = 0
+    server.use(
+      http.put('*/admin/settings/store-identity', () => {
+        writes += 1
+        return HttpResponse.json({ data: identity })
+      })
+    )
     server.use(
       http.get('*/admin/settings/store-identity', () => HttpResponse.json({ data: identity }))
     )
@@ -153,6 +169,10 @@ describe('StoreIdentityPage', () => {
     )
     await screen.findByLabelText('Storefront name')
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Save identity' })).toBeNull())
+    await act(async () => {
+      fireEvent.submit(screen.getByLabelText('Storefront name').closest('form')!)
+    })
+    expect(writes).toBe(0)
   })
 
   it('blocks all media choices and clearing while an Identity save is pending', async () => {
@@ -238,6 +258,46 @@ describe('StoreIdentityPage', () => {
     } finally {
       finishSave()
     }
+  })
+  it('creates the first identity with the complete null-version and optional-asset contract', async () => {
+    let submitted: unknown
+    server.use(
+      http.get('*/admin/settings/store-identity', () => HttpResponse.json({ data: null })),
+      http.put('*/admin/settings/store-identity', async ({ request }) => {
+        submitted = await request.json()
+        return HttpResponse.json({ data: identity })
+      })
+    )
+    renderInLocale(
+      <AntApp>
+        <AuthTestProvider permissions={['identity.read', 'identity.write']}>
+          <MemoryRouter>
+            <StoreIdentityPage />
+          </MemoryRouter>
+        </AuthTestProvider>
+      </AntApp>
+    )
+    const primary = await screen.findByRole('combobox', { name: 'Primary Logo' })
+    fireEvent.mouseDown(primary)
+    fireEvent.click(
+      await screen.findByText('Brand · Primary logo', {
+        selector: '.ant-select-item-option-content',
+      })
+    )
+    fireEvent.change(screen.getByLabelText('Storefront name'), { target: { value: 'First Shop' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save identity' }))
+    await waitFor(() =>
+      expect(submitted).toEqual({
+        expectedVersion: null,
+        faviconAssetId: null,
+        logoAssets: [{ assetId: 'asset.logo.primary', variant: 'primary' }],
+        reason: '',
+        seo: { description: '', title: '' },
+        socialShareAssetId: null,
+        storefrontName: 'First Shop',
+        tagline: '',
+      })
+    )
   })
 })
 

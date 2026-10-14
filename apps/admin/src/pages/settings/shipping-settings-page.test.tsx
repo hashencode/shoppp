@@ -237,4 +237,85 @@ describe('ShippingSettingsPage', () => {
     await waitFor(() => expect(reads).toBe(3))
     expect(writes).toBe(1)
   })
+  it('creates a complete new zone without an ID and normalizes country and currency values', async () => {
+    let submitted: unknown
+    let key: string | null = null
+    server.use(
+      http.post('*/admin/settings/shipping/zones', async ({ request }) => {
+        submitted = await request.json()
+        key = request.headers.get('Idempotency-Key')
+        return HttpResponse.json({ data: zone }, { status: 201 })
+      })
+    )
+    renderInLocale(
+      <AuthTestProvider permissions={['settings.read', 'settings.write']}>
+        <ThemeProvider>
+          <ShippingSettingsPage />
+        </ThemeProvider>
+      </AuthTestProvider>
+    )
+    await screen.findByText('North America')
+    fireEvent.click(screen.getByRole('button', { name: 'New zone' }))
+    fireEvent.change(screen.getByLabelText('Zone name'), { target: { value: 'New area' } })
+    const country = screen.getByRole('combobox', { name: 'Country allowlist' })
+    fireEvent.change(country, { target: { value: 'us' } })
+    fireEvent.keyDown(country, { key: 'Enter', code: 'Enter', keyCode: 13, which: 13 })
+    fireEvent.blur(country)
+    fireEvent.change(screen.getByLabelText('Method 1'), { target: { value: 'Tracked service' } })
+    fireEvent.change(screen.getByLabelText('Currency'), { target: { value: 'eur' } })
+    fireEvent.change(screen.getByLabelText('Change reason'), {
+      target: { value: 'Add carrier area' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(submitted).toBeDefined())
+    await waitFor(() =>
+      expect(submitted).toEqual({
+        confirm: true,
+        reason: 'Add carrier area',
+        zone: {
+          countries: ['US'],
+          name: 'New area',
+          status: 'active',
+          methods: [
+            {
+              calculationType: 'flat',
+              currency: 'EUR',
+              freeThresholdAmount: null,
+              maxWeightGrams: null,
+              minWeightGrams: null,
+              name: 'Tracked service',
+              priceAmount: 0,
+              status: 'active',
+            },
+          ],
+        },
+      })
+    )
+    expect(key).toMatch(/^shipping-zone-create-[0-9a-f-]{36}$/)
+  })
+
+  it('shows zone facts with no creation or edit write path for a readonly operator', async () => {
+    let writes = 0
+    server.use(
+      http.post('*/admin/settings/shipping/zones', () => {
+        writes += 1
+        return HttpResponse.json({ data: zone })
+      }),
+      http.put('*/admin/settings/shipping/zones/:id', () => {
+        writes += 1
+        return HttpResponse.json({ data: zone })
+      })
+    )
+    renderInLocale(
+      <AuthTestProvider permissions={['settings.read']}>
+        <ThemeProvider>
+          <ShippingSettingsPage />
+        </ThemeProvider>
+      </AuthTestProvider>
+    )
+    await screen.findByText('North America')
+    expect(screen.queryByRole('button', { name: 'New zone' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull()
+    expect(writes).toBe(0)
+  })
 })

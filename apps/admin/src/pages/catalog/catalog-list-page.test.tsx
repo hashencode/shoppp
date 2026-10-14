@@ -147,7 +147,7 @@ describe('CatalogListPage', () => {
     })
     fireEvent.click(screen.getAllByRole('button', { name: 'Publish' }).at(-1)!)
     await waitFor(() =>
-      expect(publication).toMatchObject({ reason: 'Publish reviewed product', expectedVersion: 1 })
+      expect(publication).toEqual({ reason: 'Publish reviewed product', expectedVersion: 1 })
     )
     expect(
       await screen.findByText(

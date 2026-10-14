@@ -167,8 +167,10 @@ const server = setupServer(
       { status: 409 }
     )
   ),
-  http.patch('*/admin/iam/roles/:id', () =>
-    HttpResponse.json(
+  http.patch('*/admin/iam/roles/:id', async ({ request }) => {
+    const body = await request.json()
+    if ('enabled' in (body as object)) expect(body).toEqual({ enabled: false, expectedVersion: 3 })
+    return HttpResponse.json(
       {
         error: {
           code: 'role_has_dependencies',
@@ -178,7 +180,7 @@ const server = setupServer(
       },
       { status: 409 }
     )
-  )
+  })
 )
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
@@ -578,7 +580,8 @@ describe('IAM management pages', () => {
           data: page([{ ...expiredInvitation, status: 'pending' as const }]),
         })
       ),
-      http.post('*/admin/iam/invitations/:id/revoke', () => {
+      http.post('*/admin/iam/invitations/:id/revoke', async ({ request }) => {
+        expect(await request.json()).toEqual({ expectedVersion: 2 })
         revokeCalls += 1
         return HttpResponse.json({ data: { ...expiredInvitation, status: 'revoked' } })
       })
@@ -612,6 +615,20 @@ describe('IAM management pages', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }))
     await waitFor(() => expect(inviteAttempts).toBe(2))
     expect(await screen.findByText('Invitation created.')).toBeTruthy()
+    expect(inviteBodies).toEqual([
+      {
+        displayName: 'New User',
+        email: 'new@example.test',
+        roleId: 'role_support',
+        idempotencyKey: expect.stringMatching(/^admin-invite-/),
+      },
+      {
+        displayName: 'New User',
+        email: 'new@example.test',
+        roleId: 'role_support',
+        idempotencyKey: expect.stringMatching(/^admin-invite-/),
+      },
+    ])
     expect(inviteBodies[0]?.idempotencyKey).toBe(inviteBodies[1]?.idempotencyKey)
   })
 
@@ -645,7 +662,7 @@ describe('IAM management pages', () => {
     fireEvent.change(screen.getByLabelText('Display name'), { target: { value: 'Renamed User' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
     await waitFor(() => expect(updateBody).toBeTruthy())
-    expect(updateBody).not.toHaveProperty('roleId')
+    expect(updateBody).toEqual({ displayName: 'Renamed User', enabled: false, expectedVersion: 2 })
   })
 
   it('prevents self-modification', async () => {
@@ -989,5 +1006,144 @@ describe('IAM management pages', () => {
     )
     expect(screen.getByText('Access denied')).toBeTruthy()
     expect(screen.queryByText('Role administration')).toBeNull()
+  })
+  it('saves the complete role fields and ordered permissions with its authoritative version', async () => {
+    let submitted: unknown
+    server.use(
+      http.patch('*/admin/iam/roles/role_support', async ({ request }) => {
+        submitted = await request.json()
+        return HttpResponse.json({
+          data: { ...supportRole, name: 'Support Plus', description: null, version: 4 },
+        })
+      })
+    )
+    renderPage(<RoleDetailPage />, { path: '/access/roles/role_support' })
+    const name = await screen.findByLabelText('Role name')
+    await waitFor(() => expect((name as HTMLInputElement).value).toBe('Support'))
+    fireEvent.change(name, { target: { value: ' Support Plus ' } })
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: '   ' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: /Manage users/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await waitFor(() =>
+      expect(submitted).toEqual({
+        description: null,
+        expectedVersion: 3,
+        name: 'Support Plus',
+        permissions: ['iam.users.read', 'iam.users.write'],
+      })
+    )
+  })
+
+  it.each([
+    {
+      kind: 'role',
+      permission: 'iam.roles.read',
+      path: '/access/roles/role_support',
+      name: 'Support',
+    },
+    {
+      kind: 'user',
+      permission: 'iam.users.read',
+      path: '/access/users/identity_disabled',
+      name: 'Disabled User',
+    },
+  ])(
+    'hard-blocks the $kind legacy readonly form even when its form event is forced',
+    async ({ kind, permission, path, name }) => {
+      let writes = 0
+      server.use(
+        http.patch('*/admin/iam/:kind/:id', () => {
+          writes += 1
+          return HttpResponse.json({ data: disabledUser })
+        })
+      )
+      renderPage(kind === 'role' ? <RoleDetailPage /> : <UserDetailPage />, {
+        path,
+        permissions: [permission],
+      })
+      const input = await screen.findByDisplayValue(name)
+      await act(async () => {
+        fireEvent.submit(input.closest('form')!)
+      })
+      expect((input as HTMLInputElement).disabled).toBe(true)
+      expect(writes).toBe(0)
+    }
+  )
+
+  it('resends an invitation with its complete version and operation identity and only rereads invitations', async () => {
+    let submitted: unknown
+    server.use(
+      http.get('*/admin/iam/invitations', () => {
+        invitationLoads += 1
+        return HttpResponse.json({ data: page([{ ...expiredInvitation, status: 'pending' }]) })
+      }),
+      http.post('*/admin/iam/invitations/invitation_expired/resend', async ({ request }) => {
+        submitted = await request.json()
+        return HttpResponse.json({ data: expiredInvitation })
+      })
+    )
+    renderPage(<UsersPage />)
+    await screen.findByText('Alice Admin')
+    fireEvent.click(screen.getByRole('tab', { name: 'Invitations' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Resend' }))
+    await waitFor(() =>
+      expect(submitted).toEqual({
+        expectedVersion: 2,
+        idempotencyKey: expect.stringMatching(/^admin-invite-resend-invitation_expired-/),
+      })
+    )
+    await waitFor(() => expect(invitationLoads).toBe(2))
+    expect(userLoads).toBe(1)
+  })
+
+  it('preserves a changed user role ID only after the access consequence is confirmed', async () => {
+    let submitted: unknown
+    server.use(
+      http.patch('*/admin/iam/users/identity_disabled', async ({ request }) => {
+        submitted = await request.json()
+        return HttpResponse.json({ data: { ...disabledUser, role: adminRole, version: 3 } })
+      })
+    )
+    renderPage(<UserDetailPage />, { path: '/access/users/identity_disabled' })
+    await screen.findByDisplayValue('Disabled User')
+    fireEvent.mouseDown(screen.getByLabelText('Role'))
+    fireEvent.click((await screen.findAllByText('Administrator')).at(-1)!)
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    expect(submitted).toBeUndefined()
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm change' }))
+    await waitFor(() =>
+      expect(submitted).toEqual({
+        displayName: 'Disabled User',
+        enabled: false,
+        expectedVersion: 2,
+        roleId: 'role_admin',
+      })
+    )
+  })
+
+  it('saves an edited role through the Drawer with every field and one parent read', async () => {
+    let submitted: unknown
+    server.use(
+      http.patch('*/admin/iam/roles/role_support', async ({ request }) => {
+        submitted = await request.json()
+        return HttpResponse.json({ data: { ...supportRole, name: 'Support Desk', version: 4 } })
+      })
+    )
+    renderPage(<RolesPage />, { path: '/access/roles' })
+    const row = (await screen.findByText('Support')).closest('tr')!
+    fireEvent.click(within(row).getByRole('button', { name: 'Inspect' }))
+    const name = await screen.findByDisplayValue('Support')
+    fireEvent.change(name, { target: { value: 'Support Desk' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() =>
+      expect(submitted).toEqual({
+        description: 'Support operators',
+        expectedVersion: 3,
+        name: 'Support Desk',
+        permissions: ['iam.users.read'],
+      })
+    )
+    await waitFor(() => expect(roleLoads).toBe(2))
+    expect(roleDetailLoads).toBe(1)
   })
 })

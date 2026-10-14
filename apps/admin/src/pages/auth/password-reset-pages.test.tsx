@@ -119,4 +119,50 @@ describe('administrator password reset pages', () => {
     expect(refresh).toHaveBeenCalledTimes(1)
     expect(activate).toHaveBeenCalledTimes(1)
   })
+  it('requests password recovery with the complete original email object after a failed attempt', async () => {
+    const recover = rstest
+      .spyOn(authApi, 'requestAdminPasswordReset')
+      .mockRejectedValueOnce(new Error('Recovery unavailable'))
+      .mockResolvedValue()
+    render(
+      <MemoryRouter>
+        <ForgotPasswordPage />
+      </MemoryRouter>
+    )
+    const email = screen.getByLabelText('邮箱')
+    fireEvent.change(email, { target: { value: 'operator@example.test' } })
+    fireEvent.click(screen.getByRole('button', { name: '发送重置邮件' }))
+    await waitFor(() => expect(recover).toHaveBeenCalledTimes(1))
+    await waitFor(() =>
+      expect(
+        (screen.getByRole('button', { name: '发送重置邮件' }) as HTMLButtonElement).disabled
+      ).toBe(false)
+    )
+    expect((email as HTMLInputElement).value).toBe('operator@example.test')
+    fireEvent.click(screen.getByRole('button', { name: '发送重置邮件' }))
+    await waitFor(() =>
+      expect(recover.mock.calls).toEqual([
+        [{ email: 'operator@example.test' }],
+        [{ email: 'operator@example.test' }],
+      ])
+    )
+  })
+
+  it('keeps a mismatched reset password at zero writes until corrected', async () => {
+    const confirm = rstest.spyOn(authApi, 'confirmAdminPasswordReset').mockResolvedValue()
+    render(
+      <MemoryRouter initialEntries={['/reset-password?token=reset-fixture-token-value']}>
+        <ResetPasswordPage />
+      </MemoryRouter>
+    )
+    fireEvent.change(screen.getByLabelText('新密码'), {
+      target: { value: 'new fixture password long enough' },
+    })
+    fireEvent.change(screen.getByLabelText('确认新密码'), {
+      target: { value: 'different fixture password' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '更新密码' }))
+    await screen.findByText('两次输入的密码不一致。')
+    expect(confirm).not.toHaveBeenCalled()
+  })
 })

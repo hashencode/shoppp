@@ -220,4 +220,77 @@ describe('OrderDetailPage', () => {
     )
     await waitFor(() => expect(screen.getByText('Payment · partially_refunded')).toBeTruthy())
   })
+  it.each([
+    {
+      button: 'Cancel order',
+      permission: 'orders.cancel' as const,
+      path: 'cancel',
+      extra: {},
+      label: 'Cancellation saved',
+    },
+    {
+      button: 'Mark picking',
+      permission: 'orders.fulfill' as const,
+      path: 'fulfillment',
+      extra: { toStatus: 'picking' },
+      label: 'Fulfillment saved',
+    },
+    {
+      button: 'Add shipment',
+      permission: 'orders.fulfill' as const,
+      path: 'fulfillment',
+      extra: { toStatus: 'shipped', carrier: 'Carrier raw value', trackingNumber: 'TRACK-001' },
+      label: 'Shipment saved',
+    },
+  ])(
+    'preserves the complete $button contract and permits an explicit retry after failure',
+    async ({ button, permission, path, extra }) => {
+      const requests: unknown[] = []
+      let fail = true
+      server.use(
+        http.get('*/admin/orders/ORD-TEST001', () =>
+          HttpResponse.json({
+            data: {
+              ...detail,
+              allowedActions: { ...detail.allowedActions, fulfill: ['picking', 'shipped'] },
+            },
+          })
+        ),
+        http.post(`*/admin/orders/ORD-TEST001/${path}`, async ({ request }) => {
+          requests.push(await request.json())
+          return fail
+            ? HttpResponse.json(
+                { error: { code: 'QUERY_SERVER_ERROR', message: 'Retry order operation.' } },
+                { status: 503 }
+              )
+            : HttpResponse.json({
+                data: {
+                  ...detail,
+                  allowedActions: { ...detail.allowedActions, cancel: false, fulfill: [] },
+                },
+              })
+        })
+      )
+      renderPage(['orders.read', permission])
+      fireEvent.click(await screen.findByRole('button', { name: button }))
+      const reason = screen.getByRole('textbox', { name: 'Reason' })
+      fireEvent.change(reason, { target: { value: 'Audited operation' } })
+      if ('carrier' in extra) {
+        fireEvent.change(screen.getByRole('textbox', { name: 'Carrier' }), {
+          target: { value: extra.carrier },
+        })
+        fireEvent.change(screen.getByRole('textbox', { name: 'Tracking number' }), {
+          target: { value: extra.trackingNumber },
+        })
+      }
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm operation' }))
+      await screen.findByText('Request failed. Please try again later.')
+      expect((reason as HTMLTextAreaElement).value).toBe('Audited operation')
+      const expected = { confirm: true, reason: 'Audited operation', ...extra }
+      expect(requests).toEqual([expected])
+      fail = false
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm operation' }))
+      await waitFor(() => expect(requests).toEqual([expected, expected]))
+    }
+  )
 })

@@ -1,6 +1,6 @@
 import React from 'react'
 import { App } from 'antd'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
@@ -125,6 +125,10 @@ describe('CollectionFormPage', () => {
     expect(screen.getByText('此来源曾被已部署的店铺版本使用。')).toBeTruthy()
     expect(screen.queryByText('已上线')).toBeNull()
     expect(screen.queryByRole('button', { name: /^保\s*存$/ })).toBeNull()
+    await act(async () => {
+      fireEvent.submit(screen.getByLabelText('名称').closest('form')!)
+    })
+    expect(submitted).toBeUndefined()
   })
 
   it('searches beyond the first media page and submits the selected cover stable ID', async () => {
@@ -153,7 +157,19 @@ describe('CollectionFormPage', () => {
     fireEvent.click(await screen.findByText('Archive · Travel cover'))
     fireEvent.click(screen.getByRole('button', { name: /^保\s*存$/ }))
     await waitFor(() =>
-      expect(submitted).toMatchObject({ coverAssetId: 'media.archive-cover', expectedVersion: 2 })
+      expect(submitted).toEqual({
+        coverAssetId: 'media.archive-cover',
+        description: 'Travel products',
+        expectedVersion: 2,
+        name: 'Travel',
+        productIds: ['product-001', 'product-002'],
+        reason: '',
+        redirectFromOldSlug: false,
+        seoDescription: 'Travel products',
+        seoTitle: 'Travel',
+        slug: 'travel',
+        status: 'draft',
+      })
     )
     expect(queries).toContain('Archive')
   })
@@ -179,7 +195,21 @@ describe('CollectionFormPage', () => {
     fireEvent.mouseDown(clear!)
     fireEvent.click(clear!)
     fireEvent.click(screen.getByRole('button', { name: /^保\s*存$/ }))
-    await waitFor(() => expect(submitted).toMatchObject({ coverAssetId: null, expectedVersion: 2 }))
+    await waitFor(() =>
+      expect(submitted).toEqual({
+        coverAssetId: null,
+        description: 'Travel products',
+        expectedVersion: 2,
+        name: 'Travel',
+        productIds: ['product-001', 'product-002'],
+        reason: '',
+        redirectFromOldSlug: false,
+        seoDescription: 'Travel products',
+        seoTitle: 'Travel',
+        slug: 'travel',
+        status: 'draft',
+      })
+    )
   })
 
   it('prefills a new English slug and leaves SEO and notes optional', async () => {
@@ -196,7 +226,12 @@ describe('CollectionFormPage', () => {
     expect((screen.getByLabelText('标识') as HTMLInputElement).value).toBe('travel-essentials')
     fireEvent.click(screen.getByRole('button', { name: /^保\s*存$/ }))
     await waitFor(() =>
-      expect(submitted).toMatchObject({
+      expect(submitted).toEqual({
+        coverAssetId: null,
+        description: '',
+        productIds: [],
+        redirectFromOldSlug: false,
+        seoDescription: '',
         name: 'Travel Essentials',
         slug: 'travel-essentials',
         seoTitle: '',
@@ -226,10 +261,18 @@ describe('CollectionFormPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '上移Checked luggage' }))
     fireEvent.click(screen.getByRole('button', { name: /^保\s*存$/ }))
     await waitFor(() =>
-      expect(submitted).toMatchObject({
+      expect(submitted).toEqual({
+        coverAssetId: null,
+        description: 'Travel products',
         expectedVersion: 2,
+        name: 'Travel',
         productIds: ['product-002', 'product-001'],
         reason: '',
+        redirectFromOldSlug: false,
+        seoDescription: 'Travel products',
+        seoTitle: 'Travel',
+        slug: 'travel',
+        status: 'draft',
       })
     )
   })
@@ -264,9 +307,18 @@ describe('CollectionFormPage', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: /^保\s*存$/ }))
     await waitFor(() =>
-      expect(submitted).toMatchObject({
+      expect(submitted).toEqual({
+        coverAssetId: null,
+        description: 'Travel products',
         expectedVersion: 2,
+        name: 'Travel',
         productIds: ['product-001', 'product-002', 'product-003'],
+        reason: 'Add handed-off Product',
+        redirectFromOldSlug: false,
+        seoDescription: 'Travel products',
+        seoTitle: 'Travel',
+        slug: 'travel',
+        status: 'draft',
       })
     )
   })

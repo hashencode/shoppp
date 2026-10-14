@@ -1,6 +1,6 @@
 import React from 'react'
 import type { ContactSettings, UpdateContactSettingsRequest } from '@shoppp/contracts'
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
@@ -207,15 +207,20 @@ describe('ContactSettingsPage', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Save contact settings' }))
     await waitFor(() => expect(submitted).toHaveLength(1))
-    expect(submitted[0]).toMatchObject({
+    expect(submitted[0]).toEqual({
+      supportEmail: 'support@example.com',
+      privacyContactEmail: 'privacy@example.com',
       expectedLaunchVersion: 'launch-v1',
       expectedProfileVersion: null,
       profile: {
         publishSupportEmail: true,
+        publishPrivacyEmail: false,
+        publicPhone: null,
         serviceHours: {
           kind: 'weekly',
           ranges: [
             {
+              id: expect.stringMatching(/^[0-9a-f-]{36}$/),
               startDay: 'monday',
               endDay: 'friday',
               startTime: '09:00',
@@ -224,9 +229,21 @@ describe('ContactSettingsPage', () => {
           ],
         },
         timeZone: 'Asia/Shanghai',
-        locations: [{ name: 'Studio', city: 'Shanghai', address: '123 Test Road', visible: false }],
+        locations: [
+          {
+            id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+            name: 'Studio',
+            city: 'Shanghai',
+            address: '123 Test Road',
+            visible: false,
+            phone: null,
+            email: null,
+            mapUrl: null,
+          },
+        ],
         socials: [
           {
+            id: expect.stringMatching(/^[0-9a-f-]{36}$/),
             platform: 'instagram',
             label: 'Instagram',
             url: 'https://instagram.com/shop',
@@ -296,6 +313,9 @@ describe('ContactSettingsPage', () => {
     const email = await screen.findByLabelText('客服邮箱')
     expect((email as HTMLInputElement).disabled).toBe(true)
     expect(screen.queryByRole('button', { name: '保存联系方式' })).toBeNull()
+    await act(async () => {
+      fireEvent.submit(email.closest('form')!)
+    })
     expect(submitted).toHaveLength(0)
   })
 })

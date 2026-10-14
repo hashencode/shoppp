@@ -927,6 +927,24 @@ describe('ThemeEditorPage browser behavior', () => {
         expect(document.querySelector('[data-block-focus="browser-slide-added"]')).toBeTruthy()
       )
 
+      expect(
+        JSON.parse(
+          transport!.requests
+            .filter(({ method, url }) => method === 'post' && url?.endsWith('/block-commands'))
+            .at(-1)!.data as string
+        )
+      ).toEqual({
+        command: {
+          kind: 'add',
+          templateId: 'home',
+          sectionId: 'hero',
+          blockType: 'hero.slide',
+          settings: { title: 'Browser slide' },
+        },
+        expectedVersion: 1,
+        reason: '',
+        catalogReleaseId: 'release-browser',
+      })
       fireEvent.change(
         document.querySelector<HTMLTextAreaElement>('[data-testid="change-reason"]')!,
         { target: { value: 'Reorder browser Blocks' } }
@@ -941,11 +959,16 @@ describe('ThemeEditorPage browser behavior', () => {
       fireEvent.click(moveBefore)
       await waitFor(() => {
         const writes = transport!.requests.filter(({ method }) => method === 'post')
-        const command = JSON.parse(writes.at(-1)!.data as string).command
-        expect(command).toMatchObject({
-          blockIds: ['browser-slide-added', 'browser-slide'],
-          kind: 'reorder',
-          sectionId: 'hero',
+        expect(JSON.parse(writes.at(-1)!.data as string)).toEqual({
+          command: {
+            blockIds: ['browser-slide-added', 'browser-slide'],
+            kind: 'reorder',
+            sectionId: 'hero',
+            templateId: 'home',
+          },
+          expectedVersion: 2,
+          reason: 'Reorder browser Blocks',
+          catalogReleaseId: 'release-browser',
         })
       })
 
@@ -967,11 +990,11 @@ describe('ThemeEditorPage browser behavior', () => {
       fireEvent.click(duplicate)
       await waitFor(() => {
         const writes = transport!.requests.filter(({ method }) => method === 'post')
-        const command = JSON.parse(writes.at(-1)!.data as string).command
-        expect(command).toMatchObject({
-          blockId: 'browser-slide-added',
-          kind: 'duplicate',
-          templateId: 'home',
+        expect(JSON.parse(writes.at(-1)!.data as string)).toEqual({
+          command: { blockId: 'browser-slide-added', kind: 'duplicate', templateId: 'home' },
+          expectedVersion: 2,
+          reason: 'Duplicate browser Block',
+          catalogReleaseId: 'release-browser',
         })
         expect(
           document.querySelector('[data-block-focus="browser-slide-server-copy"]')
@@ -1015,6 +1038,20 @@ describe('ThemeEditorPage browser behavior', () => {
         return target!
       })
       fireEvent.click(confirm)
+      await waitFor(() => {
+        const writes = transport!.requests.filter(
+          ({ method, url }) =>
+            method === 'post' &&
+            url === '/admin/storefront-experiences/drafts/draft-browser/block-commands'
+        )
+        expect(writes).toHaveLength(1)
+        expect(JSON.parse(writes[0]!.data as string)).toEqual({
+          command: { kind: 'remove', templateId: 'home', blockId: 'browser-slide' },
+          expectedVersion: 1,
+          reason: 'Remove browser slide',
+          catalogReleaseId: 'release-browser',
+        })
+      })
       await waitFor(() =>
         expect(document.activeElement?.getAttribute('data-block-focus')).toBe('section:hero')
       )

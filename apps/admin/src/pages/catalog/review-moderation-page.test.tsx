@@ -98,4 +98,48 @@ describe('ReviewModerationPage', () => {
     )
     expect(await screen.findByText('评价已批准，将在新的商品目录版本部署后公开。')).toBeTruthy()
   })
+  it('rejects with the complete trimmed decision and retries a failed write without losing the reason', async () => {
+    let fail = true
+    server.use(
+      http.post('*/admin/catalog/reviews/review-001/moderate', async ({ request }) => {
+        decisions.push(await request.json())
+        return fail
+          ? HttpResponse.json(
+              { error: { code: 'review_write_failed', message: 'Retry moderation.' } },
+              { status: 503 }
+            )
+          : HttpResponse.json({ data: { ...review, status: 'rejected' } })
+      })
+    )
+    render(
+      <MemoryRouter>
+        <AuthTestProvider>
+          <ThemeProvider>
+            <App>
+              <ReviewModerationPage />
+            </App>
+          </ThemeProvider>
+        </AuthTestProvider>
+      </MemoryRouter>
+    )
+    await screen.findByText('Sample shopper · 4/5')
+    fireEvent.click(screen.getByRole('button', { name: /评\s*价/ }))
+    const reason = await screen.findByRole('textbox', { name: '审核原因' })
+    expect((screen.getByRole('button', { name: /拒\s*绝/ }) as HTMLButtonElement).disabled).toBe(
+      true
+    )
+    expect(decisions).toEqual([])
+    fireEvent.change(reason, { target: { value: '  Rejected spam  ' } })
+    fireEvent.click(screen.getByRole('button', { name: /拒\s*绝/ }))
+    await screen.findByText('Retry moderation.')
+    expect((reason as HTMLTextAreaElement).value).toBe('  Rejected spam  ')
+    expect(decisions).toEqual([{ decision: 'rejected', reason: 'Rejected spam' }])
+    fail = false
+    fireEvent.click(screen.getByRole('button', { name: /拒\s*绝/ }))
+    await screen.findByText('评价已拒绝。')
+    expect(decisions).toEqual([
+      { decision: 'rejected', reason: 'Rejected spam' },
+      { decision: 'rejected', reason: 'Rejected spam' },
+    ])
+  })
 })
