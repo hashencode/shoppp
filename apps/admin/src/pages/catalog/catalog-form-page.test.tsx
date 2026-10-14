@@ -7,7 +7,12 @@ import { setupServer } from 'msw/node'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthTestProvider } from '../../test/auth-context-fixture'
 import { ThemeProvider } from '../../shared/contexts/theme-context'
-import type { ProductDetail, ProductDraftPayload } from '../../services/catalog/api'
+import type {
+  ProductDetail,
+  ProductDraftPayload,
+  PublishedProductRevisionContent,
+  PublishedProductRevisionState,
+} from '../../services/catalog/api'
 import { CatalogFormPage } from './catalog-form-page'
 
 void React
@@ -117,6 +122,14 @@ const renderModify = (productDetail: ProductDetail = detail) => {
       </AuthTestProvider>
     </MemoryRouter>
   )
+}
+
+const deferredResponse = () => {
+  let resolve!: () => void
+  const promise = new Promise<void>((complete) => {
+    resolve = complete
+  })
+  return { promise, resolve }
 }
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
@@ -515,6 +528,257 @@ describe('CatalogFormPage', () => {
         },
       })
     )
+  })
+
+  it('blocks child saves during an ordinary update and releases the shared lock after failure', async () => {
+    const response = deferredResponse()
+    const updates: Record<string, unknown>[] = []
+    const optionUpdates: Record<string, unknown>[] = []
+    const presentationUpdates: Record<string, unknown>[] = []
+    server.use(
+      http.put('*/admin/catalog/products/product-001', async ({ request }) => {
+        updates.push((await request.json()) as Record<string, unknown>)
+        await response.promise
+        return HttpResponse.json(
+          { error: { code: 'update_failed', message: 'Product update failed. Retry saving.' } },
+          { status: 503 }
+        )
+      }),
+      http.patch('*/admin/catalog/products/product-001/option-definitions', async ({ request }) => {
+        const payload = (await request.json()) as Record<string, unknown>
+        optionUpdates.push(payload)
+        return HttpResponse.json({
+          data: {
+            id: 'product-001',
+            optionDefinitions: payload.optionDefinitions,
+            status: 'draft',
+            version: 4,
+          },
+        })
+      }),
+      http.patch('*/admin/catalog/products/product-001/presentation', async ({ request }) => {
+        const payload = (await request.json()) as Record<string, unknown>
+        presentationUpdates.push(payload)
+        return HttpResponse.json({ data: { presentation: payload.presentation, version: 5 } })
+      })
+    )
+    renderModify()
+
+    try {
+      fireEvent.change(await screen.findByLabelText('名称'), {
+        target: { value: 'Unsaved Carry-on' },
+      })
+      fireEvent.change(screen.getByLabelText('品牌'), { target: { value: 'Shoppp' } })
+      const save = screen.getByRole('button', { name: /^保\s*存$/ })
+      fireEvent.click(save)
+      await waitFor(() => expect(updates).toHaveLength(1))
+      expect(updates[0]).toMatchObject({
+        expectedVersion: 3,
+        name: 'Unsaved Carry-on',
+        collections: [],
+        media: [{ altText: 'Black carry-on', height: 1200, r2Key: 'catalog/products/carry-on.webp', width: 1200 }],
+        variants: [{
+          optionValues: {},
+          prices: [{ amount: 12900, compareAtAmount: 15900, currency: 'USD', priceListCode: 'GLOBAL-USD' }],
+          sku: 'CASE-CARRY-BLK',
+          title: 'Black',
+          weightGrams: 2900,
+        }],
+      })
+      expect(updates[0]).not.toHaveProperty('optionDefinitions')
+      fireEvent.click(screen.getByRole('button', { name: '保存选项展示' }))
+      fireEvent.click(screen.getByRole('button', { name: '保存商品展示' }))
+      fireEvent.click(save)
+      expect(optionUpdates).toHaveLength(0)
+      expect(presentationUpdates).toHaveLength(0)
+
+      response.resolve()
+      expect(await screen.findByText('Product update failed. Retry saving.')).toBeTruthy()
+      expect(updates).toHaveLength(1)
+      expect(optionUpdates).toHaveLength(0)
+      expect(presentationUpdates).toHaveLength(0)
+      expect((screen.getByLabelText('名称') as HTMLInputElement).value).toBe('Unsaved Carry-on')
+
+      fireEvent.click(screen.getByRole('button', { name: '保存选项展示' }))
+      expect(await screen.findByText('选项展示已保存')).toBeTruthy()
+      expect(optionUpdates).toEqual([{
+        expectedVersion: 3,
+        optionDefinitions: [{ name: 'color', presentation: 'text', values: [{ label: 'Black' }] }],
+      }])
+      fireEvent.click(screen.getByRole('button', { name: '保存商品展示' }))
+      expect(await screen.findByText('商品展示设置已保存')).toBeTruthy()
+      expect(presentationUpdates).toEqual([{
+        expectedVersion: 4,
+        presentation: { brand: 'Shoppp', specifications: [] },
+      }])
+      expect(updates).toHaveLength(1)
+    } finally {
+      response.resolve()
+    }
+  })
+
+  it('keeps revision stage, preview, and publish exclusive while preserving retry versions', async () => {
+    const stageResponse = deferredResponse()
+    const previewResponse = deferredResponse()
+    const publishResponse = deferredResponse()
+    const content: PublishedProductRevisionContent = {
+      description: detail.product.description,
+      media: [{ altText: 'Black carry-on', height: 1200, id: 'media-001', r2Key: 'catalog/products/carry-on.webp', width: 1200 }],
+      name: 'Reviewed Carry-on',
+      optionDefinitions: [{ name: 'color', presentation: 'text', values: [{ label: 'Black' }] }],
+      presentation: null,
+      seoDescription: detail.product.seo_description,
+      seoTitle: detail.product.seo_title,
+      variantOptions: [{ id: 'variant-001', optionValues: { color: 'Black' }, title: 'Black' }],
+    }
+    let revisionState: PublishedProductRevisionState = {
+      draft: {
+        baseProductVersion: 3,
+        basePublishedRevisionId: 'revision-live',
+        content,
+        id: 'revision-001',
+        status: 'draft',
+        version: 7,
+      },
+      productVersion: 3,
+      published: {
+        baseProductVersion: 3,
+        basePublishedRevisionId: null,
+        content,
+        id: 'revision-live',
+        status: 'published',
+        version: 2,
+      },
+    }
+    const stages: Record<string, unknown>[] = []
+    const previews: string[] = []
+    const publications: Record<string, unknown>[] = []
+    let mediaUploads = 0
+    server.use(
+      http.get('*/admin/catalog/products/product-001', () =>
+        HttpResponse.json({ data: { ...detail, product: { ...detail.product, status: 'published' } } })
+      ),
+      http.get('*/admin/catalog/products/product-001/revisions', () =>
+        HttpResponse.json({ data: revisionState })
+      ),
+      http.put('*/admin/catalog/products/product-001/revisions/draft', async ({ request }) => {
+        const payload = (await request.json()) as Record<string, unknown>
+        stages.push(payload)
+        if (stages.length === 1) {
+          await stageResponse.promise
+          return HttpResponse.json(
+            { error: { code: 'revision_save_failed', message: 'Revision save failed. Retry saving.' } },
+            { status: 503 }
+          )
+        }
+        const draft = {
+          ...revisionState.draft!,
+          content: payload.content as PublishedProductRevisionContent,
+          version: 8,
+        }
+        revisionState = { ...revisionState, draft }
+        return HttpResponse.json({ data: draft })
+      }),
+      http.get('*/admin/catalog/products/product-001/revisions/preview', async ({ request }) => {
+        previews.push(new URL(request.url).searchParams.get('revisionId')!)
+        await previewResponse.promise
+        return HttpResponse.json({
+          data: {
+            product: { description: content.description, id: 'product-001', media: [], name: 'Revised Carry-on', slug: 'carry-on' },
+            revisionId: 'revision-001',
+            sourceProductVersion: 3,
+          },
+        })
+      }),
+      http.post('*/admin/catalog/products/product-001/revisions/publish', async ({ request }) => {
+        publications.push((await request.json()) as Record<string, unknown>)
+        await publishResponse.promise
+        return HttpResponse.json({ data: { releaseId: 'release-1', buildCorrelationId: 'build-1', status: 'queued' } })
+      }),
+      http.put('*/admin/media/*', () => {
+        mediaUploads += 1
+        return HttpResponse.json({ data: { key: 'unexpected-upload', size: 0 } })
+      })
+    )
+    render(
+      <MemoryRouter initialEntries={['/catalog/products/form?mode=modify&id=product-001']}>
+        <AuthTestProvider permissions={['catalog.read', 'catalog.write', 'catalog.publish']}>
+          <ThemeProvider><App><CatalogFormPage /></App></ThemeProvider>
+        </AuthTestProvider>
+      </MemoryRouter>
+    )
+
+    try {
+      const editor = await screen.findByRole('region', { name: '已发布商品修订' })
+      await waitFor(() => expect((within(editor).getByLabelText('名称') as HTMLInputElement).value).toBe('Reviewed Carry-on'))
+      fireEvent.change(within(editor).getByLabelText('名称'), { target: { value: 'Revised Carry-on' } })
+      fireEvent.change(within(editor).getByLabelText('发布原因'), { target: { value: '  Publish reviewed revision  ' } })
+      const save = within(editor).getByRole('button', { name: '保存暂存修订' })
+      const inspect = within(editor).getByRole('button', { name: '检查已保存修订' })
+      const publish = within(editor).getByRole('button', { name: '发布暂存修订' })
+      const publishReviews = within(editor).getByRole('button', { name: '发布评价更新' })
+      fireEvent.click(save)
+      await waitFor(() => expect(stages).toHaveLength(1))
+      fireEvent.click(save)
+      fireEvent.click(inspect)
+      fireEvent.click(publish)
+      fireEvent.click(publishReviews)
+      expect(previews).toHaveLength(0)
+      expect(publications).toHaveLength(0)
+
+      stageResponse.resolve()
+      expect(await within(editor).findByText('Revision save failed. Retry saving.')).toBeTruthy()
+      expect(stages).toHaveLength(1)
+      expect(previews).toHaveLength(0)
+      expect(publications).toHaveLength(0)
+      expect((within(editor).getByLabelText('名称') as HTMLInputElement).value).toBe('Revised Carry-on')
+      fireEvent.click(save)
+      expect(await within(editor).findByText('商品修订已保存为草稿，已发布页面没有变化。')).toBeTruthy()
+      expect(stages).toEqual(Array.from({ length: 2 }, () => ({
+        content: { ...content, name: 'Revised Carry-on' },
+        expectedDraftVersion: 7,
+        expectedProductVersion: 3,
+        expectedPublishedRevisionId: 'revision-live',
+      })))
+
+      fireEvent.click(inspect)
+      await waitFor(() => expect(previews).toEqual(['revision-001']))
+      fireEvent.click(inspect)
+      fireEvent.click(save)
+      fireEvent.click(publish)
+      fireEvent.click(publishReviews)
+      expect(stages).toHaveLength(2)
+      expect(publications).toHaveLength(0)
+      previewResponse.resolve()
+      expect(await within(editor).findByRole('region', { name: '已保存修订数据' })).toBeTruthy()
+      expect(previews).toEqual(['revision-001'])
+      expect(stages).toHaveLength(2)
+      expect(publications).toHaveLength(0)
+
+      await waitFor(() => expect(publish.classList.contains('ant-btn-loading')).toBe(false))
+      fireEvent.click(publish)
+      await waitFor(() => expect(publications).toEqual([{
+        expectedDraftVersion: 8,
+        expectedProductVersion: 3,
+        expectedPublishedRevisionId: 'revision-live',
+        reason: 'Publish reviewed revision',
+        revisionId: 'revision-001',
+      }]))
+      fireEvent.click(save)
+      fireEvent.click(inspect)
+      fireEvent.click(publish)
+      fireEvent.click(publishReviews)
+      publishResponse.resolve()
+      expect(await within(editor).findByText('修订发布已开始，店铺展示将在部署后更新。')).toBeTruthy()
+      expect(stages).toHaveLength(2)
+      expect(previews).toEqual(['revision-001'])
+      expect(publications).toHaveLength(1)
+      expect(mediaUploads).toBe(0)
+    } finally {
+      stageResponse.resolve()
+      previewResponse.resolve()
+      publishResponse.resolve()
+    }
   })
 })
 
