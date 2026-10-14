@@ -55,7 +55,6 @@ export const ThemesPage = () => {
   const [drafts, setDrafts] = useState<StorefrontExperienceDraft[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [creating, setCreating] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [form] = Form.useForm<CreateValues>()
   const createDialog = useFormDialog({
@@ -232,7 +231,7 @@ export const ThemesPage = () => {
           title={t('Create experience draft')}
           open={createOpen}
           okText={t('Create draft')}
-          confirmLoading={creating || createDialog.busy}
+          confirmLoading={createDialog.busy}
           onCancel={createDialog.requestClose}
           footer={(_, { OkBtn }) => <OkBtn />}
           mask={{ closable: !createDialog.busy }}
@@ -247,7 +246,7 @@ export const ThemesPage = () => {
               void createDialog.submit(async (values) => {
                 const theme = themes.find((candidate) => themeKey(candidate) === values.themeKey)
                 if (!theme) return
-                setCreating(true)
+
                 try {
                   const draft = await createStorefrontExperienceDraft(
                     theme,
@@ -260,8 +259,6 @@ export const ThemesPage = () => {
                   navigate(`/storefront/themes/${draft.id}${guideSearch}`)
                 } catch (cause) {
                   void message.error(normalizeApiError(cause).message)
-                } finally {
-                  setCreating(false)
                 }
               })
             }

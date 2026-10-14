@@ -287,7 +287,6 @@ export const UsersPage = () => {
   const [invitationTotal, setInvitationTotal] = useState(0)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [inviteError, setInviteError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
   const [form] = Form.useForm<InviteValues>()
   const invitationDialog = useFormDialog({
     open: inviteOpen,
@@ -719,7 +718,7 @@ export const UsersPage = () => {
         title={t('Invite user')}
         open={canInvite && inviteOpen}
         okText={t('Send invitation')}
-        confirmLoading={saving || invitationDialog.busy}
+        confirmLoading={invitationDialog.busy}
         onCancel={invitationDialog.requestClose}
         footer={(_, { OkBtn }) => <OkBtn />}
         mask={{ closable: !invitationDialog.busy }}
@@ -735,7 +734,7 @@ export const UsersPage = () => {
           onFinish={() =>
             void invitationDialog.submit(async (values) => {
               if (!canInvite) return
-              setSaving(true)
+
               setInviteError(null)
               try {
                 await createAdminInvitation({
@@ -750,8 +749,6 @@ export const UsersPage = () => {
                 void reloadLatestInvitations().catch(() => undefined)
               } catch (error) {
                 setInviteError(normalizeApiError(error).message)
-              } finally {
-                setSaving(false)
               }
             })
           }

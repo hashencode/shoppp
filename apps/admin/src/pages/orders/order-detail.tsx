@@ -78,7 +78,6 @@ export const OrderDetailPage = () => {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [action, setAction] = useState<Action | null>(null)
-  const [submitting, setSubmitting] = useState(false)
   const [form] = Form.useForm<ActionValues>()
   const actionDialog = useFormDialog({
     open: Boolean(action),
@@ -123,7 +122,7 @@ export const OrderDetailPage = () => {
       )
     )
       return
-    setSubmitting(true)
+
     try {
       let updated: AdminOrderDetail
       if (action.type === 'refund') {
@@ -156,8 +155,6 @@ export const OrderDetailPage = () => {
       void message.success(translateNow('Order operation recorded.'))
     } catch (error) {
       void message.error(localizeError(error))
-    } finally {
-      setSubmitting(false)
     }
   }
 
@@ -332,7 +329,7 @@ export const OrderDetailPage = () => {
         open={Boolean(action)}
         okText={t('Confirm operation')}
         okButtonProps={{ danger: action?.type === 'cancel' || action?.type === 'refund' }}
-        confirmLoading={submitting || actionDialog.busy}
+        confirmLoading={actionDialog.busy}
         destroyOnHidden
         onCancel={actionDialog.requestClose}
         footer={(_, { OkBtn }) => <OkBtn />}

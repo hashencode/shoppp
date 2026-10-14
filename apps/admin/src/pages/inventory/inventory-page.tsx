@@ -80,7 +80,6 @@ export const InventoryPage = () => {
   const [detail, setDetail] = useState<InventoryDetail | null>(null)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [adjustOpen, setAdjustOpen] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
   const [form] = Form.useForm<AdjustmentValues>()
   const adjustmentDialog = useFormDialog({
     open: adjustOpen,
@@ -290,7 +289,7 @@ export const InventoryPage = () => {
         title={selected ? `${t('Adjust')} · ${selected.sku}` : t('Adjust inventory')}
         open={adjustOpen}
         okText={t('Apply adjustment')}
-        confirmLoading={submitting || adjustmentDialog.busy}
+        confirmLoading={adjustmentDialog.busy}
         onCancel={adjustmentDialog.requestClose}
         footer={(_, { OkBtn }) => <OkBtn />}
         mask={{ closable: !adjustmentDialog.busy }}
@@ -303,7 +302,7 @@ export const InventoryPage = () => {
           onFinish={() =>
             void adjustmentDialog.submit(async (values) => {
               if (!selected || !canAdjust) return
-              setSubmitting(true)
+
               try {
                 await adjustInventory(selected.variantId, selected.warehouseId, values)
                 if (!adjustmentDialog.isCurrent()) return
@@ -312,8 +311,6 @@ export const InventoryPage = () => {
                 void reloadRef.current().catch(() => undefined)
               } catch (error) {
                 void message.error(localizeError(error))
-              } finally {
-                setSubmitting(false)
               }
             })
           }

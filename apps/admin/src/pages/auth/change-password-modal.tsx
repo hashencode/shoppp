@@ -22,7 +22,6 @@ export const ChangePasswordModal = ({ onClose, open }: ChangePasswordModalProps)
   const { t } = useI18n()
   const [form] = Form.useForm<ChangePasswordFields>()
   const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
 
   const close = () => {
     form.resetFields()
@@ -41,7 +40,7 @@ export const ChangePasswordModal = ({ onClose, open }: ChangePasswordModalProps)
   })
 
   const submit = async (values: ChangePasswordFields) => {
-    setSubmitting(true)
+
     setError(null)
     try {
       await changeAdminPassword({
@@ -51,15 +50,13 @@ export const ChangePasswordModal = ({ onClose, open }: ChangePasswordModalProps)
       dialog.complete()
     } catch (failure) {
       setError((failure as Error).message || t('Password change failed.'))
-    } finally {
-      setSubmitting(false)
     }
   }
 
   return (
     <Modal
       destroyOnHidden
-      okButtonProps={{ loading: submitting || dialog.busy }}
+      okButtonProps={{ loading: dialog.busy }}
       okText={t('Change password')}
       onCancel={dialog.requestClose}
       footer={(_, { OkBtn }) => <OkBtn />}

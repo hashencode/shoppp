@@ -28,7 +28,6 @@ export const PrivacyPage = () => {
   const [items, setItems] = useState<PrivacyRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
   const [form] = Form.useForm<FormValues>()
   const privacyDialog = useFormDialog({ open, form, onClose: () => setOpen(false) })
   const type = Form.useWatch('type', form)
@@ -136,7 +135,7 @@ export const PrivacyPage = () => {
         title={t('Record verified privacy request')}
         open={open}
         okText={t('Confirm and execute')}
-        confirmLoading={submitting || privacyDialog.busy}
+        confirmLoading={privacyDialog.busy}
         onCancel={privacyDialog.requestClose}
         footer={(_, { OkBtn }) => <OkBtn />}
         mask={{ closable: !privacyDialog.busy }}
@@ -151,7 +150,7 @@ export const PrivacyPage = () => {
           layout="vertical"
           onFinish={() =>
             void privacyDialog.submit(async (values) => {
-              setSubmitting(true)
+
               try {
                 await createPrivacyRequest({
                   confirm: true,
@@ -173,8 +172,6 @@ export const PrivacyPage = () => {
                 void message.success(translateNow('Privacy request completed and audited.'))
               } catch (error) {
                 void message.error(localizeError(error))
-              } finally {
-                setSubmitting(false)
               }
             })
           }

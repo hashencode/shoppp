@@ -150,12 +150,11 @@ const ReportExportAction = ({
   const translateNow = useCurrentTranslate()
   const localizeError = useLocalizedApiError()
   const [open, setOpen] = useState(false)
-  const [exporting, setExporting] = useState(false)
   const [form] = Form.useForm<{ reason: string }>()
   const exportDialog = useFormDialog({ open, form, onClose: () => setOpen(false) })
 
   const submitExport = async ({ reason }: { reason: string }) => {
-    setExporting(true)
+
     try {
       const created = await createReportExport({
         currency: appliedFilters.currency,
@@ -176,8 +175,6 @@ const ReportExportAction = ({
       )
     } catch (error) {
       void message.error(localizeError(error))
-    } finally {
-      setExporting(false)
     }
   }
 
@@ -195,7 +192,7 @@ const ReportExportAction = ({
         title={t('Export scoped order report')}
         open={open}
         okText={t('Confirm export')}
-        confirmLoading={exporting || exportDialog.busy}
+        confirmLoading={exportDialog.busy}
         destroyOnHidden
         onCancel={exportDialog.requestClose}
         footer={(_, { OkBtn }) => <OkBtn />}

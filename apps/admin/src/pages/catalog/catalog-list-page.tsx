@@ -50,7 +50,6 @@ const PublishAction = ({
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState('')
-  const [loading, setLoading] = useState(false)
   const dialog = useFormDialog({
     open,
     onClose: () => {
@@ -69,7 +68,7 @@ const PublishAction = ({
         open={open}
         okText={t('Publish')}
         okButtonProps={{ disabled: reason.trim().length < 3 }}
-        confirmLoading={loading || dialog.busy}
+        confirmLoading={dialog.busy}
         onCancel={dialog.requestClose}
         footer={(_, { OkBtn }) => <OkBtn />}
         mask={{ closable: !dialog.busy }}
@@ -77,14 +76,10 @@ const PublishAction = ({
         onOk={() =>
           void dialog.submit(async () => {
             if (reason.trim().length < 3) return
-            setLoading(true)
-            try {
-              const saved = await onPublish(reason.trim())
-              if (!saved || !dialog.isCurrent()) return
-              dialog.complete()
-            } finally {
-              setLoading(false)
-            }
+
+            const saved = await onPublish(reason.trim())
+            if (!saved || !dialog.isCurrent()) return
+            dialog.complete()
           })
         }
       >

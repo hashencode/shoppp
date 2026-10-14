@@ -82,7 +82,6 @@ export const NotificationJobsPage = () => {
   const translateNow = useCurrentTranslate()
   const localizeError = useLocalizedApiError()
   const [replayJob, setReplayJob] = useState<NotificationJob | null>(null)
-  const [submitting, setSubmitting] = useState(false)
   const [form] = Form.useForm<{ reason: string }>()
   const replayDialog = useFormDialog({
     open: Boolean(replayJob),
@@ -294,7 +293,7 @@ export const NotificationJobsPage = () => {
 
   const submitReplay = async ({ reason }: { reason: string }) => {
     if (!replayJob || !canReplay) return
-    setSubmitting(true)
+
     try {
       await replayNotification(replayJob.id, { confirm: true, reason })
       if (!replayDialog.isCurrent()) return
@@ -303,8 +302,6 @@ export const NotificationJobsPage = () => {
       void reloadRef.current().catch(() => undefined)
     } catch (error) {
       void message.error(localizeError(error))
-    } finally {
-      setSubmitting(false)
     }
   }
 
@@ -315,7 +312,7 @@ export const NotificationJobsPage = () => {
         title={t('Replay notification')}
         open={Boolean(replayJob)}
         okText={t('Confirm replay')}
-        confirmLoading={submitting || replayDialog.busy}
+        confirmLoading={replayDialog.busy}
         destroyOnHidden
         onCancel={replayDialog.requestClose}
         footer={(_, { OkBtn }) => <OkBtn />}
