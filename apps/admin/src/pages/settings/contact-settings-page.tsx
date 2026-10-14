@@ -118,6 +118,7 @@ export const ContactSettingsPage = () => {
   const [settings, setSettings] = useState<ContactSettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const mutationLock = useRef(false)
   const [loadError, setLoadError] = useState<ApiError | null>(null)
   const [saveError, setSaveError] = useState<ApiError | null>(null)
   const [latest, setLatest] = useState<ContactSettings | null>(null)
@@ -181,7 +182,8 @@ export const ContactSettingsPage = () => {
   }, [canRead, load])
 
   const save = async (values: FormValues) => {
-    if (!canWrite || !settings || saving) return
+    if (!canWrite || !settings || saving || mutationLock.current) return
+    mutationLock.current = true
     setSaving(true)
     setSaveError(null)
     const profile: ContactProfile = {
@@ -220,6 +222,7 @@ export const ContactSettingsPage = () => {
     } catch (error) {
       setSaveError(normalizeApiError(error))
     } finally {
+      mutationLock.current = false
       setSaving(false)
     }
   }

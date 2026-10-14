@@ -87,6 +87,39 @@ describe('TableQueryPage', () => {
     })
   })
 
+  it('shows complete rule details in the standard 720px right Drawer without form actions', async () => {
+    const name = 'International routing rule with the complete external reference identifier'
+    const description =
+      'A representative long description that stays available while inspecting all rule facts.'
+    server.use(
+      http.get('*/api/template/rules', () =>
+        HttpResponse.json({
+          data: [
+            {
+              key: 'long-rule',
+              name,
+              desc: description,
+              callNo: 123456789,
+              status: 1,
+              updatedAt: '2026-10-14T03:00:00.000Z',
+            },
+          ],
+        })
+      )
+    )
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name }))
+    expect(document.querySelector('.ant-drawer-content-wrapper')?.getAttribute('style')).toContain(
+      '720px'
+    )
+    const body = document.querySelector('.ant-drawer-body') as HTMLElement
+    expect(body.textContent).toContain(name)
+    expect(body.textContent).toContain(description)
+    expect(body.textContent).toContain('123456789')
+    expect(body.querySelector('form')).toBeNull()
+    expect(document.querySelector('.ant-drawer-footer')).toBeNull()
+  })
+
   it('opens add form page when clicking 新增规则', async () => {
     const openSpy = (window.open = ((...args: unknown[]) => {
       void args

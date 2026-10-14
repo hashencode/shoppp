@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { Alert, Button, Card, Form, Input, Typography } from 'antd'
 import { Link } from 'react-router-dom'
 import { requestAdminPasswordReset } from '../../services/auth/api'
@@ -12,8 +12,11 @@ export const ForgotPasswordPage = () => {
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const submitLock = useRef(false)
 
   const submit = async ({ email }: { email: string }) => {
+    if (submitLock.current) return
+    submitLock.current = true
     setSubmitting(true)
     setError(null)
     try {
@@ -27,6 +30,7 @@ export const ForgotPasswordPage = () => {
           : candidate.message
       )
     } finally {
+      submitLock.current = false
       setSubmitting(false)
     }
   }
@@ -46,7 +50,7 @@ export const ForgotPasswordPage = () => {
               {t('Standard admin users can request a one-time reset link by email.')}
             </Typography.Paragraph>
             {error ? <Alert className="mb-4" type="error" showIcon message={error} /> : null}
-            <Form layout="vertical" onFinish={(values) => void submit(values as { email: string })}>
+            <Form layout="vertical" disabled={submitting} onFinish={(values) => void submit(values as { email: string })}>
               <Form.Item
                 label={t('Email')}
                 name="email"

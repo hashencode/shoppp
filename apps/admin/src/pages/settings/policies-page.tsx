@@ -14,7 +14,7 @@ import {
   Typography,
 } from 'antd'
 import dayjs from 'dayjs'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
@@ -56,6 +56,8 @@ export const PoliciesPage = () => {
   const [review, setReview] = useState<PolicyReview | null>(null)
   const [error, setError] = useState<ApiError | null>(null)
   const [transitionReason, setTransitionReason] = useState('')
+  const mutationLock = useRef(false)
+  const [busy, setBusy] = useState(false)
   const [form] = Form.useForm<Values>()
 
   const load = useCallback(async (cursor?: string) => {
@@ -105,6 +107,9 @@ export const PoliciesPage = () => {
   }
 
   const save = async (values: Values) => {
+    if (!canWrite || mutationLock.current) return
+    mutationLock.current = true
+    setBusy(true)
     setError(null)
     try {
       const input = {
@@ -123,6 +128,9 @@ export const PoliciesPage = () => {
       await load()
     } catch (cause) {
       setError(normalizeApiError(cause))
+    } finally {
+      mutationLock.current = false
+      setBusy(false)
     }
   }
 
@@ -137,7 +145,15 @@ export const PoliciesPage = () => {
   }
 
   const transition = async (action: 'approve' | 'publish' | 'archive') => {
-    if (!review || transitionReason.trim().length < 3) return
+    if (
+      !review ||
+      transitionReason.trim().length < 3 ||
+      mutationLock.current ||
+      !(action === 'approve' ? canApprove : canPublish)
+    )
+      return
+    mutationLock.current = true
+    setBusy(true)
     try {
       const updated = await transitionPolicy(review.current.id, action, {
         confirm: true,
@@ -164,6 +180,9 @@ export const PoliciesPage = () => {
           setReview(null)
         }
       }
+    } finally {
+      mutationLock.current = false
+      setBusy(false)
     }
   }
 
@@ -176,7 +195,13 @@ export const PoliciesPage = () => {
           {error ? <Alert type="error" message={error.message} /> : null}
           <Card
             title={t('Policy records')}
-            extra={canWrite ? <Button onClick={newPolicy}>{t('New policy')}</Button> : null}
+            extra={
+              canWrite ? (
+                <Button disabled={busy} onClick={newPolicy}>
+                  {t('New policy')}
+                </Button>
+              ) : null
+            }
           >
             <List
               dataSource={policies}
@@ -184,7 +209,7 @@ export const PoliciesPage = () => {
               renderItem={(policy) => (
                 <List.Item
                   actions={[
-                    <Button key="review" onClick={() => void inspect(policy)}>
+                    <Button key="review" disabled={busy} onClick={() => void inspect(policy)}>
                       {t('Review policy')}
                     </Button>,
                   ]}
@@ -226,7 +251,12 @@ export const PoliciesPage = () => {
             <Card
               title={selected ? t('Edit {title}', { title: selected.title }) : t('Create policy')}
             >
-              <Form form={form} layout="vertical" onFinish={(values) => void save(values)}>
+              <Form
+                form={form}
+                disabled={busy || !canWrite}
+                layout="vertical"
+                onFinish={(values) => void save(values)}
+              >
                 <Form.Item name="kind" label={t('Policy type')} rules={[{ required: true }]}>
                   <Select
                     disabled={!canWrite}
@@ -312,10 +342,10 @@ export const PoliciesPage = () => {
                       description={t(
                         'The reviewed digest and effective date will be approval-stamped.'
                       )}
-                      disabled={transitionReason.trim().length < 3}
+                      disabled={busy || transitionReason.trim().length < 3}
                       onConfirm={() => void transition('approve')}
                     >
-                      <Button disabled={transitionReason.trim().length < 3}>
+                      <Button disabled={busy || transitionReason.trim().length < 3}>
                         {t('Approve exact version')}
                       </Button>
                     </Popconfirm>
@@ -326,10 +356,12 @@ export const PoliciesPage = () => {
                       description={t(
                         'After publishing, deploy a new storefront version that includes this policy for it to take effect.'
                       )}
-                      disabled={transitionReason.trim().length < 3}
+                      disabled={busy || transitionReason.trim().length < 3}
                       onConfirm={() => void transition('publish')}
                     >
-                      <Button disabled={transitionReason.trim().length < 3}>{t('Publish')}</Button>
+                      <Button disabled={busy || transitionReason.trim().length < 3}>
+                        {t('Publish')}
+                      </Button>
                     </Popconfirm>
                   ) : null}
                   {canPublish && review.current.status !== 'archived' ? (
@@ -338,10 +370,10 @@ export const PoliciesPage = () => {
                       description={t(
                         'Linked mutable content must be repaired before archival can complete.'
                       )}
-                      disabled={transitionReason.trim().length < 3}
+                      disabled={busy || transitionReason.trim().length < 3}
                       onConfirm={() => void transition('archive')}
                     >
-                      <Button danger disabled={transitionReason.trim().length < 3}>
+                      <Button danger disabled={busy || transitionReason.trim().length < 3}>
                         {t('Archive')}
                       </Button>
                     </Popconfirm>

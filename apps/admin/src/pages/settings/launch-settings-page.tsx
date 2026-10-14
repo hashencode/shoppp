@@ -64,6 +64,7 @@ export const LaunchSettingsPage = () => {
   const [configurationError, setConfigurationError] = useState<ApiError | null>(null)
   const [healthError, setHealthError] = useState<ApiError | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const mutationLock = useRef(false)
   const configurationRequest = useRef(0)
   const healthRequest = useRef(0)
   const hasUserEdits = useRef(false)
@@ -178,7 +179,8 @@ export const LaunchSettingsPage = () => {
             hasUserEdits.current = true
           }}
           onFinish={async ({ reason, ...configuration }) => {
-            if (!canRead || !canWrite || submitting || !status) return
+            if (!canRead || !canWrite || submitting || !status || mutationLock.current) return
+            mutationLock.current = true
             setSubmitting(true)
             try {
               const updated = await updateLaunchConfiguration(
@@ -192,6 +194,7 @@ export const LaunchSettingsPage = () => {
             } catch (error) {
               void message.error(localizeError(error))
             } finally {
+              mutationLock.current = false
               setSubmitting(false)
             }
           }}

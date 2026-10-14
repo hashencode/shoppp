@@ -39,7 +39,9 @@ type DemoValues = {
   name: string
 }
 
-const createBaseSpec = (form: ReturnType<typeof Form.useForm<DemoValues>>[0]): BasicCrudFormSpec<DemoValues> => ({
+const createBaseSpec = (
+  form: ReturnType<typeof Form.useForm<DemoValues>>[0]
+): BasicCrudFormSpec<DemoValues> => ({
   parsedMode: { ok: true, mode: 'modify', resourceKey: '7' },
   modeView: getFormModeViewModel('modify'),
   permissionDenied: false,
@@ -264,13 +266,22 @@ describe('BasicCrudFormRecipe', () => {
       const [form] = Form.useForm<DemoValues>()
       return <BasicCrudFormRecipe spec={{ ...createBaseSpec(form), isReadonly: true }} />
     }
-    render(<MemoryRouter><Demo /></MemoryRouter>)
-    expect((screen.getByRole('button', { name: /保\s*存/ }) as HTMLButtonElement).disabled).toBe(true)
-    expect((screen.getByRole('button', { name: /重\s*置/ }) as HTMLButtonElement).disabled).toBe(true)
+    render(
+      <MemoryRouter>
+        <Demo />
+      </MemoryRouter>
+    )
+    expect((screen.getByRole('button', { name: /保\s*存/ }) as HTMLButtonElement).disabled).toBe(
+      true
+    )
+    expect((screen.getByRole('button', { name: /重\s*置/ }) as HTMLButtonElement).disabled).toBe(
+      true
+    )
   })
 
   it('locks same-tick programmatic submissions until the ordinary write finishes', async () => {
     let submissions = 0
+    let backCalls = 0
     let resolve!: () => void
     const pending = new Promise<void>((done) => {
       resolve = done
@@ -281,6 +292,9 @@ describe('BasicCrudFormRecipe', () => {
         <BasicCrudFormRecipe
           spec={{
             ...createBaseSpec(form),
+            onBackToList: () => {
+              backCalls += 1
+            },
             onSubmit: async () => {
               submissions += 1
               await pending
@@ -298,8 +312,61 @@ describe('BasicCrudFormRecipe', () => {
     fireEvent.submit(form)
     fireEvent.submit(form)
     await waitFor(() => expect(submissions).toBeGreaterThan(0))
+    fireEvent.click(screen.getByLabelText('返回'))
+    expect(backCalls).toBe(0)
     const pendingSubmissions = submissions
     await act(async () => resolve())
     expect(pendingSubmissions).toBe(1)
+    fireEvent.click(screen.getByLabelText('返回'))
+    expect(backCalls).toBe(1)
+  })
+  it('does not submit after asynchronous validation completes on an unmounted page', async () => {
+    let writes = 0
+    let validations = 0
+    let resolve!: () => void
+    const pending = new Promise<void>((done) => {
+      resolve = done
+    })
+    const Demo = () => {
+      const [form] = Form.useForm<DemoValues>()
+      return (
+        <BasicCrudFormRecipe
+          spec={{
+            ...createBaseSpec(form),
+            onSubmit: async () => {
+              writes += 1
+            },
+            renderFields: () => (
+              <Form.Item
+                name="name"
+                label="名称"
+                rules={[
+                  {
+                    validator: () => {
+                      validations += 1
+                      return pending
+                    },
+                  },
+                ]}
+              >
+                <Input />
+              </Form.Item>
+            ),
+          }}
+        />
+      )
+    }
+    const view = render(
+      <MemoryRouter>
+        <Demo />
+      </MemoryRouter>
+    )
+    fireEvent.submit(view.container.querySelector('form') as HTMLFormElement)
+    await waitFor(() => expect(validations).toBe(1))
+    view.unmount()
+    await act(async () => {
+      resolve()
+    })
+    expect(writes).toBe(0)
   })
 })

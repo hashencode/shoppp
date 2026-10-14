@@ -38,6 +38,8 @@ import {
   timelineStatus,
 } from './order-timeline-messages'
 
+import { useFormDialog } from '../../shared/hooks/use-form-dialog'
+
 void React
 
 type Action =
@@ -78,6 +80,11 @@ export const OrderDetailPage = () => {
   const [action, setAction] = useState<Action | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [form] = Form.useForm<ActionValues>()
+  const actionDialog = useFormDialog({
+    open: Boolean(action),
+    form,
+    onClose: () => setAction(null),
+  })
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -102,7 +109,20 @@ export const OrderDetailPage = () => {
   }
 
   const submitAction = async (values: ActionValues) => {
-    if (!action || !detail) return
+    if (
+      !action ||
+      !detail ||
+      !hasPermission(
+        role,
+        action.type === 'refund'
+          ? 'orders.refund'
+          : action.type === 'cancel'
+            ? 'orders.cancel'
+            : 'orders.fulfill',
+        permissions
+      )
+    )
+      return
     setSubmitting(true)
     try {
       let updated: AdminOrderDetail
@@ -130,8 +150,9 @@ export const OrderDetailPage = () => {
           toStatus: action.toStatus,
         })
       }
+      if (!actionDialog.isCurrent()) return
       setDetail(updated)
-      setAction(null)
+      actionDialog.complete()
       void message.success(translateNow('Order operation recorded.'))
     } catch (error) {
       void message.error(localizeError(error))
@@ -311,9 +332,12 @@ export const OrderDetailPage = () => {
         open={Boolean(action)}
         okText={t('Confirm operation')}
         okButtonProps={{ danger: action?.type === 'cancel' || action?.type === 'refund' }}
-        confirmLoading={submitting}
+        confirmLoading={submitting || actionDialog.busy}
         destroyOnHidden
-        onCancel={() => setAction(null)}
+        onCancel={actionDialog.requestClose}
+        footer={(_, { OkBtn }) => <OkBtn />}
+        mask={{ closable: !actionDialog.busy }}
+        keyboard={!actionDialog.busy}
         onOk={() => form.submit()}
       >
         <Alert
@@ -322,7 +346,12 @@ export const OrderDetailPage = () => {
           showIcon
           message={t('This action is audited and cannot be silently reversed.')}
         />
-        <Form<ActionValues> form={form} layout="vertical" onFinish={submitAction}>
+        <Form<ActionValues>
+          form={form}
+          layout="vertical"
+          onFinish={() => void actionDialog.submit(submitAction)}
+          disabled={actionDialog.busy}
+        >
           {action?.type === 'refund' ? (
             <Form.Item
               name="amount"

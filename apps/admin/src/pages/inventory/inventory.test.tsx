@@ -1,6 +1,6 @@
 import React from 'react'
 import type { AdminPermission } from '@shoppp/contracts'
-import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
@@ -34,6 +34,7 @@ if (!window.ResizeObserver) {
 }
 
 let adjustmentBody: unknown
+let adjustmentRequests = 0
 let adjustmentIdempotencyKey: string | null = null
 let inventoryQueries: Record<string, string>[] = []
 let inventoryRequestCount = 0
@@ -77,6 +78,7 @@ const server = setupServer(
     })
   ),
   http.post('*/admin/inventory/:variantId/:warehouseId/adjustments', async ({ request }) => {
+    adjustmentRequests += 1
     adjustmentIdempotencyKey = request.headers.get('Idempotency-Key')
     adjustmentBody = await request.json()
     await adjustmentGate
@@ -101,6 +103,7 @@ const LocaleSwitch = () => {
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 afterEach(() => {
   adjustmentBody = undefined
+  adjustmentRequests = 0
   adjustmentIdempotencyKey = null
   inventoryQueries = []
   inventoryRequestCount = 0
@@ -229,6 +232,11 @@ describe('InventoryPage', () => {
         reason: 'Cycle count correction',
       })
     )
+    fireEvent.click(screen.getByRole('button', { name: /Apply adjustment/ }))
+    fireEvent.click(document.querySelector('.ant-modal-close') as HTMLElement)
+    expect(screen.queryByText('Unsaved changes')).toBeNull()
+    expect(screen.getByDisplayValue('Cycle count correction')).toBeTruthy()
+    expect(adjustmentRequests).toBe(1)
     expect(adjustmentIdempotencyKey).toMatch(/^inventory-adjust-/)
 
     fireEvent.change(screen.getByLabelText('Search inventory'), {
@@ -246,7 +254,7 @@ describe('InventoryPage', () => {
     await act(async () => {
       releaseAdjustment?.()
     })
-    await waitFor(() => expect(inventoryRequestCount).toBeGreaterThanOrEqual(3))
+    await waitFor(() => expect(inventoryRequestCount).toBe(3))
     expect(inventoryQueries.at(-1)).toEqual({
       page: '1',
       pageSize: '20',
@@ -279,6 +287,36 @@ describe('InventoryPage', () => {
 
     expect(await screen.findByText('Request failed. Please try again later.')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Apply adjustment' })).toBeTruthy()
+    expect(inventoryRequestCount).toBe(1)
+  })
+
+  it('confirms only effective adjustment changes and keeps the draft when continuing', async () => {
+    renderPage(['inventory.read', 'inventory.adjust'])
+    await screen.findByText('Carry-on')
+    fireEvent.click(screen.getByRole('button', { name: 'Adjust' }))
+    const dialog = document.querySelector('.ant-modal') as HTMLElement
+    expect(within(dialog).queryByRole('button', { name: 'Cancel' })).toBeNull()
+    fireEvent.change(screen.getByRole('textbox', { name: 'Reason' }), {
+      target: { value: 'Cycle count correction' },
+    })
+    fireEvent.click(dialog.querySelector('.ant-modal-close') as HTMLElement)
+    expect((await screen.findAllByText('Unsaved changes')).length).toBeGreaterThan(0)
+    fireEvent.click(screen.getByRole('button', { name: 'Continue editing' }))
+    const confirmation = document.querySelector('.ant-modal-confirm-confirm') as HTMLElement
+    await waitFor(() => expect(confirmation.className).toContain('leave-active'))
+    fireEvent.transitionEnd(confirmation)
+    await waitFor(() => expect(document.querySelector('.ant-modal-confirm-confirm')).toBeNull())
+    expect(screen.getByDisplayValue('Cycle count correction')).toBeTruthy()
+    fireEvent.change(screen.getByRole('textbox', { name: 'Reason' }), {
+      target: { value: '' },
+    })
+    fireEvent.click(dialog.querySelector('.ant-modal-close') as HTMLElement)
+    await waitFor(() => expect(dialog.className).toContain('leave-active'))
+    fireEvent.transitionEnd(dialog)
+    await waitFor(() =>
+      expect(dialog.closest('.ant-modal-wrap')?.getAttribute('style')).toContain('display: none')
+    )
+    expect(adjustmentBody).toBeUndefined()
     expect(inventoryRequestCount).toBe(1)
   })
 

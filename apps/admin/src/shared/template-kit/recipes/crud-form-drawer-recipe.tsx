@@ -121,6 +121,7 @@ export const CrudFormDrawerRecipe = <TValues extends object>({
       if (alive.current) setSubmitting(false)
     }
     if (!alive.current || exiting.current) return
+    if ('cancelled' in result) return
     if (!result.success) {
       setSubmitError(result.error)
       return

@@ -33,5 +33,5 @@ export type CrudFormDrawerSpec<TValues extends object> = Pick<
   onSaved: () => Promise<void>
   onSubmit: (
     values: TValues
-  ) => Promise<{ success: true } | { success: false; error: ApiError }>
+  ) => Promise<{ success: true } | { success: false; error: ApiError } | { cancelled: true }>
 }

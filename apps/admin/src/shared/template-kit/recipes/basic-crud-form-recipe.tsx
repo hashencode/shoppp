@@ -1,5 +1,5 @@
 import { Card, Form } from 'antd'
-import React, { useLayoutEffect, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { PageHeaderWithBack } from '../../components/form-page-header'
 import { FormSubmitToolbar } from '../../components/form-submit-toolbar'
 import {
@@ -33,15 +33,27 @@ export const BasicCrudFormRecipe = <TValues extends object>({
   spec: BasicCrudFormSpec<TValues>
 }) => {
   const submitLock = useRef(false)
+  const alive = useRef(true)
+  useEffect(() => {
+    alive.current = true
+    return () => {
+      alive.current = false
+    }
+  }, [])
   const [submitting, setSubmitting] = useState(false)
   const currentSpec = useRef(spec)
   useLayoutEffect(() => {
     currentSpec.current = spec
   }, [spec])
   const busy = spec.saveLoading || submitting
+  const back = () => {
+    if (!alive.current || submitLock.current || currentSpec.current.saveLoading) return
+    currentSpec.current.onBackToList()
+  }
   const submit = async (values: TValues) => {
     const current = currentSpec.current
     if (
+      !alive.current ||
       submitLock.current ||
       current.saveLoading ||
       current.isReadonly ||
@@ -59,7 +71,7 @@ export const BasicCrudFormRecipe = <TValues extends object>({
       await current.onSubmit(values)
     } finally {
       submitLock.current = false
-      setSubmitting(false)
+      if (alive.current) setSubmitting(false)
     }
   }
   const formActions = spec.modeView?.showActions ? (
@@ -80,11 +92,11 @@ export const BasicCrudFormRecipe = <TValues extends object>({
       permissionDenied={spec.permissionDenied}
       detailLoading={spec.detailLoading}
       detailError={spec.detailError}
-      onBackToList={spec.onBackToList}
+      onBackToList={back}
       onRetryDetail={spec.onRetryDetail}
     >
       <div className="space-y-4 pb-20">
-        <PageHeaderWithBack title={spec.title} onBack={spec.onBackToList} />
+        <PageHeaderWithBack title={spec.title} onBack={back} />
 
         {sections ? (
           <Form<TValues>

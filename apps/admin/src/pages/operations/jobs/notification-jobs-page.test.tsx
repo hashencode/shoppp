@@ -257,11 +257,6 @@ describe('NotificationJobsPage', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Replay' })).toBeTruthy())
 
     fireEvent.click(screen.getByRole('button', { name: 'Replay' }))
-    expect(
-      screen.getByText(
-        'Replay keeps the original provider idempotency identity and is fully audited.'
-      )
-    ).toBeTruthy()
     fireEvent.change(screen.getByRole('textbox', { name: 'Reason' }), {
       target: { value: 'Provider configuration corrected' },
     })

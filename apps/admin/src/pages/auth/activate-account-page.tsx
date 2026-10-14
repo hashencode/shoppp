@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { Alert, Button, Card, Form, Input } from 'antd'
 import { Link, useSearchParams } from 'react-router-dom'
 import { activateAdminAccount } from '../../services/auth/api'
@@ -20,17 +20,21 @@ export const ActivateAccountPage = () => {
   const [complete, setComplete] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const submitLock = useRef(false)
 
   const submit = async ({ password }: ActivationFields) => {
+    if (submitLock.current) return
+    submitLock.current = true
     setSubmitting(true)
     setError(null)
     try {
       await activateAdminAccount({ password, token })
       setComplete(true)
-      await refreshSession()
+      void refreshSession().catch(() => undefined)
     } catch (failure) {
       setError((failure as Error).message || t('The activation link is invalid or expired.'))
     } finally {
+      submitLock.current = false
       setSubmitting(false)
     }
   }
@@ -43,7 +47,7 @@ export const ActivateAccountPage = () => {
         ) : (
           <>
             {error ? <Alert className="mb-4" type="error" showIcon message={error} /> : null}
-            <Form<ActivationFields> layout="vertical" onFinish={(values) => void submit(values)}>
+            <Form<ActivationFields> layout="vertical" disabled={submitting} onFinish={(values) => void submit(values)}>
               <Form.Item
                 label={t('Set password')}
                 name="password"

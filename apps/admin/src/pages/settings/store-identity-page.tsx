@@ -1,5 +1,5 @@
 import { Alert, Button, Card, Form, Input, Space, Typography } from 'antd'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { hasPermission } from '../../infrastructure/auth/permissions'
@@ -43,6 +43,7 @@ export const StoreIdentityPage = () => {
   const [identity, setIdentity] = useState<StoreIdentityView | null>(null)
   const [loading, setLoading] = useState(canRead)
   const [saving, setSaving] = useState(false)
+  const mutationLock = useRef(false)
   const [error, setError] = useState<ApiError | null>(null)
   const [backlinks, setBacklinks] = useState<Backlink[]>([])
 
@@ -80,6 +81,8 @@ export const StoreIdentityPage = () => {
   }, [apply, canRead])
 
   const save = async (values: Values) => {
+    if (!canWrite || mutationLock.current) return
+    mutationLock.current = true
     setSaving(true)
     setError(null)
     setBacklinks([])
@@ -111,6 +114,7 @@ export const StoreIdentityPage = () => {
       const details = apiError.details as { backlinks?: Backlink[] } | undefined
       setBacklinks(details?.backlinks ?? [])
     } finally {
+      mutationLock.current = false
       setSaving(false)
     }
   }

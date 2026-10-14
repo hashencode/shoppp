@@ -11,6 +11,8 @@ import {
 import { useCurrentTranslate, useI18n } from '../../shared/contexts/i18n-context'
 import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
 
+import { useFormDialog } from '../../shared/hooks/use-form-dialog'
+
 void React
 
 type FormValues = Omit<CreatePrivacyRequest, 'confirm' | 'correction'> & {
@@ -28,6 +30,7 @@ export const PrivacyPage = () => {
   const [open, setOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [form] = Form.useForm<FormValues>()
+  const privacyDialog = useFormDialog({ open, form, onClose: () => setOpen(false) })
   const type = Form.useWatch('type', form)
 
   const load = useCallback(async () => {
@@ -133,8 +136,11 @@ export const PrivacyPage = () => {
         title={t('Record verified privacy request')}
         open={open}
         okText={t('Confirm and execute')}
-        confirmLoading={submitting}
-        onCancel={() => setOpen(false)}
+        confirmLoading={submitting || privacyDialog.busy}
+        onCancel={privacyDialog.requestClose}
+        footer={(_, { OkBtn }) => <OkBtn />}
+        mask={{ closable: !privacyDialog.busy }}
+        keyboard={!privacyDialog.busy}
         onOk={() => form.submit()}
       >
         <p className="mb-4 text-slate-500">
@@ -143,32 +149,36 @@ export const PrivacyPage = () => {
         <Form<FormValues>
           form={form}
           layout="vertical"
-          onFinish={async (values) => {
-            setSubmitting(true)
-            try {
-              await createPrivacyRequest({
-                confirm: true,
-                email: values.email,
-                reason: values.reason,
-                type: values.type,
-                ...(values.type === 'correction'
-                  ? {
-                      correction: {
-                        field: values.correctionField!,
-                        requestedValue: values.requestedValue!,
-                      },
-                    }
-                  : {}),
-              })
-              setOpen(false)
-              await load()
-              void message.success(translateNow('Privacy request completed and audited.'))
-            } catch (error) {
-              void message.error(localizeError(error))
-            } finally {
-              setSubmitting(false)
-            }
-          }}
+          onFinish={() =>
+            void privacyDialog.submit(async (values) => {
+              setSubmitting(true)
+              try {
+                await createPrivacyRequest({
+                  confirm: true,
+                  email: values.email,
+                  reason: values.reason,
+                  type: values.type,
+                  ...(values.type === 'correction'
+                    ? {
+                        correction: {
+                          field: values.correctionField!,
+                          requestedValue: values.requestedValue!,
+                        },
+                      }
+                    : {}),
+                })
+                if (!privacyDialog.isCurrent()) return
+                privacyDialog.complete()
+                void load().catch(() => undefined)
+                void message.success(translateNow('Privacy request completed and audited.'))
+              } catch (error) {
+                void message.error(localizeError(error))
+              } finally {
+                setSubmitting(false)
+              }
+            })
+          }
+          disabled={privacyDialog.busy}
         >
           <Form.Item
             name="email"

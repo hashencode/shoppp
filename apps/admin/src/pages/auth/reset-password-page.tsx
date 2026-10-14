@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { Alert, Button, Card, Form, Input } from 'antd'
 import { Link, useSearchParams } from 'react-router-dom'
 import { confirmAdminPasswordReset } from '../../services/auth/api'
@@ -18,8 +18,11 @@ export const ResetPasswordPage = () => {
   const [complete, setComplete] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const submitLock = useRef(false)
 
   const submit = async ({ newPassword }: ResetFields) => {
+    if (submitLock.current) return
+    submitLock.current = true
     setSubmitting(true)
     setError(null)
     try {
@@ -28,6 +31,7 @@ export const ResetPasswordPage = () => {
     } catch (failure) {
       setError((failure as Error).message || t('The reset link is invalid or expired.'))
     } finally {
+      submitLock.current = false
       setSubmitting(false)
     }
   }
@@ -40,7 +44,7 @@ export const ResetPasswordPage = () => {
         ) : (
           <>
             {error ? <Alert className="mb-4" type="error" showIcon message={error} /> : null}
-            <Form<ResetFields> layout="vertical" onFinish={(values) => void submit(values)}>
+            <Form<ResetFields> layout="vertical" disabled={submitting} onFinish={(values) => void submit(values)}>
               <Form.Item
                 label={t('New password')}
                 name="newPassword"

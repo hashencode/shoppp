@@ -31,6 +31,8 @@ import { QueryStateBlock } from '../../shared/components/query-state-block'
 import { useI18n } from '../../shared/contexts/i18n-context'
 import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
 
+import { useFormDialog } from '../../shared/hooks/use-form-dialog'
+
 void React
 
 type CreateValues = {
@@ -56,6 +58,11 @@ export const ThemesPage = () => {
   const [creating, setCreating] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [form] = Form.useForm<CreateValues>()
+  const createDialog = useFormDialog({
+    open: createOpen,
+    form,
+    onClose: () => setCreateOpen(false),
+  })
   const selectedThemeKey = Form.useWatch('themeKey', form)
   const selectedTheme = useMemo(
     () => themes.find((theme) => themeKey(theme) === selectedThemeKey),
@@ -225,33 +232,40 @@ export const ThemesPage = () => {
           title={t('Create experience draft')}
           open={createOpen}
           okText={t('Create draft')}
-          confirmLoading={creating}
-          onCancel={() => setCreateOpen(false)}
+          confirmLoading={creating || createDialog.busy}
+          onCancel={createDialog.requestClose}
+          footer={(_, { OkBtn }) => <OkBtn />}
+          mask={{ closable: !createDialog.busy }}
+          keyboard={!createDialog.busy}
           onOk={() => form.submit()}
           destroyOnHidden
         >
           <Form<CreateValues>
             form={form}
             layout="vertical"
-            onFinish={async (values) => {
-              const theme = themes.find((candidate) => themeKey(candidate) === values.themeKey)
-              if (!theme) return
-              setCreating(true)
-              try {
-                const draft = await createStorefrontExperienceDraft(
-                  theme,
-                  values.presetId,
-                  values.reason
-                )
-                void message.success(t('Experience draft created.'))
-                setCreateOpen(false)
-                navigate(`/storefront/themes/${draft.id}${guideSearch}`)
-              } catch (cause) {
-                void message.error(normalizeApiError(cause).message)
-              } finally {
-                setCreating(false)
-              }
-            }}
+            onFinish={() =>
+              void createDialog.submit(async (values) => {
+                const theme = themes.find((candidate) => themeKey(candidate) === values.themeKey)
+                if (!theme) return
+                setCreating(true)
+                try {
+                  const draft = await createStorefrontExperienceDraft(
+                    theme,
+                    values.presetId,
+                    values.reason
+                  )
+                  if (!createDialog.isCurrent()) return
+                  void message.success(t('Experience draft created.'))
+                  createDialog.complete()
+                  navigate(`/storefront/themes/${draft.id}${guideSearch}`)
+                } catch (cause) {
+                  void message.error(normalizeApiError(cause).message)
+                } finally {
+                  setCreating(false)
+                }
+              })
+            }
+            disabled={createDialog.busy}
           >
             <Form.Item name="themeKey" label={t('Theme package')} rules={[{ required: true }]}>
               <Select

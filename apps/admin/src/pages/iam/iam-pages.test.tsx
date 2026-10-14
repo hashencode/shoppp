@@ -1,5 +1,5 @@
 import React from 'react'
-import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
@@ -765,7 +765,7 @@ describe('IAM management pages', () => {
     expect(roleQueries).toEqual([{ page: '1', pageSize: '25' }])
   })
 
-  it('keeps Inspect navigation to the selected role id', async () => {
+  it('opens the selected role in a 720px Drawer while retaining the list', async () => {
     renderInLocale(
       <AuthContext.Provider
         value={authContextFixture({
@@ -784,7 +784,12 @@ describe('IAM management pages', () => {
     await screen.findByText('Administrator')
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Inspect' })[1]!)
-    expect(await screen.findByText('Role destination')).toBeTruthy()
+    expect(await screen.findByDisplayValue('Support')).toBeTruthy()
+    expect(document.querySelector('.ant-drawer-content-wrapper')?.getAttribute('style')).toContain(
+      '720px'
+    )
+    expect(roleDetailLoads).toBe(1)
+    expect(roleLoads).toBe(1)
   })
 
   it('creates a permitted role and reloads the committed list', async () => {
@@ -798,18 +803,122 @@ describe('IAM management pages', () => {
     fireEvent.click(screen.getByRole('button', { name: 'New role' }))
     fireEvent.change(screen.getByLabelText('Role key'), { target: { value: 'support_lead' } })
     fireEvent.change(screen.getByLabelText('Role name'), { target: { value: 'Support Lead' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Create role' }))
+    expect(document.querySelector('.ant-drawer-content-wrapper')?.getAttribute('style')).toContain(
+      '720px'
+    )
+    expect(
+      within(document.querySelector('.ant-drawer') as HTMLElement).queryByRole('button', {
+        name: 'Cancel',
+      })
+    ).toBeNull()
+    fireEvent.click(
+      within(document.querySelector('.ant-drawer') as HTMLElement).getByRole('button', {
+        name: 'Save',
+      })
+    )
 
     await waitFor(() => expect(roleCreateBody).toBeTruthy())
-    expect(roleCreateBody).toMatchObject({
+    expect(roleCreateBody).toEqual({
       description: null,
       key: 'support_lead',
       name: 'Support Lead',
       permissions: [],
     })
-    await waitFor(() => expect(roleLoads).toBeGreaterThanOrEqual(3))
+    await waitFor(() => expect(roleLoads).toBe(3))
     expect(roleQueries.at(-1)).toEqual({ page: '1', pageSize: '25', search: 'support' })
     expect(screen.queryByRole('dialog', { name: 'New role' })).toBeNull()
+  })
+
+  it('saves a selected user through the Drawer with the version and refreshes only the users list once', async () => {
+    let payload: unknown
+    let writes = 0
+    server.use(
+      http.patch('*/admin/iam/users/:id', async ({ request }) => {
+        writes += 1
+        payload = await request.json()
+        return HttpResponse.json({
+          data: { ...disabledUser, displayName: 'Updated regional operator', version: 3 },
+        })
+      })
+    )
+    renderPage(<UsersPage />)
+    await screen.findByText('Disabled User')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Inspect' })[1]!)
+    await screen.findByDisplayValue('Disabled User')
+    fireEvent.change(
+      within(document.querySelector('.ant-drawer') as HTMLElement).getByLabelText('Display name'),
+      { target: { value: 'Discarded local edit' } }
+    )
+    fireEvent.click(
+      within(document.querySelector('.ant-drawer-footer') as HTMLElement).getByRole('button', {
+        name: 'Reset',
+      })
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }))
+    expect(await screen.findByDisplayValue('Disabled User')).toBeTruthy()
+    fireEvent.change(
+      within(document.querySelector('.ant-drawer') as HTMLElement).getByLabelText('Display name'),
+      { target: { value: ' Updated regional operator ' } }
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(writes).toBe(1))
+    expect(payload).toEqual({
+      displayName: 'Updated regional operator',
+      enabled: false,
+      expectedVersion: 2,
+    })
+    await waitFor(() => expect(userLoads).toBe(2))
+    expect(userDetailLoads).toBe(1)
+    expect(invitationLoads).toBe(1)
+    const wrapper = document.querySelector('.ant-drawer-content-wrapper') as HTMLElement
+    await waitFor(() => expect(wrapper.className).toContain('leave-active'))
+    fireEvent.transitionEnd(wrapper)
+    await waitFor(() => expect(document.querySelector('.ant-drawer')).toBeNull())
+    expect((await screen.findAllByText('User access updated.')).length).toBeGreaterThan(0)
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+    expect(userLoads).toBe(2)
+    expect(writes).toBe(1)
+  })
+
+  it('locks the access confirmation while writing and keeps one versioned write and one parent read', async () => {
+    let release!: () => void
+    const pending = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    let writes = 0
+    let payload: unknown
+    server.use(
+      http.patch('*/admin/iam/users/:id', async ({ request }) => {
+        writes += 1
+        payload = await request.json()
+        await pending
+        return HttpResponse.json({ data: { ...disabledUser, status: 'active', version: 3 } })
+      })
+    )
+    renderPage(<UsersPage />)
+    await screen.findByText('Disabled User')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Inspect' })[1]!)
+    const drawer = document.querySelector('.ant-drawer') as HTMLElement
+    await within(drawer).findByDisplayValue('Disabled User')
+    fireEvent.mouseDown(within(drawer).getByLabelText('Status'))
+    fireEvent.click((await screen.findAllByText('Active')).at(-1)!)
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Save' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm change' }))
+    await waitFor(() => expect(writes).toBe(1))
+    expect(payload).toEqual({ displayName: 'Disabled User', enabled: true, expectedVersion: 2 })
+    expect((screen.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(
+      true
+    )
+    fireEvent.click(drawer.querySelector('.ant-drawer-close') as HTMLElement)
+    expect(userLoads).toBe(1)
+    await act(async () => {
+      release()
+    })
+    const confirmation = document.querySelector('.ant-modal-confirm-confirm') as HTMLElement
+    await waitFor(() => expect(confirmation.className).toContain('leave-active'))
+    fireEvent.transitionEnd(confirmation)
+    await waitFor(() => expect(userLoads).toBe(2))
+    expect(writes).toBe(1)
   })
 
   it('uses standard blocking error, retry, and empty states for roles', async () => {

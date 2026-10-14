@@ -10,7 +10,6 @@ import {
 import { Alert, App, Button, Card, Form, Input, Modal, Select, Table, Tag } from 'antd'
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
@@ -44,6 +43,8 @@ import {
   type TemplateListFilterField,
   useTemplateListController,
 } from '../../shared/template-kit/list'
+import { UserDetailPage } from './user-detail-page'
+import { useFormDialog } from '../../shared/hooks/use-form-dialog'
 import './users-page.css'
 
 void React
@@ -266,7 +267,7 @@ const IndependentListCard = <TItem extends object>({
 
 export const UsersPage = () => {
   const { message } = App.useApp()
-  const navigate = useNavigate()
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const { locale, t } = useI18n()
   const { searchCompactLayout } = useTheme()
   const { permissions, role: roleKey, session } = useAuth()
@@ -288,6 +289,16 @@ export const UsersPage = () => {
   const [inviteError, setInviteError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [form] = Form.useForm<InviteValues>()
+  const invitationDialog = useFormDialog({
+    open: inviteOpen,
+    form,
+    onClose: () => setInviteOpen(false),
+    toSubmission: (values) => ({
+      ...values,
+      email: values.email?.trim() || '',
+      displayName: values.displayName?.trim() || undefined,
+    }),
+  })
   const inviteKey = useRef(newIdempotencyKey('admin-invite'))
 
   const {
@@ -505,17 +516,13 @@ export const UsersPage = () => {
         title: t('Actions'),
         width: 100,
         render: (_: unknown, user) => (
-          <Button
-            type="link"
-            className="!px-0"
-            onClick={() => navigate(`/access/users/${user.id}`)}
-          >
+          <Button type="link" className="!px-0" onClick={() => setSelectedUserId(user.id)}>
             {t('Inspect')}
           </Button>
         ),
       },
     ],
-    [navigate, t]
+    [t]
   )
   const invitationColumns = useMemo<ColumnsType<AdminInvitation>>(
     () => [
@@ -698,12 +705,25 @@ export const UsersPage = () => {
         />
       )}
 
+      {selectedUserId ? (
+        <UserDetailPage
+          key={selectedUserId}
+          resourceId={selectedUserId}
+          onClose={() =>
+            setSelectedUserId((current) => (current === selectedUserId ? null : current))
+          }
+          onSaved={loadUsers}
+        />
+      ) : null}
       <Modal
         title={t('Invite user')}
         open={canInvite && inviteOpen}
         okText={t('Send invitation')}
-        confirmLoading={saving}
-        onCancel={() => setInviteOpen(false)}
+        confirmLoading={saving || invitationDialog.busy}
+        onCancel={invitationDialog.requestClose}
+        footer={(_, { OkBtn }) => <OkBtn />}
+        mask={{ closable: !invitationDialog.busy }}
+        keyboard={!invitationDialog.busy}
         onOk={() => form.submit()}
         destroyOnHidden
         forceRender
@@ -712,25 +732,30 @@ export const UsersPage = () => {
         <Form<InviteValues>
           form={form}
           layout="vertical"
-          onFinish={async (values) => {
-            setSaving(true)
-            setInviteError(null)
-            try {
-              await createAdminInvitation({
-                ...values,
-                displayName: values.displayName?.trim() || undefined,
-                email: values.email.trim(),
-                idempotencyKey: inviteKey.current,
-              })
-              void message.success(t('Invitation created.'))
-              setInviteOpen(false)
-              await reloadLatestInvitations()
-            } catch (error) {
-              setInviteError(normalizeApiError(error).message)
-            } finally {
-              setSaving(false)
-            }
-          }}
+          onFinish={() =>
+            void invitationDialog.submit(async (values) => {
+              if (!canInvite) return
+              setSaving(true)
+              setInviteError(null)
+              try {
+                await createAdminInvitation({
+                  ...values,
+                  displayName: values.displayName?.trim() || undefined,
+                  email: values.email.trim(),
+                  idempotencyKey: inviteKey.current,
+                })
+                if (!invitationDialog.isCurrent()) return
+                void message.success(t('Invitation created.'))
+                invitationDialog.complete()
+                void reloadLatestInvitations().catch(() => undefined)
+              } catch (error) {
+                setInviteError(normalizeApiError(error).message)
+              } finally {
+                setSaving(false)
+              }
+            })
+          }
+          disabled={invitationDialog.busy}
         >
           <Form.Item name="email" label={t('Email')} rules={[{ required: true, type: 'email' }]}>
             <Input autoComplete="off" />

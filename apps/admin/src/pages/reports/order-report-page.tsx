@@ -28,6 +28,8 @@ import {
   resolveDefaultTimeZone,
 } from '../../shared/utils/time-zones'
 
+import { useFormDialog } from '../../shared/hooks/use-form-dialog'
+
 void React
 dayjs.extend(utc)
 
@@ -150,6 +152,7 @@ const ReportExportAction = ({
   const [open, setOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [form] = Form.useForm<{ reason: string }>()
+  const exportDialog = useFormDialog({ open, form, onClose: () => setOpen(false) })
 
   const submitExport = async ({ reason }: { reason: string }) => {
     setExporting(true)
@@ -163,8 +166,9 @@ const ReportExportAction = ({
         confirm: true,
         reason,
       })
+      if (!exportDialog.isCurrent()) return
       onCreated(created)
-      setOpen(false)
+      exportDialog.complete()
       void message.success(
         created.status === 'ready'
           ? translateNow('Report export is ready.')
@@ -191,9 +195,12 @@ const ReportExportAction = ({
         title={t('Export scoped order report')}
         open={open}
         okText={t('Confirm export')}
-        confirmLoading={exporting}
+        confirmLoading={exporting || exportDialog.busy}
         destroyOnHidden
-        onCancel={() => setOpen(false)}
+        onCancel={exportDialog.requestClose}
+        footer={(_, { OkBtn }) => <OkBtn />}
+        mask={{ closable: !exportDialog.busy }}
+        keyboard={!exportDialog.busy}
         onOk={() => form.submit()}
       >
         <Alert
@@ -203,7 +210,12 @@ const ReportExportAction = ({
             'The CSV contains customer email addresses. Access is audited and expires after 24 hours.'
           )}
         />
-        <Form form={form} layout="vertical" onFinish={(values) => void submitExport(values)}>
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={() => void exportDialog.submit(submitExport)}
+          disabled={exportDialog.busy}
+        >
           <Form.Item
             name="reason"
             label={t('Reason')}

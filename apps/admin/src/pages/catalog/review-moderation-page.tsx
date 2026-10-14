@@ -11,6 +11,8 @@ import {
 import { useI18n } from '../../shared/contexts/i18n-context'
 import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
 
+import { useFormDialog } from '../../shared/hooks/use-form-dialog'
+
 void React
 
 export function ReviewModerationPage() {
@@ -23,6 +25,14 @@ export function ReviewModerationPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const dialog = useFormDialog({
+    open: selected !== null,
+    onClose: () => {
+      setSelected(null)
+      setReason('')
+    },
+    getSubmission: () => reason.trim(),
+  })
 
   useEffect(() => {
     let active = true
@@ -80,9 +90,9 @@ export function ReviewModerationPage() {
     setError(null)
     try {
       await moderateProductReview(selected.id, decision, reason.trim())
+      if (!dialog.isCurrent()) return
       setReviews((current) => current.filter((item) => item.id !== selected.id))
-      setSelected(null)
-      setReason('')
+      dialog.complete()
       setNotice(
         decision === 'approved'
           ? t('Review approved. It becomes public after a new Catalog release is deployed.')
@@ -130,9 +140,9 @@ export function ReviewModerationPage() {
         title={t('Moderate review')}
         open={selected !== null}
         footer={null}
-        onCancel={() => {
-          if (!busy) setSelected(null)
-        }}
+        onCancel={dialog.requestClose}
+        mask={{ closable: !busy && !dialog.busy }}
+        keyboard={!busy && !dialog.busy}
       >
         {selected ? (
           <div className="space-y-3">
@@ -143,6 +153,7 @@ export function ReviewModerationPage() {
             <label className="block space-y-1">
               <span>{t('Decision reason')}</span>
               <Input.TextArea
+                disabled={busy || dialog.busy}
                 maxLength={500}
                 rows={3}
                 value={reason}
@@ -157,17 +168,17 @@ export function ReviewModerationPage() {
             <div className="flex flex-wrap gap-2">
               <Button
                 type="primary"
-                disabled={reason.trim().length < 3}
-                loading={busy}
-                onClick={() => void decide('approved')}
+                disabled={reason.trim().length < 3 || busy || dialog.busy}
+                loading={busy || dialog.busy}
+                onClick={() => void dialog.submit(() => decide('approved'))}
               >
                 {t('Approve')}
               </Button>
               <Button
                 danger
-                disabled={reason.trim().length < 3}
-                loading={busy}
-                onClick={() => void decide('rejected')}
+                disabled={reason.trim().length < 3 || busy || dialog.busy}
+                loading={busy || dialog.busy}
+                onClick={() => void dialog.submit(() => decide('rejected'))}
               >
                 {t('Reject')}
               </Button>

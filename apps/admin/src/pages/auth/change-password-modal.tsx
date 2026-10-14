@@ -3,6 +3,8 @@ import { Alert, Form, Input, Modal } from 'antd'
 import { changeAdminPassword } from '../../services/auth/api'
 import { useI18n } from '../../shared/contexts/i18n-context'
 
+import { useFormDialog } from '../../shared/hooks/use-form-dialog'
+
 void React
 
 interface ChangePasswordModalProps {
@@ -28,8 +30,17 @@ export const ChangePasswordModal = ({ onClose, open }: ChangePasswordModalProps)
     onClose()
   }
 
-  const submit = async () => {
-    const values = await form.validateFields()
+  const dialog = useFormDialog({
+    open,
+    form,
+    onClose: close,
+    toSubmission: (values) => ({
+      currentPassword: values.currentPassword,
+      newPassword: values.newPassword,
+    }),
+  })
+
+  const submit = async (values: ChangePasswordFields) => {
     setSubmitting(true)
     setError(null)
     try {
@@ -37,7 +48,7 @@ export const ChangePasswordModal = ({ onClose, open }: ChangePasswordModalProps)
         currentPassword: values.currentPassword,
         newPassword: values.newPassword,
       })
-      close()
+      dialog.complete()
     } catch (failure) {
       setError((failure as Error).message || t('Password change failed.'))
     } finally {
@@ -48,15 +59,24 @@ export const ChangePasswordModal = ({ onClose, open }: ChangePasswordModalProps)
   return (
     <Modal
       destroyOnHidden
-      okButtonProps={{ loading: submitting }}
+      okButtonProps={{ loading: submitting || dialog.busy }}
       okText={t('Change password')}
-      onCancel={close}
-      onOk={() => void submit()}
+      onCancel={dialog.requestClose}
+      footer={(_, { OkBtn }) => <OkBtn />}
+      mask={{ closable: !dialog.busy }}
+      keyboard={!dialog.busy}
+      onOk={() => form.submit()}
       open={open}
       title={t('Change password')}
     >
       {error ? <Alert className="mb-4" type="error" showIcon message={error} /> : null}
-      <Form form={form} layout="vertical" preserve={false}>
+      <Form
+        form={form}
+        layout="vertical"
+        preserve={false}
+        onFinish={() => void dialog.submit(submit)}
+        disabled={dialog.busy}
+      >
         <Form.Item
           label={t('Current password')}
           name="currentPassword"
@@ -67,7 +87,13 @@ export const ChangePasswordModal = ({ onClose, open }: ChangePasswordModalProps)
         <Form.Item
           label={t('New password')}
           name="newPassword"
-          rules={[{ required: true, min: 12, message: t('The new password must be at least 12 characters.') }]}
+          rules={[
+            {
+              required: true,
+              min: 12,
+              message: t('The new password must be at least 12 characters.'),
+            },
+          ]}
         >
           <Input.Password autoComplete="new-password" />
         </Form.Item>
