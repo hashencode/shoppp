@@ -147,7 +147,7 @@ describe('CatalogListPage', () => {
     })
     fireEvent.click(screen.getAllByRole('button', { name: 'Publish' }).at(-1)!)
     await waitFor(() =>
-      expect(publication).toMatchObject({ reason: 'Publish reviewed product', expectedVersion: 1 })
+      expect(publication).toEqual({ reason: 'Publish reviewed product', expectedVersion: 1 })
     )
     expect(
       await screen.findByText(
@@ -155,6 +155,38 @@ describe('CatalogListPage', () => {
       )
     ).toBeTruthy()
     expect(screen.queryByText('Deployed to storefront')).toBeNull()
+  })
+
+  it('keeps the publication reason after write failure and does not read or resubmit until asked', async () => {
+    let writes = 0
+    let payload: unknown
+    server.use(
+      http.post('*/admin/catalog/products/product-001/publish', async ({ request }) => {
+        writes += 1
+        payload = await request.json()
+        return HttpResponse.json(
+          { error: { code: 'publication_rejected', message: 'Publication rejected.' } },
+          { status: 422 }
+        )
+      })
+    )
+    renderPage()
+    await screen.findByText('Carry-on')
+    fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
+    fireEvent.change(screen.getByPlaceholderText('Publication reason'), {
+      target: { value: ' Reviewed regional publication ' },
+    })
+    fireEvent.click(screen.getAllByRole('button', { name: 'Publish' }).at(-1)!)
+    expect(await screen.findByText('Request failed. Please try again later.')).toBeTruthy()
+    expect((screen.getByPlaceholderText('Publication reason') as HTMLTextAreaElement).value).toBe(
+      ' Reviewed regional publication '
+    )
+    expect(payload).toEqual({ reason: 'Reviewed regional publication', expectedVersion: 1 })
+    expect(writes).toBe(1)
+    expect(requestCount).toBe(1)
+    expect(document.querySelector('.ant-modal-wrap')?.className).not.toContain(
+      'ant-modal-wrap-hidden'
+    )
   })
 
   it('hides all mutation actions from a view-only operator', async () => {

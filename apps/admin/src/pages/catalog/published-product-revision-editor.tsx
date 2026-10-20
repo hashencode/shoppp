@@ -1,5 +1,5 @@
 import { Alert, Button, Checkbox, Input, InputNumber, Upload } from 'antd'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
@@ -74,6 +74,7 @@ export function PublishedProductRevisionEditor({ canEdit, detail, onChanged }: P
   const [newMediaIds, setNewMediaIds] = useState<string[]>([])
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
+  const mutationLock = useRef(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<{ message: string; releaseId?: string } | null>(null)
   const [preview, setPreview] = useState<Awaited<
@@ -156,7 +157,8 @@ export function PublishedProductRevisionEditor({ canEdit, detail, onChanged }: P
   }
 
   const save = async () => {
-    if (!state || !canEdit) return
+    if (!state || !canEdit || mutationLock.current) return
+    mutationLock.current = true
     setBusy(true)
     setError(null)
     setNotice(null)
@@ -180,12 +182,14 @@ export function PublishedProductRevisionEditor({ canEdit, detail, onChanged }: P
     } catch (cause) {
       setError(normalizeApiError(cause).message)
     } finally {
+      mutationLock.current = false
       setBusy(false)
     }
   }
 
   const publish = async (revisionId: string | null) => {
-    if (!state || !canPublish) return
+    if (!state || !canPublish || mutationLock.current) return
+    mutationLock.current = true
     setBusy(true)
     setError(null)
     setNotice(null)
@@ -208,12 +212,14 @@ export function PublishedProductRevisionEditor({ canEdit, detail, onChanged }: P
     } catch (cause) {
       setError(normalizeApiError(cause).message)
     } finally {
+      mutationLock.current = false
       setBusy(false)
     }
   }
 
   const inspectDraft = async () => {
-    if (!state?.draft) return
+    if (!state?.draft || mutationLock.current) return
+    mutationLock.current = true
     setBusy(true)
     setError(null)
     try {
@@ -221,6 +227,7 @@ export function PublishedProductRevisionEditor({ canEdit, detail, onChanged }: P
     } catch (cause) {
       setError(normalizeApiError(cause).message)
     } finally {
+      mutationLock.current = false
       setBusy(false)
     }
   }

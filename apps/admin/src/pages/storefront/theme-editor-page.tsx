@@ -453,6 +453,7 @@ export const ThemeEditorPage = ({
   const [activeTemplateId, setActiveTemplateId] = useState('')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  const mutationLock = useRef(false)
   const [error, setError] = useState<Error | null>(null)
   const [previewActionFailed, setPreviewActionFailed] = useState(false)
   const [changeReason, setChangeReason] = useState('')
@@ -915,7 +916,8 @@ export const ThemeEditorPage = ({
   }
 
   const runBlockCommand = async (command: StorefrontExperienceBlockCommand) => {
-    if (!draft || !theme || !canWrite || dirty) return
+    if (!draft || !theme || !canWrite || dirty || mutationLock.current) return
+    mutationLock.current = true
     setBusy(true)
     if (command.kind === 'remove') {
       const section = templates
@@ -949,6 +951,7 @@ export const ThemeEditorPage = ({
       if (apiError.status === 409) setConflict({ bindings, draft, overrides: draft.overrides })
       setError(apiError)
     } finally {
+      mutationLock.current = false
       setBusy(false)
     }
   }
@@ -1013,6 +1016,8 @@ export const ThemeEditorPage = ({
     target.validations.find(({ catalogReleaseId }) => catalogReleaseId === (releaseId || null))
 
   const runAction = async (action: () => Promise<void>, retryPreviewOnFailure = false) => {
+    if (mutationLock.current) return
+    mutationLock.current = true
     setBusy(true)
     setError(null)
     setPreviewActionFailed(false)
@@ -1022,6 +1027,7 @@ export const ThemeEditorPage = ({
       setPreviewActionFailed(retryPreviewOnFailure)
       setError(cause instanceof LocalThemeError ? cause : normalizeApiError(cause))
     } finally {
+      mutationLock.current = false
       setBusy(false)
     }
   }

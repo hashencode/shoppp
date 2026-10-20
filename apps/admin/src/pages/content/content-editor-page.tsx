@@ -84,6 +84,7 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
   const [transitionLoading, setTransitionLoading] = useState(false)
   const [transitionReason, setTransitionReason] = useState('')
   const generationRef = useRef(0)
+  const mutationLock = useRef(false)
   const canPublish = hasPermission(role, 'content.publish', permissions)
   const watchedValues = Form.useWatch([], { form, preserve: true })
   const isDirty = Boolean(watchedValues) && form.isFieldsTouched()
@@ -137,7 +138,8 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
   }, [form, load, modeView?.canFetch])
 
   const save = async (values: Values) => {
-    if (isReadonly || saveLoading || transitionLoading) return
+    if (isReadonly || saveLoading || transitionLoading || mutationLock.current) return
+    mutationLock.current = true
     const generation = generationRef.current
     setSaveLoading(true)
     setSaveError(null)
@@ -173,6 +175,7 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
     } catch (error) {
       if (generation === generationRef.current) setSaveError(normalizeApiError(error))
     } finally {
+      mutationLock.current = false
       if (generation === generationRef.current) setSaveLoading(false)
     }
   }
@@ -180,6 +183,7 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
   const transition = async (action: 'archive' | 'publish') => {
     if (
       !detail ||
+      mutationLock.current ||
       isDirty ||
       saveLoading ||
       transitionLoading ||
@@ -187,6 +191,7 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
     )
       return
     const generation = generationRef.current
+    mutationLock.current = true
     setTransitionLoading(true)
     setSaveError(null)
     try {
@@ -211,6 +216,7 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
     } catch (error) {
       if (generation === generationRef.current) setSaveError(normalizeApiError(error))
     } finally {
+      mutationLock.current = false
       if (generation === generationRef.current) setTransitionLoading(false)
     }
   }

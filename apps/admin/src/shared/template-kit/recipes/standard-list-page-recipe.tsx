@@ -1,4 +1,4 @@
-import { Button, Card, Form, Typography } from 'antd'
+import { Button, Card, Form, theme, Typography } from 'antd'
 import type { ColumnGroupType, ColumnType, ColumnsType } from 'antd/es/table'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { hasPermission } from '../../../infrastructure/auth/permissions'
@@ -106,6 +106,7 @@ export const StandardListPageRecipe = <
   cardTitleOverride?: React.ReactNode
 }) => {
   const [filterForm] = Form.useForm<TFilterValues>()
+  const { token } = theme.useToken()
   const { role, permissions } = useAuth()
   const { locale } = useI18n()
   const { searchCompactLayout, setSearchCompactLayout } = useTheme()
@@ -371,105 +372,104 @@ export const StandardListPageRecipe = <
       )}
 
       {spec.renderBeforeFilter ?? null}
-      {spec.filterFields.length > 0 ? (
-        <Card
-          variant="borderless"
-          styles={{
-            body: {
-              paddingRight: 8,
-            },
-          }}
-        >
-          <TemplateListFilterForm<TFilterValues>
-            form={filterForm}
-            formProps={{ initialValues: spec.initialFormValues }}
-            fields={spec.filterFields}
-            fieldColProps={searchColProps.formItem}
-            labelCol={searchColProps.labelItem}
-            wrapperCol={searchColProps.inputItem}
-            actionsColProps={searchColProps.actions}
-            compactLayout={searchCompactLayout}
-            submitLoading={loading}
-            extraActionsPlacement="before-primary-actions"
-            extraActions={
-              <ListSearchSettingsDropdown
-                compactLayout={{
-                  enabled: searchCompactLayout,
-                  onChange: setSearchCompactLayout,
-                }}
-              />
-            }
-            onSubmit={(values) => {
-              pendingLoadMinimumMsRef.current = EXPLICIT_LIST_LOADING_MIN_DURATION_MS
-              onSubmitFilters(values)
-              resetPage()
-            }}
-            onValuesChange={onValuesChangeFilters}
-            onReset={handleResetAll}
-          />
-        </Card>
-      ) : null}
-
-      {spec.renderBetweenFilterAndContent ?? null}
-      <Card
-        variant="borderless"
-        title={resolvedCardTitle}
-        extra={
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {visibleCreateAction ? (
-              <Button
-                type="primary"
-                icon={visibleCreateAction.icon}
-                onClick={() => openFormPage('add')}
-              >
-                {visibleCreateAction.label}
-              </Button>
-            ) : null}
-
-            {toolbarExtra}
-
-            <ListToolbarActions
-              tableSize={tableSize}
-              densityItems={spec.densityItems}
-              onTableSizeChange={setTableSize}
-              onClearColumnSort={clearColumnOrder}
-              clearColumnSortDisabled={!hasCustomColumnOrder}
-              reloadLoading={loading}
-              showLeadingDivider={hasToolbarLeadingActions}
-              onReload={() =>
-                void load({
-                  showSuccess: true,
-                  minimumLoadingMs: EXPLICIT_LIST_LOADING_MIN_DURATION_MS,
-                })
+      <Card variant="borderless" styles={{ body: { padding: 0 } }}>
+        {spec.filterFields.length > 0 ? (
+          <div className="p-4" style={{ borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+            <TemplateListFilterForm<TFilterValues>
+              form={filterForm}
+              formProps={{ initialValues: spec.initialFormValues }}
+              fields={spec.filterFields}
+              fieldColProps={searchColProps.formItem}
+              labelCol={searchColProps.labelItem}
+              wrapperCol={searchColProps.inputItem}
+              actionsColProps={searchColProps.actions}
+              compactLayout={searchCompactLayout}
+              submitLoading={loading}
+              extraActionsPlacement="before-primary-actions"
+              extraActions={
+                <ListSearchSettingsDropdown
+                  compactLayout={{
+                    enabled: searchCompactLayout,
+                    onChange: setSearchCompactLayout,
+                  }}
+                />
               }
-              columnSettingOptions={buildListToolbarColumnSettingOptions(orderedColumns)}
-              selectedColumnKeys={selectedColumnKeys}
-              onSelectedColumnKeysChange={setSelectedColumnKeys}
-              onColumnSettingOrderChange={setColumnOrder}
+              onSubmit={(values) => {
+                pendingLoadMinimumMsRef.current = EXPLICIT_LIST_LOADING_MIN_DURATION_MS
+                onSubmitFilters(values)
+                resetPage()
+              }}
+              onValuesChange={onValuesChangeFilters}
+              onReset={handleResetAll}
             />
           </div>
-        }
-      >
-        <TemplateListContent
-          showInitialLoading={showInitialLoading}
-          showError={showError}
-          showPartial={showPartial}
-          showEmpty={showEmpty}
-          errorMessage={(error as { message?: string } | null)?.message}
-          partialMessage={
-            (error as { message?: string } | null)?.message ??
-            (response as { partialMessage?: string } | null)?.partialMessage
-          }
-          onRetry={() => {
-            void load()
-          }}
-          onReloadPartial={() => {
-            void load()
-          }}
-          onResetEmpty={handleResetAll}
-          copy={spec.stateCopy}
-          tableNode={tableNode}
-        />
+        ) : null}
+
+        {spec.renderBetweenFilterAndContent ? (
+          <div className="p-4" style={{ borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+            {spec.renderBetweenFilterAndContent}
+          </div>
+        ) : null}
+        <div className="p-4">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            {resolvedCardTitle ? (
+              <Typography.Text strong>{resolvedCardTitle}</Typography.Text>
+            ) : null}
+            <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+              {visibleCreateAction ? (
+                <Button
+                  type="primary"
+                  icon={visibleCreateAction.icon}
+                  onClick={() => openFormPage('add')}
+                >
+                  {visibleCreateAction.label}
+                </Button>
+              ) : null}
+
+              {toolbarExtra}
+
+              <ListToolbarActions
+                tableSize={tableSize}
+                densityItems={spec.densityItems}
+                onTableSizeChange={setTableSize}
+                onClearColumnSort={clearColumnOrder}
+                clearColumnSortDisabled={!hasCustomColumnOrder}
+                reloadLoading={loading}
+                showLeadingDivider={hasToolbarLeadingActions}
+                onReload={() =>
+                  void load({
+                    showSuccess: true,
+                    minimumLoadingMs: EXPLICIT_LIST_LOADING_MIN_DURATION_MS,
+                  })
+                }
+                columnSettingOptions={buildListToolbarColumnSettingOptions(orderedColumns)}
+                selectedColumnKeys={selectedColumnKeys}
+                onSelectedColumnKeysChange={setSelectedColumnKeys}
+                onColumnSettingOrderChange={setColumnOrder}
+              />
+            </div>
+          </div>
+          <TemplateListContent
+            showInitialLoading={showInitialLoading}
+            showError={showError}
+            showPartial={showPartial}
+            showEmpty={showEmpty}
+            errorMessage={(error as { message?: string } | null)?.message}
+            partialMessage={
+              (error as { message?: string } | null)?.message ??
+              (response as { partialMessage?: string } | null)?.partialMessage
+            }
+            onRetry={() => {
+              void load()
+            }}
+            onReloadPartial={() => {
+              void load()
+            }}
+            onResetEmpty={handleResetAll}
+            copy={spec.stateCopy}
+            tableNode={tableNode}
+          />
+        </div>
       </Card>
 
       {spec.renderAfterContent ?? null}

@@ -94,6 +94,12 @@ describe('AuditPage', () => {
     renderAudit()
     await screen.findByText('orders.first')
     expect(requests).toEqual([{ pageSize: '25' }])
+    const listCard = screen.getByText('orders.first').closest('.ant-card')
+    expect(listCard).toBeTruthy()
+    expect(screen.getByRole('textbox', { name: 'Filter audit action' }).closest('.ant-card')).toBe(
+      listCard
+    )
+    expect(screen.getByRole('button', { name: 'Next page' }).closest('.ant-card')).toBe(listCard)
     fireEvent.change(screen.getByRole('textbox', { name: 'Filter audit action' }), {
       target: { value: 'orders.refund' },
     })

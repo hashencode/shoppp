@@ -142,6 +142,7 @@ export const MenuEditor = ({ placement }: { placement: NavigationPlacement }) =>
   const [draftNote, setDraftNote] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const mutationLock = useRef(false)
   const [error, setError] = useState<ApiError | null>(null)
   const isDirty = JSON.stringify(items) !== JSON.stringify(record?.items ?? [])
   const actionRefs = useRef(new Map<string, HTMLElement>())
@@ -180,7 +181,8 @@ export const MenuEditor = ({ placement }: { placement: NavigationPlacement }) =>
     setItems((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)))
 
   const persist = async () => {
-    if (!canWrite || saving) return
+    if (!canWrite || saving || mutationLock.current) return
+    mutationLock.current = true
     setSaving(true)
     setError(null)
     try {
@@ -196,12 +198,14 @@ export const MenuEditor = ({ placement }: { placement: NavigationPlacement }) =>
     } catch (cause) {
       setError(normalizeApiError(cause))
     } finally {
+      mutationLock.current = false
       setSaving(false)
     }
   }
 
   const transition = async (action: 'archive' | 'publish') => {
-    if (!record || saving || isDirty || reason.trim().length < 3) return
+    if (!record || saving || isDirty || reason.trim().length < 3 || mutationLock.current) return
+    mutationLock.current = true
     setSaving(true)
     setError(null)
     try {
@@ -223,6 +227,7 @@ export const MenuEditor = ({ placement }: { placement: NavigationPlacement }) =>
     } catch (cause) {
       setError(normalizeApiError(cause))
     } finally {
+      mutationLock.current = false
       setSaving(false)
     }
   }

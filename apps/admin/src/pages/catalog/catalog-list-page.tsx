@@ -22,6 +22,8 @@ import {
   type TemplateListFilterField,
 } from '../../shared/template-kit/list'
 
+import { useFormDialog } from '../../shared/hooks/use-form-dialog'
+
 void React
 
 // Budget the longest localized labels for every visible action combination.
@@ -43,12 +45,19 @@ const PublishAction = ({
   onPublish,
 }: {
   product: CatalogProductListItem
-  onPublish: (reason: string) => Promise<void>
+  onPublish: (reason: string) => Promise<boolean>
 }) => {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState('')
-  const [loading, setLoading] = useState(false)
+  const dialog = useFormDialog({
+    open,
+    onClose: () => {
+      setOpen(false)
+      setReason('')
+    },
+    getSubmission: () => reason.trim(),
+  })
   return (
     <>
       <Button type="link" className="!px-0" onClick={() => setOpen(true)}>
@@ -59,24 +68,27 @@ const PublishAction = ({
         open={open}
         okText={t('Publish')}
         okButtonProps={{ disabled: reason.trim().length < 3 }}
-        confirmLoading={loading}
-        onCancel={() => setOpen(false)}
-        onOk={async () => {
-          setLoading(true)
-          try {
-            await onPublish(reason.trim())
-            setOpen(false)
-            setReason('')
-          } finally {
-            setLoading(false)
-          }
-        }}
+        confirmLoading={dialog.busy}
+        onCancel={dialog.requestClose}
+        footer={(_, { OkBtn }) => <OkBtn />}
+        mask={{ closable: !dialog.busy }}
+        keyboard={!dialog.busy}
+        onOk={() =>
+          void dialog.submit(async () => {
+            if (reason.trim().length < 3) return
+
+            const saved = await onPublish(reason.trim())
+            if (!saved || !dialog.isCurrent()) return
+            dialog.complete()
+          })
+        }
       >
         <p>
           {t('Publishing starts a public storefront build. Changes appear only after deployment.')}
         </p>
         <Input.TextArea
           value={reason}
+          disabled={dialog.busy}
           rows={3}
           maxLength={500}
           placeholder={t('Publication reason')}
@@ -138,10 +150,12 @@ export const CatalogListPage = () => {
         void message.success(
           translateNow('Product publication started. The storefront changes after deployment.')
         )
-        await reload()
       } catch (error) {
         void message.error(localizeError(error))
+        return false
       }
+      void reload().catch(() => undefined)
+      return true
     },
     [message, localizeError, translateNow]
   )

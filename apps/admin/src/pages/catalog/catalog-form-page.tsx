@@ -1,6 +1,6 @@
 import { Alert, Button, ColorPicker, Form, Input, InputNumber, Select, Upload, App } from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { normalizeApiError, type ApiError } from '../../infrastructure/http/api-client'
@@ -228,6 +228,7 @@ export const CatalogFormPage = () => {
   const [optionExpectedVersion, setOptionExpectedVersion] = useState(0)
   const [optionErrors, setOptionErrors] = useState<Record<string, string>>({})
   const [optionSaving, setOptionSaving] = useState(false)
+  const mutationLock = useRef(false)
   const [optionHydrationKey, setOptionHydrationKey] = useState<string | null>(null)
   const [productPresentation, setProductPresentation] = useState<ProductPresentation>({
     specifications: [],
@@ -279,8 +280,7 @@ export const CatalogFormPage = () => {
       const { optionDefinitions: _createOnlyOptionDefinitions, ...ordinaryUpdate } = prepared
       await updateCatalogProduct(id, {
         ...ordinaryUpdate,
-        collections:
-          detailData?.collections?.map(({ name, slug }) => ({ name, slug })) ?? [],
+        collections: detailData?.collections?.map(({ name, slug }) => ({ name, slug })) ?? [],
         expectedVersion: optionExpectedVersion,
       })
       return fetchCatalogProduct(id)
@@ -343,7 +343,9 @@ export const CatalogFormPage = () => {
     }
     modal.confirm({
       title: t('Leave with unsaved Product changes?'),
-      content: t('Collection membership is edited separately. Continuing discards unsaved Product changes.'),
+      content: t(
+        'Collection membership is edited separately. Continuing discards unsaved Product changes.'
+      ),
       okText: t('Open Collection management'),
       onOk: proceed,
     })
@@ -407,7 +409,7 @@ export const CatalogFormPage = () => {
   )
 
   const saveOptionDefinitions = useCallback(async () => {
-    if (!detailData || optionPresentationReadonly) return
+    if (!detailData || optionPresentationReadonly || mutationLock.current || saveLoading) return
     const errors: Record<string, string> = {}
     optionDefinitions.forEach((definition, definitionIndex) => {
       if (definition.presentation !== 'color') return
@@ -419,6 +421,7 @@ export const CatalogFormPage = () => {
     })
     setOptionErrors(errors)
     if (Object.keys(errors).length) return
+    mutationLock.current = true
     setOptionSaving(true)
     try {
       const result = await updateCatalogProductOptionDefinitions(
@@ -448,6 +451,7 @@ export const CatalogFormPage = () => {
       setOptionErrors(fieldErrors)
       if (!Object.keys(fieldErrors).length) void message.error(normalized.message)
     } finally {
+      mutationLock.current = false
       setOptionSaving(false)
     }
   }, [
@@ -456,12 +460,13 @@ export const CatalogFormPage = () => {
     optionDefinitions,
     optionExpectedVersion,
     optionPresentationReadonly,
+    saveLoading,
     publishRefresh,
     t,
   ])
 
   const saveProductPresentation = useCallback(async () => {
-    if (!detailData || optionPresentationReadonly) return
+    if (!detailData || optionPresentationReadonly || mutationLock.current || saveLoading) return
     const specifications = productPresentation.specifications.map(({ label, value }) => ({
       label: label.trim(),
       value: value.trim(),
@@ -500,6 +505,7 @@ export const CatalogFormPage = () => {
         : {}),
       specifications,
     }
+    mutationLock.current = true
     setPresentationSaving(true)
     setPresentationError(null)
     try {
@@ -516,12 +522,14 @@ export const CatalogFormPage = () => {
     } catch (error) {
       setPresentationError(normalizeApiError(error).message)
     } finally {
+      mutationLock.current = false
       setPresentationSaving(false)
     }
   }, [
     detailData,
     message,
     optionPresentationReadonly,
+    saveLoading,
     presentationExpectedVersion,
     productPresentation,
     publishRefresh,
@@ -534,7 +542,7 @@ export const CatalogFormPage = () => {
       permissionDenied,
       detailLoading,
       detailError,
-      saveLoading,
+      saveLoading: saveLoading || optionSaving || presentationSaving,
       isReadonly: effectiveReadonly,
       form,
       initialValues: defaults,
@@ -558,14 +566,19 @@ export const CatalogFormPage = () => {
         resetFormValues()
       },
       onSubmit: async (values) => {
-        if (effectiveReadonly) return
-        const result = await submitFormValues(values)
-        if (result.success) {
-          void message.success(translateNow(isAddMode ? 'Product created' : 'Product saved'))
-          publishRefresh({ source: 'catalog-form' })
-          return
+        if (effectiveReadonly || mutationLock.current) return
+        mutationLock.current = true
+        try {
+          const result = await submitFormValues(values)
+          if (result.success) {
+            void message.success(translateNow(isAddMode ? 'Product created' : 'Product saved'))
+            publishRefresh({ source: 'catalog-form' })
+            return
+          }
+          void message.error(result.error.message)
+        } finally {
+          mutationLock.current = false
         }
-        void message.error(result.error.message)
       },
       sections: [
         {

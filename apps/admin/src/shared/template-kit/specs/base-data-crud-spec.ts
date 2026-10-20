@@ -42,6 +42,7 @@ export type BaseDataCrudSpec = {
   constraints: {
     listIsoRoute: '/template/list/table'
     formIsoRoutes: ['/template/list/table/form', '/template/form/advanced-form']
+    /** 仅约束未注册的 grade/campus 独立路由示例，不作为业务容器选型默认值。 */
     noDrawerEdit: true
     readonlyFormReuse: true
     listViewPreferences: {

@@ -1,6 +1,6 @@
 import type { AdminStorefrontTheme } from '@shoppp/contracts'
 import React from 'react'
-import { screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
@@ -12,6 +12,14 @@ import { renderInLocale } from '../../test/render-in-locale'
 import { ThemesPage } from './themes-page'
 
 void React
+
+if (!window.ResizeObserver) {
+  window.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver
+}
 
 const theme: AdminStorefrontTheme = {
   componentRegistry: { blocks: [], sections: [] },
@@ -105,5 +113,67 @@ describe('ThemesPage', () => {
       )
     ).toBeTruthy()
     expect(screen.getByRole('heading', { level: 4, name: 'Storefront themes' })).toBeTruthy()
+  })
+  it('creates the selected package and preset with the complete draft request after a recoverable failure', async () => {
+    let fail = true
+    const requests: unknown[] = []
+    const keys: (string | null)[] = []
+    server.use(
+      http.post('*/admin/storefront-experiences/drafts', async ({ request }) => {
+        requests.push(await request.json())
+        keys.push(request.headers.get('Idempotency-Key'))
+        return fail
+          ? HttpResponse.json(
+              { error: { code: 'draft_create_failed', message: 'Retry draft creation.' } },
+              { status: 503 }
+            )
+          : HttpResponse.json({ data: { id: 'draft.created' } }, { status: 201 })
+      })
+    )
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: 'New experience draft' }))
+    const reason = await screen.findByRole('textbox', { name: 'Notes (optional)' })
+    fireEvent.change(reason, { target: { value: 'Selected editorial preset' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Create draft' }))
+    await screen.findByText('Retry draft creation.')
+    expect((reason as HTMLTextAreaElement).value).toBe('Selected editorial preset')
+    const expected = {
+      draft: {
+        bindings: [],
+        experienceId: 'storefront-fashion-store',
+        overrides: [],
+        presetId: 'editorial',
+        themeId: 'fashion-store',
+        themeVersion: '1.0.0',
+      },
+      reason: 'Selected editorial preset',
+    }
+    expect(requests).toEqual([expected])
+    fail = false
+    fireEvent.click(screen.getByRole('button', { name: 'Create draft' }))
+    await waitFor(() => expect(requests).toEqual([expected, expected]))
+    for (const key of keys) expect(key).toMatch(/^theme-draft-create-[0-9a-f-]{36}$/)
+  })
+
+  it('keeps draft creation unavailable without theme-write permission and sends no write', async () => {
+    let writes = 0
+    server.use(
+      http.post('*/admin/storefront-experiences/drafts', () => {
+        writes += 1
+        return HttpResponse.json({ data: { id: 'unexpected' } })
+      })
+    )
+    renderInLocale(
+      <AuthTestProvider permissions={['themes.read']}>
+        <ThemeProvider>
+          <MemoryRouter>
+            <ThemesPage />
+          </MemoryRouter>
+        </ThemeProvider>
+      </AuthTestProvider>
+    )
+    await screen.findByText('Read-only theme access')
+    expect(screen.queryByRole('button', { name: 'New experience draft' })).toBeNull()
+    expect(writes).toBe(0)
   })
 })

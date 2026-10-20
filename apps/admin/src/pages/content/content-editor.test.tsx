@@ -9,6 +9,7 @@ import { MemoryRouter, useNavigate } from 'react-router-dom'
 import { ThemeProvider } from '../../shared/contexts/theme-context'
 import { AuthTestProvider } from '../../test/auth-context-fixture'
 import { renderInLocale } from '../../test/render-in-locale'
+import { ArticleEditorPage } from './article-editor-page'
 import { PageEditorPage } from './page-editor-page'
 
 void React
@@ -108,11 +109,19 @@ describe('Content editor', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() =>
-      expect(submitted).toMatchObject({
+      expect(submitted).toEqual({
+        body: [
+          {
+            id: expect.stringMatching(/^section\.[0-9a-f-]{36}$/),
+            kind: 'paragraph',
+            text: 'Our story.',
+          },
+        ],
         title: 'Our Studio Stories',
         slug: 'our-story',
         reason: '',
-        seo: { title: '' },
+        seo: { title: '', description: '' },
+        summary: '',
       })
     )
   })
@@ -155,10 +164,14 @@ describe('Content editor', () => {
     expect((screen.getByLabelText('Slug') as HTMLInputElement).value).toBe('about')
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() =>
-      expect(submitted).toMatchObject({
+      expect(submitted).toEqual({
         body: [{ id: 'section.intro', kind: 'paragraph', text: 'Unsaved story.' }],
         expectedVersion: 3,
         reason: '',
+        seo: { description: 'About our studio', title: 'About' },
+        slug: 'about',
+        summary: 'Our story',
+        title: 'Edited business title',
       })
     )
     expect(
@@ -199,6 +212,10 @@ describe('Content editor', () => {
     expect(await screen.findByRole('button', { name: 'Publish' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
     expect((screen.getByLabelText('Title') as HTMLInputElement).disabled).toBe(true)
+    await act(async () => {
+      fireEvent.submit(screen.getByLabelText('Title').closest('form')!)
+    })
+    expect(submitted).toBeUndefined()
   })
 
   it('renders the editor lifecycle status with a complete translation key', async () => {
@@ -266,7 +283,7 @@ describe('Content editor', () => {
     expect(screen.getByRole('button', { name: 'Cancel' }).hasAttribute('disabled')).toBe(false)
     fireEvent.click(screen.getByRole('button', { name: 'OK' }))
     await waitFor(() =>
-      expect(publication).toMatchObject({
+      expect(publication).toEqual({
         confirm: true,
         expectedVersion: 3,
         reason: 'Publish reviewed copy',
@@ -333,4 +350,149 @@ describe('Content editor', () => {
     await new Promise((resolve) => setTimeout(resolve, 100))
     expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe('Second page')
   })
+  it.each(['add', 'modify', 'readonly'] as const)(
+    'preserves the article %s contract including its nullable cover and structured body',
+    async (mode) => {
+      const article = { ...page, id: 'article.about', route: '/articles/about', coverAssetId: null }
+      const requests: unknown[] = []
+      server.use(
+        http.get('*/admin/catalog/collections/media', () => HttpResponse.json({ data: [] })),
+        http.get('*/admin/content/articles/article.about', () =>
+          HttpResponse.json({ data: article })
+        ),
+        http.post('*/admin/content/articles', async ({ request }) => {
+          requests.push(await request.json())
+          return HttpResponse.json({ data: article }, { status: 201 })
+        }),
+        http.put('*/admin/content/articles/article.about', async ({ request }) => {
+          requests.push(await request.json())
+          return HttpResponse.json({ data: article })
+        })
+      )
+      renderInLocale(
+        <AuthTestProvider permissions={['content.read', 'content.write']}>
+          <ThemeProvider>
+            <App>
+              <MemoryRouter
+                initialEntries={[
+                  `/content/articles/form?mode=${mode}${mode === 'add' ? '' : '&id=article.about'}`,
+                ]}
+              >
+                <ArticleEditorPage />
+              </MemoryRouter>
+            </App>
+          </ThemeProvider>
+        </AuthTestProvider>
+      )
+      const title = await screen.findByLabelText('Title')
+      await act(async () => {})
+      if (mode !== 'add')
+        await waitFor(() => expect((title as HTMLInputElement).value).toBe('About'))
+      if (mode === 'readonly') {
+        await act(async () => {
+          fireEvent.submit(title.closest('form')!)
+        })
+        expect((title as HTMLInputElement).disabled).toBe(true)
+        expect(requests).toEqual([])
+        return
+      }
+      fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Article story' } })
+      if (mode === 'add') {
+        fireEvent.change(screen.getByLabelText('Slug'), { target: { value: 'article-story' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Add Paragraph' }))
+      }
+      fireEvent.change(screen.getByRole('textbox', { name: 'Paragraph 1' }), {
+        target: { value: 'Article body' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+      await waitFor(() => expect(requests.length).toBe(1))
+      await waitFor(() =>
+        expect(requests).toEqual([
+          {
+            body: [
+              {
+                id:
+                  mode === 'add'
+                    ? expect.stringMatching(/^section\.[0-9a-f-]{36}$/)
+                    : 'section.intro',
+                kind: 'paragraph',
+                text: 'Article body',
+              },
+            ],
+            coverAssetId: null,
+            ...(mode === 'modify' ? { expectedVersion: 3 } : {}),
+            reason: '',
+            seo:
+              mode === 'add'
+                ? { description: '', title: '' }
+                : { description: 'About our studio', title: 'About' },
+            slug: mode === 'add' ? 'article-story' : 'about',
+            summary: mode === 'add' ? '' : 'Our story',
+            title: 'Article story',
+          },
+        ])
+      )
+    }
+  )
+
+  it.each([
+    { kind: 'page' as const, action: 'archive' as const },
+    { kind: 'article' as const, action: 'publish' as const },
+    { kind: 'article' as const, action: 'archive' as const },
+  ])(
+    'preserves the complete $kind $action lifecycle request independently of readonly field writes',
+    async ({ kind, action }) => {
+      const namespace = kind === 'page' ? 'pages' : 'articles'
+      const current = {
+        ...page,
+        id: `${kind}.about`,
+        status: action === 'archive' ? 'published' : 'draft',
+        ...(kind === 'article' ? { coverAssetId: null } : {}),
+      }
+      let submitted: unknown
+      server.use(
+        http.get(`*/admin/content/${namespace}/${kind}.about`, () =>
+          HttpResponse.json({ data: current })
+        ),
+        http.get('*/admin/catalog/collections/media', () => HttpResponse.json({ data: [] })),
+        http.post(`*/admin/content/${namespace}/${kind}.about/${action}`, async ({ request }) => {
+          submitted = await request.json()
+          return HttpResponse.json({
+            data: { ...current, status: action === 'archive' ? 'archived' : 'published' },
+          })
+        })
+      )
+      renderInLocale(
+        <AuthTestProvider permissions={['content.read', 'content.publish']}>
+          <ThemeProvider>
+            <App>
+              <MemoryRouter
+                initialEntries={[`/content/${namespace}/form?mode=readonly&id=${kind}.about`]}
+              >
+                {kind === 'page' ? <PageEditorPage /> : <ArticleEditorPage />}
+              </MemoryRouter>
+            </App>
+          </ThemeProvider>
+        </AuthTestProvider>
+      )
+      const button = await screen.findByRole('button', {
+        name: action === 'archive' ? 'Archive' : 'Publish',
+      })
+      fireEvent.change(screen.getByLabelText('Transition reason'), {
+        target: { value: 'Reviewed source transition' },
+      })
+      fireEvent.click(button)
+      expect(submitted).toBeUndefined()
+      fireEvent.click(await screen.findByRole('button', { name: 'OK' }))
+      await waitFor(() =>
+        expect(submitted).toEqual({
+          confirm: true,
+          expectedVersion: 3,
+          reason: 'Reviewed source transition',
+          redirectFromOldSlug: action === 'publish',
+        })
+      )
+      expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
+    }
+  )
 })

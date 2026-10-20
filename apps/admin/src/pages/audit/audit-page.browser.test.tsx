@@ -58,6 +58,15 @@ describe('Audit page in a real browser', () => {
     const actionInput =
       document.querySelector<HTMLInputElement>('input[name="action"]') ??
       document.querySelector<HTMLInputElement>('#action')!
+    const listCard = actionInput.closest('.ant-card')!
+    expect(document.querySelectorAll('.ant-card')).toHaveLength(1)
+    expect(listCard.querySelector('.ant-table-wrapper')).toBeTruthy()
+    const queryRegion = actionInput.closest('form')!.parentElement!
+    const listRegion = listCard.querySelector('.ant-table-wrapper')!.parentElement!
+    expect(getComputedStyle(queryRegion).padding).toBe('16px')
+    expect(getComputedStyle(queryRegion).borderBottomWidth).toBe('1px')
+    expect(getComputedStyle(queryRegion).borderBottomStyle).toBe('solid')
+    expect(getComputedStyle(listRegion).padding).toBe('16px')
     assertWithinViewport(actionInput)
     await page
       .getByRole('textbox', {

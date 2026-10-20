@@ -384,7 +384,7 @@ export const TableQueryPage = () => {
       <StandardListPageRecipe spec={spec} cardTitleOverride={cardTitleOverride} />
 
       <Drawer
-        size={560}
+        size={720}
         open={Boolean(drawerRow)}
         onClose={() => setDrawerRow(null)}
         title={drawerRow?.name}

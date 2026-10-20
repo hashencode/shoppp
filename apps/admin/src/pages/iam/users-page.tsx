@@ -7,10 +7,9 @@ import {
   type AdminUser,
   type AdminUserStatus,
 } from '@shoppp/contracts'
-import { Alert, App, Button, Card, Form, Input, Modal, Select, Table, Tag } from 'antd'
+import { Alert, App, Button, Card, Form, Input, Modal, Select, Table, Tabs, Tag, theme } from 'antd'
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
@@ -44,6 +43,8 @@ import {
   type TemplateListFilterField,
   useTemplateListController,
 } from '../../shared/template-kit/list'
+import { UserDetailPage } from './user-detail-page'
+import { useFormDialog } from '../../shared/hooks/use-form-dialog'
 import './users-page.css'
 
 void React
@@ -122,7 +123,7 @@ const deliveryTag = (invitation: AdminInvitation, t: Translate) => {
   )
 }
 
-type IndependentListCardProps<TItem> = {
+type IndependentListContentProps<TItem> = {
   activeTabKey: ActiveTab
   tabList: Array<{ key: ActiveTab; tab: React.ReactNode }>
   onTabChange: (key: ActiveTab) => void
@@ -145,7 +146,7 @@ type IndependentListCardProps<TItem> = {
   onResetEmpty: () => void
 }
 
-const IndependentListCard = <TItem extends object>({
+const IndependentListContent = <TItem extends object>({
   activeTabKey,
   tabList,
   onTabChange,
@@ -158,7 +159,7 @@ const IndependentListCard = <TItem extends object>({
   emptyTitle,
   onReload,
   onResetEmpty,
-}: IndependentListCardProps<TItem>) => {
+}: IndependentListContentProps<TItem>) => {
   const { data, error, loading, showEmpty, showError, showInitialLoading, showPartial } = queryState
   const defaultColumnKeys = useMemo(
     () =>
@@ -221,28 +222,27 @@ const IndependentListCard = <TItem extends object>({
   )
 
   return (
-    <Card
-      className="iam-users-list-card"
-      tabList={tabList}
-      activeTabKey={activeTabKey}
-      onTabChange={(key) => onTabChange(key as ActiveTab)}
-      tabProps={{ size: 'middle' }}
-      variant="borderless"
-      tabBarExtraContent={
-        <ListToolbarActions
-          tableSize={tableSize}
-          onTableSizeChange={setTableSize}
-          onClearColumnSort={clearColumnOrder}
-          clearColumnSortDisabled={!hasCustomColumnOrder}
-          reloadLoading={loading}
-          onReload={onReload}
-          columnSettingOptions={buildListToolbarColumnSettingOptions(orderedColumns)}
-          selectedColumnKeys={selectedColumnKeys}
-          onSelectedColumnKeysChange={setSelectedColumnKeys}
-          onColumnSettingOrderChange={setColumnOrder}
-        />
-      }
-    >
+    <div className="p-4">
+      <Tabs
+        className="iam-users-list-tabs"
+        items={tabList.map(({ key, tab }) => ({ key, label: tab }))}
+        activeKey={activeTabKey}
+        onChange={(key) => onTabChange(key as ActiveTab)}
+        tabBarExtraContent={
+          <ListToolbarActions
+            tableSize={tableSize}
+            onTableSizeChange={setTableSize}
+            onClearColumnSort={clearColumnOrder}
+            clearColumnSortDisabled={!hasCustomColumnOrder}
+            reloadLoading={loading}
+            onReload={onReload}
+            columnSettingOptions={buildListToolbarColumnSettingOptions(orderedColumns)}
+            selectedColumnKeys={selectedColumnKeys}
+            onSelectedColumnKeysChange={setSelectedColumnKeys}
+            onColumnSettingOrderChange={setColumnOrder}
+          />
+        }
+      />
       <TemplateListContent
         showInitialLoading={showInitialLoading}
         showError={showError}
@@ -260,13 +260,14 @@ const IndependentListCard = <TItem extends object>({
         }}
         tableNode={tableNode}
       />
-    </Card>
+    </div>
   )
 }
 
 export const UsersPage = () => {
+  const { token } = theme.useToken()
   const { message } = App.useApp()
-  const navigate = useNavigate()
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const { locale, t } = useI18n()
   const { searchCompactLayout } = useTheme()
   const { permissions, role: roleKey, session } = useAuth()
@@ -286,8 +287,17 @@ export const UsersPage = () => {
   const [invitationTotal, setInvitationTotal] = useState(0)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [inviteError, setInviteError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
   const [form] = Form.useForm<InviteValues>()
+  const invitationDialog = useFormDialog({
+    open: inviteOpen,
+    form,
+    onClose: () => setInviteOpen(false),
+    toSubmission: (values) => ({
+      ...values,
+      email: values.email?.trim() || '',
+      displayName: values.displayName?.trim() || undefined,
+    }),
+  })
   const inviteKey = useRef(newIdempotencyKey('admin-invite'))
 
   const {
@@ -505,17 +515,13 @@ export const UsersPage = () => {
         title: t('Actions'),
         width: 100,
         render: (_: unknown, user) => (
-          <Button
-            type="link"
-            className="!px-0"
-            onClick={() => navigate(`/access/users/${user.id}`)}
-          >
+          <Button type="link" className="!px-0" onClick={() => setSelectedUserId(user.id)}>
             {t('Inspect')}
           </Button>
         ),
       },
     ],
-    [navigate, t]
+    [t]
   )
   const invitationColumns = useMemo<ColumnsType<AdminInvitation>>(
     () => [
@@ -646,64 +652,79 @@ export const UsersPage = () => {
         />
       ) : null}
 
-      <Card variant="borderless" styles={{ body: { paddingRight: 8 } }}>
-        <TemplateListFilterForm<FilterValues>
-          form={filterForm}
-          formProps={{ initialValues: {} }}
-          fields={filterFields}
-          fieldColProps={searchGridProps.formItem}
-          labelCol={searchGridProps.labelItem}
-          wrapperCol={searchGridProps.inputItem}
-          actionsColProps={searchGridProps.actions}
-          compactLayout={searchCompactLayout}
-          submitLoading={
-            activeTab === 'users' ? usersController.loading : invitationsController.loading
-          }
-          onSubmit={applyVisibleFilters}
-          onReset={resetVisibleFilters}
-        />
+      <Card variant="borderless" styles={{ body: { padding: 0 } }}>
+        <div className="p-4" style={{ borderBottom: `1px solid ${token.colorBorderSecondary}` }}>
+          <TemplateListFilterForm<FilterValues>
+            form={filterForm}
+            formProps={{ initialValues: {} }}
+            fields={filterFields}
+            fieldColProps={searchGridProps.formItem}
+            labelCol={searchGridProps.labelItem}
+            wrapperCol={searchGridProps.inputItem}
+            actionsColProps={searchGridProps.actions}
+            compactLayout={searchCompactLayout}
+            submitLoading={
+              activeTab === 'users' ? usersController.loading : invitationsController.loading
+            }
+            onSubmit={applyVisibleFilters}
+            onReset={resetVisibleFilters}
+          />
+        </div>
+
+        {activeTab === 'users' ? (
+          <IndependentListContent<AdminUser>
+            key="iam-users-list"
+            activeTabKey={activeTab}
+            tabList={listTabs}
+            onTabChange={setActiveTab}
+            tableId="iam-users-list"
+            columns={userColumns}
+            rowKey="id"
+            queryState={usersController}
+            pagination={buildStandardListPagination(userPagination, locale)}
+            scrollX={720}
+            emptyTitle={t('No users match these filters.')}
+            onReload={() => void loadUsers()}
+            onResetEmpty={resetVisibleFilters}
+          />
+        ) : (
+          <IndependentListContent<AdminInvitation>
+            key="iam-invitations-list"
+            activeTabKey={activeTab}
+            tabList={listTabs}
+            onTabChange={setActiveTab}
+            tableId="iam-invitations-list"
+            columns={invitationColumns}
+            rowKey="id"
+            queryState={invitationsController}
+            pagination={buildStandardListPagination(invitationPagination, locale)}
+            scrollX={670 + INVITATION_ACTION_LAYOUT.columnWidth}
+            emptyTitle={t('No invitations match these filters.')}
+            onReload={() => void loadInvitations()}
+            onResetEmpty={resetVisibleFilters}
+          />
+        )}
       </Card>
 
-      {activeTab === 'users' ? (
-        <IndependentListCard<AdminUser>
-          key="iam-users-list"
-          activeTabKey={activeTab}
-          tabList={listTabs}
-          onTabChange={setActiveTab}
-          tableId="iam-users-list"
-          columns={userColumns}
-          rowKey="id"
-          queryState={usersController}
-          pagination={buildStandardListPagination(userPagination, locale)}
-          scrollX={720}
-          emptyTitle={t('No users match these filters.')}
-          onReload={() => void loadUsers()}
-          onResetEmpty={resetVisibleFilters}
+      {selectedUserId ? (
+        <UserDetailPage
+          key={selectedUserId}
+          resourceId={selectedUserId}
+          onClose={() =>
+            setSelectedUserId((current) => (current === selectedUserId ? null : current))
+          }
+          onSaved={loadUsers}
         />
-      ) : (
-        <IndependentListCard<AdminInvitation>
-          key="iam-invitations-list"
-          activeTabKey={activeTab}
-          tabList={listTabs}
-          onTabChange={setActiveTab}
-          tableId="iam-invitations-list"
-          columns={invitationColumns}
-          rowKey="id"
-          queryState={invitationsController}
-          pagination={buildStandardListPagination(invitationPagination, locale)}
-          scrollX={670 + INVITATION_ACTION_LAYOUT.columnWidth}
-          emptyTitle={t('No invitations match these filters.')}
-          onReload={() => void loadInvitations()}
-          onResetEmpty={resetVisibleFilters}
-        />
-      )}
-
+      ) : null}
       <Modal
         title={t('Invite user')}
         open={canInvite && inviteOpen}
         okText={t('Send invitation')}
-        confirmLoading={saving}
-        onCancel={() => setInviteOpen(false)}
+        confirmLoading={invitationDialog.busy}
+        onCancel={invitationDialog.requestClose}
+        footer={(_, { OkBtn }) => <OkBtn />}
+        mask={{ closable: !invitationDialog.busy }}
+        keyboard={!invitationDialog.busy}
         onOk={() => form.submit()}
         destroyOnHidden
         forceRender
@@ -712,25 +733,28 @@ export const UsersPage = () => {
         <Form<InviteValues>
           form={form}
           layout="vertical"
-          onFinish={async (values) => {
-            setSaving(true)
-            setInviteError(null)
-            try {
-              await createAdminInvitation({
-                ...values,
-                displayName: values.displayName?.trim() || undefined,
-                email: values.email.trim(),
-                idempotencyKey: inviteKey.current,
-              })
-              void message.success(t('Invitation created.'))
-              setInviteOpen(false)
-              await reloadLatestInvitations()
-            } catch (error) {
-              setInviteError(normalizeApiError(error).message)
-            } finally {
-              setSaving(false)
-            }
-          }}
+          onFinish={() =>
+            void invitationDialog.submit(async (values) => {
+              if (!canInvite) return
+
+              setInviteError(null)
+              try {
+                await createAdminInvitation({
+                  ...values,
+                  displayName: values.displayName?.trim() || undefined,
+                  email: values.email.trim(),
+                  idempotencyKey: inviteKey.current,
+                })
+                if (!invitationDialog.isCurrent()) return
+                void message.success(t('Invitation created.'))
+                invitationDialog.complete()
+                void reloadLatestInvitations().catch(() => undefined)
+              } catch (error) {
+                setInviteError(normalizeApiError(error).message)
+              }
+            })
+          }
+          disabled={invitationDialog.busy}
         >
           <Form.Item name="email" label={t('Email')} rules={[{ required: true, type: 'email' }]}>
             <Input autoComplete="off" />

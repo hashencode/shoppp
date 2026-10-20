@@ -4,7 +4,7 @@ import {
   type NotificationJob,
   type NotificationJobStatus,
 } from '@shoppp/contracts'
-import { Alert, App, Button, Form, Input, Modal, Table, Tag } from 'antd'
+import { App, Button, Form, Input, Modal, Table, Tag } from 'antd'
 import dayjs from 'dayjs'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -22,6 +22,8 @@ import {
   type StandardListPageSpec,
   type TemplateListFilterField,
 } from '../../../shared/template-kit/list'
+
+import { useFormDialog } from '../../../shared/hooks/use-form-dialog'
 
 void React
 
@@ -80,8 +82,12 @@ export const NotificationJobsPage = () => {
   const translateNow = useCurrentTranslate()
   const localizeError = useLocalizedApiError()
   const [replayJob, setReplayJob] = useState<NotificationJob | null>(null)
-  const [submitting, setSubmitting] = useState(false)
   const [form] = Form.useForm<{ reason: string }>()
+  const replayDialog = useFormDialog({
+    open: Boolean(replayJob),
+    form,
+    onClose: () => setReplayJob(null),
+  })
   const reloadRef = useRef<() => Promise<void>>(async () => undefined)
   const canReplay = hasPermission(role, 'operations.replay', permissions)
   const captureReload = useCallback((reload: () => Promise<void>) => {
@@ -286,17 +292,16 @@ export const NotificationJobsPage = () => {
   )
 
   const submitReplay = async ({ reason }: { reason: string }) => {
-    if (!replayJob) return
-    setSubmitting(true)
+    if (!replayJob || !canReplay) return
+
     try {
       await replayNotification(replayJob.id, { confirm: true, reason })
-      setReplayJob(null)
+      if (!replayDialog.isCurrent()) return
+      replayDialog.complete()
       void message.success(translateNow('Notification queued for safe replay.'))
-      await reloadRef.current()
+      void reloadRef.current().catch(() => undefined)
     } catch (error) {
       void message.error(localizeError(error))
-    } finally {
-      setSubmitting(false)
     }
   }
 
@@ -307,20 +312,20 @@ export const NotificationJobsPage = () => {
         title={t('Replay notification')}
         open={Boolean(replayJob)}
         okText={t('Confirm replay')}
-        confirmLoading={submitting}
+        confirmLoading={replayDialog.busy}
         destroyOnHidden
-        onCancel={() => setReplayJob(null)}
+        onCancel={replayDialog.requestClose}
+        footer={(_, { OkBtn }) => <OkBtn />}
+        mask={{ closable: !replayDialog.busy }}
+        keyboard={!replayDialog.busy}
         onOk={() => form.submit()}
       >
-        <Alert
-          className="mb-4"
-          type="warning"
-          showIcon
-          message={t(
-            'Replay keeps the original provider idempotency identity and is fully audited.'
-          )}
-        />
-        <Form form={form} layout="vertical" onFinish={(values) => void submitReplay(values)}>
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={() => void replayDialog.submit(submitReplay)}
+          disabled={replayDialog.busy}
+        >
           <Form.Item
             name="reason"
             label={t('Reason')}

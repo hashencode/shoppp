@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import type { FormInstance } from 'antd'
 import { describe, expect, it } from '@rstest/core'
-import { getFormModeViewModel } from '../../../routes/form-route-contract'
+import { getFormModeViewModel, type ParsedFormMode } from '../../../routes/form-route-contract'
 import { useTemplateFormController } from './use-template-form-controller'
 
 type FormValues = { title: string }
@@ -270,5 +270,122 @@ describe('useTemplateFormController', () => {
     })
 
     expect(submitResult).toEqual({ success: false, error: { message: 'create failed' } })
+  })
+  it('blocks readonly controller calls before payload conversion or writes', async () => {
+    const formStub = createFormStub()
+    let writes = 0
+    let conversions = 0
+    const { result } = renderHook(() =>
+      useTemplateFormController<FormValues, Entity, Payload>({
+        form: formStub.form,
+        parsedMode: { ok: true, mode: 'readonly', resourceKey: '7' },
+        modeView: getFormModeViewModel('readonly'),
+        defaultValues: {},
+        fetchDetail: async (resourceKey) => ({ resourceKey, title: 'original' }),
+        createEntity: async (payload) => {
+          writes += 1
+          return { resourceKey: '7', ...payload }
+        },
+        updateEntity: async (resourceKey, payload) => {
+          writes += 1
+          return { resourceKey, ...payload }
+        },
+        toValues: (entity) => ({ title: entity.title }),
+        toPayload: (values) => {
+          conversions += 1
+          return values
+        },
+      })
+    )
+    await act(async () => {
+      await result.current.submitFormValues({ title: 'changed' })
+    })
+    expect(writes).toBe(0)
+    expect(conversions).toBe(0)
+  })
+
+  it('allows one write for duplicate calls in the same tick and recovers after failure', async () => {
+    const formStub = createFormStub()
+    let writes = 0
+    let reject!: (reason: Error) => void
+    const pending = new Promise<Entity>((_, fail) => {
+      reject = fail
+    })
+    const { result } = renderHook(() =>
+      useTemplateFormController<FormValues, Entity, Payload>({
+        form: formStub.form,
+        parsedMode: { ok: true, mode: 'add' },
+        modeView: getFormModeViewModel('add'),
+        defaultValues: {},
+        fetchDetail: async (resourceKey) => ({ resourceKey, title: 'original' }),
+        createEntity: async () => {
+          writes += 1
+          return pending
+        },
+        updateEntity: async (resourceKey, payload) => ({ resourceKey, ...payload }),
+        toValues: (entity) => ({ title: entity.title }),
+        toPayload: (values) => values,
+      })
+    )
+    let calls!: Promise<unknown[]>
+    act(() => {
+      calls = Promise.all([
+        result.current.submitFormValues({ title: 'first' }),
+        result.current.submitFormValues({ title: 'second' }),
+      ])
+    })
+    const pendingWrites = writes
+    await act(async () => {
+      reject(new Error('write failed'))
+      await calls
+    })
+    expect(pendingWrites).toBe(1)
+    expect(result.current.saveLoading).toBe(false)
+    await act(async () => {
+      await result.current.submitFormValues({ title: 'retry' })
+    })
+    expect(writes).toBe(2)
+  })
+
+  it('isolates a late modify detail from a newly initialized add session', async () => {
+    const formStub = createFormStub()
+    let resolve!: (entity: Entity) => void
+    const pending = new Promise<Entity>((done) => {
+      resolve = done
+    })
+    const { result, rerender } = renderHook(
+      ({ parsedMode }: { parsedMode: ParsedFormMode }) =>
+        useTemplateFormController<FormValues, Entity, Payload>({
+          form: formStub.form,
+          parsedMode,
+          modeView: parsedMode.ok ? getFormModeViewModel(parsedMode.mode) : null,
+          defaultValues: { title: 'new draft' },
+          fetchDetail: async () => pending,
+          createEntity: async (payload) => ({ resourceKey: 'new', ...payload }),
+          updateEntity: async (resourceKey, payload) => ({ resourceKey, ...payload }),
+          toValues: (entity) => ({ title: entity.title }),
+          toPayload: (values) => values,
+        }),
+      {
+        initialProps: {
+          parsedMode: { ok: true, mode: 'modify', resourceKey: 'old' } as ParsedFormMode,
+        },
+      }
+    )
+    let oldLoad!: Promise<void>
+    act(() => {
+      oldLoad = result.current.initializeForm()
+    })
+    rerender({ parsedMode: { ok: true, mode: 'add' } })
+    await act(async () => {
+      await result.current.initializeForm()
+    })
+    await act(async () => {
+      resolve({ resourceKey: 'old', title: 'stale detail' })
+      await oldLoad
+    })
+    expect(formStub.getSetFieldsValueCalls().at(-1)).toEqual({ title: 'new draft' })
+    expect(result.current.detailData).toBeNull()
+    expect(result.current.detailError).toBeNull()
   })
 })

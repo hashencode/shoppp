@@ -4,7 +4,7 @@
 
 ## 1. 页面归类先行
 
-- 先判断页面属于哪种 recipe：`list-query-standard`、`form-three-mode`、`profile`、`business override`。
+- 先按 `ai-rules.md` 第3.1节选容器，再判断页面属于哪种 recipe：`list-query-standard`、`form-drawer-basic`、`form-modal-lightweight`、`form-three-mode`、`profile`、`business override`。
 - 能复用列表/表单模板的页面，不允许先写散装页面再回头收敛。
 - 只有在详情页明显不是只读表单时，才允许做独立 detail page。
 
@@ -30,7 +30,7 @@
 
 - 路由组件只从 `react-router-dom` 引入 `Navigate`、`useNavigate` 等对象。
 - 禁止出现 `antd` 误导入路由组件的情况。
-- 列表页至少点测一次：新增、编辑、查看三个入口都要能正常跳转。
+- 列表页至少点测新增、编辑、查看的实际容器入口；已选独立页安全新开页，迁弹层后合法旧URL和参数继续可达。
 - 表单页至少点测一次：保存、返回、错误态重试都要能正常执行。
 
 ## 5. 操作列宽度检查
@@ -83,3 +83,9 @@
 - 表单保存测试按旧接口完整保存合同精确断言实际请求 payload 的完整字段集合，不能只抽查代表字段；存在局部表单校验时，必须覆盖页面实际存在且未参与校验的普通字段、隐藏字段和上传字段，并覆盖校验失败不提交
 - 已按所选等级完成最终一次必要 typecheck/build；build 含类型检查时未重复 typecheck，较广检查覆盖较窄检查时未重复执行
 - 涉及真实浏览器、登录、跨页面、权限或发布门禁时，Browser Mode/E2E 仍按测试标准执行，且 E2E 仍先构建候选
+
+## 统一表单核对
+
+- [ ] 容器与结构分别按 `ai-rules.md` 第3.1节选型，原API、完整payload、权限、业务状态和reset保留
+- [ ] 常规footer、有效dirty、busy同步锁、退出实例、一次刷新与读失败仅重读符合合同；右Drawer720，仅验不小于720桌面
+- [ ] 合法旧独立URL与来源参数保留；语言切换不重挂载草稿或额外请求，必要安全结果owner未替换

@@ -14,6 +14,8 @@ export {
   resolveFormContentWidthClassName,
 } from './form-content-width'
 export { BasicCrudFormRecipe } from '../recipes/basic-crud-form-recipe'
+export { CrudFormDrawerRecipe } from '../recipes/crud-form-drawer-recipe'
+export type { CrudFormDrawerSpec } from '../specs/crud-form-drawer-spec'
 export { StepFormRecipe } from '../recipes/step-form-recipe'
 export type { BasicCrudFormSpec, FormContentWidthPreset } from '../specs/basic-crud-form-spec'
 export type { StepFormSpec } from '../specs/step-form-spec'

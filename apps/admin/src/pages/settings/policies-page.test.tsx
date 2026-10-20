@@ -1,5 +1,6 @@
 import React from 'react'
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import dayjs from 'dayjs'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
 import { MemoryRouter } from 'react-router-dom'
@@ -35,6 +36,7 @@ const policy = {
 
 describe('PoliciesPage', () => {
   it('keeps historical deployment inclusion in version details without claiming current storefront state', async () => {
+    let writes = 0
     server.use(
       http.get('*/admin/settings/policies', () =>
         HttpResponse.json({
@@ -49,7 +51,18 @@ describe('PoliciesPage', () => {
         </MemoryRouter>
       </AuthTestProvider>
     )
-    await screen.findByText('Returns policy')
+    server.use(
+      http.put('*/admin/settings/policies/policy.returns', () => {
+        writes += 1
+        return HttpResponse.json({ data: policy })
+      })
+    )
+    const title = await screen.findByDisplayValue('Returns policy')
+    await act(async () => {
+      fireEvent.submit(title.closest('form')!)
+    })
+    expect(writes).toBe(0)
+    expect(screen.queryByRole('button', { name: 'Save draft' })).toBeNull()
     expect(screen.queryByText(/Deployed to storefront/)).toBeNull()
     const history = screen.getByText('Deployment history includes this version.')
     expect(history.closest('details')?.open).toBe(false)
@@ -107,7 +120,15 @@ describe('PoliciesPage', () => {
     await screen.findByDisplayValue('Returns policy')
     fireEvent.click(screen.getByRole('button', { name: 'Save draft' }))
     await waitFor(() =>
-      expect(submitted).toMatchObject({ reason: '', expectedVersion: 1, sections: policy.sections })
+      expect(submitted).toEqual({
+        effectiveDate: '2026-10-01',
+        expectedVersion: 1,
+        kind: 'returns',
+        reason: '',
+        sections: [{ id: 'section.summary', kind: 'paragraph', text: 'Returns in 30 days.' }],
+        slug: 'returns',
+        title: 'Returns policy',
+      })
     )
   })
 
@@ -209,6 +230,115 @@ describe('PoliciesPage', () => {
     expect(
       screen.getByRole('button', { name: 'Approve exact version' }).hasAttribute('disabled')
     ).toBe(true)
+  })
+  it.each([
+    {
+      action: 'approve',
+      status: 'draft',
+      permission: 'policies.approve' as const,
+      button: 'Approve exact version',
+    },
+    {
+      action: 'publish',
+      status: 'approved',
+      permission: 'policies.publish' as const,
+      button: 'Publish',
+    },
+    {
+      action: 'archive',
+      status: 'published',
+      permission: 'policies.publish' as const,
+      button: 'Archive',
+    },
+  ])(
+    'submits the complete $action contract for the exact reviewed policy version',
+    async ({ action, status, permission, button }) => {
+      let submitted: unknown
+      const current = { ...policy, status }
+      server.use(
+        http.get('*/admin/settings/policies', () => HttpResponse.json({ data: [current] })),
+        http.get('*/admin/settings/policies/policy.returns/review', () =>
+          HttpResponse.json({
+            data: {
+              current,
+              digest: 'a'.repeat(64),
+              previous: null,
+              previousRenderedText: null,
+              renderedText: 'Returns in 30 days.',
+            },
+          })
+        ),
+        http.post(`*/admin/settings/policies/policy.returns/${action}`, async ({ request }) => {
+          submitted = await request.json()
+          return HttpResponse.json({ data: current })
+        })
+      )
+      renderInLocale(
+        <AuthTestProvider permissions={['policies.read', permission]}>
+          <MemoryRouter>
+            <PoliciesPage />
+          </MemoryRouter>
+        </AuthTestProvider>
+      )
+      fireEvent.click(await screen.findByRole('button', { name: 'Review policy' }))
+      await screen.findByText('Returns in 30 days.')
+      fireEvent.change(screen.getByRole('textbox', { name: 'Transition reason' }), {
+        target: { value: 'Reviewed exact policy' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: button }))
+      expect(submitted).toBeUndefined()
+      fireEvent.click(await screen.findByRole('button', { name: 'OK' }))
+      await waitFor(() =>
+        expect(submitted).toEqual({
+          confirm: true,
+          expectedVersion: 1,
+          reason: 'Reviewed exact policy',
+        })
+      )
+    }
+  )
+
+  it('creates a policy with every original field and no update-only expectedVersion', async () => {
+    let submitted: unknown
+    const effectiveDate = dayjs().format('YYYY-MM-DD')
+    server.use(
+      http.get('*/admin/settings/policies', () => HttpResponse.json({ data: [] })),
+      http.post('*/admin/settings/policies', async ({ request }) => {
+        submitted = await request.json()
+        return HttpResponse.json({ data: policy }, { status: 201 })
+      })
+    )
+    renderInLocale(
+      <AuthTestProvider permissions={['policies.read', 'policies.write']}>
+        <MemoryRouter>
+          <PoliciesPage />
+        </MemoryRouter>
+      </AuthTestProvider>
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'New policy' }))
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'New privacy policy' } })
+    fireEvent.change(screen.getByLabelText('Slug'), { target: { value: 'privacy' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add Paragraph' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Paragraph 1' }), {
+      target: { value: 'Reviewed privacy text.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save draft' }))
+    await waitFor(() =>
+      expect(submitted).toEqual({
+        effectiveDate,
+        kind: 'privacy',
+        reason: '',
+        sections: [
+          {
+            id: expect.stringMatching(/^section\.[0-9a-f-]{36}$/),
+            kind: 'paragraph',
+            text: 'Reviewed privacy text.',
+          },
+        ],
+        slug: 'privacy',
+        title: 'New privacy policy',
+      })
+    )
   })
 })
 

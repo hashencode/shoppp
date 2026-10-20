@@ -18,7 +18,8 @@
 - 当前 recipe：
   - `StandardListPageRecipe`
   - `ModalListPageRecipe`
-  - `BasicCrudFormRecipe`
+  - `BasicCrudFormRecipe`（已选独立页）
+  - `CrudFormDrawerRecipe`
   - `StepFormRecipe`
   - `CustomPageRecipe`
 
@@ -46,6 +47,26 @@
 - `template-kit` 底座：承载 controller、state gate、navigation 等基础能力
 - `business override`：显式承接第一期 recipe 之外的特例逻辑
 
+### 2.1 Card 分区布局
+
+Card 边界按操作关联判断：直接联动、共享查询或选择上下文的区域优先归为同一工作区；同一业务对象、同页展示或共用保存按钮不能单独作为合并依据。
+
+| 场景 | 布局方式与保留内容 |
+| --- | --- |
+| 分类树、目录选择与对应内容 | 共用一个 Card，保留内部列布局、选择上下文及内容区的查询与列表分区 |
+| 编辑与实时预览 | 共用一个 Card，保留编辑区业务分区、预览尺寸及已有吸顶行为 |
+| 纵向排列且职责独立的表单或详情模块 | 保留独立 Card，不因属于同一记录或共用保存入口就合并 |
+| 顶部指标、独立图表、审核记录等独立展示区域 | 保留展示边界，不随主工作区合并；指标之间是否归组需按实际职责另行判断 |
+
+分隔与间距：
+
+- 同一工作区的左右区域用竖线分隔，上下区域用横线分隔，分割线沿用主题 token 或语义化 CSS 变量。保留业务分区标题和操作入口；仅承担装饰外壳的内层 Card 可改为轻量分区，具有独立操作或状态的子模块继续保留必要容器。
+- 标准查询列表的 16px 内边距、可选区域省略及特殊插槽位置统一遵循 [第 3.1 节](#31-standardlistpagerecipe)，不在本节重复定义。
+- 编辑与预览场景可参考 24px 区域内边距；这是场景参考，不是所有表单的统一要求。保留字段、标题与操作区之间的合理间距，不以减少 Card 数量或最小化间距作为验收目标。
+- 分区自行提供内边距时，外层 Card body 不再重复叠加内边距；已用分割线划分的并排区域不额外保留原 Card 之间的外部间隙。表单内容宽度与对齐继续遵循第 3.2 节。
+
+布局归组保留原有功能与交互，以及预览吸顶、局部滚动等行为。验证级别沿用 [testing-standards.md](../testing-standards.md)；涉及吸顶、滚动、宽度或溢出的调整须用真实浏览器验证实际效果，不能仅凭 class 断言确认。
+
 ## 3. 可用 recipe
 
 ### 3.1 `StandardListPageRecipe`
@@ -60,8 +81,15 @@
 - `feedback`：统一 `loading / empty / error / partial`
 - `permission`：页面级 permission 与按钮级动作分层
 
+列表布局：
+
+- 查询区、可选业务摘要区与列表区共用一个 `Card`，各区域内边距为 16px，区域之间使用主题色横线分隔；没有查询字段时不渲染查询区及对应分割线。
+- 中间业务摘要保留在查询与列表之间；无摘要内容时插槽返回 `null`，不留下空白分区。列表分区标题、动态选择标题、批量操作和工具栏仍位于列表顶部。
+- 页面主标题、顶部指标及 `renderBeforeFilter` 内容保持在 Card 外；`renderAfterContent` 及其抽屉、弹窗保持在 Card 外，继续沿用原有刷新合同。独立安全确认、凭据结果或写入恢复反馈沿用页面原有 owner，不作为业务摘要归入列表。
+- 合并容器不改变搜索设置偏好、查询/重置、权限、状态反馈、分页、列宽、表格密度和虚拟滚动。
+
 ### 3.2 `BasicCrudFormRecipe`
-适用于：
+适用于已按 `ai-rules.md` 第 3.1 节选择独立页的：
 - `add / modify / readonly` 共用一套表单结构
 - 详情默认复用 `readonly` 表单展示
 
@@ -83,6 +111,12 @@
 - 普通单列编辑页字段控件默认填满表单内容列，禁止用字段级固定宽度替代模板内容宽度
 - 多 Card 表单页保持外层 Card 全宽；宽度 preset 按每个 Card 独立判断，只作用于 Card body 或 Card 内表单内容容器，不作用于包裹多个 Card 的 Form 根节点
 - 自定义内容容器、Card body 或模板页若手动控制宽度，必须复用 `FORM_CONTENT_ALIGN_CLASS_NAME` / `FORM_CARD_BODY_WIDTH_CLASS_NAME`，不得手写 `mx-auto` 或左右 margin 覆盖用户的表单对齐偏好
+
+### 3.2.1 普通 Drawer / 轻量 Modal 表单
+
+先按 `ai-rules.md` 第 3.1 节选容器，再选基础/分步/高级结构。普通 Drawer 通过 `CrudFormDrawerSpec` 接 `CrudFormDrawerRecipe`；内容空间读 `drawer-form-layout-rules.md`。字段、完整 payload、纯值 dirty 基线、业务 reset、`actionBusy` 与 `nestedModalOpen` 由页面提供。父页固定实例，退出后卸载；读取错误与仅重读恢复由父内容持有。凭据、审核等原结果 owner 保留。
+
+轻量 Modal 直接页面级组合，实际模式、footer 与关闭合同消费第 3.1 节，不补造三态、路由或通用 recipe。Shoppp 的 locale、权限及安全流程继续使用原合同。
 
 ### 3.3 `ModalListPageRecipe`
 适用于：
@@ -296,7 +330,7 @@
 - [ ] 数值宽度大于等于 `1000px` 的 Modal 通过 `buildStandardModalProps` 设置 `top: 24px`
 - [ ] 操作列宽度按弹窗内直出动作集合计算
 
-### 7.2 基础表单页
+### 7.2 已选独立页的基础表单页
 - [ ] 已确认页面属于 `basic` 表单，而不是 `step / advanced`
 - [ ] 业务页通过 `BasicCrudFormSpec` 接入
 - [ ] 已使用 `PageHeaderWithBack` 承载页头，主 `Card title` 未重复页头文案
@@ -307,6 +341,12 @@
 - [ ] 标准 submit 校验失败时由 Recipe 自动滚动并聚焦首个错误字段
 - [ ] 手动校验长表单时使用 `validateFieldsWithScroll`，未在页面内重复实现滚动逻辑
 - [ ] 重置走统一 `resetAll`
+
+### 7.2.1 Drawer / Modal 表单
+- [ ] 容器与结构分别选型；轻量 Modal 仅实际模式
+- [ ] footer、dirty、busy、退出实例、一次刷新与读取失败仅重读符合第 3.1 节；原领域安全结果保留
+- [ ] 右 Drawer720，代表性内容、校验与 footer 仅验不小于720的桌面窗口
+- [ ] 语言切换保留输入/选择/错误并不额外请求；合法旧 URL 继续可达
 
 ### 7.3 分步表单页
 - [ ] 已确认页面属于 `step` 表单，而不是 `basic / advanced`

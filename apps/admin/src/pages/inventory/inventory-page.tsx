@@ -20,6 +20,8 @@ import {
   type TemplateListFilterField,
 } from '../../shared/template-kit/list'
 
+import { useFormDialog } from '../../shared/hooks/use-form-dialog'
+
 void React
 
 type AdjustmentValues = {
@@ -78,8 +80,12 @@ export const InventoryPage = () => {
   const [detail, setDetail] = useState<InventoryDetail | null>(null)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [adjustOpen, setAdjustOpen] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
   const [form] = Form.useForm<AdjustmentValues>()
+  const adjustmentDialog = useFormDialog({
+    open: adjustOpen,
+    form,
+    onClose: () => setAdjustOpen(false),
+  })
   const reloadRef = useRef<() => Promise<void>>(async () => undefined)
   const captureReload = useCallback((reload: () => Promise<void>) => {
     reloadRef.current = reload
@@ -283,27 +289,32 @@ export const InventoryPage = () => {
         title={selected ? `${t('Adjust')} · ${selected.sku}` : t('Adjust inventory')}
         open={adjustOpen}
         okText={t('Apply adjustment')}
-        confirmLoading={submitting}
-        onCancel={() => setAdjustOpen(false)}
+        confirmLoading={adjustmentDialog.busy}
+        onCancel={adjustmentDialog.requestClose}
+        footer={(_, { OkBtn }) => <OkBtn />}
+        mask={{ closable: !adjustmentDialog.busy }}
+        keyboard={!adjustmentDialog.busy}
         onOk={() => form.submit()}
       >
         <Form<AdjustmentValues>
           form={form}
           layout="vertical"
-          onFinish={async (values) => {
-            if (!selected) return
-            setSubmitting(true)
-            try {
-              await adjustInventory(selected.variantId, selected.warehouseId, values)
-              void message.success(translateNow('Inventory adjustment recorded.'))
-              setAdjustOpen(false)
-              await reloadRef.current()
-            } catch (error) {
-              void message.error(localizeError(error))
-            } finally {
-              setSubmitting(false)
-            }
-          }}
+          onFinish={() =>
+            void adjustmentDialog.submit(async (values) => {
+              if (!selected || !canAdjust) return
+
+              try {
+                await adjustInventory(selected.variantId, selected.warehouseId, values)
+                if (!adjustmentDialog.isCurrent()) return
+                void message.success(translateNow('Inventory adjustment recorded.'))
+                adjustmentDialog.complete()
+                void reloadRef.current().catch(() => undefined)
+              } catch (error) {
+                void message.error(localizeError(error))
+              }
+            })
+          }
+          disabled={adjustmentDialog.busy}
         >
           <Form.Item
             name="quantityDelta"

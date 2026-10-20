@@ -17,6 +17,17 @@ Before implementing a new or standard admin page, read:
 For legacy-page migration, follow the read order in
 `docs/ai/legacy-page-migration-workflow.md` instead.
 
+## Unified form contract
+
+Container and form structure are separate decisions under `docs/ai/ai-rules.md` §3.1. All right
+Drawers use 720px; read `docs/ai/drawer-form-layout-rules.md` before form layout work. Keep local
+locale, permissions, API payloads and security recovery. Shared adoption evidence is recorded in
+`docs/ai/form-standard-adoption.md`; capability adoption does not complete business-page migration.
+
+## Page placement
+
+- Follow `docs/ai/ai-rules.md` section 6 for page placement and dependencies: templates are reference examples; business modules belong in their business directories.
+
 ## Proportional Verification
 
 - Before running verification, select `L0-L4` from `docs/testing-standards.md` based on the actual

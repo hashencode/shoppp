@@ -6,7 +6,7 @@
 
 ## 一、页面归类
 
-- [ ] 已明确页面属于哪种 recipe：`list-query-standard` / `form-three-mode` / `profile` / `business override`
+- [ ] 已明确页面属于哪种 recipe：`list-query-standard` / `form-drawer-basic` / `form-modal-lightweight` / `form-three-mode` / `profile` / `business override`
 - [ ] 已说明为什么复用现有模板，而不是散装实现
 - [ ] 若做了独立详情页，已说明为什么不能复用 `readonly` 表单
 
@@ -21,7 +21,7 @@
 
 ## 三、表单与详情
 
-- [ ] `add / modify / readonly` 模式行为完整
+- [ ] 普通 Drawer/独立页的 `add / modify / readonly` 完整；轻量 Modal 仅实际模式
 - [ ] 没有无依据设置 `requiredMark={false}`
 - [ ] `readonly` 模式下保存/重置/提交动作已禁用或硬阻断
 - [ ] 参数非法、详情失败、详情成功三种首屏状态已覆盖
@@ -73,3 +73,9 @@
 - 是否使用 legacy 接口：
 - 验证等级与理由：
 - 验证命令与结果：
+
+## 统一表单核对
+
+- [ ] 容器与结构分别按 `ai-rules.md` 第3.1节选型，原API、完整payload、权限、业务状态和reset保留
+- [ ] 常规footer、有效dirty、busy同步锁、退出实例、一次刷新与读失败仅重读符合合同；右Drawer720，仅验不小于720桌面
+- [ ] 合法旧独立URL与来源参数保留；语言切换不重挂载草稿或额外请求，必要安全结果owner未替换

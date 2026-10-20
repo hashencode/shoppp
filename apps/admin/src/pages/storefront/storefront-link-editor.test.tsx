@@ -62,6 +62,11 @@ describe('StorefrontLinkEditor', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'CTA 外部 URL' }), {
       target: { value: 'https://example.test/raw/path?q=Merchant' },
     })
+    expect(JSON.parse(screen.getByRole('status').textContent!)).toEqual({
+      label: 'Merchant CTA 中文',
+      target: { kind: 'external', url: 'https://example.test/raw/path?q=Merchant' },
+      targetBehavior: 'new-window',
+    })
     const before = screen.getByRole('status').textContent
     fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
     expect(
@@ -71,7 +76,11 @@ describe('StorefrontLinkEditor', () => {
     await choose('CTA open behavior', 'Same window')
     expect(screen.getByRole('status').textContent).toContain('"targetBehavior":"same-window"')
     await choose('CTA destination type', 'Internal resource')
-    expect(screen.getByRole('status').textContent).toContain('"id":"page-shop"')
+    expect(JSON.parse(screen.getByRole('status').textContent!)).toEqual({
+      label: 'Merchant CTA 中文',
+      target: { kind: 'internal', reference: { id: 'page-shop', kind: 'page' } },
+      targetBehavior: 'same-window',
+    })
   })
   it('should explain a missing destination and allow a replacement in Chinese', async () => {
     renderInLocale(<Harness missing />, 'zh-CN')

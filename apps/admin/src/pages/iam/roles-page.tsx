@@ -1,7 +1,6 @@
 import type { AdminPermission, AdminRole } from '@shoppp/contracts'
-import { Alert, Button, Form, Input, Modal, Space, Table, Tag, App } from 'antd'
+import { Button, Form, Input, Space, Table, Tag } from 'antd'
 import React, { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
@@ -14,6 +13,8 @@ import {
   type TemplateListFilterField,
 } from '../../shared/template-kit/list'
 import { PermissionChecklist } from './permission-checklist'
+import { CrudFormDrawerRecipe } from '../../shared/template-kit/recipes/crud-form-drawer-recipe'
+import { RoleDetailPage } from './role-detail-page'
 
 void React
 
@@ -53,92 +54,107 @@ const CreateRoleAction = ({
   permitted: readonly AdminPermission[]
   reload: () => Promise<void>
 }) => {
-  const { message } = App.useApp()
   const { t } = useI18n()
-  const [createError, setCreateError] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
-  const [saving, setSaving] = useState(false)
   const [form] = Form.useForm<RoleValues>()
-
+  const toPayload = (values: RoleValues) => ({
+    description: values.description?.trim() || null,
+    key: values.key?.trim() || '',
+    name: values.name?.trim() || '',
+    permissions: [...(values.permissions ?? [])].sort(),
+  })
   return (
     <>
       <Button
         type="primary"
+        disabled={open}
         onClick={() => {
+          if (open) return
           form.resetFields()
-          form.setFieldValue('permissions', [])
-          setCreateError(null)
           setOpen(true)
         }}
       >
         {t('New role')}
       </Button>
-      <Modal
-        title={t('New role')}
-        open={open}
-        okText={t('Create role')}
-        confirmLoading={saving}
-        onCancel={() => setOpen(false)}
-        onOk={() => form.submit()}
-        width={820}
-        destroyOnHidden
-        forceRender
-      >
-        {createError ? <Alert className="mb-4" type="error" showIcon title={createError} /> : null}
-        <Form<RoleValues>
-          form={form}
-          layout="vertical"
-          initialValues={{ permissions: [] }}
-          onFinish={async (values) => {
-            setSaving(true)
-            setCreateError(null)
-            try {
-              await createAdminRole({
-                description: values.description?.trim() || null,
-                key: values.key.trim(),
-                name: values.name.trim(),
-                permissions: values.permissions,
-              })
-              void message.success(t('Role created.'))
-              setOpen(false)
-              await reload()
-            } catch (cause) {
-              setCreateError(normalizeApiError(cause).message)
-            } finally {
-              setSaving(false)
-            }
+      {open ? (
+        <CrudFormDrawerRecipe<RoleValues>
+          spec={{
+            title: t('New role'),
+            successTitle: t('Role created.'),
+            parsedMode: { ok: true, mode: 'add' },
+            permissionDenied: false,
+            detailLoading: false,
+            detailError: null,
+            saveLoading: false,
+            isReadonly: false,
+            form,
+            initialValues: { permissions: [] },
+            onRetryDetail: () => undefined,
+            onResetAll: () => form.resetFields(),
+            hasUnsavedChanges: () =>
+              JSON.stringify(toPayload(form.getFieldsValue(true))) !==
+              JSON.stringify(toPayload({ key: '', name: '', permissions: [] })),
+            onClose: () => setOpen(false),
+            onSaved: reload,
+            onSubmit: async (values) => {
+              try {
+                await createAdminRole(toPayload(values))
+                return { success: true }
+              } catch (cause) {
+                return { success: false, error: normalizeApiError(cause) }
+              }
+            },
+            renderFields: () => (
+              <>
+                <Form.Item
+                  name="key"
+                  label={t('Role key')}
+                  rules={[
+                    { required: true },
+                    {
+                      pattern: /^[a-z][a-z0-9_]*$/,
+                      message: t('Use lowercase letters, numbers, and underscores.'),
+                    },
+                  ]}
+                >
+                  <Input autoComplete="off" />
+                </Form.Item>
+                <Form.Item name="name" label={t('Role name')} rules={[{ required: true }]}>
+                  <Input autoComplete="off" />
+                </Form.Item>
+                <Form.Item name="description" label={t('Description')}>
+                  <Input.TextArea rows={2} />
+                </Form.Item>
+                <Form.Item name="permissions" label={t('Permissions')}>
+                  <PermissionChecklist permitted={permitted} />
+                </Form.Item>
+              </>
+            ),
           }}
-        >
-          <Form.Item
-            name="key"
-            label={t('Role key')}
-            rules={[
-              { required: true },
-              {
-                pattern: /^[a-z][a-z0-9_]*$/,
-                message: t('Use lowercase letters, numbers, and underscores.'),
-              },
-            ]}
-          >
-            <Input autoComplete="off" />
-          </Form.Item>
-          <Form.Item name="name" label={t('Role name')} rules={[{ required: true }]}>
-            <Input autoComplete="off" />
-          </Form.Item>
-          <Form.Item name="description" label={t('Description')}>
-            <Input.TextArea rows={2} />
-          </Form.Item>
-          <Form.Item name="permissions" label={t('Permissions')}>
-            <PermissionChecklist permitted={permitted} />
-          </Form.Item>
-        </Form>
-      </Modal>
+        />
+      ) : null}
     </>
   )
 }
 
+const RoleToolbar = ({
+  canWrite,
+  permitted,
+  reload,
+  capture,
+}: {
+  canWrite: boolean
+  permitted: readonly AdminPermission[]
+  reload: () => Promise<void>
+  capture: React.Dispatch<React.SetStateAction<(() => Promise<void>) | null>>
+}) => {
+  React.useEffect(() => capture(() => reload), [capture, reload])
+  return canWrite ? <CreateRoleAction permitted={permitted} reload={reload} /> : null
+}
+
 export const RolesPage = () => {
-  const navigate = useNavigate()
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null)
+  const [reload, setReload] = useState<(() => Promise<void>) | null>(null)
   const { t } = useI18n()
   const { permissions, role: roleKey } = useAuth()
   const canWrite = hasPermission(roleKey, 'iam.roles.write', permissions)
@@ -178,8 +194,14 @@ export const RolesPage = () => {
       selectItems: (response) => response?.items ?? [],
       mapError: normalizeApiError,
       filterFields,
-      toolbarExtra: ({ reload }) =>
-        canWrite ? <CreateRoleAction permitted={permissions ?? []} reload={reload} /> : null,
+      toolbarExtra: ({ reload }) => (
+        <RoleToolbar
+          canWrite={canWrite}
+          permitted={permissions ?? []}
+          reload={reload}
+          capture={setReload}
+        />
+      ),
       toolbarExtraVisible: canWrite,
       buildColumns: () => [
         {
@@ -208,11 +230,7 @@ export const RolesPage = () => {
           title: t('Actions'),
           width: 100,
           render: (_: unknown, role) => (
-            <Button
-              type="link"
-              className="!px-0"
-              onClick={() => navigate(`/access/roles/${role.id}`)}
-            >
+            <Button type="link" className="!px-0" onClick={() => setSelectedRoleId(role.id)}>
               {t('Inspect')}
             </Button>
           ),
@@ -245,8 +263,22 @@ export const RolesPage = () => {
         emptyDescription: t('No roles match these filters.'),
       },
     }),
-    [canWrite, filterFields, navigate, permissions, t]
+    [canWrite, filterFields, permissions, t]
   )
 
-  return <StandardListPageRecipe spec={spec} />
+  return (
+    <>
+      <StandardListPageRecipe spec={spec} />
+      {selectedRoleId ? (
+        <RoleDetailPage
+          key={selectedRoleId}
+          resourceId={selectedRoleId}
+          onClose={() =>
+            setSelectedRoleId((current) => (current === selectedRoleId ? null : current))
+          }
+          onSaved={reload ?? (async () => undefined)}
+        />
+      ) : null}
+    </>
+  )
 }

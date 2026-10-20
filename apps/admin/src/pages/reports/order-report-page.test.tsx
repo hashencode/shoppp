@@ -132,6 +132,11 @@ describe('OrderReportPage', () => {
   it('shows reconcilable rows while hiding export from a read-only operator', async () => {
     renderPage(['reporting.read'])
     await waitFor(() => expect(screen.getByText('ORD-REPORT01')).toBeTruthy())
+    const listCard = screen.getByText('ORD-REPORT01').closest('.ant-card')
+    expect(screen.getByRole('combobox', { name: 'Report currency' }).closest('.ant-card')).toBe(
+      listCard
+    )
+    expect(listCard?.querySelector('.ant-card-body')?.children).toHaveLength(2)
     expect(screen.getByText('shopper@example.test')).toBeTruthy()
     expect(screen.getByText('$25.00')).toBeTruthy()
     expect(screen.getByText('$5.00')).toBeTruthy()
@@ -261,6 +266,11 @@ describe('OrderReportPage', () => {
     )
     expect(exportIdempotencyKey).toMatch(/^report-export-/)
     await waitFor(() => expect(screen.getByText('Download export (1 rows)')).toBeTruthy())
+    const listCard = screen.getByText('ORD-REPORT01').closest('.ant-card')
+    expect(
+      screen.getByRole('link', { name: 'Download export (1 rows)' }).closest('.ant-card')
+    ).toBe(listCard)
+    expect(listCard?.querySelector('.ant-card-body')?.children).toHaveLength(3)
 
     fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
     await waitFor(() => expect(orderQueries).toHaveLength(3), { timeout: 3_000 })

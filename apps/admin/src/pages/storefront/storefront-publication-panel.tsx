@@ -33,6 +33,8 @@ import { useI18n } from '../../shared/contexts/i18n-context'
 import { localizeApiError } from '../../shared/i18n/api-error'
 import { themeErrorCode } from './theme-feedback'
 
+import { useFormDialog } from '../../shared/hooks/use-form-dialog'
+
 void React
 
 type Props = {
@@ -106,6 +108,14 @@ export const StorefrontPublicationPanel = ({
   const [submitting, setSubmitting] = useState(false)
   const request = useRef(0)
   const mutationBusy = useRef(false)
+  const confirmationDialog = useFormDialog({
+    open: confirmation !== null,
+    onClose: () => {
+      setConfirmation(null)
+      setReason('')
+    },
+    getSubmission: () => reason.trim(),
+  })
 
   useEffect(() => {
     const sequence = ++request.current
@@ -583,13 +593,13 @@ export const StorefrontPublicationPanel = ({
         okText={t(confirmation?.kind === 'rollback' ? 'Confirm rollback' : 'Confirm publication')}
         cancelText={t('Cancel')}
         confirmLoading={submitting}
+        keyboard={!submitting}
         closable={!submitting}
         mask={{ closable: !submitting }}
         cancelButtonProps={{ disabled: submitting }}
         okButtonProps={{ disabled: !confirmationCurrent || !reason.trim() }}
         onCancel={() => {
-          setConfirmation(null)
-          setReason('')
+          if (!mutationBusy.current) confirmationDialog.requestClose()
         }}
         onOk={() => void submit()}
         destroyOnHidden

@@ -25,6 +25,7 @@ export type BasicCrudFormSpec<TValues extends object> = {
   isReadonly: boolean
   form: FormInstance<TValues>
   initialValues: Partial<TValues>
+  autoComplete?: string
   title: string
   contentWidthPreset?: FormContentWidthPreset
   maxWidthClassName?: string

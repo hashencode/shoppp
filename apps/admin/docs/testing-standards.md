@@ -67,13 +67,18 @@ PR 模板只引用或投影本文件，不另建竞争口径。
 - 至少一个参数或数据边界场景
 
 ### 5.2 Form Page
-- `add / modify / readonly` 三态
+先按 `ai-rules.md` 第3.1节选择容器；普通 Drawer/独立页覆盖适用三态，轻量 Modal 只验证实际模式。
+- 普通维护的 `add / modify / readonly` 三态
 - 非法 `mode` 参数错误态
 - `readonly` 提交阻断（UI 与行为都验证）
 - 提交成功提示与跳转
 - 提交失败提示
 - 权限拒绝（403）
 - 至少一个字段边界（空值/超长/非法类型）
+- Drawer/Modal 有效差异、同轮同步写锁、busy关闭阻断、实例退出与迟到回调；字段校验晚于退出或卸载不得写入
+- 普通Drawer成功立即关闭与一次父内容读取；读取失败仅重读，原凭据/reauth/operation identity结果不叠普通成功
+- 所有右Drawer720；Browser Mode验证不小于720桌面的真实动画、portal/Esc、body无横向溢出及footer可达，不新增窄窗口Drawer要求
+- 当前语言文案与切换后草稿/选择/错误保留，切换不额外读写
 
 ### 5.3 Security Minimum Set
 - 权限矩阵单测（角色到权限）

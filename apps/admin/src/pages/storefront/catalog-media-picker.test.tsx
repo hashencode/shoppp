@@ -82,6 +82,13 @@ describe('CatalogMediaPicker', () => {
     await screen.findByRole('button', { name: '选择 Merchant English 中文' })
     fireEvent.click(screen.getByRole('button', { name: '选择 Merchant English 中文' }))
     expect(screen.getByText('Real Product / 名字')).toBeTruthy()
+    expect(JSON.parse(screen.getByRole('status').textContent!)).toEqual({
+      kind: 'catalog',
+      key: 'catalog/merchant.webp',
+      alt: 'Merchant English 中文',
+      width: 800,
+      height: 600,
+    })
     const search = screen.getByRole('searchbox', { name: 'hero image 搜索已批准的商品目录媒体' })
     fireEvent.change(search, { target: { value: 'merchant' } })
     fireEvent.click(screen.getByRole('button', { name: /^查\s*询$/ }))
@@ -110,7 +117,13 @@ describe('CatalogMediaPicker', () => {
     expect(screen.getByText('Page 2 of 2')).toBeTruthy()
     expect(screen.getByRole('status').textContent).toContain('catalog/merchant.webp')
     fireEvent.click(screen.getByRole('button', { name: 'Reset hero image' }))
-    expect(screen.getByRole('status').textContent).toContain('assets/hero.webp')
+    expect(JSON.parse(screen.getByRole('status').textContent!)).toEqual({
+      kind: 'theme',
+      path: 'assets/hero.webp',
+      alt: 'Original hero',
+      width: 800,
+      height: 600,
+    })
     fireEvent.change(search, { target: { value: 'none' } })
     fireEvent.click(screen.getByRole('button', { name: 'Search' }))
     await screen.findByText('No approved Catalog media matches this search.')

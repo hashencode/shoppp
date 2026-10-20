@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Alert, Button, Card, Form, Input, Typography } from 'antd'
+import React, { useRef, useState } from 'react'
+import { Alert, Button, Card, Form, Input } from 'antd'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { useI18n } from '../../shared/contexts/i18n-context'
@@ -15,14 +15,18 @@ export const LoginPage = () => {
   const { isLoading, login, sessionError } = useAuth()
   const { t } = useI18n()
   const [submitting, setSubmitting] = useState(false)
+  const submitLock = useRef(false)
 
   const submit = async (values: LoginFields) => {
+    if (submitLock.current) return
+    submitLock.current = true
     setSubmitting(true)
     try {
       await login(values.email, values.password)
     } catch {
       // The authoritative API message is rendered from the auth context.
     } finally {
+      submitLock.current = false
       setSubmitting(false)
     }
   }
@@ -30,11 +34,8 @@ export const LoginPage = () => {
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
       <Card className="w-full max-w-md" title={t('Sign in to Shoppp Admin')}>
-        <Typography.Paragraph type="secondary">
-          {t('Use your admin email and password to sign in.')}
-        </Typography.Paragraph>
         {sessionError ? <Alert className="mb-4" type="error" showIcon message={sessionError} /> : null}
-        <Form<LoginFields> layout="vertical" onFinish={(values) => void submit(values)}>
+        <Form<LoginFields> layout="vertical" disabled={submitting} onFinish={(values) => void submit(values)}>
           <Form.Item
             label={t('Email')}
             name="email"

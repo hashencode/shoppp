@@ -1,5 +1,5 @@
 import React from 'react'
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
@@ -52,4 +52,123 @@ describe('PrivacyPage', () => {
     expect(heading.parentElement?.contains(guidance)).toBe(false)
     expect((await screen.findAllByText('No data')).length).toBeGreaterThan(0)
   })
+  it.each(['email', 'shipping_address'] as const)(
+    'blocks incomplete correction input then submits the exact verified correction once and reads once (%s)',
+    async (correctionField) => {
+      const requestedValue =
+        correctionField === 'email'
+          ? 'updated@example.test'
+          : '{"line1":"100 Market Street","city":"Portland","countryCode":"US"}'
+      let writes = 0
+      let reads = 0
+      let payload: unknown
+      let idempotencyKey: string | null = null
+      let saved = false
+      const completed = {
+        completedAt: '2026-10-14T03:00:00.000Z',
+        createdAt: '2026-10-14T03:00:00.000Z',
+        decision: 'retained_immutable_financial_records',
+        expiresAt: null,
+        id: 'prv_0123456789abcdef0123456789abcdef',
+        status: 'completed',
+        subjectReference: '012345abcdef',
+        type: 'correction',
+      }
+      server.use(
+        http.get('*/admin/privacy/requests', () => {
+          reads += 1
+          return HttpResponse.json({ data: saved ? [completed] : [] })
+        }),
+        http.post('*/admin/privacy/requests', async ({ request }) => {
+          writes += 1
+          payload = await request.json()
+          idempotencyKey = request.headers.get('Idempotency-Key')
+          saved = true
+          return HttpResponse.json({ data: completed })
+        })
+      )
+      renderInLocale(
+        <AuthTestProvider>
+          <ThemeProvider>
+            <MemoryRouter>
+              <PrivacyPage />
+            </MemoryRouter>
+          </ThemeProvider>
+        </AuthTestProvider>
+      )
+      await waitFor(() => expect(reads).toBe(1))
+      fireEvent.click(screen.getByRole('button', { name: 'Record verified request' }))
+      fireEvent.change(screen.getByLabelText('Verified subject email'), {
+        target: { value: 'subject@example.test' },
+      })
+      fireEvent.mouseDown(screen.getByLabelText('Request type'))
+      fireEvent.click((await screen.findAllByText('correction')).at(-1)!)
+      fireEvent.mouseDown(await screen.findByLabelText('Correction field'))
+      fireEvent.click((await screen.findAllByText(correctionField, { exact: true })).at(-1)!)
+      fireEvent.change(screen.getByLabelText('Verification and action reason'), {
+        target: { value: 'Verified signed correction request' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm and execute' }))
+      await waitFor(() =>
+        expect(document.querySelector('.ant-form-item-explain-error')).not.toBeNull()
+      )
+      expect(writes).toBe(0)
+      fireEvent.change(screen.getByLabelText('Requested value'), {
+        target: { value: requestedValue },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm and execute' }))
+      expect(await screen.findByText(completed.subjectReference)).toBeTruthy()
+      expect(payload).toEqual({
+        confirm: true,
+        email: 'subject@example.test',
+        reason: 'Verified signed correction request',
+        type: 'correction',
+        correction: { field: correctionField, requestedValue },
+      })
+      expect(idempotencyKey).toMatch(/^privacy-request-/)
+      expect(writes).toBe(1)
+      expect(reads).toBe(2)
+    }
+  )
+  it.each(['access', 'deletion'] as const)(
+    'submits the complete verified %s request without correction-only fields',
+    async (type) => {
+      const requests: unknown[] = []
+      server.use(
+        http.post('*/admin/privacy/requests', async ({ request }) => {
+          requests.push(await request.json())
+          return HttpResponse.json({ data: { id: 'request.fixture', type } })
+        })
+      )
+      renderInLocale(
+        <AuthTestProvider>
+          <ThemeProvider>
+            <MemoryRouter>
+              <PrivacyPage />
+            </MemoryRouter>
+          </ThemeProvider>
+        </AuthTestProvider>
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'Record verified request' }))
+      fireEvent.change(screen.getByLabelText('Verified subject email'), {
+        target: { value: 'subject@example.test' },
+      })
+      fireEvent.mouseDown(screen.getByLabelText('Request type'))
+      fireEvent.click((await screen.findAllByText(type, { exact: true })).at(-1)!)
+      fireEvent.change(screen.getByLabelText('Verification and action reason'), {
+        target: { value: 'Verified subject request' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm and execute' }))
+      await waitFor(() =>
+        expect(requests).toEqual([
+          {
+            confirm: true,
+            email: 'subject@example.test',
+            reason: 'Verified subject request',
+            type,
+          },
+        ])
+      )
+    }
+  )
 })

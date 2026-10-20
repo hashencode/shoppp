@@ -92,17 +92,25 @@ const server = setupServer(
     currentRecord = record({ version: 2 })
     return HttpResponse.json({ data: currentRecord })
   }),
-  http.post('*/admin/storefront/navigation/header/publish', () => {
+  http.post('*/admin/storefront/navigation/header/publish', async ({ request }) => {
+    expect(await request.json()).toEqual({
+      confirm: true,
+      expectedVersion: 1,
+      reason: 'Publish menu',
+    })
     publishRequests += 1
     currentRecord = record({ status: 'published' })
     return HttpResponse.json({ data: currentRecord })
   })
 )
 
-const renderEditor = (permissions: readonly AdminPermission[]) =>
+const renderEditor = (
+  permissions: readonly AdminPermission[],
+  placement: 'header' | 'footer' = 'header'
+) =>
   renderInLocale(
     <AuthTestProvider role="content_operator" permissions={permissions}>
-      <MenuEditor placement="header" />
+      <MenuEditor placement={placement} />
     </AuthTestProvider>,
     'en-US'
   )
@@ -246,4 +254,76 @@ describe('MenuEditor integration', () => {
     await waitFor(() => expect(document.activeElement).toBe(add))
     expect(screen.getByText('No optional menu items')).toBeTruthy()
   })
+  it.each(['header', 'footer'] as const)(
+    'saves every %s menu item and target then archives the exact saved version',
+    async (placement) => {
+      const requests: unknown[] = []
+      let archive: unknown
+      server.use(
+        http.get(`*/admin/storefront/navigation/${placement}`, () =>
+          HttpResponse.json({ data: record({ items, placement }) })
+        ),
+        http.put(`*/admin/storefront/navigation/${placement}`, async ({ request }) => {
+          requests.push(await request.json())
+          return HttpResponse.json({
+            data: record({
+              items: [{ ...items[0]!, label: 'Start' }, items[1]!, items[2]!],
+              placement,
+              version: 2,
+            }),
+          })
+        }),
+        http.post(`*/admin/storefront/navigation/${placement}/archive`, async ({ request }) => {
+          archive = await request.json()
+          return HttpResponse.json({ data: record({ placement, status: 'archived', version: 3 }) })
+        })
+      )
+      renderEditor(['navigation.read', 'navigation.write', 'navigation.publish'], placement)
+      await screen.findByDisplayValue('Home')
+      fireEvent.change(screen.getAllByRole('textbox', { name: 'Item label' })[0]!, {
+        target: { value: 'Start' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Save draft' }))
+      await waitFor(() =>
+        expect(requests).toEqual([
+          {
+            expectedVersion: 1,
+            reason: '',
+            items: [
+              {
+                id: 'nav.home',
+                label: 'Start',
+                parentId: null,
+                position: 0,
+                target: { kind: 'route', path: '/' },
+              },
+              {
+                id: 'nav.shop',
+                label: 'Shop',
+                parentId: null,
+                position: 1,
+                target: { kind: 'route', path: '/shop-left' },
+              },
+              {
+                id: 'nav.men',
+                label: 'Men',
+                parentId: 'nav.shop',
+                position: 0,
+                target: { kind: 'route', path: '/collections/men' },
+              },
+            ],
+          },
+        ])
+      )
+      fireEvent.change(screen.getByRole('textbox', { name: 'Transition reason' }), {
+        target: { value: 'Archive saved menu' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Archive' }))
+      expect(archive).toBeUndefined()
+      fireEvent.click(await screen.findByRole('button', { name: 'OK' }))
+      await waitFor(() =>
+        expect(archive).toEqual({ confirm: true, expectedVersion: 2, reason: 'Archive saved menu' })
+      )
+    }
+  )
 })
