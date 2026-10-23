@@ -49,13 +49,23 @@ rstest.mock('react-pdf', () => ({
       )}
     </div>
   ),
-  Page: ({ onLoadError, onRenderError, pageNumber, width }: {
+  Page: ({
+    onLoadError,
+    onRenderError,
+    onRenderSuccess,
+    pageNumber,
+    width,
+  }: {
     onLoadError?: (error: Error) => void
     onRenderError?: (error: Error) => void
+    onRenderSuccess?: () => void
     pageNumber: number
     width: number
   }) => (
     <div data-testid={`pdf-page-${pageNumber}`} data-width={width}>
+      <button type="button" onClick={() => onRenderSuccess?.()}>
+        模拟第 {pageNumber} 页渲染完成
+      </button>
       {pageNumber === 1 && pdfPageErrorMode === 'load' ? (
         <button type="button" onClick={() => onLoadError?.(new Error('page load failed'))}>
           模拟 PDF 页面加载失败
@@ -175,6 +185,52 @@ afterEach(() => {
 })
 
 describe('FilePreview', () => {
+  it('keeps one PDF loading indicator until the first page renders and resets on source change', async () => {
+    const view = render(<FilePreview open title="课件预览" source="/courseware.pdf" />)
+    const loading = screen.getByRole('status')
+    const viewport = loading.parentElement as HTMLElement
+    expect(viewport.getAttribute('aria-busy')).toBe('true')
+
+    fireEvent.click(await screen.findByRole('button', { name: '模拟 PDF 加载完成' }))
+    expect(screen.getAllByRole('status')).toEqual([loading])
+    fireEvent.click(screen.getByRole('button', { name: '模拟第 2 页渲染完成' }))
+    expect(screen.getAllByRole('status')).toEqual([loading])
+    fireEvent.click(screen.getByRole('button', { name: '模拟第 1 页渲染完成' }))
+    expect(screen.queryByRole('status')).toBeNull()
+    expect(viewport.getAttribute('aria-busy')).toBe('false')
+
+    view.rerender(<FilePreview open title="课件预览" source="/updated.pdf" />)
+    expect(screen.getByRole('status').parentElement?.getAttribute('aria-busy')).toBe('true')
+  })
+
+  it('keeps the PDF viewport and loading through native fetch, then exposes failure recovery', async () => {
+    Object.defineProperty(navigator, 'pdfViewerEnabled', { configurable: true, value: true })
+    let resolveFetch: ((response: Response) => void) | undefined
+    globalThis.fetch = (() =>
+      new Promise<Response>((resolve) => {
+        resolveFetch = resolve
+      })) as typeof fetch
+    render(<FilePreview open title="课件预览" source="/broken.pdf" />)
+    const loading = screen.getByRole('status')
+    const viewport = loading.parentElement
+
+    fireEvent.click(await screen.findByRole('button', { name: '模拟 PDF 加载失败' }))
+    expect(resolveFetch).toBeDefined()
+    expect(screen.getAllByRole('status')).toEqual([loading])
+    expect(loading.parentElement).toBe(viewport)
+
+    await act(async () => {
+      resolveFetch!({ ok: true, blob: async () => new Blob(['pdf']) } as Response)
+    })
+    const frame = await screen.findByTitle('课件预览')
+    expect(frame.parentElement).toBe(viewport)
+    expect(screen.queryByRole('status')).toBeNull()
+    fireEvent.error(frame)
+    expect(await screen.findByText('PDF 预览加载失败')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /下载文件/ })).toBeTruthy()
+    expect(screen.queryByRole('status')).toBeNull()
+  })
+
   it('classifies image from trusted MIME before the file name', async () => {
     render(
       <FilePreview

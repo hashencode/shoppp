@@ -95,3 +95,19 @@ Final L4: `bun run --cwd apps/admin test --pool.maxWorkers 2` passed64 files/341
 ## 2026-10-14 统一表单增量
 
 批准来源为 `codex-admin-quick-start@7088da9b151278faf22db5910ec7c734db382a01`，目标起点为 `13a0beba031c945b702820d39a436c8e03a932ea`。本次仅采用 Admin 内的容器/布局规范、controller与基础壳保护、Drawer recipe/spec/barrel及本地测试；保留 locale、权限、API类型、独立页导航/成功确认和刷新频道。采用范围、RED及本地验证详见 [form-standard-adoption.md](form-standard-adoption.md)。目标采用commit及宿主门禁待登记，不将来源L4计入目标证明。
+
+## 2026-10-23 PDF loading 局部增量
+
+本次用户授权将医院监测后台的 PDF loading 改动同步到 Admin，与 2026-09-16 已采用的 PDF 失败回退是不同批次。独立范围见[本地计划](../../../../docs/plans/2026-10-23-fix-admin-pdf-loading-plan.md)，不改变产品主计划或发布状态。
+
+目标基线为 `1c7ae747b24e7caf47ca584ffa861c937051296f`。来源为 `monitoring-admin-for-tcm-hospitals` 的未提交工作树快照：`src/shared/components/file-preview.tsx` 的 Git blob 是 `07e3a29af2116cad1bd563eb39c920a286c9ff20`，`file-preview-pdf-content.tsx` 为 `20021a6bd989174b5f6b1d8a3f9f5b8c3e9d2f20`。这不是 quick-start 的新批准 SHA，不改写历史来源 pin；只投影本节限定的 loading 增量。
+
+`FilePreviewPdf` 从开始加载就提供 `70vh / min-height 480px` 的主题容器；模块加载、PDF 文档和各页不再分别产生 loading。PDF.js 首页 `onRenderSuccess` 后隐藏唯一居中提示，其他页先完成不能提前隐藏。原生回退在认证 fetch 和 Blob 准备期间保留同一容器与提示，设置 iframe src 后交给浏览器，不把 iframe load 视为页面绘制成功。
+
+Shoppp 的 `open` 控制、翻译、响应式页宽、source/session key、三级回退、15 秒超时、abort/revoke 与下载认证均保持。不引入医院后台的图片退出动画、公共 props、反馈文案、上传改造、业务字段或依赖。
+
+L3 消费链为 `file-preview-pdf-content` → `FilePreview` → 动态加载它的 `UploadFormItem`。结合根 workspaces、Admin 对 contracts 的依赖，以及全 src/package 的 import/reference 检索，未发现业务页或其他 workspace 的直接消费者、barrel 或公共接口变化。
+
+先增加两条 loading 回归：旧实现分别在 loading 归属与 native 切换时容器被替换处失败；修改后四个聚焦 unit suites 共 31 项通过，两个 Browser suites 共 9 项通过，无跳过。真实 Browser 使用双页合成 PDF 和延迟请求，验证明暗主题下单一居中提示、首页实际 canvas 绘制与区域高度/背景稳定；同时回归上传、图片、视频、PDF 超时及换源重开。改动代码 ESLint 和一次 Admin `typecheck` 通过。来源测试数未计入目标验证。
+
+补充视觉验收采用本地临时预览入口、真实组件/CSS 和合成 PDF，不代表真实后端或产品发布验收。1440×900 与 390×844、明暗两主题的四组检查通过：loading 居中、只有一个提示、加载前后高度相同、两页 canvas、无横向溢出。8 张加载/完成截图与测量位于根目录忽略的 `.artifacts/screenshots/2026-10-23-shoppp-pdf-loading/`，已抽查四张不同状态。临时预览页首次等待绘制在 15 秒超时；保留生产代码和断言，增加控制台诊断后四组检查通过，无运行时错误，不记作首轮全绿。

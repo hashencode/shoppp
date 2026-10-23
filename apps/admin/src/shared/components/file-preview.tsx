@@ -243,6 +243,7 @@ type LazyPdfContentProps = {
   open: boolean
   source: string
   onError: () => void
+  onReady: () => void
 }
 
 class PdfRendererErrorBoundary extends Component<
@@ -264,8 +265,7 @@ class PdfRendererErrorBoundary extends Component<
   }
 }
 
-const FilePreviewPdfContentLoader = ({ open, source, onError }: LazyPdfContentProps) => {
-  const { t } = useI18n()
+const FilePreviewPdfContentLoader = ({ open, source, onError, onReady }: LazyPdfContentProps) => {
   const [PdfContent, setPdfContent] = useState<ComponentType<LazyPdfContentProps> | null>(null)
 
   useEffect(() => {
@@ -283,16 +283,12 @@ const FilePreviewPdfContentLoader = ({ open, source, onError }: LazyPdfContentPr
   }, [onError])
 
   if (!PdfContent) {
-    return (
-      <div className="flex min-h-[360px] items-center justify-center" role="status">
-        <Spin description={t('Loading PDF preview')} />
-      </div>
-    )
+    return null
   }
 
   return (
     <PdfRendererErrorBoundary onError={onError}>
-      <PdfContent open={open} source={source} onError={onError} />
+      <PdfContent open={open} source={source} onError={onError} onReady={onReady} />
     </PdfRendererErrorBoundary>
   )
 }
@@ -301,12 +297,13 @@ const NativePdfFrame = ({
   source,
   title,
   onError,
+  onReady,
 }: {
   source: string
   title: string
   onError: () => void
+  onReady: () => void
 }) => {
-  const { t } = useI18n()
   const frameRef = useRef<HTMLIFrameElement>(null)
   const [frameSource, setFrameSource] = useState('')
 
@@ -350,18 +347,15 @@ const NativePdfFrame = ({
     if (!frame || !frameSource) return
     frame.addEventListener('error', onError)
     frame.src = frameSource
+    onReady()
     return () => frame.removeEventListener('error', onError)
-  }, [frameSource, onError])
+  }, [frameSource, onError, onReady])
 
   if (!frameSource) {
-    return (
-      <div className="flex min-h-[360px] items-center justify-center" role="status">
-        <Spin description={t('Loading PDF preview')} />
-      </div>
-    )
+    return null
   }
 
-  return <iframe ref={frameRef} title={title} className="h-[70vh] min-h-[480px] w-full border-0" />
+  return <iframe ref={frameRef} title={title} className="h-full w-full border-0" />
 }
 
 const FilePreviewPdf = ({
@@ -376,6 +370,11 @@ const FilePreviewPdf = ({
   title: string
 }) => {
   const { t } = useI18n()
+  const { token } = theme.useToken()
+  const [pdfReady, setPdfReady] = useState(false)
+  const [nativeReady, setNativeReady] = useState(false)
+  const handlePdfReady = useCallback(() => setPdfReady(true), [])
+  const handleNativeReady = useCallback(() => setNativeReady(true), [])
   const [rendererState, dispatchRendererEvent] = useReducer(
     reducePdfPreviewFallbackState,
     undefined,
@@ -393,9 +392,6 @@ const FilePreviewPdf = ({
     dispatchRendererEvent({ type: 'native-error', source, session })
   }, [session, source])
 
-  if (rendererState.renderer === 'native') {
-    return <NativePdfFrame source={source} title={title} onError={handleNativePdfError} />
-  }
   if (rendererState.renderer === 'download') {
     return (
       <FilePreviewUnavailable
@@ -404,7 +400,43 @@ const FilePreviewPdf = ({
       />
     )
   }
-  return <FilePreviewPdfContentLoader open={open} source={source} onError={handlePdfRendererError} />
+  const loading = rendererState.renderer === 'native' ? !nativeReady : !pdfReady
+
+  return (
+    <div
+      className="relative h-[70vh] min-h-[480px] overflow-hidden rounded-md border border-solid"
+      aria-busy={loading}
+      style={{
+        backgroundColor: token.colorBgLayout,
+        borderColor: token.colorBorderSecondary,
+      }}
+    >
+      {loading ? (
+        <div
+          className="absolute inset-0 z-10 flex items-center justify-center"
+          style={{ backgroundColor: token.colorBgLayout }}
+          role="status"
+        >
+          <Spin description={t('Loading PDF preview')} />
+        </div>
+      ) : null}
+      {rendererState.renderer === 'native' ? (
+        <NativePdfFrame
+          source={source}
+          title={title}
+          onError={handleNativePdfError}
+          onReady={handleNativeReady}
+        />
+      ) : (
+        <FilePreviewPdfContentLoader
+          open={open}
+          source={source}
+          onError={handlePdfRendererError}
+          onReady={handlePdfReady}
+        />
+      )}
+    </div>
+  )
 }
 
 const FilePreviewVideoContent = ({

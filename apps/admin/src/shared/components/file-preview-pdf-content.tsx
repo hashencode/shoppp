@@ -1,4 +1,4 @@
-import { Alert, Spin, theme } from 'antd'
+import { Alert } from 'antd'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
@@ -63,31 +63,25 @@ type FilePreviewPdfContentProps = {
   open: boolean
   source: string
   onError: () => void
+  onReady: () => void
 }
 
-export const FilePreviewPdfContent = ({ open, source, onError }: FilePreviewPdfContentProps) => {
+export const FilePreviewPdfContent = ({
+  open,
+  source,
+  onError,
+  onReady,
+}: FilePreviewPdfContentProps) => {
   const { t } = useI18n()
   const [numPages, setNumPages] = useState<number>()
-  const { token } = theme.useToken()
   const { pageWidth, previewContainerRef } = useResponsivePdfPageWidth(open)
 
   return (
-    <div
-      ref={previewContainerRef}
-      className="h-[70vh] min-h-[480px] overflow-y-auto overflow-x-hidden rounded-md border border-solid"
-      style={{
-        backgroundColor: token.colorBgLayout,
-        borderColor: token.colorBorderSecondary,
-      }}
-    >
+    <div ref={previewContainerRef} className="h-full overflow-y-auto overflow-x-hidden">
       {open ? (
         <Document
           file={source}
-          loading={
-            <div className="flex h-full items-center justify-center" role="status">
-              <Spin description={t('Loading PDF preview')} />
-            </div>
-          }
+          loading={null}
           error={
             <div className="flex h-full items-center justify-center p-6">
               <Alert
@@ -104,17 +98,14 @@ export const FilePreviewPdfContent = ({ open, source, onError }: FilePreviewPdfC
           {Array.from({ length: numPages ?? 0 }, (_, index) => (
             <div key={`page_${index + 1}`} className="mb-4 flex justify-center last:mb-0">
               <Page
-                loading={
-                  <div className="flex min-h-[240px] items-center justify-center" role="status">
-                    <Spin description={t('Loading PDF preview')} />
-                  </div>
-                }
+                loading={null}
                 pageNumber={index + 1}
                 width={pageWidth}
                 renderAnnotationLayer={false}
                 renderTextLayer={false}
                 onLoadError={onError}
                 onRenderError={onError}
+                onRenderSuccess={index === 0 ? onReady : undefined}
               />
             </div>
           ))}
