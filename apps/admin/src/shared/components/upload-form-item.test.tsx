@@ -686,3 +686,58 @@ it.each(['*', '*/*', 'image/*'])(
     expect(changed).toHaveBeenCalledExactlyOnceWith('https://cdn.example.test/photo.JPG')
   }
 )
+
+it.each(['invalid-first', 'valid-first', 'oversized-first'] as const)(
+  'keeps rejected sibling feedback (%s) after a valid item completes and clears it on correction',
+  async (order) => {
+    const uploadFile = rstest.fn(async (file: File) => `/uploads/${file.name}`)
+    const { container } = render(
+      <UploadFormItem multiple maxCount={3} accept=".pdf" uploadFile={uploadFile} />
+    )
+    const input = () => container.querySelector<HTMLInputElement>('input[type="file"]')!
+    const rejected =
+      order === 'oversized-first'
+        ? new File([new Uint8Array(10 * 1024 * 1024 + 1)], 'rejected.pdf')
+        : new File(['wrong'], 'rejected.txt')
+    const accepted = new File(['good'], 'accepted.pdf')
+    fireEvent.change(input(), {
+      target: { files: order === 'valid-first' ? [accepted, rejected] : [rejected, accepted] },
+    })
+    await waitFor(() => expect(uploadFile).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(container.querySelector('.ant-upload-list-item-done')).toBeTruthy())
+    expect(uploadFile.mock.calls[0][0].name).toBe('accepted.pdf')
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
+    expect(screen.getByRole('alert').textContent).toContain(
+      order === 'oversized-first' ? '10' : '.pdf'
+    )
+    fireEvent.change(input(), { target: { files: [new File(['corrected'], 'corrected.pdf')] } })
+    await waitFor(() => expect(uploadFile).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull())
+  }
+)
+
+it('keeps newer rejection feedback when an older selection finishes preprocessing', async () => {
+  let finishValidation!: (value: boolean) => void
+  const pendingValidation = new Promise<boolean>((resolve) => {
+    finishValidation = resolve
+  })
+  const uploadFile = rstest.fn(async (file: File) => `/uploads/${file.name}`)
+  const { container } = render(
+    <UploadFormItem
+      multiple
+      maxCount={3}
+      accept=".pdf"
+      uploadFile={uploadFile}
+      beforeUpload={(file) => (file.name === 'slow.pdf' ? pendingValidation : true)}
+    />
+  )
+  const input = () => container.querySelector<HTMLInputElement>('input[type="file"]')!
+  fireEvent.change(input(), { target: { files: [new File(['slow'], 'slow.pdf')] } })
+  fireEvent.change(input(), { target: { files: [new File(['wrong'], 'rejected.txt')] } })
+  await screen.findByRole('alert')
+  await act(async () => finishValidation(true))
+  await waitFor(() => expect(uploadFile).toHaveBeenCalledTimes(1))
+  await waitFor(() => expect(container.querySelector('.ant-upload-list-item-done')).toBeTruthy())
+  expect(screen.getAllByRole('alert')).toHaveLength(1)
+  expect(screen.getByRole('alert').textContent).toContain('.pdf')
+})

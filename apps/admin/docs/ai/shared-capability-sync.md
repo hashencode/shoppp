@@ -128,7 +128,7 @@ L3 consumer closure：根 `package.json` workspaces 为 `apps/*`、`packages/*`�
 
 验证计划（先证明后实现）：先运行现有共享 baseline；保留 scheduled create 完整请求与原始 File Axios 传输断言，补 revision 实际 input 选择/上传/排序载荷及无效选择零写，新增 FilePicker 批次/原生透传/自定义 children/当前语言错误测试，补 URL 字段内错误的语言切换与异步失败当前语言回归。unit 自检命令为 `bun run --cwd apps/admin test <明确文件>`。宿主负责定向 Browser、最终一次 Admin typecheck、changed-file lint/格式与精确上传 tree 验证，不执行 monorepo suite/build。
 
-当前状态：`adapting`。本节在任何上传 production 修改前补齐；实际命令、RED 和最终验证结果在本节追加，不能从历史或来源结果推断 verified。同 checkout 的 PDF 增量属于外部并发工作，未纳入此批上传差量。
+实施前记录状态：`adapting`（最终结果见本节末）。本节在任何上传 production 修改前补齐；实际命令、RED 和最终验证结果在本节追加，不能从历史或来源结果推断 verified。同 checkout 的 PDF 增量属于外部并发工作，未纳入此批上传差量。
 
 U5 本地实施与自检证据（宿主最终门禁前）：
 
@@ -139,4 +139,22 @@ U5 本地实施与自检证据（宿主最终门禁前）：
 - 根 Prettier 忽略整个 `apps/admin`，首次根命令没有修改；改从 `apps/admin` 运行既有 prettier，只定向本批文件。旧 revision 和 ListExcel 文件的无关 formatter 差量已撤去，保留原 owner 区域；未运行 root/full formatter、monorepo suite/build、安装或生成。`git diff --check` 通过。
 - 初始外部 PDF dirty paths 与 sync diff/hash 已保存在忽略的 `.artifacts/upload-u5/`；外部随后自行提交并使 HEAD 前进至 `656853c801f4dec845285f2be4ffc4abfa39daf1`，本 worker 未改 branch/index/HEAD。上传 doc 只追加本独立章节，未修改既有 PDF 记录。宿主负责按上传差量固定与验证交付身份。
 
-三种路径和组件目录已同步。运行时不增加字段说明段落、技术提示或 Alert；只新增实际校验反馈，图标/间距/列表由内部展示层持有。当前仍为 `adapting`，待宿主最终 L3 门禁与视觉证据。
+三种路径和组件目录已同步。运行时不增加字段说明段落、技术提示或 Alert；只新增实际校验反馈，图标/间距/列表由内部展示层持有。实施自检结束时仍为 `adapting`，宿主最终 L3 结果见本节末。
+
+
+宿主最终 L3：上述 5 个 unit suite 73/73 通过。两个 shared Browser suite 共 17 个互异场景分段通过；新增语言测试先暴露当前 Browser matcher 不支持 `toHaveTextContent`，改用现有 waitFor/textContent；后续定位按 AntD 两字中文按钮的自动空格取可访问名称，真实切换点击通过，文件/错误/回调计数保持。Admin `typecheck` 在补齐 AriaAttributes 类型后通过；归属 ESLint 为零 error，保留现有 t dependency warning，diff 检查通过。当前采用为 `verified`，不冒充首轮全绿。稳定能力 ID 为 `upload-presentation` 与 `file-picker`。
+
+同状态真实共享组件/CSS 夹具采用合成文件、本地请求桩与中文 locale，720px 内容区和 390px 容器、明暗主题、错误和实际 ListExcelActions Modal 共 20 张前后截图保存在根目录忽略的 `.artifacts/screenshots/2026-10-23-upload-sync/`；无横向溢出，单处字段错误关联当前 input。英文及原位切换由真实 Browser 测试保护，此夹具不代表 API/storefront 或真实后端 E2E。简化复核无需修改；独立上传 revision 与代码审查由宿主汇总，不切换外部 PDF 工作分支。
+
+
+### 2026-10-23 宿主最终复核闭合
+
+最终不可变运行时来源为 `codex-admin-quick-start@99a176da743c725bce96f45070850ac1555eab63`（初次回流 `df4670f`，批次反馈/键盘关联修正 `1e47327`，原生按钮长名约束修正 `99a176d`）。本节末结论取代实施自检阶段的待验状态，历史初轮结果保留。
+
+完整代码复核 run `20261023-181440-16e04f47` 已完成，确认的两项 P2 均在本地修复：混合选择保留被拒文件反馈，迟到预处理不清除新批次错误；默认 Dragger 的实际键盘焦点关联错误描述和无效状态。增加相同元数据的两个 File 外部重排后精确删除身份用例。复核后的定向核心 suite 通过；本仓最终覆盖 **78 个互异 unit/消费者用例、17 个 Browser 场景**，不是重复运行计数，也不将来源测试计入本仓。Browser 最终串行运行，避免多仓默认 4000 端口冲突；此前端口占用是启动失败，未计为测试通过。类型检查通过。
+
+三类接入继续分别使用：URL 字符串附件采用 UploadFormItem；零请求原始 File[] 本地选择采用 FilePicker value/onChange；现有 action/customRequest、目录或 SDK owner 采用 FilePicker nativeUploadProps。内部 UploadPresentation 不对业务公开请求或状态机。自定义触发器与显式 null 的语义由 FilePicker 测试保护。
+
+最终视觉检查包括真实业务组件（合成数据/拦截请求，无业务后台写入）、明暗主题及 390px 容器：PublishedProductRevisionEditor 商品媒体字段，选择长文件名后容器仍为 390/390px；原权限、暂存文件和业务保存由现有消费者测试保护。 普通附件、卡片、拖拽与 ListExcelActions Modal 另有相同文件/主题/尺寸的共享组件前后对照。截图及日志仅在忽略的 `.artifacts/screenshots/2026-10-23-upload-sync/` 和 `.artifacts/upload-sync/`，不提交；未执行真实后台、视频 SDK 云端或产品发布 E2E，不据此宣称全后台移动端或辅助技术认证。
+
+归属代码 ESLint 无错误；历史整文件格式差异保留，新增文件/本次修改区段格式和差异空白检查通过。

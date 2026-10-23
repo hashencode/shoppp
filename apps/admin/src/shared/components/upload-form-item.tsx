@@ -35,16 +35,17 @@ export type UploadFormItemDisplayMode = 'auto' | 'card' | 'button'
 export type UploadFormItemProps = Omit<
   UploadProps,
   'customRequest' | 'fileList' | 'onChange' | 'onPreview' | 'onRemove'
-> & React.AriaAttributes & {
-  value?: UploadFormItemValue
-  onChange?: (value?: UploadFormItemValue) => void
-  uploadFile: (file: File) => Promise<string>
-  fileSizeLimitMB?: number
-  readonly?: boolean
-  tooltip?: React.ReactNode
-  uploadText?: React.ReactNode
-  displayMode?: UploadFormItemDisplayMode
-}
+> &
+  React.AriaAttributes & {
+    value?: UploadFormItemValue
+    onChange?: (value?: UploadFormItemValue) => void
+    uploadFile: (file: File) => Promise<string>
+    fileSizeLimitMB?: number
+    readonly?: boolean
+    tooltip?: React.ReactNode
+    uploadText?: React.ReactNode
+    displayMode?: UploadFormItemDisplayMode
+  }
 
 const DEFAULT_ACCEPT = '.jpg,.jpeg,.png'
 const DEFAULT_FILE_SIZE_LIMIT_MB = 10
@@ -270,6 +271,7 @@ export const UploadFormItem = ({
         return t('Image compression failed. Choose the file again.', issue.values)
     }
   }
+  const feedbackBatchRef = useRef<{ files: RcFile[]; failed: boolean } | null>(null)
   const uploadDescription =
     [describedBy, validationError ? validationErrorId : undefined].filter(Boolean).join(' ') ||
     undefined
@@ -538,6 +540,16 @@ export const UploadFormItem = ({
           maxCount,
           showUploadList: mergedShowUploadList,
           beforeUpload: async (file, selectedFiles) => {
+            const previousFeedbackBatch = feedbackBatchRef.current
+            const feedbackBatch =
+              previousFeedbackBatch && previousFeedbackBatch.files === selectedFiles
+                ? previousFeedbackBatch
+                : { files: selectedFiles, failed: false }
+            feedbackBatchRef.current = feedbackBatch
+            const reportValidationError = (issue: UploadValidationIssue) => {
+              feedbackBatch.failed = true
+              if (feedbackBatchRef.current === feedbackBatch) setValidationError(issue)
+            }
             let candidateFile = file
             if (beforeUpload) {
               try {
@@ -563,7 +575,7 @@ export const UploadFormItem = ({
               }
             }
             if (!matchesAcceptedType(candidateFile, accept)) {
-              setValidationError(
+              reportValidationError(
                 acceptedTypeText
                   ? {
                       key: 'Unsupported file format. Upload {types} files.',
@@ -576,16 +588,18 @@ export const UploadFormItem = ({
             try {
               const nextFile = await compressImage(candidateFile)
               if (exceedsFileSize(nextFile, fileSizeLimitMB)) {
-                setValidationError({
+                reportValidationError({
                   key: 'File size cannot exceed {size} MB.',
                   values: { size: fileSizeLimitMB },
                 })
                 return false
               }
-              setValidationError(null)
+              if (feedbackBatchRef.current === feedbackBatch && !feedbackBatch.failed) {
+                setValidationError(null)
+              }
               return nextFile
             } catch {
-              setValidationError({ key: 'Image compression failed. Choose the file again.' })
+              reportValidationError({ key: 'Image compression failed. Choose the file again.' })
               return false
             }
           },

@@ -175,6 +175,11 @@ describe('FilePicker local Browser Mode', () => {
       await waitFor(() => expect(host.querySelector('.ant-upload-list-item')).toBeNull())
       expect(screen.getAllByRole('alert')).toHaveLength(1)
       expect(inputOf(host).getAttribute('aria-invalid')).toBe('true')
+      const control = host.querySelector<HTMLElement>('.ant-upload-btn[role="button"]')!
+      control.focus()
+      expect(document.activeElement).toBe(control)
+      expect(control.getAttribute('aria-describedby')?.split(' ')).toContain(error.id)
+      expect(control.getAttribute('aria-invalid')).toBe('true')
       expect(inputOf(host).getAttribute('aria-describedby')?.split(' ')).toContain(error.id)
       expect(host.scrollWidth).toBeLessThanOrEqual(host.clientWidth)
       expect(error.getBoundingClientRect().height).toBeGreaterThan(0)
@@ -184,6 +189,8 @@ describe('FilePicker local Browser Mode', () => {
       await expect.element(page.getByText('corrected.xlsx')).toBeVisible()
       expect(screen.queryByRole('alert')).toBeNull()
       expect(inputOf(host).getAttribute('aria-invalid')).not.toBe('true')
+      expect(control.getAttribute('aria-invalid')).not.toBe('true')
+      expect(control.getAttribute('aria-describedby') ?? '').not.toContain(error.id)
       expect(requests).toHaveLength(0)
     }
   )

@@ -78,6 +78,11 @@
   padding: 12px 6px;
 }
 
+.ax-upload-presentation--button .ant-upload-list-item-name {
+  width: 0;
+  min-width: 0;
+}
+
 .ax-upload-presentation--dragger .ant-upload-drag-container {
   color: var(--ant-color-text);
 }

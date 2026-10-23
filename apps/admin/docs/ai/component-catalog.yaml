@@ -207,10 +207,21 @@ componentCatalog:
     avoidWhen:
       - 直播、证书 Canvas、Office 在线编辑或 HLS 分片合并等业务专属状态机
 
+  - name: UploadPresentation
+    source: src/shared/components/upload-presentation.tsx
+    type: shared-ui
+    sharedCapability: upload-presentation
+    responsibilities:
+      - 内部复用按钮、卡片、拖拽区、列表与字段反馈，不持有值和请求
+    useWhen:
+      - UploadFormItem 与 FilePicker 内部复用
+    avoidWhen:
+      - 业务页面直接消费；使用 UploadFormItem 或 FilePicker
+
   - name: FilePicker
     source: src/shared/components/file-picker.tsx
     type: file-selection
-    sharedCapability: upload-presentation
+    sharedCapability: file-picker
     responsibilities:
       - 本地受控 File[] 保留原始文件引用，整批检查格式、空文件、数量和大小，仅一次回调且不发请求
       - 原生 nativeUploadProps 通道完整透传 action、customRequest、事件、列表和目录语义，不注入本地校验或 fileList/maxCount

@@ -268,3 +268,21 @@ it('translates a retained validation error without changing files or repeating c
   )
   window.localStorage.removeItem(LANGUAGE_STORAGE_KEY)
 })
+
+it('removes the exact file after controlled reordering of identical file metadata', async () => {
+  const first = new File(['same'], 'same.pdf', { lastModified: 123 })
+  const second = new File(['same'], 'same.pdf', { lastModified: 123 })
+  const changed = rstest.fn()
+  const { container, rerender } = render(
+    <FilePicker multiple value={[first, second]} onChange={changed} />
+  )
+  rerender(<FilePicker multiple value={[second, first]} onChange={changed} />)
+  expect(changed).not.toHaveBeenCalled()
+  const rows = container.querySelectorAll('.ant-upload-list-item')
+  expect(rows).toHaveLength(2)
+  fireEvent.click(rows[1].querySelector<HTMLButtonElement>('.ant-upload-list-item-action')!)
+  await waitFor(() => expect(changed).toHaveBeenCalledTimes(1))
+  const remaining = changed.mock.calls[0][0] as File[]
+  expect(remaining).toHaveLength(1)
+  expect(remaining[0]).toBe(second)
+})

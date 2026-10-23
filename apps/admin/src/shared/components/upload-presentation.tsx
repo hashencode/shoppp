@@ -3,9 +3,10 @@ import './upload-presentation.css'
 import { CloudUploadOutlined } from '@ant-design/icons'
 import { Button, Upload, theme } from 'antd'
 import type { UploadProps } from 'antd'
+import type { UploadRef } from 'antd/es/upload'
 import classNames from 'classnames'
 import { FileUp } from 'lucide-react'
-import React from 'react'
+import React, { useLayoutEffect, useRef } from 'react'
 
 import { useI18n } from '../contexts/i18n-context'
 
@@ -82,11 +83,30 @@ export const UploadPresentation = ({
   children?: React.ReactNode
 }) => {
   const { token } = theme.useToken()
+  const uploadRef = useRef<UploadRef>(null)
+  const describedBy = uploadProps['aria-describedby']
+  const invalid = uploadProps['aria-invalid']
+  useLayoutEffect(() => {
+    if (displayMode !== 'dragger') return
+    const control = uploadRef.current?.nativeElement?.querySelector(
+      '.ant-upload-btn[role="button"]'
+    )
+    if (!control) return
+    // rc-upload puts ARIA on its hidden input; retain it on the keyboard control too.
+    for (const [name, value] of [
+      ['aria-describedby', describedBy],
+      ['aria-invalid', invalid],
+    ] as const) {
+      if (value === undefined) control.removeAttribute(name)
+      else control.setAttribute(name, String(value))
+    }
+  }, [describedBy, displayMode, invalid])
   const Component = displayMode === 'dragger' ? Upload.Dragger : Upload
   return (
     <>
       <Component
         {...uploadProps}
+        ref={uploadRef}
         className={classNames(
           'ax-upload-presentation',
           `ax-upload-presentation--${displayMode}`,
