@@ -1,3 +1,4 @@
+import { FilePicker } from '../../shared/components/file-picker'
 import { Alert, Button, Checkbox, Input, InputNumber, Upload } from 'antd'
 import React, { useEffect, useRef, useState } from 'react'
 
@@ -525,30 +526,33 @@ export function PublishedProductRevisionEditor({ canEdit, detail, onChanged }: P
               </label>
             </div>
             {newMediaIds.includes(item.id) ? (
-              <Upload
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                maxCount={1}
-                beforeUpload={(file) => {
-                  const extension = {
-                    'image/gif': 'gif',
-                    'image/jpeg': 'jpg',
-                    'image/png': 'png',
-                    'image/webp': 'webp',
-                  }[file.type]
-                  if (!extension || file.size > 10 * 1024 * 1024) {
-                    setError(t('Only JPEG, PNG, WebP, and GIF up to 10 MiB are allowed.'))
-                    return Upload.LIST_IGNORE
-                  }
-                  updateMedia(item.id, (previous) => ({
-                    ...previous,
-                    r2Key: `catalog/products/${productId}/${item.id}.${extension}`,
-                  }))
-                  setPendingFiles((current) => ({ ...current, [item.id]: file }))
-                  return false
+              <FilePicker
+                displayMode="button"
+                nativeUploadProps={{
+                  accept: 'image/jpeg,image/png,image/webp,image/gif',
+                  maxCount: 1,
+                  beforeUpload: (file) => {
+                    const extension = {
+                      'image/gif': 'gif',
+                      'image/jpeg': 'jpg',
+                      'image/png': 'png',
+                      'image/webp': 'webp',
+                    }[file.type]
+                    if (!extension || file.size > 10 * 1024 * 1024) {
+                      setError(t('Only JPEG, PNG, WebP, and GIF up to 10 MiB are allowed.'))
+                      return Upload.LIST_IGNORE
+                    }
+                    updateMedia(item.id, (previous) => ({
+                      ...previous,
+                      r2Key: `catalog/products/${productId}/${item.id}.${extension}`,
+                    }))
+                    setPendingFiles((current) => ({ ...current, [item.id]: file }))
+                    return false
+                  },
                 }}
               >
                 <Button disabled={!canEdit || busy}>{t('Choose image to upload')}</Button>
-              </Upload>
+              </FilePicker>
             ) : null}
             <div className="flex gap-2">
               <Button

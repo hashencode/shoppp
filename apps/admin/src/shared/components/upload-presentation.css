@@ -1,24 +1,21 @@
-.ax-upload-form-item {
-  color: var(--ant-color-text-secondary);
-}
-
-.ax-upload-form-item--card .ant-upload-list-item-container {
+.ax-upload-presentation--card .ant-upload-list-item-container {
   height: auto !important;
   min-height: 102px;
 }
 
-.ax-upload-form-item--card .ant-upload-list-item-container:has(.ant-upload-list-item-thumbnail img) {
+.ax-upload-presentation--card
+  .ant-upload-list-item-container:has(.ant-upload-list-item-thumbnail img) {
   height: 102px !important;
 }
 
-.ax-upload-form-item--card
+.ax-upload-presentation--card
   .ant-upload-list-item-container:has(.ant-upload-list-item-thumbnail img)
   .ant-upload-list-item {
   height: 100%;
   padding: 4px !important;
 }
 
-.ax-upload-form-item--card
+.ax-upload-presentation--card
   .ant-upload-list-item-container:has(.ant-upload-list-item-thumbnail img)
   .ant-upload-list-item::before {
   width: calc(100% - 8px) !important;
@@ -26,29 +23,29 @@
   border-radius: 4px !important;
 }
 
-.ax-upload-form-item--card .ant-upload-list-item-thumbnail {
+.ax-upload-presentation--card .ant-upload-list-item-thumbnail {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.ax-upload-form-item--card .ant-upload-list-item-thumbnail,
-.ax-upload-form-item--card .ant-upload-list-item-thumbnail img {
+.ax-upload-presentation--card .ant-upload-list-item-thumbnail,
+.ax-upload-presentation--card .ant-upload-list-item-thumbnail img {
   width: 100%;
   height: 100% !important;
 }
 
-.ax-upload-form-item--card .ant-upload-list-item-thumbnail img {
+.ax-upload-presentation--card .ant-upload-list-item-thumbnail img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain !important;
   object-position: center !important;
 }
 
-.ax-upload-form-item--card .ant-upload-list-item-name,
-.ax-upload-form-item--card .ant-upload-list-item-name a,
-.ax-upload-form-item--card .ant-upload-list-item-file-name,
-.ax-upload-form-item--card .ant-upload-list-item-file-name a {
+.ax-upload-presentation--card .ant-upload-list-item-name,
+.ax-upload-presentation--card .ant-upload-list-item-name a,
+.ax-upload-presentation--card .ant-upload-list-item-file-name,
+.ax-upload-presentation--card .ant-upload-list-item-file-name a {
   display: -webkit-box !important;
   overflow: hidden !important;
   white-space: normal !important;
@@ -60,19 +57,36 @@
   -webkit-box-orient: vertical;
 }
 
-.ax-upload-form-item--card
+.ax-upload-presentation--card
   .ant-upload-list-item-container:has(.ant-upload-list-item-thumbnail img)
   .ant-upload-list-item-name,
-.ax-upload-form-item--card
+.ax-upload-presentation--card
   .ant-upload-list-item-container:has(.ant-upload-list-item-thumbnail img)
   .ant-upload-list-item-name
   a,
-.ax-upload-form-item--card
+.ax-upload-presentation--card
   .ant-upload-list-item-container:has(.ant-upload-list-item-thumbnail img)
   .ant-upload-list-item-file-name,
-.ax-upload-form-item--card
+.ax-upload-presentation--card
   .ant-upload-list-item-container:has(.ant-upload-list-item-thumbnail img)
   .ant-upload-list-item-file-name
   a {
   display: none !important;
+}
+
+.ax-upload-presentation--button .ant-upload-list-item {
+  padding: 12px 6px;
+}
+
+.ax-upload-presentation--dragger .ant-upload-drag-container {
+  color: var(--ant-color-text);
+}
+
+.ax-upload-presentation--dragger .ant-upload-disabled .ant-upload-drag-container {
+  color: var(--ant-color-text-disabled);
+}
+
+.ax-upload-presentation--dragger .ant-upload-list-item-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }

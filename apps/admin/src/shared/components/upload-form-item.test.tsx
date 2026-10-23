@@ -3,11 +3,13 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, rstest } from '@rstest/core'
 import { Upload } from 'antd'
 import React, { useState } from 'react'
+import { I18nProvider, useI18n, LANGUAGE_STORAGE_KEY } from '../contexts/i18n-context'
 import { normalizeUploadUrl, UploadFormItem, type UploadFormItemValue } from './upload-form-item'
 
 void React
 
 afterEach(() => {
+  window.localStorage.removeItem(LANGUAGE_STORAGE_KEY)
   rstest.restoreAllMocks()
 })
 
@@ -208,7 +210,10 @@ describe('UploadFormItem', () => {
     fireEvent.change(getUploadInput(container), {
       target: { files: [new File(['image'], 'rejected.heic', { type: 'image/heic' })] },
     })
-    await waitFor(() => expect(document.querySelectorAll('.ant-message-notice')).toHaveLength(1))
+    await waitFor(() =>
+      expect(container.querySelector('[role="alert"]')?.textContent).toContain('文件格式不支持')
+    )
+    expect(document.querySelectorAll('.ant-message-notice')).toHaveLength(0)
     expect(uploadCount).toBe(0)
     expect(changeCount).toBe(0)
     expect(container.querySelector('a[href="/uploads/existing.jpg"]')).toBeTruthy()
@@ -599,3 +604,85 @@ describe('UploadFormItem', () => {
     expect(container.innerHTML).toContain('https://oss.example.com/existing.png')
   })
 })
+
+it('retains and translates inline validation feedback without uploading or changing its value', async () => {
+  window.localStorage.setItem(LANGUAGE_STORAGE_KEY, 'zh-CN')
+  const upload = rstest.fn(async () => '/unused')
+  const changed = rstest.fn()
+  const Switch = () => {
+    const { setLocale } = useI18n()
+    return <button onClick={() => setLocale('en-US')}>English</button>
+  }
+  const { container } = render(
+    <I18nProvider>
+      <UploadFormItem
+        accept=".pdf"
+        value="/files/kept.pdf"
+        uploadFile={upload}
+        onChange={changed}
+      />
+      <Switch />
+    </I18nProvider>
+  )
+  fireEvent.change(getUploadInput(container), { target: { files: [new File(['bad'], 'bad.txt')] } })
+  await waitFor(() =>
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe(
+      '文件格式不支持，请上传 .pdf 格式文件。'
+    )
+  )
+  const error = container.querySelector('[role="alert"]')!
+  expect(
+    container.querySelector('[aria-invalid="true"]')?.getAttribute('aria-describedby')
+  ).toContain(error.id)
+  fireEvent.click(screen.getByRole('button', { name: 'English' }))
+  expect(error.textContent).toBe('Unsupported file format. Upload .pdf files.')
+  expect(screen.getByText('kept.pdf')).toBeTruthy()
+  expect(upload).not.toHaveBeenCalled()
+  expect(changed).not.toHaveBeenCalled()
+  window.localStorage.removeItem(LANGUAGE_STORAGE_KEY)
+})
+
+it('uses the latest language for an async upload failure without repeating the upload', async () => {
+  window.localStorage.setItem(LANGUAGE_STORAGE_KEY, 'en-US')
+  let reject!: (error: Error) => void
+  const pending = new Promise<string>((_resolve, fail) => {
+    reject = fail
+  })
+  const upload = rstest.fn(() => pending)
+  const changed = rstest.fn()
+  const Switch = () => {
+    const { setLocale } = useI18n()
+    return <button onClick={() => setLocale('zh-CN')}>中文</button>
+  }
+  const { container } = render(
+    <I18nProvider>
+      <UploadFormItem accept=".pdf" uploadFile={upload} onChange={changed} />
+      <Switch />
+    </I18nProvider>
+  )
+  fireEvent.change(getUploadInput(container), {
+    target: { files: [new File(['pdf'], 'manual.pdf')] },
+  })
+  await waitFor(() => expect(upload).toHaveBeenCalledTimes(1))
+  fireEvent.click(screen.getByRole('button', { name: '中文' }))
+  await act(async () => reject(new Error('private backend detail')))
+  await screen.findByText('上传失败，请稍后重试。')
+  expect(screen.queryByText('Upload failed. Please try again later.')).toBeNull()
+  expect(upload).toHaveBeenCalledTimes(1)
+  expect(changed).not.toHaveBeenCalled()
+})
+
+it.each(['*', '*/*', 'image/*'])(
+  'retains local %s acceptance for a filename with empty MIME',
+  async (accept) => {
+    const upload = rstest.fn(async () => '//cdn.example.test/photo.JPG')
+    const file = new File(['image-bytes'], 'photo.JPG')
+    const changed = rstest.fn()
+    const { container } = render(
+      <UploadFormItem accept={accept} uploadFile={upload} onChange={changed} />
+    )
+    fireEvent.change(getUploadInput(container), { target: { files: [file] } })
+    await waitFor(() => expect(upload).toHaveBeenCalledExactlyOnceWith(file))
+    expect(changed).toHaveBeenCalledExactlyOnceWith('https://cdn.example.test/photo.JPG')
+  }
+)

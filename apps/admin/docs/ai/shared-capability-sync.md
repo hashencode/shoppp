@@ -111,3 +111,32 @@ L3 消费链为 `file-preview-pdf-content` → `FilePreview` → 动态加载它
 先增加两条 loading 回归：旧实现分别在 loading 归属与 native 切换时容器被替换处失败；修改后四个聚焦 unit suites 共 31 项通过，两个 Browser suites 共 9 项通过，无跳过。真实 Browser 使用双页合成 PDF 和延迟请求，验证明暗主题下单一居中提示、首页实际 canvas 绘制与区域高度/背景稳定；同时回归上传、图片、视频、PDF 超时及换源重开。改动代码 ESLint 和一次 Admin `typecheck` 通过。来源测试数未计入目标验证。
 
 补充视觉验收采用本地临时预览入口、真实组件/CSS 和合成 PDF，不代表真实后端或产品发布验收。1440×900 与 390×844、明暗两主题的四组检查通过：loading 居中、只有一个提示、加载前后高度相同、两页 canvas、无横向溢出。8 张加载/完成截图与测量位于根目录忽略的 `.artifacts/screenshots/2026-10-23-shoppp-pdf-loading/`，已抽查四张不同状态。临时预览页首次等待绘制在 15 秒超时；保留生产代码和断言，增加控制台诊断后四组检查通过，无运行时错误，不记作首轮全绿。
+
+## 2026-10-23 Upload presentation 独立采用（U5）
+
+本批独立采用依据医院计划 `docs/plans/2026-10-23-1704-refactor-cross-repo-upload-consistency-plan.md` 的 R5–R9、U5/U6、KTD2/3/4/5/6/8；不改变 Shoppp 产品计划、checkpoint 或发布状态。目标初始 HEAD `1c7ae747b24e7caf47ca584ffa861c937051296f`，remote `https://github.com/hashencode/shoppp.git` 已读核验。不可变来源为 `codex-admin-quick-start@df4670fbbcbdd9f309b6230d0ddac210003c8b7d`，医院来源 provenance 为 `342d614c377751ec3012da114856bd943ea7cdc8`。来源通过数不计入 Shoppp 证明。
+
+实施前文件与 adapter 范围：
+
+- 新增 `src/shared/components/upload-presentation.tsx` / `.css`（含内部 UploadTrigger）、`upload-file-validation.ts`、`file-picker.tsx` 及其 unit/Browser suites；本地三条值路径分别是 URL 附件、原始 `File[]`、原生 `UploadProps`。不引入跨仓 import 或依赖。
+- `upload-form-item.tsx` 合并展示和字段内校验反馈，复用本地 URL normalization、通配符/空 MIME 扩展名接受规则、默认图片压缩、并发/迟到隔离、FilePreview 和注入式 upload adapter；既有 `.css` 展示规则迁入共享 CSS。保留所有公开 props。
+- `list-excel-actions.tsx` 只把 Dragger 选择区交给 FilePicker 原生通道；Button、runAction、动态 close、模板可见条件和 Modal 生命周期仍由本地组件持有。
+- 实际业务入口 `pages/catalog/catalog-form-page.tsx` 与 `published-product-revision-editor.tsx` 使用 FilePicker 原生通道及原有本地化 children 按钮；保留类型/10MiB beforeUpload、pending File/mediaKey、每 item id 映射、请求载荷、媒体子写/排序/版本/认证/发布 owner。API、storefront、packages/contracts 不变。
+- 双语采用 `contexts/i18n-context.tsx` 的现有 useI18n/useCurrentTranslate 与 `i18n/translations.ts`；本地校验状态保存消息 key/values，渲染翻译，切换语言不重选/清值/重复回调/写入；异步即时错误读取当前语言。不增加通用 locale API。
+
+L3 consumer closure：根 `package.json` workspaces 为 `apps/*`、`packages/*`；`@shoppp/admin` 仅依赖 workspace `@shoppp/contracts`，此批不变更该包。全 apps/packages 的 import/reference 检索未发现 UploadFormItem/ListExcelActions 的生产 JSX caller 或对外 barrel；其直接 suite 为 `upload-form-item.test.tsx` / `.browser.test.tsx`、`list-excel-actions.test.tsx`。新增 FilePicker 由上述两个共享 owner 以及上述两个 Catalog 入口消费；revision editor 被 CatalogFormPage 消费，最近 suite 均为 `pages/catalog/catalog-form-page.test.tsx`，父 CatalogList 的 `catalog-list-page.test.tsx` 作为反向闭包保留。`index-disabled-form-components.test.tsx` 使用原生 AntD Upload，属于现有全局 disabled 样式合同，本批不修改。
+
+验证计划（先证明后实现）：先运行现有共享 baseline；保留 scheduled create 完整请求与原始 File Axios 传输断言，补 revision 实际 input 选择/上传/排序载荷及无效选择零写，新增 FilePicker 批次/原生透传/自定义 children/当前语言错误测试，补 URL 字段内错误的语言切换与异步失败当前语言回归。unit 自检命令为 `bun run --cwd apps/admin test <明确文件>`。宿主负责定向 Browser、最终一次 Admin typecheck、changed-file lint/格式与精确上传 tree 验证，不执行 monorepo suite/build。
+
+当前状态：`adapting`。本节在任何上传 production 修改前补齐；实际命令、RED 和最终验证结果在本节追加，不能从历史或来源结果推断 verified。同 checkout 的 PDF 增量属于外部并发工作，未纳入此批上传差量。
+
+U5 本地实施与自检证据（宿主最终门禁前）：
+
+- `bun run --cwd apps/admin test src/shared/components/upload-form-item.test.tsx src/shared/components/list-excel-actions.test.tsx`：修改前 2 files / 29 tests 通过。随后新增 FilePicker suite 因组件尚不存在而无法解析；URL 字段语言切换回归在期望 inline alert、实际 undefined 处 RED，原 18 条 UploadFormItem 仍通过。
+- `catalog-form-page.test.tsx --testNamePattern 'selects raw revision|creates a scheduled product'`：新增修订真实选文件 characterization 与原 scheduled create 两条在 Catalog production 修改前通过。测试开发中的首次失败来自无效 MIME 被原生 accept 提前过滤及预期中文遗漏“图片”；改用有效 MIME 的超限 PNG；第二次暴露 AntD 每次选择替换 input，改为每次查询当前 input。没有以这些 harness 问题冒充生产缺陷。最终确认超限零写、有效原始 File 保留、保存时一次媒体 PUT、正确媒体顺序/版本载荷。
+- 实施后 `bun run --cwd apps/admin test src/shared/components/file-picker.test.tsx src/shared/components/upload-form-item.test.tsx src/shared/components/list-excel-actions.test.tsx src/pages/catalog/catalog-form-page.test.tsx src/pages/catalog/catalog-list-page.test.tsx`：5 files / 73 tests 通过、无 skip。包含原有并发/删除迟到/父级覆盖/readonly、原生动态 close、本地整批检查与原始引用、children undefined/null、语言切换不重复回调、异步错误当前语言及本地 wildcard/空 MIME 接受合同。
+- 新 Browser suite `file-picker.browser.test.tsx` 已落地：真实 input/drop、完整批次拒绝、light/dark 长名和局部错误、真实 FormData/action 字节与原生 defaultFileList、false/LIST_IGNORE 区别、controlled/remove/hidden/busy、progress/error/close、原触发节点和 locale 原位切换。它与现有 `upload-form-item.browser.test.tsx` 的权威执行及最终一次 Admin typecheck 留给宿主；尚未以 unit 通过推断 Browser 完成。
+- 根 Prettier 忽略整个 `apps/admin`，首次根命令没有修改；改从 `apps/admin` 运行既有 prettier，只定向本批文件。旧 revision 和 ListExcel 文件的无关 formatter 差量已撤去，保留原 owner 区域；未运行 root/full formatter、monorepo suite/build、安装或生成。`git diff --check` 通过。
+- 初始外部 PDF dirty paths 与 sync diff/hash 已保存在忽略的 `.artifacts/upload-u5/`；外部随后自行提交并使 HEAD 前进至 `656853c801f4dec845285f2be4ffc4abfa39daf1`，本 worker 未改 branch/index/HEAD。上传 doc 只追加本独立章节，未修改既有 PDF 记录。宿主负责按上传差量固定与验证交付身份。
+
+三种路径和组件目录已同步。运行时不增加字段说明段落、技术提示或 Alert；只新增实际校验反馈，图标/间距/列表由内部展示层持有。当前仍为 `adapting`，待宿主最终 L3 门禁与视觉证据。

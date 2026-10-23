@@ -207,17 +207,35 @@ componentCatalog:
     avoidWhen:
       - 直播、证书 Canvas、Office 在线编辑或 HLS 分片合并等业务专属状态机
 
+  - name: FilePicker
+    source: src/shared/components/file-picker.tsx
+    type: file-selection
+    sharedCapability: upload-presentation
+    responsibilities:
+      - 本地受控 File[] 保留原始文件引用，整批检查格式、空文件、数量和大小，仅一次回调且不发请求
+      - 原生 nativeUploadProps 通道完整透传 action、customRequest、事件、列表和目录语义，不注入本地校验或 fileList/maxCount
+      - 通过内部 UploadPresentation/UploadTrigger 统一按钮和拖拽展示、长文件名、主题及字段内错误关联
+      - 默认触发文案及持久校验反馈按当前 locale 渲染；切换语言不清理文件或重放回调
+      - children 未提供时使用默认触发器，显式 null 保留隐藏语义，原有按钮状态由调用方持有
+    useWhen:
+      - 先选本地文件、提交时由业务执行导入或上传
+      - 既有原生 Upload 流程需要统一展示并保留 UploadProps 和原触发按钮
+    avoidWhen:
+      - 上传成功立即写回 URL 的附件字段，使用 UploadFormItem
+      - 富文本内部上传或 SDK 自有选择器不经过 Ant Design Upload
+
   - name: UploadFormItem
     source: src/shared/components/upload-form-item.tsx
     type: form-field
     sharedCapability: upload-concurrency
     responsibilities:
+      - URL 附件字段复用内部 UploadPresentation/UploadTrigger 展示；本地 File[] 或原生 UploadProps 使用 FilePicker
       - 渲染表单字段型上传控件
       - 根据 accept 自动选择卡片或按钮展示，并允许显式覆盖
       - JPEG、PNG、WebP 默认压缩，GIF 绕过；压缩后统一文件 MIME、扩展名和大小校验
       - 统一上传文件列表、FilePreview 预览、删除、大小限制与 readonly 禁用
       - 通过业务 adapter 注入 uploadFile，避免在通用组件中硬编码接口路径
-      - 组合调用方 beforeUpload 校验，失败或压缩后超限时不发起请求
+      - 组合调用方 beforeUpload 校验，失败或压缩后超限时不发起请求；就地反馈随当前 locale 渲染
       - 通过 tooltip 渲染上传说明，保持上传卡片与提示文本的固定间距和样式
       - 原子合并并发上传结果，忽略已删除文件的迟到响应和被父级值替换的上传任务
     useWhen:
@@ -238,7 +256,8 @@ componentCatalog:
       - 固化导入/导出按钮和下载模板按钮的视觉语义：模板下载使用 link 按钮、无 icon，并紧跟导入按钮右侧
       - 对导出和模板下载的异步 onClick 自动显示按钮 loading；页面仅在需要外部联动时显式传 loading
       - 异步动作进行中同步阻止重复触发
-      - 只承载按钮、导入弹窗和 Upload.Dragger 展示，不承载接口路径、权限判断、业务参数或成功提示
+      - 只把 Dragger 文件选择展示交给 FilePicker 原生通道；本地按钮、runAction 和 Modal 生命周期保持原 owner
+      - 不承载接口路径、权限判断、业务参数或成功提示
     useWhen:
       - 标准列表页需要导出当前查询结果
       - 标准列表页需要 Excel 批量导入，并在导入成功后刷新列表
