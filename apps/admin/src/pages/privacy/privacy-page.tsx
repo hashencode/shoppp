@@ -1,5 +1,5 @@
 import type { CreatePrivacyRequest, PrivacyRequest } from '@shoppp/contracts'
-import { Button, Form, Input, Modal, Select, Space, Table, Tag, App } from 'antd'
+import { Button, Card, Form, Input, Modal, Select, Table, Tag, App } from 'antd'
 import dayjs from 'dayjs'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocalizedApiError } from '../../shared/i18n/api-error'
@@ -12,6 +12,12 @@ import { useCurrentTranslate, useI18n } from '../../shared/contexts/i18n-context
 import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
 
 import { useFormDialog } from '../../shared/hooks/use-form-dialog'
+import {
+  buildListToolbarColumnSettingOptions,
+  ListToolbarActions,
+} from '../../shared/components/list-toolbar-actions'
+import { useListViewPreferences } from '../../shared/hooks/use-list-view-preferences'
+import { STANDARD_LIST_TABLE_CLASS_NAME, TemplateListContent } from '../../shared/template-kit/list'
 
 void React
 
@@ -20,6 +26,8 @@ type FormValues = Omit<CreatePrivacyRequest, 'confirm' | 'correction'> & {
   requestedValue?: string
 }
 
+const COLUMN_KEYS = ['created', 'reference', 'type', 'decision', 'status', 'expires', 'actions']
+
 export const PrivacyPage = () => {
   const { message } = App.useApp()
   const { t } = useI18n()
@@ -27,6 +35,12 @@ export const PrivacyPage = () => {
   const localizeError = useLocalizedApiError()
   const [items, setItems] = useState<PrivacyRequest[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const view = useListViewPreferences({
+    tableId: 'privacy-requests-list',
+    defaultColumnKeys: COLUMN_KEYS,
+    defaultDensity: 'middle',
+  })
   const [open, setOpen] = useState(false)
   const [form] = Form.useForm<FormValues>()
   const privacyDialog = useFormDialog({ open, form, onClose: () => setOpen(false) })
@@ -34,14 +48,15 @@ export const PrivacyPage = () => {
 
   const load = useCallback(async () => {
     setLoading(true)
+    setLoadError(null)
     try {
       setItems(await fetchPrivacyRequests())
     } catch (error) {
-      void message.error(localizeError(error))
+      setLoadError(localizeError(error))
     } finally {
       setLoading(false)
     }
-  }, [message, localizeError])
+  }, [localizeError])
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0)
@@ -107,10 +122,17 @@ export const PrivacyPage = () => {
     [t]
   )
 
+  const orderedColumns = view.columnOrder.flatMap((key) =>
+    columns.filter((column) => column.key === key)
+  )
+  const visibleColumns = orderedColumns.filter((column) =>
+    view.selectedColumnKeys.includes(column.key)
+  )
+
   return (
     <CustomPageRecipe title={t('Privacy requests')}>
-      <div className="flex flex-wrap items-center gap-3">
-        <Space>
+      <Card variant="borderless" styles={{ body: { padding: 16 } }}>
+        <div className="mb-4 flex flex-wrap justify-end gap-2">
           <Button
             type="primary"
             onClick={() => {
@@ -120,17 +142,50 @@ export const PrivacyPage = () => {
           >
             {t('Record verified request')}
           </Button>
-          <Button onClick={() => void load()}>{t('Refresh')}</Button>
-        </Space>
-      </div>
-      <Table<PrivacyRequest>
-        rowKey="id"
-        columns={columns}
-        dataSource={items}
-        loading={loading}
-        pagination={false}
-        scroll={{ x: 1200 }}
-      />
+          <ListToolbarActions
+            tableSize={view.tableSize}
+            onTableSizeChange={view.setTableSize}
+            onClearColumnSort={view.clearColumnOrder}
+            clearColumnSortDisabled={!view.hasCustomColumnOrder}
+            reloadLoading={loading}
+            onReload={() => void load()}
+            columnSettingOptions={buildListToolbarColumnSettingOptions(orderedColumns)}
+            selectedColumnKeys={view.selectedColumnKeys}
+            onSelectedColumnKeysChange={view.setSelectedColumnKeys}
+            onColumnSettingOrderChange={view.setColumnOrder}
+          />
+        </div>
+        <TemplateListContent
+          showInitialLoading={loading && items.length === 0}
+          showError={!loading && Boolean(loadError) && items.length === 0}
+          showPartial={Boolean(loadError) && items.length > 0}
+          showEmpty={!loading && !loadError && items.length === 0}
+          errorMessage={loadError ?? undefined}
+          partialMessage={loadError ?? undefined}
+          onRetry={() => void load()}
+          onReloadPartial={() => void load()}
+          onResetEmpty={() => void load()}
+          copy={{
+            loadingTitle: t('Loading privacy requests'),
+            errorTitle: t('List could not be loaded'),
+            partialTitle: t('Refresh failed. Showing previously loaded data.'),
+            emptyDescription: t('No privacy requests recorded.'),
+            emptyActionLabel: t('Reload'),
+          }}
+          tableNode={
+            <Table<PrivacyRequest>
+              className={STANDARD_LIST_TABLE_CLASS_NAME}
+              rowKey="id"
+              columns={visibleColumns}
+              dataSource={items}
+              loading={loading}
+              size={view.tableSize}
+              pagination={false}
+              scroll={{ x: 1200 }}
+            />
+          }
+        />
+      </Card>
       <Modal
         title={t('Record verified privacy request')}
         open={open}
@@ -150,7 +205,6 @@ export const PrivacyPage = () => {
           layout="vertical"
           onFinish={() =>
             void privacyDialog.submit(async (values) => {
-
               try {
                 await createPrivacyRequest({
                   confirm: true,

@@ -1,4 +1,5 @@
-import { Alert, Button, Card, Input, Modal, Spin } from 'antd'
+import { ReloadOutlined } from '@ant-design/icons'
+import { Alert, Button, Card, Input, Modal } from 'antd'
 import React, { useEffect, useState } from 'react'
 
 import { normalizeApiError } from '../../infrastructure/http/api-client'
@@ -12,6 +13,7 @@ import { useI18n } from '../../shared/contexts/i18n-context'
 import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
 
 import { useFormDialog } from '../../shared/hooks/use-form-dialog'
+import { TemplateListContent } from '../../shared/template-kit/list'
 
 void React
 
@@ -25,6 +27,8 @@ export function ReviewModerationPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [readVersion, setReadVersion] = useState(0)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const dialog = useFormDialog({
     open: selected !== null,
     onClose: () => {
@@ -43,7 +47,7 @@ export function ReviewModerationPage() {
         setNextCursor(page.nextCursor)
       })
       .catch((cause) => {
-        if (active) setError(normalizeApiError(cause).message)
+        if (active) setLoadError(normalizeApiError(cause).message)
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -51,7 +55,14 @@ export function ReviewModerationPage() {
     return () => {
       active = false
     }
-  }, [])
+  }, [readVersion])
+
+  const reload = () => {
+    if (loading || busy || selected !== null) return
+    setLoading(true)
+    setLoadError(null)
+    setReadVersion((current) => current + 1)
+  }
 
   const loadMore = async () => {
     if (!nextCursor || busy) return
@@ -106,36 +117,68 @@ export function ReviewModerationPage() {
   }
 
   return (
-    <CustomPageRecipe title={t('Review moderation')} className="p-4 sm:p-6">
+    <CustomPageRecipe title={t('Review moderation')}>
       {error ? <Alert showIcon type="error" title={error} /> : null}
       {notice ? <Alert showIcon type="info" title={notice} /> : null}
-      {loading ? <Spin aria-label={t('Loading reviews')} /> : null}
-      {!loading && reviews.length === 0 ? <p>{t('No reviews are awaiting moderation.')}</p> : null}
-      <div className="grid gap-3">
-        {reviews.map((review) => (
-          <Card key={review.id} size="small">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0 space-y-1">
-                <p className="font-medium">
-                  {review.displayName} · {review.rating}/5
-                </p>
-                <p className="text-sm text-gray-600">
-                  {review.productId} · {review.submittedAt}
-                </p>
-                <p className="break-words">{review.body}</p>
+      <Card variant="borderless" styles={{ body: { padding: 16 } }}>
+        <div className="mb-4 flex flex-wrap justify-end gap-2">
+          <Button
+            icon={<ReloadOutlined aria-hidden />}
+            loading={loading}
+            disabled={busy || selected !== null}
+            onClick={reload}
+          >
+            {t('Refresh')}
+          </Button>
+        </div>
+        <TemplateListContent
+          showInitialLoading={loading && reviews.length === 0}
+          showError={!loading && Boolean(loadError) && reviews.length === 0}
+          showPartial={Boolean(loadError) && reviews.length > 0}
+          showEmpty={!loading && !loadError && reviews.length === 0}
+          errorMessage={loadError ?? undefined}
+          partialMessage={loadError ?? undefined}
+          onRetry={reload}
+          onReloadPartial={reload}
+          onResetEmpty={reload}
+          copy={{
+            loadingTitle: t('Loading reviews'),
+            errorTitle: t('List could not be loaded'),
+            partialTitle: t('Refresh failed. Showing previously loaded data.'),
+            emptyDescription: t('No reviews are awaiting moderation.'),
+            emptyActionLabel: t('Reload'),
+          }}
+          tableNode={
+            <>
+              <div className="grid gap-3">
+                {reviews.map((review) => (
+                  <Card key={review.id} size="small">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 space-y-1">
+                        <p className="font-medium">
+                          {review.displayName} · {review.rating}/5
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {review.productId} · {review.submittedAt}
+                        </p>
+                        <p className="break-words">{review.body}</p>
+                      </div>
+                      <Button disabled={busy || loading} onClick={() => void openReview(review.id)}>
+                        {t('Review')}
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
               </div>
-              <Button disabled={busy} onClick={() => void openReview(review.id)}>
-                {t('Review')}
-              </Button>
-            </div>
-          </Card>
-        ))}
-      </div>
-      {nextCursor ? (
-        <Button loading={busy} onClick={() => void loadMore()}>
-          {t('Load more reviews')}
-        </Button>
-      ) : null}
+              {nextCursor ? (
+                <Button loading={busy} disabled={loading} onClick={() => void loadMore()}>
+                  {t('Load more reviews')}
+                </Button>
+              ) : null}
+            </>
+          }
+        />
+      </Card>
       <Modal
         title={t('Moderate review')}
         open={selected !== null}

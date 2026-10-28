@@ -1,5 +1,5 @@
 import type { AdminRole, AdminUser } from '@shoppp/contracts'
-import { Alert, Button, Card, Descriptions, Form, Input, Select, Space, Spin, Tag, App } from 'antd'
+import { Alert, Button, Descriptions, Form, Input, Select, Tag, App } from 'antd'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -10,6 +10,8 @@ import { fetchAdminRoles, fetchAdminUser, updateAdminUser } from '../../services
 import { useI18n } from '../../shared/contexts/i18n-context'
 
 import { CrudFormDrawerRecipe } from '../../shared/template-kit/recipes/crud-form-drawer-recipe'
+import { BasicCrudFormRecipe } from '../../shared/template-kit/recipes/basic-crud-form-recipe'
+import { getFormModeViewModel } from '../../routes/form-route-contract'
 
 void React
 
@@ -167,7 +169,7 @@ export const UserDetailPage = ({
       </Form.Item>
       <Form.Item name="roleId" label={t('Role')} rules={[{ required: true }]}>
         <Select
-          disabled={!canReadRoles}
+          disabled={!canReadRoles || !canWrite || isSelf}
           options={(canReadRoles ? assignableRoles : user ? [user.role] : []).map((role) => ({
             label: role.name,
             value: role.id,
@@ -299,79 +301,79 @@ export const UserDetailPage = ({
       />
     )
 
-  if (loading && !user) return <Spin description={t('Loading user')} />
-
   return (
-    <div className="mx-auto max-w-4xl space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">{user?.displayName ?? t('User access')}</h1>
-        </div>
-        <Button onClick={() => navigate('/access/users')}>{t('Back to users')}</Button>
-      </div>
-      {error ? (
-        <Alert
-          type="error"
-          showIcon
-          title={error}
-          action={<Button onClick={() => void load()}>{t('Reload')}</Button>}
-        />
-      ) : null}
-      {isSelf ? (
-        <Alert type="info" showIcon title={t('You cannot change your own role or status.')} />
-      ) : null}
-      {canWrite && !canReadRoles ? (
-        <Alert
-          type="info"
-          showIcon
-          title={t(
-            "Role visibility is not granted. You can update this user's display name or status, but not their role."
-          )}
-        />
-      ) : null}
-      {user?.status === 'active' && user.role.protected && !isSelf ? (
-        <Alert
-          type="warning"
-          showIcon
-          title={t(
-            'Disabling or demoting this protected administrator will be rejected if it would leave no enabled protected administrator.'
-          )}
-        />
-      ) : null}
-      {user ? (
-        <Card>
-          {details}
-          <Form<UserValues>
-            form={form}
-            layout="vertical"
-            disabled={!canWrite || isSelf || saving || confirming}
-            onFinish={(values) =>
-              void submit(values).then((result) => {
-                if ('success' in result && result.success)
-                  void message.success(t('User access updated.'))
-              })
-            }
-          >
+    <BasicCrudFormRecipe<UserValues>
+      spec={{
+        title: user?.displayName ?? t('User access'),
+        parsedMode: {
+          ok: true,
+          mode: canWrite && !isSelf ? 'modify' : 'readonly',
+          resourceKey: id,
+        },
+        modeView: getFormModeViewModel(canWrite && !isSelf ? 'modify' : 'readonly'),
+        permissionDenied: false,
+        detailLoading: loading && !user,
+        detailError: !user && error ? normalizeApiError(new Error(error)) : null,
+        saveLoading: saving || confirming,
+        isReadonly: !(canWrite && !isSelf),
+        form,
+        initialValues: { displayName: '', roleId: '', status: 'active' },
+        stateCopy: { submitSuccessMessage: t('User access updated.') },
+        onBackToList: () => navigate('/access/users'),
+        onRetryDetail: () => void load(),
+        onResetAll: () => {
+          form.resetFields()
+          if (baseline) form.setFieldsValue(baseline as UserValues)
+          setError(null)
+        },
+        onSubmit: async (values) => {
+          const result = await submit(values)
+          if ('success' in result && result.success) void message.success(t('User access updated.'))
+        },
+        renderFields: () => (
+          <>
+            {details}
             {fields}
-            {canWrite ? (
-              <Space>
-                <Button type="primary" htmlType="submit" loading={saving} disabled={isSelf}>
-                  {t('Save changes')}
-                </Button>
-                <Button
-                  onClick={() => {
-                    form.resetFields()
-                    if (baseline) form.setFieldsValue(baseline)
-                  }}
-                  disabled={isSelf || saving}
-                >
-                  {t('Reset')}
-                </Button>
-              </Space>
+          </>
+        ),
+        renderAfterForm: (
+          <div className="space-y-4">
+            {isSelf ? (
+              <Alert type="info" showIcon title={t('You cannot change your own role or status.')} />
             ) : null}
-          </Form>
-        </Card>
-      ) : null}
-    </div>
+            {canWrite && !canReadRoles ? (
+              <Alert
+                type="info"
+                showIcon
+                title={t(
+                  "Role visibility is not granted. You can update this user's display name or status, but not their role."
+                )}
+              />
+            ) : null}
+            {user?.status === 'active' && user.role.protected && !isSelf ? (
+              <Alert
+                type="warning"
+                showIcon
+                title={t(
+                  'Disabling or demoting this protected administrator will be rejected if it would leave no enabled protected administrator.'
+                )}
+              />
+            ) : null}
+            {user && error ? (
+              <Alert
+                type="error"
+                showIcon
+                title={error}
+                action={
+                  <Button onClick={() => void load()} disabled={saving || confirming}>
+                    {t('Reload')}
+                  </Button>
+                }
+              />
+            ) : null}
+          </div>
+        ),
+      }}
+    />
   )
 }

@@ -29,6 +29,35 @@ afterEach(() => server.resetHandlers())
 afterAll(() => server.close())
 
 describe('PrivacyPage', () => {
+  it('retries a failed list read without executing a privacy request', async () => {
+    let reads = 0
+    server.use(
+      http.get('*/admin/privacy/requests', () => {
+        reads += 1
+        return reads === 1
+          ? HttpResponse.json(
+              { error: { code: 'read_failed', message: 'Try privacy read again.' } },
+              { status: 503 }
+            )
+          : HttpResponse.json({ data: [] })
+      })
+    )
+    renderInLocale(
+      <AuthTestProvider>
+        <ThemeProvider>
+          <MemoryRouter>
+            <PrivacyPage />
+          </MemoryRouter>
+        </ThemeProvider>
+      </AuthTestProvider>
+    )
+    await screen.findByText('List could not be loaded')
+    expect(screen.queryByText('No privacy requests recorded.')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    await screen.findByText('No privacy requests recorded.')
+    expect(reads).toBe(2)
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
   it('shows identity verification guidance when recording a request', async () => {
     renderInLocale(
       <AuthTestProvider>
@@ -50,7 +79,7 @@ describe('PrivacyPage', () => {
     )
     expect(screen.getByRole('dialog').contains(guidance)).toBe(true)
     expect(heading.parentElement?.contains(guidance)).toBe(false)
-    expect((await screen.findAllByText('No data')).length).toBeGreaterThan(0)
+    expect(await screen.findByText('No privacy requests recorded.')).toBeTruthy()
   })
   it.each(['email', 'shipping_address'] as const)(
     'blocks incomplete correction input then submits the exact verified correction once and reads once (%s)',

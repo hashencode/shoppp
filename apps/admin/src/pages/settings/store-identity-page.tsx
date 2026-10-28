@@ -1,4 +1,4 @@
-import { Alert, Button, Card, Form, Input, Space, Typography } from 'antd'
+import { Alert, App, Button, Card, Form, Input, Popconfirm, Space, Typography } from 'antd'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -12,7 +12,13 @@ import {
 } from '../../services/platform/api'
 import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
 import { ContentMediaSelect } from '../../shared/content/content-media-select'
-import { useI18n } from '../../shared/contexts/i18n-context'
+import { useCurrentTranslate, useI18n } from '../../shared/contexts/i18n-context'
+import { localizeApiError } from '../../shared/i18n/api-error'
+import { FormSubmitToolbar } from '../../shared/components/form-submit-toolbar'
+import { QueryStateBlock } from '../../shared/components/query-state-block'
+import { FORM_CARD_BODY_WIDTH_CLASS_NAME } from '../../shared/template-kit/form/form-content-width'
+import { FORM_ERROR_SCROLL_OPTIONS } from '../../shared/template-kit/form/form-validation-scroll'
+import { ForbiddenPage } from '../forbidden-page'
 
 void React
 
@@ -36,6 +42,8 @@ const optional = (value?: string) => value?.trim() || null
 
 export const StoreIdentityPage = () => {
   const { t } = useI18n()
+  const translateNow = useCurrentTranslate()
+  const { message } = App.useApp()
   const { permissions, role } = useAuth()
   const canRead = hasPermission(role, 'identity.read', permissions)
   const canWrite = hasPermission(role, 'identity.write', permissions)
@@ -44,8 +52,16 @@ export const StoreIdentityPage = () => {
   const [loading, setLoading] = useState(canRead)
   const [saving, setSaving] = useState(false)
   const mutationLock = useRef(false)
+  const alive = useRef(true)
+  const loadRequest = useRef(0)
+  const [loadError, setLoadError] = useState<ApiError | null>(null)
   const [error, setError] = useState<ApiError | null>(null)
   const [backlinks, setBacklinks] = useState<Backlink[]>([])
+  const reloadButton = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (error) reloadButton.current?.focus()
+  }, [error])
 
   const apply = useCallback(
     (value: StoreIdentityView | null) => {
@@ -68,20 +84,45 @@ export const StoreIdentityPage = () => {
     [form]
   )
 
-  useEffect(() => {
-    if (!canRead) return
-    let active = true
-    void fetchStoreIdentity()
-      .then((value) => active && apply(value))
-      .catch((cause) => active && setError(normalizeApiError(cause)))
-      .finally(() => active && setLoading(false))
-    return () => {
-      active = false
+  const load = useCallback(async () => {
+    if (mutationLock.current) return
+    const request = ++loadRequest.current
+    setLoading(true)
+    setLoadError(null)
+    try {
+      const value = await fetchStoreIdentity()
+      if (!alive.current || request !== loadRequest.current) return
+      apply(value)
+      setError(null)
+      setBacklinks([])
+    } catch (cause) {
+      if (alive.current && request === loadRequest.current) setLoadError(normalizeApiError(cause))
+    } finally {
+      if (alive.current && request === loadRequest.current) setLoading(false)
     }
-  }, [apply, canRead])
+  }, [apply])
+
+  useEffect(() => {
+    alive.current = true
+    const timer = canRead ? window.setTimeout(() => void load(), 0) : undefined
+    return () => {
+      window.clearTimeout(timer)
+      alive.current = false
+      loadRequest.current += 1
+    }
+  }, [canRead, load])
+
+  const reset = () => {
+    if (!canWrite || loading || loadError || mutationLock.current) return
+    form.resetFields()
+    apply(identity)
+    setError(null)
+    setBacklinks([])
+  }
 
   const save = async (values: Values) => {
-    if (!canWrite || mutationLock.current) return
+    if (!canRead || !canWrite || loading || loadError || !alive.current || mutationLock.current)
+      return
     mutationLock.current = true
     setSaving(true)
     setError(null)
@@ -107,26 +148,38 @@ export const StoreIdentityPage = () => {
         storefrontName: values.storefrontName,
         tagline: values.tagline,
       })
+      if (!alive.current) return
       apply(saved)
+      void message.success(translateNow('Store details saved.'))
     } catch (cause) {
+      if (!alive.current) return
       const apiError = normalizeApiError(cause)
       setError(apiError)
       const details = apiError.details as { backlinks?: Backlink[] } | undefined
       setBacklinks(details?.backlinks ?? [])
     } finally {
       mutationLock.current = false
-      setSaving(false)
+      if (alive.current) setSaving(false)
     }
   }
 
   return (
-    <CustomPageRecipe title="Store identity">
+    <CustomPageRecipe title={t('Store details')}>
       {!canRead ? (
-        <Alert type="error" message="Access denied" />
+        <ForbiddenPage />
       ) : loading ? (
-        <Typography.Text>Loading store identity…</Typography.Text>
+        <QueryStateBlock state="loading" title={t('Loading store details…')} />
+      ) : loadError ? (
+        <QueryStateBlock
+          state="error"
+          title={t('Store details could not be loaded')}
+          description={localizeApiError(loadError, t)}
+          primaryActionLabel={t('Retry')}
+          primaryActionButtonType="default"
+          onPrimaryAction={() => void load()}
+        />
       ) : (
-        <Space direction="vertical" size="middle" className="w-full">
+        <div className="space-y-4">
           <Typography.Text>
             {identity
               ? t('Published store details · version {version}', { version: identity.version })
@@ -147,16 +200,37 @@ export const StoreIdentityPage = () => {
               </Space>
             </details>
           ) : null}
-          {error ? <Alert type="error" message={error.message} /> : null}
+          {error ? (
+            <Alert
+              type="error"
+              showIcon
+              title={t('Store details could not be saved')}
+              description={localizeApiError(error, t)}
+              action={
+                <Popconfirm
+                  title={t('Reload and discard local edits')}
+                  okText={t('Confirm')}
+                  cancelText={t('Cancel')}
+                  onConfirm={() => void load()}
+                  disabled={saving}
+                >
+                  <Button ref={reloadButton} disabled={saving}>
+                    {t('Reload')}
+                  </Button>
+                </Popconfirm>
+              }
+            />
+          ) : null}
           {backlinks.length ? (
             <Alert
               type="warning"
-              message="Repair mutable Theme drafts before changing this Logo source."
+              showIcon
+              title={t('Repair mutable Theme drafts before changing this Logo source.')}
               description={
                 <Space wrap>
                   {backlinks.map((backlink) => (
                     <Link key={backlink.id} to={backlink.href}>
-                      Repair {backlink.id}
+                      {t('Repair {item}', { item: backlink.id })}
                     </Link>
                   ))}
                 </Space>
@@ -166,14 +240,23 @@ export const StoreIdentityPage = () => {
           <Form
             form={form}
             layout="vertical"
+            className="space-y-4 pb-20"
             onFinish={(values) => void save(values)}
-            disabled={saving}
+            disabled={!canWrite || saving}
+            scrollToFirstError={FORM_ERROR_SCROLL_OPTIONS}
           >
-            <Card title="Public identity">
-              <Form.Item name="storefrontName" label="Storefront name" rules={[{ required: true }]}>
+            <Card
+              title={t('Public identity')}
+              classNames={{ body: FORM_CARD_BODY_WIDTH_CLASS_NAME.compact }}
+            >
+              <Form.Item
+                name="storefrontName"
+                label={t('Storefront name')}
+                rules={[{ required: true }]}
+              >
                 <Input maxLength={120} readOnly={!canWrite} />
               </Form.Item>
-              <Form.Item name="tagline" label="Tagline">
+              <Form.Item name="tagline" label={t('Tagline')}>
                 <Input maxLength={240} readOnly={!canWrite} />
               </Form.Item>
               <Form.Item
@@ -184,11 +267,24 @@ export const StoreIdentityPage = () => {
               >
                 <Input maxLength={160} readOnly={!canWrite} />
               </Form.Item>
-              <Form.Item name="seoDescription" label="SEO description">
+              <Form.Item name="seoDescription" label={t('SEO description')}>
                 <Input.TextArea maxLength={320} readOnly={!canWrite} />
               </Form.Item>
+              {canWrite ? (
+                <Form.Item
+                  name="reason"
+                  label={t('Notes (optional)')}
+                  rules={[{ max: 500 }]}
+                  className="!mb-0"
+                >
+                  <Input maxLength={500} />
+                </Form.Item>
+              ) : null}
             </Card>
-            <Card title="Shared brand assets" className="mt-4">
+            <Card
+              title={t('Shared brand assets')}
+              classNames={{ body: FORM_CARD_BODY_WIDTH_CLASS_NAME.compact }}
+            >
               <Form.Item name="logoPrimary" label={t('Primary Logo')} rules={[{ required: true }]}>
                 <ContentMediaSelect source="identity" disabled={!canWrite || saving} />
               </Form.Item>
@@ -207,31 +303,27 @@ export const StoreIdentityPage = () => {
               <Form.Item name="socialShareAssetId" label={t('Social-share image')}>
                 <ContentMediaSelect source="identity" allowClear disabled={!canWrite || saving} />
               </Form.Item>
-            </Card>
-            {canWrite ? (
-              <Form.Item
-                name="reason"
-                label={t('Notes (optional)')}
-                rules={[{ max: 500 }]}
-                className="mt-4"
-              >
-                <Input maxLength={500} />
-              </Form.Item>
-            ) : null}
-            {canWrite ? (
-              <>
-                <Typography.Paragraph type="secondary">
+              {canWrite ? (
+                <Typography.Paragraph type="secondary" className="!mb-0">
                   {t(
                     'Saving creates a published source version for the next store preview. Existing storefront versions stay unchanged.'
                   )}
                 </Typography.Paragraph>
-                <Button htmlType="submit" type="primary" loading={saving}>
-                  Save identity
-                </Button>
-              </>
+              ) : null}
+            </Card>
+            {canWrite ? (
+              <FormSubmitToolbar
+                submitLabel={t('Save identity')}
+                submitHtmlType="submit"
+                submitLoading={saving}
+                submitDisabled={saving}
+                resetLabel={t('Reset changes')}
+                resetDisabled={saving}
+                onReset={reset}
+              />
             ) : null}
           </Form>
-        </Space>
+        </div>
       )}
     </CustomPageRecipe>
   )

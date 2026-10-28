@@ -35,6 +35,41 @@ const policy = {
 }
 
 describe('PoliciesPage', () => {
+  it('resets edits and validation to the last loaded policy without writing', async () => {
+    let writes = 0
+    server.use(
+      http.get('*/admin/settings/policies', () => HttpResponse.json({ data: [policy] })),
+      http.put('*/admin/settings/policies/policy.returns', () => {
+        writes += 1
+        return HttpResponse.json({ data: policy })
+      })
+    )
+    renderInLocale(
+      <AuthTestProvider permissions={['policies.read', 'policies.write']}>
+        <MemoryRouter>
+          <PoliciesPage />
+        </MemoryRouter>
+      </AuthTestProvider>
+    )
+    await screen.findByDisplayValue('Returns policy')
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: '' } })
+    fireEvent.change(screen.getByLabelText('Notes (optional)'), {
+      target: { value: 'Unsaved note' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save draft' }))
+    await waitFor(() =>
+      expect(screen.getByLabelText('Title').getAttribute('aria-invalid')).toBe('true')
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }))
+    await waitFor(() =>
+      expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe('Returns policy')
+    )
+    expect((screen.getByLabelText('Notes (optional)') as HTMLInputElement).value).toBe('')
+    expect(screen.getByLabelText('Title').getAttribute('aria-invalid')).not.toBe('true')
+    expect(screen.getByDisplayValue('Returns in 30 days.')).toBeTruthy()
+    expect(writes).toBe(0)
+  })
   it('keeps historical deployment inclusion in version details without claiming current storefront state', async () => {
     let writes = 0
     server.use(

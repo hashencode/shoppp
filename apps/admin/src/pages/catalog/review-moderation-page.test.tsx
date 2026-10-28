@@ -9,6 +9,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { AuthTestProvider } from '../../test/auth-context-fixture'
 import { ThemeProvider } from '../../shared/contexts/theme-context'
 import { ReviewModerationPage } from './review-moderation-page'
+import { renderInLocale } from '../../test/render-in-locale'
 
 void React
 
@@ -65,6 +66,87 @@ afterEach(() => {
 afterAll(() => server.close())
 
 describe('ReviewModerationPage', () => {
+  it('does not restart the list from a stale-data recovery action while a cursor page is loading', async () => {
+    let reads = 0
+    let finishPage!: () => void
+    const pendingPage = new Promise<void>((resolve) => {
+      finishPage = resolve
+    })
+    server.use(
+      http.get('*/admin/catalog/reviews', async ({ request }) => {
+        reads += 1
+        if (new URL(request.url).searchParams.has('after')) {
+          await pendingPage
+          return HttpResponse.json({
+            data: {
+              items: [{ ...review, id: 'review-002', displayName: 'Next shopper' }],
+              nextCursor: null,
+            },
+          })
+        }
+        if (reads === 2)
+          return HttpResponse.json(
+            { error: { code: 'read_failed', message: 'Try reviews again.' } },
+            { status: 503 }
+          )
+        return HttpResponse.json({ data: { items: [review], nextCursor: 'next-page' } })
+      })
+    )
+    renderInLocale(
+      <MemoryRouter>
+        <AuthTestProvider>
+          <ThemeProvider>
+            <ReviewModerationPage />
+          </ThemeProvider>
+        </AuthTestProvider>
+      </MemoryRouter>
+    )
+    await screen.findByText('Sample shopper · 4/5')
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    await screen.findByText('Refresh failed. Showing previously loaded data.')
+    fireEvent.click(screen.getByRole('button', { name: 'Load more reviews' }))
+    await waitFor(() => expect(reads).toBe(3))
+    fireEvent.click(screen.getByRole('button', { name: 'Reload' }))
+    finishPage()
+    await screen.findByText('Next shopper · 4/5')
+    expect(reads).toBe(3)
+    expect(screen.getByText('Sample shopper · 4/5')).toBeTruthy()
+    expect(decisions).toEqual([])
+  })
+  it('retains pending reviews after a failed refresh and retries only the read', async () => {
+    let reads = 0
+    server.use(
+      http.get('*/admin/catalog/reviews', () => {
+        reads += 1
+        return reads === 2
+          ? HttpResponse.json(
+              { error: { code: 'read_failed', message: 'Try reviews again.' } },
+              { status: 503 }
+            )
+          : HttpResponse.json({ data: { items: [review], nextCursor: null } })
+      })
+    )
+    renderInLocale(
+      <MemoryRouter>
+        <AuthTestProvider>
+          <ThemeProvider>
+            <ReviewModerationPage />
+          </ThemeProvider>
+        </AuthTestProvider>
+      </MemoryRouter>
+    )
+    await screen.findByText('Sample shopper · 4/5')
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    await screen.findByText('Refresh failed. Showing previously loaded data.')
+    expect(screen.getByText('Sample shopper · 4/5')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Reload' }))
+    await waitFor(() =>
+      expect(screen.queryByText('Refresh failed. Showing previously loaded data.')).toBeNull()
+    )
+    expect(screen.getByText('Sample shopper · 4/5')).toBeTruthy()
+    expect(reads).toBe(3)
+    expect(decisions).toEqual([])
+  })
   it('reviews a pending submission and states the release delay after approval', async () => {
     render(
       <MemoryRouter>

@@ -81,6 +81,67 @@ describe('StoreIdentityPage', () => {
       tagline: 'Objects with a point of view',
     })
     expect(screen.queryByText('Deployment history includes this version.')).toBeNull()
+    expect(await screen.findByText('Store details saved.')).toBeTruthy()
+    fireEvent.change(name, { target: { value: 'Another edit' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Reset changes' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }))
+    await waitFor(() =>
+      expect((screen.getByLabelText('Storefront name') as HTMLInputElement).value).toBe(
+        'Updated Shoppp'
+      )
+    )
+    expect(screen.getByText('Published store details · version 2')).toBeTruthy()
+  })
+
+  it('offers a read retry without exposing a writable blank form after a load failure', async () => {
+    let reads = 0
+    server.use(
+      http.get('*/admin/settings/store-identity', () => {
+        reads += 1
+        return reads === 1
+          ? HttpResponse.json({ error: { code: 'internal_error' } }, { status: 500 })
+          : HttpResponse.json({ data: null })
+      })
+    )
+    renderInLocale(
+      <AntApp>
+        <AuthTestProvider permissions={['identity.read', 'identity.write']}>
+          <MemoryRouter>
+            <StoreIdentityPage />
+          </MemoryRouter>
+        </AuthTestProvider>
+      </AntApp>
+    )
+    expect(await screen.findByText('Store details could not be loaded')).toBeTruthy()
+    expect(screen.queryByLabelText('Storefront name')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Save identity' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(await screen.findByLabelText('Storefront name')).toBeTruthy()
+    expect(screen.getByText('No store details saved')).toBeTruthy()
+    expect(reads).toBe(2)
+  })
+
+  it('does not read or expose the form without identity read permission', async () => {
+    let reads = 0
+    server.use(
+      http.get('*/admin/settings/store-identity', () => {
+        reads += 1
+        return HttpResponse.json({ data: identity })
+      })
+    )
+    renderInLocale(
+      <AntApp>
+        <AuthTestProvider permissions={[]}>
+          <MemoryRouter>
+            <StoreIdentityPage />
+          </MemoryRouter>
+        </AuthTestProvider>
+      </AntApp>
+    )
+    expect(await screen.findByText('Access denied')).toBeTruthy()
+    expect(screen.queryByLabelText('Storefront name')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Save identity' })).toBeNull()
+    expect(reads).toBe(0)
   })
   it('preserves Form required and error associations on the primary media selector', async () => {
     server.use(http.get('*/admin/settings/store-identity', () => HttpResponse.json({ data: null })))
@@ -145,6 +206,14 @@ describe('StoreIdentityPage', () => {
       (await screen.findByRole('link', { name: 'Repair draft.logo' })).getAttribute('href')
     ).toBe('/storefront/themes/draft.logo')
     expect((name as HTMLInputElement).value).toBe('Unsaved Shoppp')
+    fireEvent.change(screen.getByLabelText('Notes (optional)'), { target: { value: 'Draft note' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Reset changes' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }))
+    await waitFor(() =>
+      expect((screen.getByLabelText('Storefront name') as HTMLInputElement).value).toBe('Shoppp')
+    )
+    expect((screen.getByLabelText('Notes (optional)') as HTMLInputElement).value).toBe('')
+    expect(screen.queryByRole('link', { name: 'Repair draft.logo' })).toBeNull()
   })
 
   it('hides mutation controls with read-only domain permission', async () => {
@@ -169,6 +238,8 @@ describe('StoreIdentityPage', () => {
     )
     await screen.findByLabelText('Storefront name')
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Save identity' })).toBeNull())
+    expect(screen.queryByRole('button', { name: 'Reset changes' })).toBeNull()
+    expect((screen.getByLabelText('Storefront name') as HTMLInputElement).disabled).toBe(true)
     await act(async () => {
       fireEvent.submit(screen.getByLabelText('Storefront name').closest('form')!)
     })
@@ -189,6 +260,7 @@ describe('StoreIdentityPage', () => {
       finishSave = resolve
     })
     let submitted: { logoAssets: typeof savedIdentity.logoAssets } | undefined
+    let writes = 0
     server.use(
       http.get('*/admin/settings/store-identity', () => HttpResponse.json({ data: savedIdentity })),
       http.get('*/admin/settings/store-identity/media', () =>
@@ -205,6 +277,7 @@ describe('StoreIdentityPage', () => {
         })
       ),
       http.put('*/admin/settings/store-identity', async ({ request }) => {
+        writes += 1
         submitted = (await request.json()) as typeof submitted
         await pendingSave
         return HttpResponse.json({
@@ -240,6 +313,13 @@ describe('StoreIdentityPage', () => {
         }
       })
       expect(document.querySelectorAll('.ant-select-clear').length).toBe(0)
+      expect(
+        (screen.getByRole('button', { name: 'Reset changes' }) as HTMLButtonElement).disabled
+      ).toBe(true)
+      await act(async () => {
+        fireEvent.submit(primary.closest('form')!)
+      })
+      expect(writes).toBe(1)
       fireEvent.mouseDown(primary)
       expect(primary.getAttribute('aria-expanded')).toBe('false')
       finishSave()

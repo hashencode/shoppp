@@ -548,7 +548,6 @@ export const CatalogFormPage = () => {
       form,
       initialValues: defaults,
       title: t(isAddMode ? 'New product' : 'Product details'),
-      contentWidthPreset: 'wide',
       stateCopy: {
         submitBlockedMessage: t(
           catalogShapeLocked
@@ -585,7 +584,6 @@ export const CatalogFormPage = () => {
         {
           key: 'product',
           title: t('Product'),
-          contentWidthPreset: 'wide',
           renderFields: () => (
             <>
               <Form.Item label={t('Name')} name="name" rules={[{ required: true }]}>
@@ -666,7 +664,6 @@ export const CatalogFormPage = () => {
         {
           key: 'variant',
           title: t('Variant and price'),
-          contentWidthPreset: 'wide',
           renderFields: () => (
             <>
               <Form.Item label="SKU" name="sku" rules={[{ required: true }]}>
@@ -739,7 +736,6 @@ export const CatalogFormPage = () => {
         {
           key: 'media-seo',
           title: t('Media and SEO'),
-          contentWidthPreset: 'wide',
           renderFields: () => (
             <>
               {!effectiveReadonly ? (

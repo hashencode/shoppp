@@ -219,7 +219,8 @@ describe('ShippingSettingsPage', () => {
       target: { value: 'Confirm carrier rates' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-    await screen.findByText('List could not be loaded')
+    await screen.findByText('Refresh failed. Showing previously loaded data.')
+    expect(screen.getByText('North America')).toBeTruthy()
     expect(writes).toBe(1)
     expect(reads).toBe(2)
     const wrapper = document.querySelector('.ant-drawer-content-wrapper') as HTMLElement
@@ -233,7 +234,7 @@ describe('ShippingSettingsPage', () => {
     fireEvent.click(within(success).getByRole('button', { name: 'Confirm' }))
     expect(reads).toBe(2)
     failRead = false
-    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reload' }))
     await waitFor(() => expect(reads).toBe(3))
     expect(writes).toBe(1)
   })

@@ -31,6 +31,9 @@ import {
 import { StructuredContentEditor } from '../../shared/content/structured-content-editor'
 import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
 import { useI18n } from '../../shared/contexts/i18n-context'
+import { FormSubmitToolbar } from '../../shared/components/form-submit-toolbar'
+import { FORM_CARD_BODY_WIDTH_CLASS_NAME } from '../../shared/template-kit/form/form-content-width'
+import { FORM_ERROR_SCROLL_OPTIONS } from '../../shared/template-kit/form/form-validation-scroll'
 
 void React
 
@@ -59,6 +62,7 @@ export const PoliciesPage = () => {
   const mutationLock = useRef(false)
   const [busy, setBusy] = useState(false)
   const [form] = Form.useForm<Values>()
+  const baseline = useRef<Partial<Values>>({})
 
   const load = useCallback(async (cursor?: string) => {
     try {
@@ -83,27 +87,33 @@ export const PoliciesPage = () => {
 
   useEffect(() => {
     if (!selected) return
-    form.setFieldsValue({
+    const values: Values = {
       effectiveDate: dayjs(selected.effectiveDate),
       kind: selected.kind,
       reason: '',
-      sections: selected.sections,
+      sections: structuredClone(selected.sections),
       slug: selected.slug,
       title: selected.title,
-    })
+    }
+    baseline.current = values
+    form.setFieldsValue(values)
   }, [form, selected])
 
   const newPolicy = () => {
     setSelected(null)
     setReview(null)
-    form.setFieldsValue({
+    const values: Values = {
       effectiveDate: dayjs(),
       kind: 'privacy',
       reason: '',
       sections: [],
       slug: '',
       title: '',
-    })
+    }
+    baseline.current = values
+    form.resetFields()
+    form.setFieldsValue(values)
+    setError(null)
   }
 
   const save = async (values: Values) => {
@@ -187,17 +197,17 @@ export const PoliciesPage = () => {
   }
 
   return (
-    <CustomPageRecipe title={t('Policies')}>
+    <CustomPageRecipe title={t('Policies')} className="pb-20">
       {!canRead ? (
         <Alert type="error" message={t('Access denied')} />
       ) : (
-        <Space direction="vertical" size="middle" className="w-full">
+        <Space orientation="vertical" size="middle" className="w-full">
           {error ? <Alert type="error" message={error.message} /> : null}
           <Card
             title={t('Policy records')}
             extra={
               canWrite ? (
-                <Button disabled={busy} onClick={newPolicy}>
+                <Button type="primary" disabled={busy} onClick={newPolicy}>
                   {t('New policy')}
                 </Button>
               ) : null
@@ -250,11 +260,13 @@ export const PoliciesPage = () => {
           {selected || canWrite ? (
             <Card
               title={selected ? t('Edit {title}', { title: selected.title }) : t('Create policy')}
+              classNames={{ body: FORM_CARD_BODY_WIDTH_CLASS_NAME.compact }}
             >
               <Form
                 form={form}
                 disabled={busy || !canWrite}
                 layout="vertical"
+                scrollToFirstError={FORM_ERROR_SCROLL_OPTIONS}
                 onFinish={(values) => void save(values)}
               >
                 <Form.Item name="kind" label={t('Policy type')} rules={[{ required: true }]}>
@@ -292,16 +304,31 @@ export const PoliciesPage = () => {
                   </Form.Item>
                 ) : null}
                 {canWrite ? (
-                  <Button type="primary" htmlType="submit">
-                    {t('Save draft')}
-                  </Button>
+                  <FormSubmitToolbar
+                    submitLabel={t('Save draft')}
+                    submitHtmlType="submit"
+                    submitLoading={busy}
+                    submitDisabled={busy}
+                    resetDisabled={busy}
+                    onReset={() => {
+                      if (mutationLock.current) return
+                      form.resetFields()
+                      form.setFieldsValue({
+                        ...baseline.current,
+                        sections: baseline.current.sections
+                          ? structuredClone(baseline.current.sections)
+                          : undefined,
+                      })
+                      setError(null)
+                    }}
+                  />
                 ) : null}
               </Form>
             </Card>
           ) : null}
           {review ? (
             <Card title={t('Review · version {version}', { version: review.current.version })}>
-              <Space direction="vertical" className="w-full">
+              <Space orientation="vertical" className="w-full">
                 <Typography.Text>
                   {t('Digest')}: {review.digest}
                 </Typography.Text>

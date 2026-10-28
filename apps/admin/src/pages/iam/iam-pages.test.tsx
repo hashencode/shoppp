@@ -204,7 +204,13 @@ afterAll(() => server.close())
 
 const renderPage = (
   element: React.ReactNode,
-  options: { path?: string; permissions?: string[]; identityId?: string; locale?: AppLocale } = {}
+  options: {
+    path?: string
+    permissions?: string[]
+    identityId?: string
+    locale?: AppLocale
+    sessionRole?: typeof adminRole
+  } = {}
 ) => {
   const path = options.path ?? '/access/users'
   const permissions = options.permissions ?? [
@@ -224,7 +230,7 @@ const renderPage = (
           identityId: options.identityId ?? 'identity_manager',
           permissions: permissions as never,
           principalKind: 'human',
-          role: adminRole,
+          role: options.sessionRole ?? adminRole,
         },
       })}
     >
@@ -669,7 +675,7 @@ describe('IAM management pages', () => {
         ?.classList.contains('ant-select-disabled')
     ).toBe(true)
     fireEvent.change(screen.getByLabelText('Display name'), { target: { value: 'Renamed User' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(updateBody).toBeTruthy())
     expect(updateBody).toEqual({ displayName: 'Renamed User', enabled: false, expectedVersion: 2 })
   })
@@ -680,7 +686,14 @@ describe('IAM management pages', () => {
       path: `/access/users/${alice.id}`,
     })
     await waitFor(() => expect(screen.getByText('Alice Admin')).toBeTruthy())
-    expect(screen.getByRole('button', { name: 'Save changes' }).hasAttribute('disabled')).toBe(true)
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
+    expect(screen.getByLabelText('Display name').hasAttribute('disabled')).toBe(true)
+    expect(
+      screen
+        .getByLabelText('Role')
+        .closest('.ant-select')
+        ?.classList.contains('ant-select-disabled')
+    ).toBe(true)
     expect(screen.getByText(/cannot change your own role or status/i)).toBeTruthy()
   })
 
@@ -690,7 +703,7 @@ describe('IAM management pages', () => {
     fireEvent.change(screen.getByLabelText('Display name'), {
       target: { value: 'Changed by this manager' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     expect(await screen.findByText(/changed by another administrator/i)).toBeTruthy()
     expect(userDetailLoads).toBeGreaterThanOrEqual(2)
   })
@@ -713,7 +726,7 @@ describe('IAM management pages', () => {
     await waitFor(() => expect(screen.getByDisplayValue('Alice Admin')).toBeTruthy())
     fireEvent.mouseDown(screen.getByLabelText('Status'))
     fireEvent.click((await screen.findAllByText('Disabled')).at(-1)!)
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Confirm change' }))
     expect(await screen.findByText(/last enabled protected administrator/i)).toBeTruthy()
   })
@@ -815,6 +828,181 @@ describe('IAM management pages', () => {
       '720px'
     )
     expect(roleDetailLoads).toBe(1)
+    expect(roleLoads).toBe(1)
+  })
+
+  it('saves tree leaf permissions through the role Drawer once and refreshes its list once', async () => {
+    let savedBody: unknown
+    let writes = 0
+    let release!: () => void
+    const pending = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    server.use(
+      http.patch('*/admin/iam/roles/:id', async ({ request }) => {
+        writes += 1
+        savedBody = await request.json()
+        await pending
+        return HttpResponse.json({ data: { ...supportRole, version: 4 } })
+      })
+    )
+    renderPage(<RolesPage />, {
+      path: '/access/roles',
+      permissions: [
+        'iam.roles.read',
+        'iam.roles.write',
+        'iam.users.read',
+        'catalog.read',
+        'catalog.write',
+      ],
+    })
+    await screen.findByText('Support')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Inspect' })[1]!)
+    await screen.findByDisplayValue('Support')
+    const drawer = document.querySelector('.ant-drawer') as HTMLElement
+    fireEvent.click(
+      within(drawer)
+        .getByText('catalog', { exact: true })
+        .closest('.ant-tree-treenode')!
+        .querySelector('.ant-tree-checkbox')!
+    )
+    fireEvent.change(within(drawer).getByLabelText('Role name'), {
+      target: { value: ' Support Plus ' },
+    })
+    fireEvent.change(within(drawer).getByLabelText('Description'), {
+      target: { value: ' Updated support ' },
+    })
+    fireEvent.submit(drawer.querySelector('form')!)
+    fireEvent.submit(drawer.querySelector('form')!)
+    await waitFor(() => expect(writes).toBe(1))
+    expect(savedBody).toEqual({
+      description: 'Updated support',
+      expectedVersion: 3,
+      name: 'Support Plus',
+      permissions: ['catalog.read', 'catalog.write', 'iam.users.read'],
+    })
+    expect(
+      (within(drawer).getByRole('button', { name: 'Reset' }) as HTMLButtonElement).disabled
+    ).toBe(true)
+    fireEvent.click(drawer.querySelector('.ant-drawer-close')!)
+    expect(roleLoads).toBe(1)
+    await act(async () => {
+      release()
+    })
+    await waitFor(() => expect(roleLoads).toBe(2))
+    expect(screen.queryByRole('dialog', { name: 'Support' })).toBeNull()
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }))
+    expect(roleLoads).toBe(2)
+    expect(writes).toBe(1)
+  })
+
+  it('waits for permission reduction confirmation before completing the role Drawer save', async () => {
+    let savedBody: unknown
+    server.use(
+      http.patch('*/admin/iam/roles/:id', async ({ request }) => {
+        savedBody = await request.json()
+        return HttpResponse.json({ data: { ...supportRole, permissions: [], version: 4 } })
+      })
+    )
+    renderPage(<RolesPage />, { path: '/access/roles' })
+    await screen.findByText('Support')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Inspect' })[1]!)
+    await screen.findByDisplayValue('Support')
+    const drawer = document.querySelector('.ant-drawer') as HTMLElement
+    fireEvent.click(within(drawer).getByRole('checkbox', { name: 'View users' }))
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Save' }))
+    await screen.findByRole('button', { name: 'Confirm reduction' })
+    expect(savedBody).toBeUndefined()
+    fireEvent.click(drawer.querySelector('.ant-drawer-close')!)
+    expect(roleLoads).toBe(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    let confirmation = document.querySelector('.ant-modal-confirm-confirm') as HTMLElement
+    await waitFor(() => expect(confirmation.className).toContain('leave-active'))
+    fireEvent.transitionEnd(confirmation)
+    await waitFor(() =>
+      expect(
+        (within(drawer).getByRole('button', { name: /^(loading )?Save$/ }) as HTMLButtonElement)
+          .disabled
+      ).toBe(false)
+    )
+    expect(savedBody).toBeUndefined()
+    expect(
+      within(drawer).getByRole('checkbox', { name: 'View users' }).getAttribute('aria-checked')
+    ).toBe('false')
+    fireEvent.click(within(drawer).getByRole('button', { name: /^(loading )?Save$/ }))
+    await screen.findByRole('button', { name: 'Confirm reduction' })
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm reduction' }))
+    await waitFor(() =>
+      expect(savedBody).toEqual({
+        description: 'Support operators',
+        expectedVersion: 3,
+        name: 'Support',
+        permissions: [],
+      })
+    )
+    confirmation = document.querySelector('.ant-modal-confirm-confirm') as HTMLElement
+    await waitFor(() => expect(confirmation.className).toContain('leave-active'))
+    fireEvent.transitionEnd(confirmation)
+    await waitFor(() => expect(roleLoads).toBe(2))
+    expect(screen.queryByRole('dialog', { name: 'Support' })).toBeNull()
+  })
+
+  it('preserves granted permissions outside caller authority in a readonly Drawer and closes cleanly', async () => {
+    let writes = 0
+    server.use(
+      http.patch('*/admin/iam/roles/:id', () => {
+        writes += 1
+        return HttpResponse.json({ data: supportRole })
+      })
+    )
+    renderPage(<RolesPage />, {
+      path: '/access/roles',
+      permissions: ['iam.roles.read', 'iam.roles.write'],
+    })
+    await screen.findByText('Support')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Inspect' })[1]!)
+    await screen.findByDisplayValue('Support')
+    const drawer = document.querySelector('.ant-drawer') as HTMLElement
+    expect((within(drawer).getByLabelText('Role name') as HTMLInputElement).disabled).toBe(true)
+    expect(
+      within(drawer).getByRole('checkbox', { name: 'View users' }).getAttribute('aria-checked')
+    ).toBe('true')
+    expect(within(drawer).queryByRole('button', { name: 'Save' })).toBeNull()
+    fireEvent.change(within(drawer).getByLabelText('Search permissions'), {
+      target: { value: 'users' },
+    })
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Collapse all' }))
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Expand all' }))
+    fireEvent.submit(drawer.querySelector('form')!)
+    fireEvent.click(drawer.querySelector('.ant-drawer-close')!)
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Support' })).toBeNull())
+    expect(screen.queryByText('Unsaved changes')).toBeNull()
+    expect(writes).toBe(0)
+    expect(roleLoads).toBe(1)
+  })
+
+  it('retries failed role details inside the Drawer without reloading the list', async () => {
+    let fail = true
+    server.use(
+      http.get('*/admin/iam/roles/:id', () => {
+        roleDetailLoads += 1
+        return fail
+          ? HttpResponse.json(
+              { error: { code: 'unavailable', message: 'Unavailable' } },
+              { status: 503 }
+            )
+          : HttpResponse.json({ data: supportRole })
+      })
+    )
+    renderPage(<RolesPage />, { path: '/access/roles' })
+    await screen.findByText('Support')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Inspect' })[1]!)
+    await screen.findByText('Form details could not be loaded')
+    fail = false
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    await screen.findByDisplayValue('Support')
+    expect(screen.getByRole('tree', { name: 'Role permissions' })).toBeTruthy()
+    expect(roleDetailLoads).toBe(2)
     expect(roleLoads).toBe(1)
   })
 
@@ -976,14 +1164,197 @@ describe('IAM management pages', () => {
     expect(await screen.findByText('No roles match these filters.')).toBeTruthy()
   })
 
+  it('selects category children within caller authority and saves only leaf permissions', async () => {
+    let savedBody: unknown
+    server.use(
+      http.patch('*/admin/iam/roles/:id', async ({ request }) => {
+        savedBody = await request.json()
+        return HttpResponse.json({ data: { ...supportRole, version: 4 } })
+      })
+    )
+    renderPage(<RoleDetailPage />, {
+      path: `/access/roles/${supportRole.id}`,
+      permissions: [
+        'iam.roles.read',
+        'iam.roles.write',
+        'iam.users.read',
+        'catalog.read',
+        'catalog.write',
+      ],
+    })
+    await screen.findByDisplayValue('Support')
+    expect(screen.getByRole('tree', { name: 'Role permissions' })).toBeTruthy()
+    expect(screen.queryByText('Publish catalog', { exact: true })).toBeNull()
+    fireEvent.click(
+      screen
+        .getByText('catalog', { exact: true })
+        .closest('.ant-tree-treenode')!
+        .querySelector('.ant-tree-checkbox')!
+    )
+    fireEvent.change(screen.getByLabelText('Role name'), { target: { value: ' Support Plus ' } })
+    fireEvent.change(screen.getByLabelText('Description'), {
+      target: { value: ' Updated support ' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() =>
+      expect(savedBody).toEqual({
+        description: 'Updated support',
+        expectedVersion: 3,
+        name: 'Support Plus',
+        permissions: ['catalog.read', 'catalog.write', 'iam.users.read'],
+      })
+    )
+  })
+
+  it('keeps a category half checked and confirms permission reductions before saving', async () => {
+    let savedBody: unknown
+    server.use(
+      http.patch('*/admin/iam/roles/:id', async ({ request }) => {
+        savedBody = await request.json()
+        return HttpResponse.json({ data: { ...supportRole, permissions: [], version: 4 } })
+      })
+    )
+    renderPage(<RoleDetailPage />, { path: `/access/roles/${supportRole.id}` })
+    await screen.findByDisplayValue('Support')
+    expect(
+      screen
+        .getByText('iam', { exact: true })
+        .closest('.ant-tree-treenode')!
+        .querySelector('.ant-tree-checkbox-indeterminate')
+    ).toBeTruthy()
+    fireEvent.click(
+      screen
+        .getByText('View users', { exact: true })
+        .closest('.ant-tree-treenode')!
+        .querySelector('.ant-tree-checkbox')!
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('checkbox', { name: 'View users' }).getAttribute('aria-checked')
+      ).toBe('false')
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await screen.findByRole('button', { name: 'Confirm reduction' })
+    expect(savedBody).toBeUndefined()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm reduction' }))
+    await waitFor(() =>
+      expect(savedBody).toEqual({
+        description: 'Support operators',
+        expectedVersion: 3,
+        name: 'Support',
+        permissions: [],
+      })
+    )
+  })
+
+  it.each(['protected', 'self', 'outside-authority', 'no-write'] as const)(
+    'keeps %s roles read only while allowing permission browsing',
+    async (reason) => {
+      let patches = 0
+      server.use(
+        http.patch('*/admin/iam/roles/:id', () => {
+          patches += 1
+          return HttpResponse.json({ data: supportRole })
+        })
+      )
+      const role = reason === 'protected' ? adminRole : supportRole
+      const view = renderPage(<RoleDetailPage />, {
+        path: `/access/roles/${role.id}`,
+        permissions:
+          reason === 'no-write'
+            ? ['iam.roles.read', 'iam.users.read']
+            : reason === 'outside-authority'
+              ? ['iam.roles.read', 'iam.roles.write']
+              : undefined,
+        sessionRole: reason === 'self' ? supportRole : undefined,
+      })
+      await screen.findByDisplayValue(role.name)
+      const readonlyDescription = 'Admin has all permissions. This role cannot be edited.'
+      if (reason === 'protected') {
+        expect(screen.getAllByText(readonlyDescription)).toHaveLength(1)
+        expect(
+          within(document.querySelector('.role-detail-permissions') as HTMLElement).getByText(
+            'Read only'
+          )
+        ).toBeTruthy()
+      } else {
+        expect(screen.queryByText(readonlyDescription)).toBeNull()
+      }
+      expect((screen.getByLabelText('Role name') as HTMLInputElement).disabled).toBe(true)
+      expect(screen.queryByText('Save', { selector: 'button' })).toBeNull()
+      expect(screen.queryByText('Reset', { selector: 'button' })).toBeNull()
+      expect(screen.queryByText('Archive role', { selector: 'button' })).toBeNull()
+      expect((screen.getByLabelText('Search permissions') as HTMLInputElement).disabled).toBe(false)
+      fireEvent.click(screen.getByLabelText('Collapse all', { selector: 'button' }))
+      fireEvent.click(screen.getByLabelText('Expand all', { selector: 'button' }))
+      expect(screen.getByText('View users', { exact: true })).toBeTruthy()
+      const groupCheckbox = screen
+        .getByText('iam', { exact: true })
+        .closest('.ant-tree-treenode')!
+        .querySelector('.ant-tree-checkbox')!
+      expect(groupCheckbox.getAttribute('aria-checked')).toBe(
+        reason === 'protected' ? 'true' : 'mixed'
+      )
+      const userCheckbox = screen.getByRole('checkbox', { name: 'View users' })
+      expect(userCheckbox.getAttribute('aria-disabled')).toBe('true')
+      fireEvent.click(userCheckbox)
+      expect(userCheckbox.getAttribute('aria-checked')).toBe('true')
+      await act(async () => {
+        fireEvent.submit(view.container.querySelector('form')!)
+      })
+      expect(patches).toBe(0)
+    }
+  )
+
+  it('resets role fields, permission selection, search and expansion to loaded state', async () => {
+    renderPage(<RoleDetailPage />, { path: `/access/roles/${supportRole.id}` })
+    await screen.findByDisplayValue('Support')
+    fireEvent.change(screen.getByLabelText('Role name'), { target: { value: 'Draft' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select all permissions' }))
+    fireEvent.change(screen.getByLabelText('Search permissions'), { target: { value: 'users' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse all' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }))
+    await waitFor(() =>
+      expect((screen.getByLabelText('Role name') as HTMLInputElement).value).toBe('Support')
+    )
+    expect((screen.getByLabelText('Search permissions') as HTMLInputElement).value).toBe('')
+    expect(screen.getByText('View users', { exact: true })).toBeTruthy()
+    expect(
+      screen
+        .getByText('iam', { exact: true })
+        .closest('.ant-tree-treenode')!
+        .querySelector('.ant-tree-checkbox-indeterminate')
+    ).toBeTruthy()
+  })
+
+  it('recovers a failed role load using the standard retry action', async () => {
+    let fail = true
+    server.use(
+      http.get('*/admin/iam/roles/:id', () =>
+        fail
+          ? HttpResponse.json(
+              { error: { code: 'unavailable', message: 'Unavailable' } },
+              { status: 503 }
+            )
+          : HttpResponse.json({ data: supportRole })
+      )
+    )
+    renderPage(<RoleDetailPage />, { path: `/access/roles/${supportRole.id}` })
+    await screen.findByText('Form details could not be loaded')
+    fail = false
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(await screen.findByDisplayValue('Support')).toBeTruthy()
+  })
+
   it('limits permission choices to the caller subset and explains archive dependencies', async () => {
     renderPage(<RoleDetailPage />, {
       path: `/access/roles/${supportRole.id}`,
       permissions: ['iam.roles.read', 'iam.roles.write', 'iam.users.read'],
     })
     await waitFor(() => expect(screen.getByDisplayValue('Support')).toBeTruthy())
-    expect(screen.getByRole('checkbox', { name: /View users/i })).toBeTruthy()
-    expect(screen.queryByRole('checkbox', { name: /Manage users/i })).toBeNull()
+    expect(screen.getByText('View users', { exact: true })).toBeTruthy()
+    expect(screen.queryByText('Manage users', { exact: true })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Archive role' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Confirm archive' }))
     expect(await screen.findByText(/2 assigned identities and 1 pending invitation/i)).toBeTruthy()
@@ -1001,7 +1372,7 @@ describe('IAM management pages', () => {
     renderPage(<RoleDetailPage />, { path: `/access/roles/${supportRole.id}` })
     await waitFor(() => expect(screen.getByDisplayValue('Support')).toBeTruthy())
     fireEvent.change(screen.getByLabelText('Role name'), { target: { value: 'Support Plus' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     expect(await screen.findByText(/changed by another administrator/i)).toBeTruthy()
     expect(roleDetailLoads).toBeGreaterThanOrEqual(2)
   })
@@ -1032,7 +1403,7 @@ describe('IAM management pages', () => {
     fireEvent.change(name, { target: { value: ' Support Plus ' } })
     fireEvent.change(screen.getByLabelText('Description'), { target: { value: '   ' } })
     fireEvent.click(screen.getByRole('checkbox', { name: /Manage users/i }))
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() =>
       expect(submitted).toEqual({
         description: null,
@@ -1117,7 +1488,7 @@ describe('IAM management pages', () => {
     await screen.findByDisplayValue('Disabled User')
     fireEvent.mouseDown(screen.getByLabelText('Role'))
     fireEvent.click((await screen.findAllByText('Administrator')).at(-1)!)
-    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     expect(submitted).toBeUndefined()
     fireEvent.click(await screen.findByRole('button', { name: 'Confirm change' }))
     await waitFor(() =>

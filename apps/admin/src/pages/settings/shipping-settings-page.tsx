@@ -1,16 +1,5 @@
 import type { ShippingMethodConfiguration, ShippingZoneConfiguration } from '@shoppp/contracts'
-import {
-  Button,
-  Form,
-  Input,
-  InputNumber,
-  Alert,
-  Select,
-  Space,
-  Table,
-  Tag,
-  Typography,
-} from 'antd'
+import { Button, Card, Form, Input, InputNumber, Select, Space, Table, Tag, Typography } from 'antd'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { hasPermission } from '../../infrastructure/auth/permissions'
@@ -22,6 +11,12 @@ import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-
 
 import { CrudFormDrawerRecipe } from '../../shared/template-kit/recipes/crud-form-drawer-recipe'
 import { normalizeApiError } from '../../infrastructure/http/api-client'
+import {
+  buildListToolbarColumnSettingOptions,
+  ListToolbarActions,
+} from '../../shared/components/list-toolbar-actions'
+import { useListViewPreferences } from '../../shared/hooks/use-list-view-preferences'
+import { STANDARD_LIST_TABLE_CLASS_NAME, TemplateListContent } from '../../shared/template-kit/list'
 
 void React
 
@@ -45,6 +40,8 @@ const emptyMethod = (): EditableMethod => ({
   priceAmount: 0,
   status: 'active',
 })
+
+const COLUMN_KEYS = ['name', 'status', 'countries', 'methods', 'actions']
 
 const toRequest = (values: ShippingFormValues) => ({
   confirm: true as const,
@@ -75,6 +72,11 @@ export const ShippingSettingsPage = () => {
   const [editorValues, setEditorValues] = useState<ShippingFormValues | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [form] = Form.useForm<ShippingFormValues>()
+  const view = useListViewPreferences({
+    tableId: 'shipping-zones-list',
+    defaultColumnKeys: COLUMN_KEYS,
+    defaultDensity: 'middle',
+  })
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -174,36 +176,67 @@ export const ShippingSettingsPage = () => {
     [canWrite, open, openEditor, t]
   )
 
-  return (
-    <CustomPageRecipe
-      title={t('Shipping settings')}
-      extra={
-        canWrite ? (
-          <Button type="primary" disabled={open} onClick={() => openEditor()}>
-            {t('New zone')}
-          </Button>
-        ) : null
-      }
-    >
-      <Table<ShippingZoneConfiguration>
-        rowKey="id"
-        columns={columns}
-        dataSource={zones}
-        loading={loading}
-        pagination={false}
-        scroll={{ x: 900 }}
-        locale={{ emptyText: t('No shipping zones configured.') }}
-      />
+  const orderedColumns = view.columnOrder.flatMap((key) =>
+    columns.filter((column) => column.key === key)
+  )
+  const visibleColumns = orderedColumns.filter((column) =>
+    view.selectedColumnKeys.includes(column.key)
+  )
 
-      {loadError ? (
-        <Alert
-          type="error"
-          showIcon
-          title={t('List could not be loaded')}
-          description={loadError}
-          action={<Button onClick={() => void load()}>{t('Retry')}</Button>}
+  return (
+    <CustomPageRecipe title={t('Shipping settings')}>
+      <Card variant="borderless" styles={{ body: { padding: 16 } }}>
+        <div className="mb-4 flex flex-wrap justify-end gap-2">
+          {canWrite ? (
+            <Button type="primary" disabled={open} onClick={() => openEditor()}>
+              {t('New zone')}
+            </Button>
+          ) : null}
+          <ListToolbarActions
+            tableSize={view.tableSize}
+            onTableSizeChange={view.setTableSize}
+            onClearColumnSort={view.clearColumnOrder}
+            clearColumnSortDisabled={!view.hasCustomColumnOrder}
+            reloadLoading={loading}
+            onReload={() => void load()}
+            columnSettingOptions={buildListToolbarColumnSettingOptions(orderedColumns)}
+            selectedColumnKeys={view.selectedColumnKeys}
+            onSelectedColumnKeysChange={view.setSelectedColumnKeys}
+            onColumnSettingOrderChange={view.setColumnOrder}
+          />
+        </div>
+        <TemplateListContent
+          showInitialLoading={loading && zones.length === 0}
+          showError={!loading && Boolean(loadError) && zones.length === 0}
+          showPartial={Boolean(loadError) && zones.length > 0}
+          showEmpty={!loading && !loadError && zones.length === 0}
+          errorMessage={loadError ?? undefined}
+          partialMessage={loadError ?? undefined}
+          onRetry={() => void load()}
+          onReloadPartial={() => void load()}
+          onResetEmpty={() => void load()}
+          copy={{
+            loadingTitle: t('Loading shipping zones'),
+            errorTitle: t('List could not be loaded'),
+            partialTitle: t('Refresh failed. Showing previously loaded data.'),
+            emptyDescription: t('No shipping zones configured.'),
+            emptyActionLabel: t('Reload'),
+          }}
+          tableNode={
+            <Table<ShippingZoneConfiguration>
+              className={STANDARD_LIST_TABLE_CLASS_NAME}
+              rowKey="id"
+              columns={visibleColumns}
+              dataSource={zones}
+              loading={loading}
+              size={view.tableSize}
+              pagination={false}
+              scroll={{ x: 900 }}
+              locale={{ emptyText: t('No shipping zones configured.') }}
+            />
+          }
         />
-      ) : null}
+      </Card>
       {open && editorValues ? (
         <CrudFormDrawerRecipe<ShippingFormValues>
           spec={{

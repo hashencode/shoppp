@@ -1,0 +1,49 @@
+.role-detail-layout-container {
+  container-type: inline-size;
+}
+
+.role-detail-page .ant-card-body {
+  padding: 0 !important;
+}
+
+.role-detail-page .ant-card-body > .ant-form {
+  margin-top: 0;
+}
+
+.role-detail-page .role-detail-layout {
+  gap: 0;
+}
+
+.role-detail-page .role-detail-layout > section {
+  padding: 24px;
+}
+
+.role-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+}
+
+.role-detail-permissions {
+  min-width: 0;
+  border-top: 1px solid var(--role-divider-color);
+  padding-top: 24px;
+}
+
+@container (min-width: 900px) {
+  .role-detail-page .role-detail-layout {
+    grid-template-columns: 360px minmax(0, 1fr);
+  }
+
+  .role-detail-layout {
+    grid-template-columns: 320px minmax(0, 1fr);
+    gap: 32px;
+  }
+
+  .role-detail-permissions {
+    border-top: 0;
+    border-left: 1px solid var(--role-divider-color);
+    padding-top: 0;
+    padding-left: 32px;
+  }
+}
