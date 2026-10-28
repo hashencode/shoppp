@@ -1,3 +1,4 @@
+import { FilePicker } from '../../shared/components/file-picker'
 import { Alert, Button, ColorPicker, Form, Input, InputNumber, Select, Upload, App } from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -743,27 +744,32 @@ export const CatalogFormPage = () => {
             <>
               {!effectiveReadonly ? (
                 <Form.Item label={t('Catalog image')} required>
-                  <Upload
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    maxCount={1}
-                    beforeUpload={(file) => {
-                      if (
-                        !['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)
-                      ) {
-                        void message.error(t('Only JPEG, PNG, WebP, and GIF are allowed.'))
-                        return Upload.LIST_IGNORE
-                      }
-                      if (file.size > 10 * 1024 * 1024) {
-                        void message.error(t('Catalog media must not exceed 10 MiB.'))
-                        return Upload.LIST_IGNORE
-                      }
-                      setPendingFile(file)
-                      form.setFieldValue('mediaKey', safeMediaKey(file))
-                      return false
+                  <FilePicker
+                    displayMode="button"
+                    nativeUploadProps={{
+                      accept: 'image/jpeg,image/png,image/webp,image/gif',
+                      maxCount: 1,
+                      beforeUpload: (file) => {
+                        if (
+                          !['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(
+                            file.type
+                          )
+                        ) {
+                          void message.error(t('Only JPEG, PNG, WebP, and GIF are allowed.'))
+                          return Upload.LIST_IGNORE
+                        }
+                        if (file.size > 10 * 1024 * 1024) {
+                          void message.error(t('Catalog media must not exceed 10 MiB.'))
+                          return Upload.LIST_IGNORE
+                        }
+                        setPendingFile(file)
+                        form.setFieldValue('mediaKey', safeMediaKey(file))
+                        return false
+                      },
                     }}
                   >
                     <Button icon={<UploadOutlined />}>{t('Choose image')}</Button>
-                  </Upload>
+                  </FilePicker>
                 </Form.Item>
               ) : null}
               <Form.Item label={t('Media key')} name="mediaKey" rules={[{ required: true }]}>

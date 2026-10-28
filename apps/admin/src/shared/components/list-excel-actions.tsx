@@ -1,8 +1,10 @@
-import { ExportOutlined, ImportOutlined, InboxOutlined } from '@ant-design/icons'
-import { Button, Modal, Upload } from 'antd'
+import { ExportOutlined, ImportOutlined } from '@ant-design/icons'
+import { Button, Modal } from 'antd'
 import type { ButtonProps, ModalProps, UploadProps } from 'antd'
 import React, { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useI18n } from '../contexts/i18n-context'
+
+import { FilePicker } from './file-picker'
 
 void React
 
@@ -155,17 +157,12 @@ export const ListExcelActions = ({
             onCancel={closeImportModal}
           >
             {resolvedUploadProps ? (
-              <Upload.Dragger {...resolvedUploadProps}>
-                <p className="ant-upload-drag-icon">
-                  {importAction.uploadIcon ?? <InboxOutlined />}
-                </p>
-                <p className="ant-upload-text">
-                  {importAction.uploadText ?? t('Click or drag a file to this area')}
-                </p>
-                {importAction.uploadHint ? (
-                  <p className="ant-upload-hint">{importAction.uploadHint}</p>
-                ) : null}
-              </Upload.Dragger>
+              <FilePicker
+                nativeUploadProps={resolvedUploadProps}
+                uploadText={importAction.uploadText ?? t('Click or drag a file to this area')}
+                uploadHint={importAction.uploadHint}
+                uploadIcon={importAction.uploadIcon}
+              />
             ) : null}
           </Modal>
         </>

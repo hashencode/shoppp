@@ -1210,3 +1210,97 @@ it('publishes review-only updates without replacing a staged revision identity',
     })
   )
 })
+
+it('selects raw revision media, rejects invalid files without writes, and saves the item in its chosen order', async () => {
+  const mediaId = '22222222-2222-4222-8222-222222222222'
+  rstest.spyOn(crypto, 'randomUUID').mockReturnValue(mediaId)
+  const published = { ...detail, product: { ...detail.product, status: 'published' as const } }
+  const staged: Record<string, unknown>[] = []
+  const uploads: string[] = []
+  const image = new File(['revision-image-bytes'], 'revision.png', { type: 'image/png' })
+  const delegate = axios.getAdapter(originalAdapter)
+  const key = `catalog/products/product-001/${mediaId}.png`
+  apiClient.defaults.adapter = async (config) => {
+    if (config.url?.startsWith('/admin/media/')) {
+      expect(config.url).toBe(`/admin/media/${key}`)
+      expect(config.method).toBe('put')
+      expect(config.data).toBe(image)
+      expect(config.headers.get('Content-Type')).toBe('image/png')
+      uploads.push(config.url)
+      return {
+        data: { data: { key, size: image.size } },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config,
+      }
+    }
+    return delegate(config)
+  }
+  server.use(
+    http.put('*/admin/catalog/products/product-001/revisions/draft', async ({ request }) => {
+      const body = (await request.json()) as Record<string, unknown>
+      staged.push(body)
+      return HttpResponse.json({
+        data: {
+          baseProductVersion: 3,
+          basePublishedRevisionId: null,
+          content: body.content,
+          id: 'revision-001',
+          status: 'draft',
+          version: 1,
+        },
+      })
+    })
+  )
+  renderModify(published)
+  const editor = await screen.findByRole('region', { name: '已发布商品修订' })
+  fireEvent.click(within(editor).getByRole('button', { name: '添加图片' }))
+  const group = within(editor).getByRole('group', { name: '图片 2' })
+  const input = group.querySelector('input[type="file"]') as HTMLInputElement
+  expect(input).toBeTruthy()
+  fireEvent.change(input, {
+    target: {
+      files: [
+        new File([new Uint8Array(10 * 1024 * 1024 + 1)], 'oversized.png', { type: 'image/png' }),
+      ],
+    },
+  })
+  await screen.findByText('仅支持不超过 10 MiB 的 JPEG、PNG、WebP 和 GIF 图片。')
+  expect(uploads).toEqual([])
+  expect(staged).toEqual([])
+  expect((within(group).getByLabelText('媒体 Key') as HTMLInputElement).value).toBe(
+    `catalog/products/product-001/${mediaId}.webp`
+  )
+  fireEvent.change(group.querySelector('input[type="file"]') as HTMLInputElement, {
+    target: { files: [image] },
+  })
+  await waitFor(() =>
+    expect((within(group).getByLabelText('媒体 Key') as HTMLInputElement).value).toBe(key)
+  )
+  expect(uploads).toEqual([])
+  fireEvent.change(within(group).getByLabelText('图片描述'), { target: { value: 'New side view' } })
+  fireEvent.change(within(group).getByLabelText('宽度'), { target: { value: '800' } })
+  fireEvent.change(within(group).getByLabelText('高度'), { target: { value: '600' } })
+  fireEvent.click(within(group).getByRole('button', { name: /上\s*移/ }))
+  fireEvent.click(within(editor).getByRole('button', { name: '保存暂存修订' }))
+  await waitFor(() => expect(staged).toHaveLength(1))
+  expect(uploads).toEqual([`/admin/media/${key}`])
+  expect(staged[0]).toMatchObject({
+    expectedDraftVersion: null,
+    expectedProductVersion: 3,
+    expectedPublishedRevisionId: null,
+    content: {
+      media: [
+        { id: mediaId, altText: 'New side view', height: 600, r2Key: key, width: 800 },
+        {
+          id: 'media-001',
+          altText: 'Black carry-on',
+          height: 1200,
+          r2Key: 'catalog/products/carry-on.webp',
+          width: 1200,
+        },
+      ],
+    },
+  })
+})

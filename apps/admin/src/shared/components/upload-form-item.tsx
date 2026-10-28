@@ -1,16 +1,33 @@
-import './upload-form-item.css'
-
-import { CloudUploadOutlined } from '@ant-design/icons'
-import { FileUp } from 'lucide-react'
-import { Button, Upload, App } from 'antd'
+import { Upload, App } from 'antd'
 import classNames from 'classnames'
 import type { UploadFile, UploadProps } from 'antd'
 import type { RcFile } from 'antd/es/upload'
 import Compressor from 'compressorjs'
-import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { useCurrentTranslate, useI18n } from '../contexts/i18n-context'
 
+import { UploadPresentation, UploadTrigger } from './upload-presentation'
+import { exceedsFileSize, matchesAcceptedType, readAcceptTypes } from './upload-file-validation'
+
 void React
+
+type UploadValidationIssue = {
+  key:
+    | 'Unsupported file format. Upload {types} files.'
+    | 'Unsupported file format.'
+    | 'File size cannot exceed {size} MB.'
+    | 'Image compression failed. Choose the file again.'
+  values?: Record<string, string | number>
+}
 
 export type UploadFormItemValue = string | string[]
 export type UploadFormItemDisplayMode = 'auto' | 'card' | 'button'
@@ -18,16 +35,17 @@ export type UploadFormItemDisplayMode = 'auto' | 'card' | 'button'
 export type UploadFormItemProps = Omit<
   UploadProps,
   'customRequest' | 'fileList' | 'onChange' | 'onPreview' | 'onRemove'
-> & {
-  value?: UploadFormItemValue
-  onChange?: (value?: UploadFormItemValue) => void
-  uploadFile: (file: File) => Promise<string>
-  fileSizeLimitMB?: number
-  readonly?: boolean
-  tooltip?: React.ReactNode
-  uploadText?: React.ReactNode
-  displayMode?: UploadFormItemDisplayMode
-}
+> &
+  React.AriaAttributes & {
+    value?: UploadFormItemValue
+    onChange?: (value?: UploadFormItemValue) => void
+    uploadFile: (file: File) => Promise<string>
+    fileSizeLimitMB?: number
+    readonly?: boolean
+    tooltip?: React.ReactNode
+    uploadText?: React.ReactNode
+    displayMode?: UploadFormItemDisplayMode
+  }
 
 const DEFAULT_ACCEPT = '.jpg,.jpeg,.png'
 const DEFAULT_FILE_SIZE_LIMIT_MB = 10
@@ -125,16 +143,6 @@ const isImageAsset = (value: string) => {
   return IMAGE_EXTENSIONS.some((extension) => lower.endsWith(extension))
 }
 
-const readAcceptTypes = (accept: UploadProps['accept']) => {
-  const acceptFormat = typeof accept === 'string' ? accept : accept?.format
-  return (
-    acceptFormat
-      ?.split(',')
-      .map((item) => item.trim())
-      .filter(Boolean) ?? []
-  )
-}
-
 const isImageOnlyAccept = (accept: UploadProps['accept']) => {
   const acceptTypes = readAcceptTypes(accept).map((item) => item.toLowerCase())
   return (
@@ -143,32 +151,6 @@ const isImageOnlyAccept = (accept: UploadProps['accept']) => {
       (item) => IMAGE_EXTENSIONS.includes(item) || IMAGE_MIME_TYPE_PATTERN.test(item)
     )
   )
-}
-
-const matchesAcceptedType = (file: File, accept: UploadProps['accept']) => {
-  const acceptTypes = readAcceptTypes(accept).map((item) => item.toLowerCase())
-  if (acceptTypes.length === 0) {
-    return true
-  }
-
-  const fileName = file.name.toLowerCase()
-  const fileType = file.type.toLowerCase()
-  return acceptTypes.some((item) => {
-    if (item === '*' || item === '*/*') {
-      return true
-    }
-    if (item.startsWith('.')) {
-      return fileName.endsWith(item)
-    }
-    if (item.endsWith('/*')) {
-      const mimePrefix = item.slice(0, -1)
-      return (
-        fileType.startsWith(mimePrefix) ||
-        (item === 'image/*' && IMAGE_EXTENSIONS.some((extension) => fileName.endsWith(extension)))
-      )
-    }
-    return fileType === item
-  })
 }
 
 const toUploadFile = (url: string, hideImageName: boolean, fallbackName: string): UploadFile => {
@@ -268,11 +250,31 @@ export const UploadFormItem = ({
   showUploadList,
   beforeUpload,
   children,
+  'aria-describedby': describedBy,
+  'aria-invalid': invalid,
   ...restProps
 }: UploadFormItemProps) => {
   const { message } = App.useApp()
   const { t } = useI18n()
   const translateNow = useCurrentTranslate()
+  const validationErrorId = useId()
+  const [validationError, setValidationError] = useState<UploadValidationIssue | null>(null)
+  const translateIssue = (issue: UploadValidationIssue) => {
+    switch (issue.key) {
+      case 'Unsupported file format. Upload {types} files.':
+        return t('Unsupported file format. Upload {types} files.', issue.values)
+      case 'Unsupported file format.':
+        return t('Unsupported file format.', issue.values)
+      case 'File size cannot exceed {size} MB.':
+        return t('File size cannot exceed {size} MB.', issue.values)
+      case 'Image compression failed. Choose the file again.':
+        return t('Image compression failed. Choose the file again.', issue.values)
+    }
+  }
+  const feedbackBatchRef = useRef<{ files: RcFile[]; failed: boolean } | null>(null)
+  const uploadDescription =
+    [describedBy, validationError ? validationErrorId : undefined].filter(Boolean).join(' ') ||
+    undefined
   const multipleMode = Boolean(restProps.multiple) || maxCount > 1
   const valueUrls = useMemo(() => normalizeValueToUrls(value, multipleMode), [multipleMode, value])
   const effectiveDisabled = readonly || disabled
@@ -401,7 +403,9 @@ export const UploadFormItem = ({
       const previousFileList = fileListRef.current
 
       if (rawFile.size > fileSizeLimitBytes) {
-        const error = new Error(t('File size cannot exceed {size} MB.', { size: fileSizeLimitMB }))
+        const error = new Error(
+          translateNow('File size cannot exceed {size} MB.', { size: fileSizeLimitMB })
+        )
         void message.error(error.message)
         onError?.(error)
         return
@@ -425,7 +429,7 @@ export const UploadFormItem = ({
           return
         }
         if (!uploadedUrl) {
-          throw new Error('The upload response is missing a file URL.')
+          throw new Error(translateNow('The upload response is missing a file URL.'))
         }
 
         const doneFile: UploadFile = {
@@ -504,96 +508,108 @@ export const UploadFormItem = ({
       : resolvedDisplayMode === 'button'
         ? defaultButtonTooltip
         : undefined
-  const defaultTrigger =
-    resolvedDisplayMode === 'button' ? (
-      <Button
-        disabled={effectiveDisabled || uploadLimitReached}
-        icon={<CloudUploadOutlined aria-hidden />}
-      >
-        {uploadLimitReached
-          ? t('Upload up to {count} files', { count: maxCount })
-          : (uploadText ?? t('Upload file'))}
-      </Button>
-    ) : (
-      <>
-        <FileUp
-          aria-label={typeof uploadText === 'string' ? uploadText : t('Upload')}
-          color="currentColor"
-          size={30}
-          strokeWidth={1.5}
-        />
-        {uploadText}
-      </>
-    )
+  const defaultTrigger = (
+    <UploadTrigger
+      displayMode={resolvedDisplayMode}
+      disabled={effectiveDisabled || uploadLimitReached}
+      describedBy={uploadDescription}
+      text={uploadLimitReached ? t('Upload up to {count} files', { count: maxCount }) : uploadText}
+    />
+  )
 
   return (
     <>
-      <Upload
-        {...restProps}
-        accept={accept}
-        className={classNames(
-          'ax-upload-form-item',
-          `ax-upload-form-item--${resolvedDisplayMode}`,
-          className
-        )}
-        disabled={effectiveDisabled}
-        fileList={fileList}
-        listType={resolvedListType}
-        maxCount={maxCount}
-        showUploadList={mergedShowUploadList}
-        beforeUpload={async (file, selectedFiles) => {
-          let candidateFile = file
-          if (beforeUpload) {
+      <UploadPresentation
+        displayMode={resolvedDisplayMode}
+        error={validationError ? translateIssue(validationError) : null}
+        errorId={validationErrorId}
+        helperText={helperText}
+        uploadProps={{
+          ...restProps,
+          accept,
+          'aria-invalid': validationError ? true : invalid,
+          'aria-describedby': uploadDescription,
+          className: classNames(
+            'ax-upload-form-item',
+            `ax-upload-form-item--${resolvedDisplayMode}`,
+            className
+          ),
+          disabled: effectiveDisabled,
+          fileList,
+          listType: resolvedListType,
+          maxCount,
+          showUploadList: mergedShowUploadList,
+          beforeUpload: async (file, selectedFiles) => {
+            const previousFeedbackBatch = feedbackBatchRef.current
+            const feedbackBatch =
+              previousFeedbackBatch && previousFeedbackBatch.files === selectedFiles
+                ? previousFeedbackBatch
+                : { files: selectedFiles, failed: false }
+            feedbackBatchRef.current = feedbackBatch
+            const reportValidationError = (issue: UploadValidationIssue) => {
+              feedbackBatch.failed = true
+              if (feedbackBatchRef.current === feedbackBatch) setValidationError(issue)
+            }
+            let candidateFile = file
+            if (beforeUpload) {
+              try {
+                const externalResult = await beforeUpload(file, selectedFiles)
+                if (externalResult === false || externalResult === Upload.LIST_IGNORE)
+                  return externalResult
+                if (externalResult instanceof Blob) {
+                  const transformedFile = new File(
+                    [externalResult],
+                    externalResult instanceof File ? externalResult.name : file.name,
+                    {
+                      type: externalResult.type || file.type,
+                      lastModified:
+                        externalResult instanceof File
+                          ? externalResult.lastModified
+                          : file.lastModified,
+                    }
+                  )
+                  candidateFile = Object.assign(transformedFile, { uid: file.uid }) as RcFile
+                }
+              } catch {
+                return false
+              }
+            }
+            if (!matchesAcceptedType(candidateFile, accept)) {
+              reportValidationError(
+                acceptedTypeText
+                  ? {
+                      key: 'Unsupported file format. Upload {types} files.',
+                      values: { types: acceptedTypeText },
+                    }
+                  : { key: 'Unsupported file format.' }
+              )
+              return Upload.LIST_IGNORE
+            }
             try {
-              const externalResult = await beforeUpload(file, selectedFiles)
-              if (externalResult === false || externalResult === Upload.LIST_IGNORE) {
-                return externalResult
+              const nextFile = await compressImage(candidateFile)
+              if (exceedsFileSize(nextFile, fileSizeLimitMB)) {
+                reportValidationError({
+                  key: 'File size cannot exceed {size} MB.',
+                  values: { size: fileSizeLimitMB },
+                })
+                return false
               }
-              if (externalResult instanceof Blob) {
-                const transformedFile = new File(
-                  [externalResult],
-                  externalResult instanceof File ? externalResult.name : file.name,
-                  {
-                    type: externalResult.type || file.type,
-                    lastModified:
-                      externalResult instanceof File
-                        ? externalResult.lastModified
-                        : file.lastModified,
-                  }
-                )
-                candidateFile = Object.assign(transformedFile, { uid: file.uid }) as RcFile
+              if (feedbackBatchRef.current === feedbackBatch && !feedbackBatch.failed) {
+                setValidationError(null)
               }
+              return nextFile
             } catch {
+              reportValidationError({ key: 'Image compression failed. Choose the file again.' })
               return false
             }
-          }
-          if (!matchesAcceptedType(candidateFile, accept)) {
-            void message.error(
-              acceptedTypeText
-                ? t('Unsupported file format. Upload {types} files.', { types: acceptedTypeText })
-                : t('Unsupported file format.')
-            )
-            return Upload.LIST_IGNORE
-          }
-          try {
-            const nextFile = await compressImage(candidateFile)
-            if (nextFile.size > fileSizeLimitMB * 1024 * 1024) {
-              void message.error(t('File size cannot exceed {size} MB.', { size: fileSizeLimitMB }))
-              return false
-            }
-            return nextFile
-          } catch {
-            void message.error(translateNow('Image compression failed. Choose the file again.'))
-            return false
-          }
+          },
+          customRequest: handleCustomRequest,
+          onPreview: handlePreview,
+          onRemove: handleRemove,
         }}
-        customRequest={handleCustomRequest}
-        onPreview={handlePreview}
-        onRemove={handleRemove}
       >
         {shouldShowTrigger ? (children ?? defaultTrigger) : null}
-      </Upload>
-      {helperText ? <div className="mt-2 text-description">{helperText}</div> : null}
+      </UploadPresentation>
       {previewFile?.url ? (
         <Suspense fallback={null}>
           <LazyFilePreview
