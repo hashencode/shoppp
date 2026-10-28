@@ -1,5 +1,5 @@
 version: 2
-updatedAt: "2026-10-15"
+updatedAt: '2026-10-15'
 project: shoppp-admin
 
 # referencePage(s) 仅供阅读参考；sharedRecipe 与 requiredPieces 才是运行时复用入口。
@@ -50,8 +50,8 @@ recipes:
       - 运营列表
       - 规则列表
       - 资源列表
-    routePattern: "业务列表路径，以当前项目路由及菜单合同为准"
-    exampleRoutePattern: "/dev/list/table"
+    routePattern: '业务列表路径，以当前项目路由及菜单合同为准'
+    exampleRoutePattern: '/dev/list/table'
     referencePage: src/pages/templates/list/table-query-page.tsx
     sharedRecipe: src/shared/template-kit/recipes/standard-list-page-recipe.tsx
     requiredPieces:
@@ -109,7 +109,7 @@ recipes:
       - 业务 override 页面
       - 工作台、生成器、复杂组合页
       - 不适合标准列表或表单 recipe 的一级路由页
-    routePattern: "业务一级页面路径，以当前项目路由及菜单合同为准"
+    routePattern: '业务一级页面路径，以当前项目路由及菜单合同为准'
     sharedRecipe: src/shared/template-kit/recipes/custom-page-recipe.tsx
     requiredPieces:
       - src/shared/template-kit/recipes/custom-page-recipe.tsx
@@ -167,8 +167,8 @@ recipes:
       - 已确认必须独立分享/收藏/访问或持续大工作空间
       - 创建与编辑共用页面
       - 只读详情复用同一表单结构
-    routePattern: "现有业务独立表单入口，mode/id 以当前合同为准"
-    exampleRoutePattern: "/dev/form/basic-form?mode=add|modify|readonly&id=<resourceKey>"
+    routePattern: '现有业务独立表单入口，mode/id 以当前合同为准'
+    exampleRoutePattern: '/dev/form/basic-form?mode=add|modify|readonly&id=<resourceKey>'
     exampleScope: 当前未注册的独立路由示例；grade/campus fixture 的 noDrawerEdit 仅约束示例，不是业务容器默认
     referencePage: src/pages/templates/form/basic-form-page.tsx
     sharedRecipe: src/shared/template-kit/recipes/basic-crud-form-recipe.tsx
@@ -182,7 +182,8 @@ recipes:
       - 先确认是否满足 docs/ai/page-guardrail-recipes.md 的基础表单接入条件
       - 页面通过 BasicCrudFormSpec 接入 BasicCrudFormRecipe，禁止页面内重复手写固定底部操作条与基础错误态
       - 表单内容宽度通过 BasicCrudFormSpec.contentWidthPreset 选择；默认不传，等同 compact，最大宽度 800px
-      - 富文本不单独触发 contentWidthPreset=wide；单 Card 内容命中单行表单项超过 3 个的动态表单、多层级动态表单、或列数大于等于 4 个的列表时，才可显式声明 contentWidthPreset=wide，最大宽度 1200px
+      - 富文本不单独触发 contentWidthPreset=wide；单 Card 内容命中单行表单项超过 3 个的动态表单、多层级动态表单、列数大于等于 4 个的列表，或符合 docs/ai/ai-rules.md §4.4 的单卡片双列场景时，才可显式声明 contentWidthPreset=wide，最大宽度 1200px
+      - 单列、单卡片双列与局部字段并排按 docs/ai/ai-rules.md §4.4 选型；分栏不改变 formTemplateDecisionMatrix 的表单类型判别，不自动新增 recipe
       - contentWidthPreset=full 不设置最大宽度，仅用于工作台、编排器、矩阵、画布、超宽批量编辑等 wide 仍明显影响操作效率的模块，必须特殊声明
       - 只有 preset 无法表达的页面级特例，才使用 maxWidthClassName 作为逃生口，并在实现说明中写明原因
       - 普通单列编辑页字段控件默认填满表单内容列，禁止用字段级固定宽度替代模板内容宽度
@@ -198,8 +199,8 @@ recipes:
     appliesTo:
       - 新增后查看详情
       - 列表点击查看记录详情
-    routePattern: "复用现有业务表单入口的 readonly 模式"
-    exampleRoutePattern: "/dev/form/basic-form?mode=readonly&id=<resourceKey>"
+    routePattern: '复用现有业务表单入口的 readonly 模式'
+    exampleRoutePattern: '/dev/form/basic-form?mode=readonly&id=<resourceKey>'
     referencePage: src/pages/templates/form/basic-form-page.tsx
     sharedRecipe: src/shared/template-kit/recipes/basic-crud-form-recipe.tsx
     principle:
@@ -218,8 +219,8 @@ recipes:
     appliesTo:
       - 多阶段录入
       - 后续步骤依赖前一步确认结果
-    routePattern: "业务列表同前缀的分步表单子路径，以当前项目合同为准"
-    exampleRoutePattern: "/dev/form/step-form"
+    routePattern: '业务列表同前缀的分步表单子路径，以当前项目合同为准'
+    exampleRoutePattern: '/dev/form/step-form'
     referencePage: src/pages/templates/form/step-form-page.tsx
     sharedRecipe: src/shared/template-kit/recipes/step-form-recipe.tsx
     requiredPieces:
@@ -237,8 +238,8 @@ recipes:
     appliesTo:
       - 提交后反馈
       - 异步任务完成反馈
-    routePattern: "业务结果页路径，以当前项目路由合同为准"
-    exampleRoutePattern: "/dev/result/<success|fail>"
+    routePattern: '业务结果页路径，以当前项目路由合同为准'
+    exampleRoutePattern: '/dev/result/<success|fail>'
     referencePages:
       - src/pages/templates/dashboard/result-success-page.tsx
       - src/pages/templates/dashboard/result-fail-page.tsx
@@ -253,8 +254,8 @@ recipes:
       - 权限拒绝
       - 未找到
       - 服务器异常
-    routePattern: "当前项目公共异常页及 fallback 合同"
-    exampleRoutePattern: "/dev/exception/<403|500> 或 \"*\""
+    routePattern: '当前项目公共异常页及 fallback 合同'
+    exampleRoutePattern: '/dev/exception/<403|500> 或 "*"'
     referencePages:
       - src/pages/templates/exception/forbidden-page.tsx
       - src/pages/templates/exception/not-found-page.tsx
@@ -265,23 +266,23 @@ recipes:
       - 与路由 fallback 对齐（* -> 404）
 
 decisionTree:
-  - if: "需求关键词包含 列表/筛选/分页"
+  - if: '需求关键词包含 列表/筛选/分页'
     thenRecipe: list-query-standard
-  - if: "需求关键词包含 弹窗列表/选择列表/弹窗分页"
+  - if: '需求关键词包含 弹窗列表/选择列表/弹窗分页'
     thenRecipe: modal-list-standard
-  - if: "需求关键词包含 新建/编辑/详情同构"
+  - if: '需求关键词包含 新建/编辑/详情同构'
     thenRecipe: 先按 presentationDecisionMatrix 选择容器，Drawer 用 form-drawer-basic，Modal 用 form-modal-lightweight，独立页用 form-three-mode
-  - if: "需求关键词包含 分步/多阶段/步骤条"
+  - if: '需求关键词包含 分步/多阶段/步骤条'
     thenRecipe: form-step-standard
-  - if: "需求关键词包含 角色管理/权限树/菜单授权"
+  - if: '需求关键词包含 角色管理/权限树/菜单授权'
     thenRecipe: 先按 presentationDecisionMatrix 选择容器，Drawer 用 form-drawer-basic，Modal 用 form-modal-lightweight，独立页用 form-three-mode
-  - if: "需求关键词包含 查看详情/查看记录，且无特殊展示结构"
+  - if: '需求关键词包含 查看详情/查看记录，且无特殊展示结构'
     thenRecipe: form-as-detail-default
-  - if: "需求关键词包含 工作台/生成器/业务 override/自定义页"
+  - if: '需求关键词包含 工作台/生成器/业务 override/自定义页'
     thenRecipe: custom-page-shell
-  - if: "需求关键词包含 提交反馈/结果态"
+  - if: '需求关键词包含 提交反馈/结果态'
     thenRecipe: result-feedback-page
-  - if: "需求关键词包含 403/404/500/异常"
+  - if: '需求关键词包含 403/404/500/异常'
     thenRecipe: exception-page
 
 qualityGate:

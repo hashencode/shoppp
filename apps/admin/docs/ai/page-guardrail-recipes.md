@@ -3,9 +3,11 @@
 ## 1. 文档定位
 
 ### 1.1 目标
+
 这份文档用于约束当前项目的标准后台页如何优先复用 `recipe + spec + contract`。
 
 第一期先收敛三类页面：
+
 - 标准查询列表页
 - 弹窗内轻量列表
 - 基础三态表单页（`add / modify / readonly`）
@@ -13,6 +15,7 @@
 - 一级业务 override / 自定义页的页头外壳
 
 ### 1.2 适用范围
+
 - 页面类型：标准查询列表页、基础三态表单页、分步表单页、一级业务 override / 自定义页
 - 技术基线：`src/shared/template-kit/*`
 - 当前 recipe：
@@ -24,7 +27,9 @@
   - `CustomPageRecipe`
 
 ### 1.3 非适用范围
+
 以下场景默认判定为 `business override`，暂不强行进入第一期标准骨架：
+
 - 重交互工作台或复杂聚合页
 - 依赖复杂字段能力块的页面（如权限树、复杂弹窗选择器、强动态字段）
 - 请求源显著超出标准列表/表单生命周期的页面
@@ -42,6 +47,7 @@
 ```
 
 分层职责：
+
 - `spec`：声明当前页面的结构化接入对象
 - `recipe`：固化标准页布局、状态、权限和请求生命周期
 - `template-kit` 底座：承载 controller、state gate、navigation 等基础能力
@@ -51,11 +57,11 @@
 
 Card 边界按操作关联判断：直接联动、共享查询或选择上下文的区域优先归为同一工作区；同一业务对象、同页展示或共用保存按钮不能单独作为合并依据。
 
-| 场景 | 布局方式与保留内容 |
-| --- | --- |
-| 分类树、目录选择与对应内容 | 共用一个 Card，保留内部列布局、选择上下文及内容区的查询与列表分区 |
-| 编辑与实时预览 | 共用一个 Card，保留编辑区业务分区、预览尺寸及已有吸顶行为 |
-| 纵向排列且职责独立的表单或详情模块 | 保留独立 Card，不因属于同一记录或共用保存入口就合并 |
+| 场景                                       | 布局方式与保留内容                                                   |
+| ------------------------------------------ | -------------------------------------------------------------------- |
+| 分类树、目录选择与对应内容                 | 共用一个 Card，保留内部列布局、选择上下文及内容区的查询与列表分区    |
+| 编辑与实时预览                             | 共用一个 Card，保留编辑区业务分区、预览尺寸及已有吸顶行为            |
+| 纵向排列且职责独立的表单或详情模块         | 保留独立 Card，不因属于同一记录或共用保存入口就合并                  |
 | 顶部指标、独立图表、审核记录等独立展示区域 | 保留展示边界，不随主工作区合并；指标之间是否归组需按实际职责另行判断 |
 
 分隔与间距：
@@ -64,17 +70,26 @@ Card 边界按操作关联判断：直接联动、共享查询或选择上下文
 - 标准查询列表的 16px 内边距、可选区域省略及特殊插槽位置统一遵循 [第 3.1 节](#31-standardlistpagerecipe)，不在本节重复定义。
 - 编辑与预览场景可参考 24px 区域内边距；这是场景参考，不是所有表单的统一要求。保留字段、标题与操作区之间的合理间距，不以减少 Card 数量或最小化间距作为验收目标。
 - 分区自行提供内边距时，外层 Card body 不再重复叠加内边距；已用分割线划分的并排区域不额外保留原 Card 之间的外部间隙。表单内容宽度与对齐继续遵循第 3.2 节。
+- 工作区分割线贯通到 Card 外边框或相邻分区边线（例如头部底线）：原生 `Card styles={{ body: { padding: 0 } }}` 内使用无 gap 的 Grid／Flex，分区各自设置内边距，在分区边界使用主题色 border 或无外边距 Divider。避免在整组外加 padding、用 gap 隔断边界，或用固定高度补齐线条；窄容器上下排列时横线也应接到两侧边界。局部字段组的短分割线仍按所属分区处理。
+
+Card 头部 Tabs：
+
+- 同一 Card 的对象切换优先使用原生 `tabList`、`activeTabKey`、`onTabChange`；状态等放 `tabBarExtraContent`，Tabs 配置通过 `tabProps`。内容区按 active key 展示，保留需要跨 Tab 持续编辑的实例；隐藏区域不得留下可见的页级工具条。
+- 省略重复 `title` 即可保留原生头部，不在 body 内添加 `.ant-card-head` 或用独立 Tabs 加边框模拟。Card 自带的 Tabs 尺寸、间距、底线与激活指示条负责一体化衔接；普通内容内 Tabs 不强制升级为 Card 头部。
 
 布局归组保留原有功能与交互，以及预览吸顶、局部滚动等行为。验证级别沿用 [testing-standards.md](../testing-standards.md)；涉及吸顶、滚动、宽度或溢出的调整须用真实浏览器验证实际效果，不能仅凭 class 断言确认。
 
 ## 3. 可用 recipe
 
 ### 3.1 `StandardListPageRecipe`
+
 适用于：
+
 - 标准查询列表页
 - 筛选区 + 内容区 + 状态反馈 + 权限动作结构稳定的页面
 
 必须固化的模块：
+
 - `filter`：统一筛选区；筛选变化不自动请求，只在点击“查询”后触发
 - 宽筛选控件（如日期时间范围）通过字段 `colProps` 声明响应式占列，例如 `{ xs: 24, sm: 24, md: 16, xl: 12 }`；Recipe 按可见字段的实际跨度定位查询动作。窄屏仍需验证控件内容可读，不以占列配置代替实测。
 - `content`：统一标题、卡片、工具栏、表格、分页；工具栏中的列设置面板由底座统一渲染，业务页只传结构化列配置；筛选动作顺序固定为“搜索设置 → 重置 → 查询”，内容工具顺序固定为“可见业务动作 → 条件分隔线 → 刷新 → 密度 → 列设置”
@@ -89,28 +104,34 @@ Card 边界按操作关联判断：直接联动、共享查询或选择上下文
 - 合并容器不改变搜索设置偏好、查询/重置、权限、状态反馈、分页、列宽、表格密度和虚拟滚动。
 
 ### 3.2 `BasicCrudFormRecipe`
+
 适用于已按 `ai-rules.md` 第 3.1 节选择独立页的：
+
 - `add / modify / readonly` 共用一套表单结构
 - 详情默认复用 `readonly` 表单展示
 
 必须固化的模块：
+
 - `content`：统一页头、主卡片、字段区、固定底部操作条
 - `feedback`：统一参数错误态、详情错误态、提交成功/失败反馈、只读阻断
 - `permission`：`read / write` 与 `add / modify / readonly` 模式映射
 
 校验滚动：
+
 - 通过 `BasicCrudFormRecipe` 标准 submit 提交时已内建首个错误字段滚动，业务页面无需额外处理
 - 自定义操作栏、分字段保存等流程若直接调用 `form.validateFields()`，必须改用 `validateFieldsWithScroll(form, ...fields)`，避免绕过 Form 的 `onFinishFailed / scrollToFirstError`
 - 短表单、Modal 或局部表单不默认强制滚动；确有长内容和滚动容器时再显式复用共享工具
 
 内容宽度：
+
 - 默认不传 `contentWidthPreset`，等同 `compact` 窄栏单列基线，最大宽度 800px
-- 富文本不单独触发 `wide`；单 Card 内容命中单行表单项超过 3 个的动态表单、多层级动态表单、或列数大于等于 4 个的列表时，才可显式声明 `wide`，最大宽度 1200px
+- 富文本不单独触发 `wide`；单 Card 内容命中单行表单项超过 3 个的动态表单、多层级动态表单、列数大于等于 4 个的列表，或符合 [布局选型规则](./ai-rules.md#44-single--and-two-column-layout) 的单卡片双列场景时，才可显式声明 `wide`，最大宽度 1200px
 - `full` 不设置最大宽度，仅用于工作台、编排器、矩阵、画布、超宽批量编辑等 `wide` 仍明显影响操作效率的模块，必须特殊声明
 - preset 无法表达的特例才使用 `maxWidthClassName`，并在实现说明中写明原因
 - 普通单列编辑页字段控件默认填满表单内容列，禁止用字段级固定宽度替代模板内容宽度
 - 多 Card 表单页保持外层 Card 全宽；宽度 preset 按每个 Card 独立判断，只作用于 Card body 或 Card 内表单内容容器，不作用于包裹多个 Card 的 Form 根节点
 - 自定义内容容器、Card body 或模板页若手动控制宽度，必须复用 `FORM_CONTENT_ALIGN_CLASS_NAME` / `FORM_CARD_BODY_WIDTH_CLASS_NAME`，不得手写 `mx-auto` 或左右 margin 覆盖用户的表单对齐偏好
+- 单列、资料＋操作区分栏、结构＋详情分栏及局部字段并排，统一按 `ai-rules.md` §4.4 选型；分栏不改变基础／分步／高级表单分类，不自动新增 recipe 或共享组件
 
 ### 3.2.1 普通 Drawer / 轻量 Modal 表单
 
@@ -119,11 +140,14 @@ Card 边界按操作关联判断：直接联动、共享查询或选择上下文
 轻量 Modal 直接页面级组合，实际模式、footer 与关闭合同消费第 3.1 节，不补造三态、路由或通用 recipe。Shoppp 的 locale、权限及安全流程继续使用原合同。
 
 ### 3.3 `ModalListPageRecipe`
+
 适用于：
+
 - 弹窗内承载的轻量列表
 - 需要标准筛选、分页、表格状态，但不需要整页标题/路由壳子的列表
 
 必须固化的模块：
+
 - `filter`：复用标准筛选字段和查询/重置行为
 - `content`：统一表格、分页、空态、错误态
 - `density`：固定使用 Ant Design `middle` 标准表格密度
@@ -134,46 +158,58 @@ Card 边界按操作关联判断：直接联动、共享查询或选择上下文
 独立无分页 Modal 表格至少复用 `MODAL_LIST_TABLE_SIZE`，不得回退为 `small`。
 
 不适用于：
+
 - 需要独立路由、页面权限和主工具栏的完整列表页
 - 复杂选择器或跨多步状态机的业务弹窗
 
 ### 3.4 `StepFormRecipe`
+
 适用于：
+
 - 自然分为 2-5 个阶段的分步表单页
 - 后续步骤依赖前一步数据确认
 
 必须固化的模块：
+
 - `content`：统一页头、步骤条、表单容器、阶段操作区
 - `feedback`：统一步骤切换与完成态承载区
 - `flow`：仅收敛步骤骨架，不隐式接管业务状态机
 
 ### 3.5 `CustomPageRecipe`
+
 适用于：
+
 - 一级路由下的业务 override / 自定义页
 - 工作台、生成器、复杂组合页等不适合 `StandardListPageRecipe` 的页面
 - 需要内容区主标题，但不应在页面内散装手写 `Typography.Title` 的页面
 
 必须固化的模块：
+
 - `content`：统一外层间距、内容区主标题和可选右侧扩展操作
 - `route meta`：默认从 `AppShell` 注入的当前 route title 获取标题
 - `breadcrumb`：只读取 route meta 供页面判断，不负责渲染；面包屑仍由 `AppShell` 统一渲染
 
 可用 slot：
+
 - `title`：覆盖默认 route title
 - `titleHidden`：用于嵌入式或特殊场景隐藏内容区主标题
 - `extra`：承载页头右侧操作
 - `onBack`：需要返回动作时复用 `PageHeaderWithBack`
 
 ### 3.6 高级表单页（当前不进入第一期 recipe）
+
 适用于：
+
 - 动态字段块较多
 - 页面同时包含多卡片业务区、跨区错误汇总、动态表格编辑或复杂联动
 
 当前结论：
+
 - 第一阶段不提供 `AdvancedFormRecipe`
 - 统一按 `business override` 处理
 
 原因：
+
 - 当前仓库只有一个高级表单样本，未达到“至少出现 3 次”的晋升条件
 - 差异主要来自业务状态与动态字段能力，而不是单纯页面壳子
 - 过早抽象容易把复杂度转移到一层看似通用、实际不稳定的 recipe 上
@@ -181,21 +217,27 @@ Card 边界按操作关联判断：直接联动、共享查询或选择上下文
 ## 4. spec 接入规则
 
 ### 4.1 只允许结构化 spec，不允许散装 props
+
 标准页接入必须通过：
+
 - `StandardListPageSpec`
 - `BasicCrudFormSpec`
 
 禁止做法：
+
 - 直接在业务页重复拼装 `controller + state + toolbar + table + action bar`
 - 为了临时接入，在 recipe 上继续堆大量无边界 props
 
 ### 4.2 有限 slot，禁止通用逃生口
+
 第一期仅允许语义明确的 slot，例如：
+
 - `toolbarExtra`
 - `renderAfterContent`
 - `renderAfterForm`
 
 禁止做法：
+
 - `renderAnything`
 - `beforeRender`
 - `afterRenderEverything`
@@ -206,16 +248,22 @@ Card 边界按操作关联判断：直接联动、共享查询或选择上下文
 ## 5. 第一阶段 contract
 
 ### 5.1 状态反馈 contract
+
 标准页必须统一承接这些状态：
+
 - 列表页：`loading / empty / error / partial`
 - 表单页：参数错误、详情加载错误、提交成功/失败、只读阻断
 
 要求：
+
 - 状态文案必须页面语义化
-- 状态必须带恢复动作，不能只显示提示
+- 失败和 partial 状态必须保留适用的恢复入口；正常空态使用已有下一步入口，加载和只读状态不强制增加恢复按钮
+- 呈现形式、Alert 准入、提示生命周期和保留边界以 [ai-rules.md §4.3](./ai-rules.md#43-alert-and-feedback-usage) 为准；状态覆盖不能解释为每种状态都要新增 Alert
 
 ### 5.2 权限 contract
+
 统一分层：
+
 - 页面级权限：`PermissionKey`
 - 按钮级权限：业务动作自行声明
 - 表单模式权限：`readonly -> read`，`add/modify -> write`
@@ -223,14 +271,17 @@ Card 边界按操作关联判断：直接联动、共享查询或选择上下文
 - 若后端按本项目契约明确页面内没有按钮权限控制（例如按钮权限列表为空、无按钮权限字段、或约定的空值语义），前端默认不额外增加页内按钮权限控制。
 
 禁止做法：
+
 - 在页面里叠加拍脑袋 role 判断覆盖旧逻辑
 - 同一按钮同时依赖多套无文档约束的权限口径
 - 在缺少后端按钮权限依据时，用本地 `*.write`、路由写权限或操作语义推导页面内按钮权限。
 
 ### 5.3 `resetAll contract`
+
 重置必须是整页状态重置，而不是只做 `form.resetFields()`。
 
 至少要覆盖：
+
 - 表单字段
 - 分页状态
 - 临时筛选状态
@@ -238,7 +289,9 @@ Card 边界按操作关联判断：直接联动、共享查询或选择上下文
 - 页面额外挂载的复杂组件状态
 
 ### 5.4 请求生命周期 contract
+
 第一期 recipe 只允许显式请求源：
+
 - initial load
 - query submit
 - resetAll reload
@@ -249,7 +302,9 @@ Card 边界按操作关联判断：直接联动、共享查询或选择上下文
 禁止 recipe 隐式新增请求源。
 
 ### 5.5 标题来源 contract
+
 页面主标题只保留一个来源：
+
 - 标准一级列表页：由 `StandardListPageRecipe.pageTitle` 承载，并与 route `title` 保持同义。
 - 一级业务 override / 自定义页：由 `CustomPageRecipe` 承载内容区主标题，默认读取 `AppShell` 注入的当前 route title。
 - 一级表单页：仍由 `CustomPageRecipe` 承载 route 主标题；表单 recipe、状态 gate 与内容 Card 只负责标题后的业务内容，不得引入详情式返回页头。
@@ -261,31 +316,31 @@ Card 边界按操作关联判断：直接联动、共享查询或选择上下文
 
 侧栏以显式 `menuGroup` 组织商家任务，菜单名称需要不同于页面标题时仅使用 `menuTitle`。这两个字段不改变 route title、breadcrumb 或原有 `menuMode`；`standalone` 继续决定既有一级页面不显示面包屑。
 
-| Route key | Route title | Menu shape | Heading owner | Title-adjacent copy disposition |
+| Route key               | Route title         | Menu shape            | Heading owner                    | Title-adjacent copy disposition                                                         |
 | ----------------------- | ------------------- | --------------------- | -------------------------------- | --------------------------------------------------------------------------------------- |
-| `commerce-dashboard` | Commerce dashboard | grouped: Home | custom / business override | 无标题副文案；筛选说明留在筛选/结果边界 |
-| `setup-guide` | Store setup guide | grouped: Home | custom / business override | 无本轮清理项 |
-| `orders` | Orders | grouped: Orders | standard list | 删除仅复述用途的摘要 |
-| `fulfillment` | Fulfillment | grouped: Orders | custom / business override | 删除仅复述用途的摘要 |
-| `catalog-products` | Catalog | grouped: Products | standard list | 商品检查与真实发布保留；整店私有预览归在线商店 |
-| `catalog-collections` | Collections | grouped: Products | standard list | 无本轮清理项 |
-| `inventory` | Inventory | grouped: Products | standard list | 删除仅复述用途的摘要 |
-| `catalog-reviews` | Reviews | grouped: Products | custom / business override | 将审核后发布时间移到 moderation 决策旁 |
-| `content-pages` | Pages | grouped: Content | standard list | 列表保留来源状态；版本与历史部署放在编辑器闭合详情，不推断当前线上 |
-| `content-articles` | Articles | grouped: Content | standard list | 列表保留来源状态；版本与历史部署放在编辑器闭合详情，不推断当前线上 |
-| `storefront-navigation` | Navigation | grouped: Content | custom / business override | 来源状态在编辑器决策处；候选与历史部署进入闭合详情 |
-| `storefront-themes` | Storefront themes | grouped: Online store | custom / business override | 保存、私有预览与批准待正式发布分开表达；技术身份进入详情 |
-| `order-report` | Revenue report | grouped: Analytics | standard list | 销售总额、退款、净额定义放在各自表头右侧的信息图标 Tooltip 中；不保留筛选下方的范围摘要 |
-| `store-identity` | Store identity | grouped: Settings | top-level form via custom recipe | 已保存 published 来源与历史详情分开；保存旁说明旧快照不变 |
-| `contact-settings` | Contact settings | grouped: Settings | top-level form via custom recipe | Global Contact Channels 说明新快照使用，后续保存不改旧快照 |
-| `launch-settings` | Commercial settings | grouped: Settings | top-level form via custom recipe | 保存旁说明当前交易影响；联系、配送和政策跳到唯一 owner |
-| `shipping-settings` | Shipping settings | grouped: Settings | top-level form via custom recipe | 保存决策旁说明新 checkout 请求使用新配送规则 |
-| `policies` | Policies | grouped: Settings | custom / business override | 精确审核/发布保留；历史包含进入详情，不表示当前线上 |
-| `iam-users` | Users & invitations | grouped: Settings | custom / business override | 删除仅复述用途的摘要 |
-| `iam-roles` | Roles | grouped: Settings | standard list | 将 authority guidance 移到权限内容旁 |
-| `privacy` | Privacy requests | grouped: Settings | custom / business override | 身份核验说明只放在请求确认弹窗中 |
-| `audit` | Audit trail | grouped: Settings | custom / business override | 移除结果区的脱敏、权限与分页实现介绍 |
-| `notification-recovery` | Automation recovery | grouped: Settings | standard list | 删除仅复述用途的摘要 |
+| `commerce-dashboard`    | Commerce dashboard  | grouped: Home         | custom / business override       | 无标题副文案；筛选说明留在筛选/结果边界                                                 |
+| `setup-guide`           | Store setup guide   | grouped: Home         | custom / business override       | 无本轮清理项                                                                            |
+| `orders`                | Orders              | grouped: Orders       | standard list                    | 删除仅复述用途的摘要                                                                    |
+| `fulfillment`           | Fulfillment         | grouped: Orders       | custom / business override       | 删除仅复述用途的摘要                                                                    |
+| `catalog-products`      | Catalog             | grouped: Products     | standard list                    | 商品检查与真实发布保留；整店私有预览归在线商店                                          |
+| `catalog-collections`   | Collections         | grouped: Products     | standard list                    | 无本轮清理项                                                                            |
+| `inventory`             | Inventory           | grouped: Products     | standard list                    | 删除仅复述用途的摘要                                                                    |
+| `catalog-reviews`       | Reviews             | grouped: Products     | custom / business override       | 将审核后发布时间移到 moderation 决策旁                                                  |
+| `content-pages`         | Pages               | grouped: Content      | standard list                    | 列表保留来源状态；版本与历史部署放在编辑器闭合详情，不推断当前线上                      |
+| `content-articles`      | Articles            | grouped: Content      | standard list                    | 列表保留来源状态；版本与历史部署放在编辑器闭合详情，不推断当前线上                      |
+| `storefront-navigation` | Navigation          | grouped: Content      | custom / business override       | 来源状态在编辑器决策处；候选与历史部署进入闭合详情                                      |
+| `storefront-themes`     | Storefront themes   | grouped: Online store | custom / business override       | 保存、私有预览与批准待正式发布分开表达；技术身份进入详情                                |
+| `order-report`          | Revenue report      | grouped: Analytics    | standard list                    | 销售总额、退款、净额定义放在各自表头右侧的信息图标 Tooltip 中；不保留筛选下方的范围摘要 |
+| `store-identity`        | Store identity      | grouped: Settings     | top-level form via custom recipe | 已保存 published 来源与历史详情分开；保存旁说明旧快照不变                               |
+| `contact-settings`      | Contact settings    | grouped: Settings     | top-level form via custom recipe | Global Contact Channels 说明新快照使用，后续保存不改旧快照                              |
+| `launch-settings`       | Commercial settings | grouped: Settings     | top-level form via custom recipe | 保存旁说明当前交易影响；联系、配送和政策跳到唯一 owner                                  |
+| `shipping-settings`     | Shipping settings   | grouped: Settings     | top-level form via custom recipe | 保存决策旁说明新 checkout 请求使用新配送规则                                            |
+| `policies`              | Policies            | grouped: Settings     | custom / business override       | 精确审核/发布保留；历史包含进入详情，不表示当前线上                                     |
+| `iam-users`             | Users & invitations | grouped: Settings     | custom / business override       | 删除仅复述用途的摘要                                                                    |
+| `iam-roles`             | Roles               | grouped: Settings     | standard list                    | 不保留权限实现机制介绍；必要权限限制在对应决策处说明一次                                |
+| `privacy`               | Privacy requests    | grouped: Settings     | custom / business override       | 身份核验说明只放在请求确认弹窗中                                                        |
+| `audit`                 | Audit trail         | grouped: Settings     | custom / business override       | 移除结果区的脱敏、权限与分页实现介绍                                                    |
+| `notification-recovery` | Automation recovery | grouped: Settings     | standard list                    | 删除仅复述用途的摘要                                                                    |
 
 `remove` 只适用于紧邻标题且仅复述页面用途的通用摘要；`relocate` 适用于会影响操作决策的规则。字段 help、指标定义、错误/空态 description、表格事实和无障碍 description 不属于标题副文案，必须保留在其原有任务边界。原 Store settings 与 IAM 入口移入 Settings 侧栏分组后，继续保留 `AppShell` 的原有 breadcrumb；详情、编辑器和子表单继续使用 `PageHeaderWithBack`，不进入上述 inventory。
 
@@ -299,7 +354,9 @@ Card 边界按操作关联判断：直接联动、共享查询或选择上下文
 - 新增页面遵循同一规则，并由共享布局测试保障；不得增加单页隐藏开关或在内容区重新渲染。
 
 ## 6. 晋升规则
+
 只有满足以下条件，能力才允许从业务特例晋升到 recipe 或后续 field block：
+
 - 至少出现 3 次
 - 错误模式稳定重复
 - 跨业务域可复用
@@ -307,11 +364,13 @@ Card 边界按操作关联判断：直接联动、共享查询或选择上下文
 不满足时，保持业务特例实现，不要为了“看起来通用”提前上升抽象。
 
 当前明确保留为 `business override` 的样本：
+
 - `src/pages/templates/form/advanced-form-page.tsx`
 
 ## 7. 接入清单
 
 ### 7.1 标准列表页
+
 - [ ] 已确认页面属于标准查询列表页，而不是特例工作台/复杂聚合页
 - [ ] 业务页通过 `StandardListPageSpec` 接入
 - [ ] 页面内容区未重复渲染与 route `title` 同义的主标题或主 `Card title`
@@ -322,6 +381,7 @@ Card 边界按操作关联判断：直接联动、共享查询或选择上下文
 - [ ] 重置走统一 `resetAll`
 
 ### 7.1.1 弹窗内轻量列表
+
 - [ ] 已确认列表不需要独立路由和整页布局
 - [ ] 业务页通过 `ModalListPageRecipe` 接入
 - [ ] 筛选、分页、空态、错误态与整页列表保持一致
@@ -331,6 +391,8 @@ Card 边界按操作关联判断：直接联动、共享查询或选择上下文
 - [ ] 操作列宽度按弹窗内直出动作集合计算
 
 ### 7.2 已选独立页的基础表单页
+
+- [ ] 已按 `ai-rules.md` §4.4 确认列数与内容宽度；分栏有明确任务关系及窄容器堆叠方案
 - [ ] 已确认页面属于 `basic` 表单，而不是 `step / advanced`
 - [ ] 业务页通过 `BasicCrudFormSpec` 接入
 - [ ] 已使用 `PageHeaderWithBack` 承载页头，主 `Card title` 未重复页头文案
@@ -343,12 +405,14 @@ Card 边界按操作关联判断：直接联动、共享查询或选择上下文
 - [ ] 重置走统一 `resetAll`
 
 ### 7.2.1 Drawer / Modal 表单
+
 - [ ] 容器与结构分别选型；轻量 Modal 仅实际模式
 - [ ] footer、dirty、busy、退出实例、一次刷新与读取失败仅重读符合第 3.1 节；原领域安全结果保留
 - [ ] 右 Drawer720，代表性内容、校验与 footer 仅验不小于720的桌面窗口
 - [ ] 语言切换保留输入/选择/错误并不额外请求；合法旧 URL 继续可达
 
 ### 7.3 分步表单页
+
 - [ ] 已确认页面属于 `step` 表单，而不是 `basic / advanced`
 - [ ] 业务页通过 `StepFormSpec` 接入
 - [ ] 步骤数量控制在 2-5 个自然阶段
@@ -356,6 +420,8 @@ Card 边界按操作关联判断：直接联动、共享查询或选择上下文
 - [ ] 完成态与返回动作保持可见
 
 ### 7.4 高级表单页（business override）
+
+- [ ] 已按 `ai-rules.md` §4.4 判断分栏与 Card 边界，未因双列外观单独升级表单类型
 - [ ] 已确认页面不适合 `basic / step`，且确实命中动态字段或复杂联动条件
 - [ ] 动态表单中的“上移/下移/删除/编号”复用 `SortActionGroup`
 - [ ] 重置行为覆盖字段与复杂局部状态
@@ -363,6 +429,7 @@ Card 边界按操作关联判断：直接联动、共享查询或选择上下文
 - [ ] 未为单页特例新增无边界通用 recipe
 
 ### 7.5 一级自定义页（business override）
+
 - [ ] 已确认页面不适合标准列表、基础表单或分步表单
 - [ ] 页面通过 `CustomPageRecipe` 承载内容区标题，未散装手写同义 `Typography.Title`
 - [ ] 标题默认来自 route title；仅在业务确有不同表达时传 `title` 覆盖
@@ -370,6 +437,7 @@ Card 边界按操作关联判断：直接联动、共享查询或选择上下文
 - [ ] 首个主 `Card title` 未重复页面主标题
 
 ## 8. 红线
+
 1. 不要把重特例页硬塞进第一期标准 recipe。
 2. 不要为临时页面差异新增无边界通用逃生口。
 3. 不要让业务页继续重复实现状态区、固定操作条、基础导航规则。

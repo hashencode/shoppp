@@ -26,6 +26,8 @@
 
 - [ai-rules.md](./ai-rules.md)
   - 当前项目的 AI 实现硬约束
+  - [Alert 和提示使用规范](./ai-rules.md#43-alert-and-feedback-usage)：反馈选型、显示条件、生命周期和必须保留的异常与风险
+  - [单列与双列布局规范](./ai-rules.md#44-single--and-two-column-layout)：布局适用条件、单卡片分区、宽度与窄容器适配、整页动作及只读边界
 - [page-recipes.yaml](./page-recipes.yaml)
   - 页面 recipe 与表单选型基线
 - [component-catalog.yaml](./component-catalog.yaml)
