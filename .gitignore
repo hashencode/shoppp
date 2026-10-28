@@ -41,3 +41,5 @@ artifacts/live/
 /artifacts/ui-notices/**/*.webp
 /artifacts/ui-notices/**/*.gif
 /artifacts/ui-notices/**/*.avif
+
+/.idea
