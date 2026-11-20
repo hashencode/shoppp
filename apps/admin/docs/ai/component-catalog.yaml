@@ -195,6 +195,7 @@ componentCatalog:
       evidence:
         - src/shared/components/file-preview.test.tsx
         - src/shared/components/file-preview.browser.test.tsx
+        - src/shared/components/file-preview-pdf-compat.browser.test.tsx
         - src/shared/components/video-player.test.tsx
         - src/shared/components/upload-form-item.test.tsx
     responsibilities:
@@ -202,6 +203,7 @@ componentCatalog:
       - 统一弹窗、加载/失败反馈、播放器销毁和显式下载动作
       - PDF.js 的文档、页面、动态加载或渲染失败后按 session 降级到 credentialed native blob iframe，再失败时保留下载恢复
       - PDF worker 独立产出、视频播放器在打开时按需加载；下载复用 shared download 合同，仅在传输失败时打开安全原文件地址
+      - PDF 主线程与 Worker 使用同版本 legacy 构建，中文 CMap 随应用静态资源部署并遵循 app base
     useWhen:
       - 业务页面、上传字段或资源列表需要统一预览并下载文件
     avoidWhen:
