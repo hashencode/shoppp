@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { useStorefrontEditorBlockId } from '../../../../theme-engine/editor-context';
 import type { FashionStoreHomeSectionProperties } from "./home-section-context";
 import { resolveFashionStoreHomeFoundation } from "./home-section-context";
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
+const editorBlockId = useStorefrontEditorBlockId(() => properties.instance);
 const promotion = computed(
   () => resolveFashionStoreHomeFoundation(properties.viewModel, properties.instance).promotion,
 );
@@ -13,7 +15,7 @@ const promotion = computed(
     <div class="container">
       <div class="row">
         <div class="col-12 text-center">
-          <span class="fs-15 text-uppercase fw-500"
+          <span :data-editor-instance="editorBlockId('fashion-store.promotion-item')" class="fs-15 text-uppercase fw-500"
             >{{ promotion.message
             }}<span
               v-if="promotion.kind === 'badge'"

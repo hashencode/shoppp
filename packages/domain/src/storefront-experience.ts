@@ -155,6 +155,32 @@ function applyOperation(
   operation: ThemeOverrideOperation,
 ): PageTemplate {
   switch (operation.kind) {
+    case "set-shell-presentation": {
+      if (!template.shell) throw new Error("This package has no shared shell presentation.");
+      return {
+        ...template,
+        shell: { ...template.shell, settings: structuredClone(operation.settings) },
+      };
+    }
+    case "set-theme-styles":
+      return { ...template, styles: structuredClone(operation.styles) };
+    case "add-section": {
+      const ids = [operation.section.id, ...operation.section.blocks.map(({ id }) => id)];
+      if (new Set(ids).size !== ids.length || ids.some((id) => findInstance(template, id)))
+        throw new Error("Section and Block IDs must be unique within the template.");
+      if (operation.section.required)
+        throw new Error("New sections cannot declare required ownership.");
+      return { ...template, sections: [...template.sections, structuredClone(operation.section)] };
+    }
+    case "remove-section": {
+      const section = template.sections.find(({ id }) => id === operation.instanceId);
+      if (!section || section.required)
+        throw new Error(`Cannot remove missing or required section ${operation.instanceId}.`);
+      return {
+        ...template,
+        sections: template.sections.filter(({ id }) => id !== operation.instanceId),
+      };
+    }
     case "add-block": {
       if (findInstance(template, operation.block.id)) {
         throw new Error(`Block ID ${operation.block.id} already exists.`);
@@ -258,7 +284,7 @@ function applyOperation(
 }
 
 export function validateRequiredCapabilities(template: PageTemplate): string[] {
-  const provided = new Set<string>();
+  const provided = new Set<string>(template.shell?.capabilities ?? []);
   for (const section of template.sections) {
     if (!section.visible) continue;
     for (const capability of section.capabilities) provided.add(capability);
@@ -274,6 +300,15 @@ export function resolveTemplateOverride(
   preset: PageTemplate,
   override: ThemeOverride,
 ): PageTemplate {
+  if (
+    override.schemaVersion < 4 &&
+    override.operations.some(({ kind }) =>
+      ["add-section", "remove-section", "set-theme-styles", "set-shell-presentation"].includes(
+        kind,
+      ),
+    )
+  )
+    throw new Error("Upgrade the theme package before using visual authoring operations.");
   if (preset.id !== override.templateId) {
     throw new Error(
       `Override template ${override.templateId} does not match preset template ${preset.id}.`,
@@ -290,6 +325,76 @@ export function resolveTemplateOverride(
   return resolved;
 }
 
+export function createTemplateOverride(
+  base: PageTemplate,
+  current: PageTemplate,
+  identity: { presetId: string; schemaVersion: number },
+): ThemeOverride {
+  const operations: ThemeOverrideOperation[] = [];
+  const equal = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+  const changedSettings = (before: ExperienceInstance, after: ExperienceInstance) => {
+    if (before.visible !== after.visible)
+      operations.push({ kind: "set-visibility", instanceId: after.id, visible: after.visible });
+    for (const [settingId, value] of Object.entries(after.settings)) {
+      if (!equal(before.settings[settingId], value))
+        operations.push({
+          kind: "set-setting",
+          instanceId: after.id,
+          settingId,
+          value: structuredClone(value),
+        });
+    }
+  };
+  for (const section of base.sections)
+    if (!current.sections.some(({ id }) => id === section.id))
+      operations.push({ kind: "remove-section", instanceId: section.id });
+  for (const section of current.sections) {
+    const original = base.sections.find(({ id }) => id === section.id);
+    if (!original) {
+      operations.push({ kind: "add-section", section: structuredClone(section) });
+      continue;
+    }
+    changedSettings(original, section);
+    for (const block of original.blocks)
+      if (!section.blocks.some(({ id }) => id === block.id))
+        operations.push({ kind: "remove-block", instanceId: block.id });
+    for (const block of section.blocks) {
+      const before = original.blocks.find(({ id }) => id === block.id);
+      if (before) changedSettings(before, block);
+      else
+        operations.push({
+          kind: "add-block",
+          sectionId: section.id,
+          block: structuredClone(block),
+        });
+    }
+    const blockIds = section.blocks.map(({ id }) => id);
+    if (
+      !equal(
+        blockIds,
+        original.blocks.map(({ id }) => id),
+      )
+    )
+      operations.push({ kind: "reorder-blocks", sectionId: section.id, instanceIds: blockIds });
+  }
+  const sectionIds = current.sections.map(({ id }) => id);
+  if (
+    !equal(
+      sectionIds,
+      base.sections.map(({ id }) => id),
+    )
+  )
+    operations.push({ kind: "reorder-sections", instanceIds: sectionIds });
+  if (!equal(current.styles, base.styles))
+    operations.push({ kind: "set-theme-styles", styles: current.styles ?? {} });
+  if (current.shell && !equal(current.shell.settings, base.shell?.settings))
+    operations.push({
+      kind: "set-shell-presentation",
+      settings: structuredClone(current.shell.settings),
+    });
+  return { ...identity, templateId: current.id, operations };
+}
+
 export function findUpgradeConflicts(
   previousPreset: PageTemplate,
   nextPreset: PageTemplate,
@@ -300,7 +405,13 @@ export function findUpgradeConflicts(
   const conflicts: UpgradeConflict[] = [];
 
   override.operations.forEach((operation, operationIndex) => {
-    if (operation.kind === "add-block") return;
+    if (
+      operation.kind === "add-block" ||
+      operation.kind === "add-section" ||
+      operation.kind === "set-theme-styles" ||
+      operation.kind === "set-shell-presentation"
+    )
+      return;
     if (operation.kind === "reorder-sections" || operation.kind === "reorder-blocks") {
       for (const instanceId of operation.instanceIds) {
         if (previousById.has(instanceId) && !nextById.has(instanceId)) {

@@ -474,11 +474,16 @@ export async function transitionNavigationMenu(
       AND NOT EXISTS (
         SELECT 1 FROM storefront_experience_drafts draft,
              json_each(draft.bindings_json) binding
-         WHERE json_extract(binding.value, '$.kind') = 'navigation'
+         WHERE draft.removed_at IS NULL AND json_extract(binding.value, '$.kind') = 'navigation'
            AND json_extract(binding.value, '$.reference.id') = current.menu_id
            AND CAST(json_extract(binding.value, '$.reference.version') AS INTEGER)
                IN (${archivedRows.map(() => "?").join(", ") || "NULL"})
            AND COALESCE(json_extract(binding.value, '$.reference.environment'), ?) = ?
+      ) AND NOT EXISTS (
+        SELECT 1 FROM storefront_experience_drafts draft, json_tree(draft.overrides_json) reference
+        WHERE draft.removed_at IS NULL AND reference.type = 'object'
+          AND json_extract(reference.value, '$.kind') = 'navigation'
+          AND json_extract(reference.value, '$.id') = current.menu_id
       )`;
   const transitionBindings: unknown[] = [
     current.menu_id,

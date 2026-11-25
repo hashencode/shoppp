@@ -9,6 +9,7 @@ import {
 import { normalizeApiError } from '../../infrastructure/http/api-client'
 import { useI18n } from '../../shared/contexts/i18n-context'
 import { localizeApiError } from '../../shared/i18n/api-error'
+import { StorefrontFieldGroup } from './storefront-field-group'
 
 void React
 
@@ -19,12 +20,14 @@ export const CatalogMediaPicker = ({
   disabled,
   label,
   onChange,
+  showLabel = true,
   value,
 }: {
   defaultValue: AssetReference
   disabled: boolean
   label: string
   onChange: (value: AssetReference) => void
+  showLabel?: boolean
   value: AssetReference
 }) => {
   const { t } = useI18n()
@@ -61,8 +64,7 @@ export const CatalogMediaPicker = ({
       : t('Theme asset · {width} × {height}', { width: value.width, height: value.height })
 
   return (
-    <fieldset aria-label={label} className="min-w-0 rounded border border-slate-200 p-3">
-      <legend className="px-1 text-sm font-medium">{label}</legend>
+    <StorefrontFieldGroup label={label} showLabel={showLabel}>
       <Space orientation="vertical" className="w-full">
         <Typography.Text type="secondary">{currentDescription}</Typography.Text>
         <Input.Search
@@ -102,7 +104,8 @@ export const CatalogMediaPicker = ({
                 <button
                   type="button"
                   aria-label={t('Select {name}', { name: item.alt })}
-                  className="w-full rounded border border-slate-200 p-2 text-left disabled:opacity-50"
+                  className="w-full rounded border border-solid p-2 text-left disabled:opacity-50"
+                  style={{ borderColor: 'var(--ant-color-border-secondary)' }}
                   disabled={disabled}
                   onClick={() =>
                     onChange({
@@ -122,9 +125,9 @@ export const CatalogMediaPicker = ({
                     width={item.width}
                   />
                   <span className="block text-sm">{item.productName}</span>
-                  <span className="block text-xs text-slate-500">
+                  <Typography.Text type="secondary" className="block text-xs">
                     {item.width} × {item.height}
-                  </span>
+                  </Typography.Text>
                 </button>
               </li>
             ))}
@@ -160,6 +163,6 @@ export const CatalogMediaPicker = ({
           {t('Uploads remain in the Catalog media workflow.')}
         </Typography.Text>
       </Space>
-    </fieldset>
+    </StorefrontFieldGroup>
   )
 }

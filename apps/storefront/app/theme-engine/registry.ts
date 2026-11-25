@@ -97,9 +97,9 @@ export function renderTemplatePlan(
   const ownsShell = Boolean(
     compositionCoversTemplate &&
     registry.sectionComposition?.rendererShell &&
-    visibleSections.some(
+    (Boolean(template.shell) || visibleSections.some(
       ({ type }) => type === registry.sectionComposition?.rendererShell?.sourceSectionType,
-    ),
+    )),
   );
   if (
     ownsShell &&
@@ -169,7 +169,7 @@ export function renderThemeTreePlan(
   return {
     sections,
     ...(rendererShellSource &&
-    sections.some(({ instance }) => instance.type === rendererShellSource) &&
+    (Boolean(template.shell) || sections.some(({ instance }) => instance.type === rendererShellSource)) &&
     registry.rendererShell
       ? { shell: registry.rendererShell }
       : {}),

@@ -344,6 +344,7 @@ componentCatalog:
     sharedCapability: crud-form-drawer
     responsibilities:
       - 右侧720px字段壳、有效差异关闭确认、同步提交锁与退出动画
+      - 同级模块沿轻分区组织，不嵌装饰性 Card；普通字段单列，关联组合按 drawer-form-layout-rules.md 判断
       - 普通保存立即退出、本地语言成功Modal、一次父内容读取；读取失败由父内容恢复
       - readonly硬阻断普通写；附加业务结果由页面保有owner
     useWhen:
@@ -360,6 +361,7 @@ componentCatalog:
       - 已选独立页的 add/modify/readonly 基础表单壳与底部提交区
       - 支持单 Card 和多 Card 分区，并为每个分区应用共享内容宽度与对齐规则
       - 标准 submit 校验失败时滚动到首个错误字段
+      - 查看与编辑复用相同表单结构和控件，readonly 仅改变可编辑状态及动作；原只读系统字段保留表单样式。后置状态区无编辑 name，仅独立只读摘要且同组至少三项独立信息可用单列 Descriptions，宽度／对齐遵守 page-guardrail-recipes.md
     useWhen:
       - 新增、编辑、查看能够复用同一字段结构
       - 表单可按稳定业务分组拆成一个或多个 Card
@@ -480,6 +482,7 @@ componentCatalog:
       - 独立登录页或纯公共页面
 
 crossCuttingRules:
+  - 共享资源／媒体／链接字段组保留名称、原生分组与错误关联，普通标题不切开外边框；外层标签与内部标题只保留一个可见 owner
   - templates 页面仅供参考；业务目录与示例目录的放置及依赖边界遵守 docs/ai/ai-rules.md 第 6 节
   - 先复用 template-kit 再考虑新造轮子
   - 列表页优先走 useTemplateListController + TemplateListContent 组合

@@ -1,0 +1,405 @@
+[
+  {
+    "id": "C001",
+    "file": "screenshots/C001-setup-guide.jpg",
+    "issues": ["UX-001"],
+    "note": "当前开店指南仍默认展开全部阶段，首屏未突出下一任务。",
+    "url": "http://127.0.0.1:3418/welcome",
+    "time": "2026-11-06T07:09:39.826Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C002",
+    "file": "screenshots/C002-shipping-guide.jpg",
+    "issues": ["UX-006"],
+    "note": "已选配送方式仍引导至配送设置，实际启用选择在商业设置。",
+    "url": "http://127.0.0.1:3418/welcome",
+    "time": "2026-11-06T07:10:05.218Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C003",
+    "file": "screenshots/C003-business-shipping-id.jpg",
+    "issues": ["UX-002", "UX-006"],
+    "note": "商业设置仍使用长配送方式ID；未修改任何设置。",
+    "url": "http://127.0.0.1:3418/settings/launch",
+    "time": "2026-11-06T07:10:43.639Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C004",
+    "file": "screenshots/C004-contact-location-drawer.jpg",
+    "issues": ["UX-003"],
+    "note": "地点抽屉与页面仍同时使用保存，当前说明提示最终页面保存后才生效。",
+    "url": "http://127.0.0.1:3418/settings/contact",
+    "time": "2026-11-06T07:11:05.304Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C005",
+    "file": "screenshots/C005-contact-dirty-input.jpg",
+    "issues": ["UX-024"],
+    "note": "公开电话输入未保存测试号码，准备站内离开。",
+    "url": "http://127.0.0.1:3418/settings/contact",
+    "time": "2026-11-06T07:12:00.186Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C006",
+    "file": "screenshots/C006-left-contact-without-warning.jpg",
+    "issues": ["UX-024"],
+    "note": "站内离开已进入配送设置，未出现未保存确认。",
+    "url": "http://127.0.0.1:3418/settings/shipping",
+    "time": "2026-11-06T07:12:17.611Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C007",
+    "file": "screenshots/C007-contact-input-lost.jpg",
+    "issues": ["UX-024"],
+    "note": "返回后公开电话为空，未保存测试输入丢失；没有业务写入。",
+    "url": "http://127.0.0.1:3418/settings/contact",
+    "time": "2026-11-06T07:12:33.809Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C008",
+    "file": "screenshots/C008-shipping-price-fields.jpg",
+    "issues": ["UX-004"],
+    "note": "固定运费仍要求最小货币单位，同时展示免费阈值与重量上下限；未保存。",
+    "url": "http://127.0.0.1:3418/settings/shipping",
+    "time": "2026-11-06T07:12:46.064Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C009",
+    "file": "screenshots/C009-identity-media-empty.jpg",
+    "issues": ["UX-007"],
+    "note": "当前主标志仍必填，选择器为空且没有素材准备入口。",
+    "url": "http://127.0.0.1:3418/settings/identity",
+    "time": "2026-11-06T07:13:31.080Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C010",
+    "file": "screenshots/C010-product-create-top.jpg",
+    "issues": ["UX-009"],
+    "note": "当前商品新建仍将基本信息、变体价格、物流和媒体SEO放在长表单中；未保存。",
+    "url": "http://127.0.0.1:3418/catalog/products/form?mode=add",
+    "time": "2026-11-06T07:13:59.890Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C011",
+    "file": "screenshots/C011-product-price-fields.jpg",
+    "issues": ["UX-004", "UX-009"],
+    "note": "商品价格仍使用最小币种单位，物流尺寸与价格表字段仍在首次录入中。",
+    "url": "http://127.0.0.1:3418/catalog/products/form?mode=add",
+    "time": "2026-11-06T07:14:09.327Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C012",
+    "file": "screenshots/C012-product-media-current.jpg",
+    "issues": ["UX-002", "UX-009", "UX-010"],
+    "note": "当前媒体仍要求Key与宽高；本次文件上传受扩展本地文件权限限制，尚未完成UX-010上传后尺寸复核，不将默认1200视为本轮已证实错误。",
+    "url": "http://127.0.0.1:3418/catalog/products/form?mode=add",
+    "time": "2026-11-06T07:16:10.087Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C013",
+    "file": "screenshots/C013-product-publish-error.jpg",
+    "issues": ["UX-012"],
+    "note": "对原测试商品进行一次发布尝试，仍显示泛化请求失败；根因未诊断。",
+    "url": "http://127.0.0.1:3418/catalog/products",
+    "time": "2026-11-06T07:16:38.848Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C014",
+    "file": "screenshots/C014-inventory-empty.jpg",
+    "issues": ["UX-013"],
+    "note": "原测试商品和SKU仍为草稿，库存页仍无记录或初始化入口；未证明库存计算错误。",
+    "url": "http://127.0.0.1:3418/inventory",
+    "time": "2026-11-06T07:17:15.710Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C015",
+    "file": "screenshots/C015-collection-created-modal.jpg",
+    "issues": ["UX-005", "UX-014"],
+    "note": "创建测试集合成功，仍出现阻断式Collection created弹窗；中文菜单仍称商品系列，页面称商品集合。",
+    "url": "http://127.0.0.1:3418/catalog/collections",
+    "time": "2026-11-06T07:17:48.500Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C016",
+    "file": "screenshots/C016-page-saved-still-new.jpg",
+    "issues": ["UX-011"],
+    "note": "新页面草稿已保存为v1，标题仍新建页面，地址仍mode=add。",
+    "url": "http://127.0.0.1:3418/content/pages/form?mode=add",
+    "time": "2026-11-06T07:19:01.026Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C017",
+    "file": "screenshots/C017-page-saved-version.jpg",
+    "issues": ["UX-011"],
+    "note": "状态区域确认草稿v1，作为已保存的对照证据。",
+    "url": "http://127.0.0.1:3418/content/pages/form?mode=add",
+    "time": "2026-11-06T07:19:01.362Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C018",
+    "file": "screenshots/C018-themes-current.jpg",
+    "issues": ["UX-015"],
+    "note": "主题资料已改为带标签的描述表，但技术版本、英文页面和预设仍在主区；按部分改善记录。",
+    "url": "http://127.0.0.1:3418/storefront/themes",
+    "time": "2026-11-06T07:19:16.731Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C019",
+    "file": "screenshots/C019-editor-no-source.jpg",
+    "issues": ["UX-016"],
+    "note": "当前仍无已发布预览数据；存在管理商品/内容/导航入口，但准备与关联流程仍不明确，按部分改善记录。",
+    "url": "http://127.0.0.1:3418/storefront/themes/draft-f7ff874a-0bc0-46fc-b2f3-6f8c6b058e9f",
+    "time": "2026-11-06T07:19:37.274Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C020",
+    "file": "screenshots/C020-editor-publish-status.jpg",
+    "issues": ["UX-017"],
+    "note": "保存装修按钮已禁用，发布区仍提示先保存或放弃当前修改；没有编辑或发布主题。",
+    "url": "http://127.0.0.1:3418/storefront/themes/draft-f7ff874a-0bc0-46fc-b2f3-6f8c6b058e9f",
+    "time": "2026-11-06T07:19:49.842Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C021",
+    "file": "screenshots/C021-dashboard-empty.jpg",
+    "issues": ["UX-018"],
+    "note": "当前空仪表盘仍仅显示数据不足，没有保留指标框架和下一步。",
+    "url": "http://127.0.0.1:3418/dashboard",
+    "time": "2026-11-06T07:19:50.548Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C022",
+    "file": "screenshots/C022-report-invalid-date.jpg",
+    "issues": ["UX-019"],
+    "note": "开始2026-10-08、结束2026-10-07，查询被表现为列表加载失败，未指出日期反向。",
+    "url": "http://127.0.0.1:3418/reports/orders",
+    "time": "2026-11-06T07:21:27.807Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C023",
+    "file": "screenshots/C023-report-export-ready.jpg",
+    "issues": ["UX-020"],
+    "note": "本轮0行导出已就绪，下载链接仍为/admin/reporting/exports路径。",
+    "url": "http://127.0.0.1:3418/reports/orders",
+    "time": "2026-11-06T07:21:53.116Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C024",
+    "file": "screenshots/C024-export-download-misdirect.jpg",
+    "issues": ["UX-020"],
+    "note": "点击下载后进入开店指南，当前下载链路仍未交付CSV。",
+    "url": "http://127.0.0.1:3418/welcome",
+    "time": "2026-11-06T07:21:53.766Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C025",
+    "file": "screenshots/C025-permission-search.jpg",
+    "issues": ["UX-021"],
+    "note": "搜索报表后仍显示全部权限组，无匹配数量或定位反馈；未改动任何权限。",
+    "url": "http://127.0.0.1:3418/access/roles",
+    "time": "2026-11-06T07:22:31.776Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C026",
+    "file": "screenshots/C026-audit-technical-codes.jpg",
+    "issues": ["UX-022"],
+    "note": "审计当前仍依赖操作代码、内部身份和长ID检索。",
+    "url": "http://127.0.0.1:3418/audit",
+    "time": "2026-11-06T07:23:38.024Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C027",
+    "file": "screenshots/C027-audit-filtered.jpg",
+    "issues": ["UX-022", "UX-023"],
+    "note": "提交report.export.create后仅显示2条导出记录，作为返回保留测试的起点。",
+    "url": "http://127.0.0.1:3418/audit",
+    "time": "2026-11-06T07:24:31.517Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C028",
+    "file": "screenshots/C028-jobs-empty.jpg",
+    "issues": ["UX-008"],
+    "note": "无任务且未设筛选，当前空状态仍让重置筛选后重查。",
+    "url": "http://127.0.0.1:3418/operations/jobs",
+    "time": "2026-11-06T07:24:48.347Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C029",
+    "file": "screenshots/C029-audit-back-filter-lost.jpg",
+    "issues": ["UX-023"],
+    "note": "浏览器返回后筛选字段为空且恢复全部审计记录，复现上下文丢失。",
+    "url": "http://127.0.0.1:3418/audit",
+    "time": "2026-11-06T07:25:13.484Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C030",
+    "file": "screenshots/C030-reset-invalid-link.jpg",
+    "issues": ["UX-025"],
+    "note": "当前无令牌重设页显示重置链接无效，仅有返回登录；未输入新密码。",
+    "url": "http://127.0.0.1:3418/reset-password",
+    "time": "2026-11-06T07:26:08.631Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  },
+  {
+    "id": "C031",
+    "file": "screenshots/C031-activate-invalid-link.jpg",
+    "issues": ["UX-025"],
+    "note": "当前无令牌激活页只提供返回登录，缺少重新获取邀请的直接指引。",
+    "url": "http://127.0.0.1:3418/activate",
+    "time": "2026-11-06T07:26:19.319Z",
+    "viewport": {
+      "height": 934,
+      "scrollY": 0,
+      "width": 1600
+    }
+  }
+]

@@ -1,14 +1,11 @@
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, Button, Table, Tag } from 'antd'
 import dayjs from 'dayjs'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { normalizeApiError, type ApiError } from '../../infrastructure/http/api-client'
-import {
-  fetchCatalogCollections,
-  type CatalogCollection,
-} from '../../services/catalog/api'
+import { fetchCatalogCollections, type CatalogCollection } from '../../services/catalog/api'
 import { ListRowActions } from '../../shared/components/list-row-actions'
 import { useI18n } from '../../shared/contexts/i18n-context'
 import {
@@ -16,6 +13,19 @@ import {
   type StandardListPageSpec,
   type TemplateListFilterField,
 } from '../../shared/template-kit/list'
+
+import { CollectionFormPage } from './collection-form-page'
+
+const CollectionReloadCapture = ({
+  reload,
+  capture,
+}: {
+  reload: () => Promise<void>
+  capture: React.Dispatch<React.SetStateAction<(() => Promise<void>) | null>>
+}) => {
+  useEffect(() => capture(() => reload), [capture, reload])
+  return null
+}
 
 void React
 
@@ -31,6 +41,8 @@ const statusStyle: Record<CatalogCollection['status'], { color: string; label: s
 
 export const CollectionListPage = () => {
   const { t } = useI18n()
+  const [editorSearch, setEditorSearch] = useState<string | null>(null)
+  const [reload, setReload] = useState<(() => Promise<void>) | null>(null)
   const { role, permissions } = useAuth()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -66,9 +78,9 @@ export const CollectionListPage = () => {
       if (id) params.set('id', id)
       if (handoffProductId) params.set('handoffProductId', handoffProductId)
       if (returnTo) params.set('returnTo', returnTo)
-      navigate(`/catalog/collections/form?${params.toString()}`)
+      setEditorSearch((current) => current ?? params.toString())
     },
-    [handoffProductId, navigate, returnTo]
+    [handoffProductId, returnTo]
   )
   const spec = useMemo<
     StandardListPageSpec<SearchValues, RequestFilters, Response, CatalogCollection, ApiError>
@@ -165,9 +177,9 @@ export const CollectionListPage = () => {
         />
       ),
       cardTitle:
-        handoffProductId && !showAll
-          ? t('Collections containing this Product')
-          : t('Collections'),
+        handoffProductId && !showAll ? t('Collections containing this Product') : t('Collections'),
+      toolbarExtra: ({ reload }) => <CollectionReloadCapture reload={reload} capture={setReload} />,
+      toolbarExtraVisible: false,
       createAction: { label: t('New collection'), permission: 'catalog.write' },
       filterFields: fields,
       formRoute: '/catalog/collections/form',
@@ -214,5 +226,19 @@ export const CollectionListPage = () => {
     }),
     [canPublish, canWrite, fields, handoffProductId, navigate, openFormPage, returnTo, showAll, t]
   )
-  return <StandardListPageRecipe spec={spec} />
+  return (
+    <>
+      <StandardListPageRecipe spec={spec} />
+      {editorSearch !== null ? (
+        <CollectionFormPage
+          key={editorSearch}
+          drawer={{
+            search: editorSearch,
+            onClose: () => setEditorSearch(null),
+            onSaved: reload ?? (async () => undefined),
+          }}
+        />
+      ) : null}
+    </>
+  )
 }

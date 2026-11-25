@@ -138,6 +138,7 @@ recipes:
       - 先按 ai-rules.md 第 3.1 节选择容器，再按结构矩阵选择 basic
       - 通过 CrudFormDrawerSpec 接入，字段/完整 payload/纯值 dirty 基线/业务 reset 由页面提供
       - 右 Drawer 固定 720px；字段空间读取 drawer-form-layout-rules.md
+      - 同级字段组使用标题、留白和必要细分割线，不套装饰性 Card 或断边标题；普通字段单列，关联组合按布局权威判断
       - 父页固定本次目标，关闭动画结束才卸载，期间拒绝新打开
       - 上传与附加写入接 actionBusy，内层 Modal 接 nestedModalOpen
       - 普通成功立即关闭和一次 onSaved 刷新，确认只关闭结果 Modal；父内容持有读取错误与重试
@@ -187,6 +188,7 @@ recipes:
       - contentWidthPreset=full 不设置最大宽度，仅用于工作台、编排器、矩阵、画布、超宽批量编辑等 wide 仍明显影响操作效率的模块，必须特殊声明
       - 只有 preset 无法表达的页面级特例，才使用 maxWidthClassName 作为逃生口，并在实现说明中写明原因
       - 普通单列编辑页字段控件默认填满表单内容列，禁止用字段级固定宽度替代模板内容宽度
+      - 查看与编辑保留相同表单结构、控件与宽度，readonly 仅改变可编辑状态及动作；已有只读系统字段不因三项门槛替换。后置状态与版本区仅独立只读摘要且同组至少三项独立信息才使用单列 Descriptions；Card 标题行动作及编辑 store 边界遵守 page-guardrail-recipes.md 第 3.2 节
       - 多 Card 表单页保持 Card 全宽，宽度 preset 按每个 Card 独立判断，只作用于 Card body 或 Card 内表单内容容器；禁止把 preset 挂到包裹多个 Card 的 Form 根节点上
       - 自定义内容容器或 Card body 手动控制宽度时，必须复用 FORM_CONTENT_ALIGN_CLASS_NAME / FORM_CARD_BODY_WIDTH_CLASS_NAME，禁止手写 mx-auto 或左右 margin 覆盖表单对齐偏好
       - 解析 mode/resourceKey，非法参数直接展示错误态

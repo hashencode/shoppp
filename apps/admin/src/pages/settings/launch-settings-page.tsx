@@ -7,6 +7,7 @@ import {
   Alert,
   Button,
   Card,
+  Descriptions,
   Form,
   Input,
   InputNumber,
@@ -329,7 +330,10 @@ export const LaunchSettingsPage = () => {
         </Form>
       </TemplateFormStateGate>
       {canRead ? (
-        <Card title={t('Checkout-impacting health')}>
+        <Card
+          title={t('Checkout-impacting health')}
+          classNames={{ body: FORM_CARD_BODY_WIDTH_CLASS_NAME.compact }}
+        >
           {healthLoading ? (
             <p>{t('Loading operational health…')}</p>
           ) : healthError ? (
@@ -341,17 +345,26 @@ export const LaunchSettingsPage = () => {
               action={<Button onClick={() => void loadHealth()}>{t('Retry health check')}</Button>}
             />
           ) : health ? (
-            <Space wrap>
-              <Tag color={health.status === 'ok' ? 'success' : 'error'}>
-                {t(health.status === 'ok' ? 'Healthy' : 'Degraded')}
-              </Tag>
-              {Object.entries(health.failures).map(([key, value]) => (
-                <span key={key}>
-                  {t(HEALTH_FAILURE_LABEL[key as keyof OperationalHealth['failures']])}:{' '}
-                  <strong>{value}</strong>
-                </span>
-              ))}
-            </Space>
+            <Descriptions
+              size="small"
+              column={1}
+              items={[
+                {
+                  key: 'status',
+                  label: t('Status'),
+                  children: (
+                    <Tag color={health.status === 'ok' ? 'success' : 'error'}>
+                      {t(health.status === 'ok' ? 'Healthy' : 'Degraded')}
+                    </Tag>
+                  ),
+                },
+                ...Object.entries(health.failures).map(([key, value]) => ({
+                  key,
+                  label: t(HEALTH_FAILURE_LABEL[key as keyof OperationalHealth['failures']]),
+                  children: value,
+                })),
+              ]}
+            />
           ) : null}
         </Card>
       ) : null}

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { storefrontEditorModeKey } from "../../../../theme-engine/editor-context";
+const editorMode = inject(storefrontEditorModeKey, false);
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import { liveCommerceModeKey } from "../../../../theme-engine/runtime-commerce";
@@ -68,7 +70,7 @@ function routeHref(path: string): string | undefined {
 </script>
 
 <template>
-  <footer class="footer-dark bg-dark-gray p-0 fashion-store-footer-canonical">
+  <footer class="footer-dark bg-dark-gray p-0 fashion-store-footer-canonical" :data-editor-instance="editorMode ? 'shared-footer' : undefined">
     <div class="container">
       <div class="row align-items-center pt-35px pb-35px">
         <div class="col-12 col-md-auto sm-mb-15px text-center text-md-start">

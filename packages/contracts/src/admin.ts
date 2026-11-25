@@ -774,6 +774,7 @@ export const adminStorefrontThemeSchema = z
 
 export const storefrontExperienceDraftInputSchema = z
   .object({
+    name: z.string().trim().min(1).max(120).optional(),
     bindings: z.array(experienceResourceBindingSchema).max(100),
     experienceId: storefrontIdentifierSchema,
     overrides: z.array(themeOverrideSchema).max(10),

@@ -414,21 +414,14 @@ export const StorefrontPublicationPanel = ({
                     children: (
                       <Space orientation="vertical" className="w-full min-w-0">
                         {active?.publication ? (
-                          <Descriptions
-                            size="small"
-                            column={1}
-                            items={[
-                              {
-                                key: 'current',
-                                label: t('Current version'),
-                                children: (
-                                  <Typography.Text className="break-all">
-                                    {active.publication.id}
-                                  </Typography.Text>
-                                ),
-                              },
-                            ]}
-                          />
+                          <Typography.Paragraph className="!mb-0">
+                            <Typography.Text type="secondary">
+                              {t('Current version')}:{' '}
+                            </Typography.Text>
+                            <Typography.Text className="break-all">
+                              {active.publication.id}
+                            </Typography.Text>
+                          </Typography.Paragraph>
                         ) : null}
                         {publications.map((item) => (
                           <div key={item.id} className="w-full min-w-0">

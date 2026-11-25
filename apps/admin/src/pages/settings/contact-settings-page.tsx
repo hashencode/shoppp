@@ -3,7 +3,19 @@ import {
   type ContactProfile,
   type ContactSettings,
 } from '@shoppp/contracts'
-import { Alert, App, Button, Card, Form, Input, Select, Space, Switch, Typography } from 'antd'
+import {
+  Alert,
+  App,
+  Button,
+  Card,
+  Descriptions,
+  Form,
+  Input,
+  Select,
+  Space,
+  Switch,
+  Typography,
+} from 'antd'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { hasPermission } from '../../infrastructure/auth/permissions'
@@ -17,6 +29,7 @@ import { useLocalizedApiError } from '../../shared/i18n/api-error'
 import { FORM_ERROR_SCROLL_OPTIONS, TemplateFormStateGate } from '../../shared/template-kit/form'
 import { FORM_CARD_BODY_WIDTH_CLASS_NAME } from '../../shared/template-kit/form/form-content-width'
 import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
+import { ContactLocationsField } from './contact-location-drawer'
 import { getTimeZoneOptions } from '../../shared/utils/time-zones'
 
 void React
@@ -55,22 +68,15 @@ const socialPlatformOptions = Object.entries(contactSocialPlatformLabels).map(([
   value,
 }))
 type SocialPlatform = ContactProfile['socials'][number]['platform']
-const newServiceRange = (): Extract<NonNullable<ContactProfile['serviceHours']>, { kind: 'weekly' }>['ranges'][number] => ({
+const newServiceRange = (): Extract<
+  NonNullable<ContactProfile['serviceHours']>,
+  { kind: 'weekly' }
+>['ranges'][number] => ({
   id: crypto.randomUUID(),
   startDay: 'monday',
   endDay: 'friday',
   startTime: '09:00',
   endTime: '18:00',
-})
-const newLocation = (): ContactProfile['locations'][number] => ({
-  id: crypto.randomUUID(),
-  name: '',
-  city: '',
-  address: '',
-  phone: null,
-  email: null,
-  mapUrl: null,
-  visible: false,
 })
 const newSocial = (platform: SocialPlatform): ContactProfile['socials'][number] => ({
   id: crypto.randomUUID(),
@@ -102,6 +108,7 @@ export const ContactSettingsPage = () => {
   const canRead = hasPermission(role, 'settings.read', permissions)
   const canWrite = hasPermission(role, 'settings.write', permissions)
   const [form] = Form.useForm<FormValues>()
+  const [locationEditing, setLocationEditing] = useState(false)
   const [serviceHours, setServiceHours] = useState<ContactProfile['serviceHours']>(null)
   const socials = Form.useWatch(['profile', 'socials'], form) ?? []
   const replaceServiceHours = (value: ContactProfile['serviceHours']) => {
@@ -182,7 +189,7 @@ export const ContactSettingsPage = () => {
   }, [canRead, load])
 
   const save = async (values: FormValues) => {
-    if (!canWrite || !settings || saving || mutationLock.current) return
+    if (!canWrite || !settings || saving || mutationLock.current || locationEditing) return
     mutationLock.current = true
     setSaving(true)
     setSaveError(null)
@@ -344,114 +351,114 @@ export const ContactSettingsPage = () => {
                       <Form.List name={['profile', 'serviceHours', 'ranges']}>
                         {(fields, { add, remove }) => (
                           <div className="space-y-4">
-                          {fields.map((field, index) => (
-                            <Card
-                              key={field.key}
-                              size="small"
-                              title={t('Service window {number}', { number: index + 1 })}
-                            >
-                              <Form.Item name={[field.name, 'id']} hidden>
-                                <Input />
-                              </Form.Item>
-                              <Form.Item
-                                name={[field.name, 'startDay']}
-                                label={t('Start weekday')}
-                                rules={[{ required: true }]}
+                            {fields.map((field, index) => (
+                              <Card
+                                key={field.key}
+                                size="small"
+                                title={t('Service window {number}', { number: index + 1 })}
                               >
-                                <Select
-                                  options={weekdayOptions.map(([value, label]) => ({
-                                    value,
-                                    label: t(label),
-                                  }))}
-                                />
-                              </Form.Item>
-                              <Form.Item
-                                name={[field.name, 'endDay']}
-                                label={t('End weekday')}
-                                dependencies={[[field.name, 'startDay']]}
-                                rules={[
-                                  { required: true },
-                                  ({ getFieldValue }) => ({
-                                    validator: (_, value) => {
-                                      const start = getFieldValue([
-                                        'profile',
-                                        'serviceHours',
-                                        'ranges',
-                                        field.name,
-                                        'startDay',
-                                      ])
-                                      const order = weekdayOptions.map(([day]) => day)
-                                      return order.indexOf(value) >= order.indexOf(start)
-                                        ? Promise.resolve()
-                                        : Promise.reject(
-                                            new Error(
-                                              t(
-                                                'The ending weekday must not be before the starting weekday.'
+                                <Form.Item name={[field.name, 'id']} hidden>
+                                  <Input />
+                                </Form.Item>
+                                <Form.Item
+                                  name={[field.name, 'startDay']}
+                                  label={t('Start weekday')}
+                                  rules={[{ required: true }]}
+                                >
+                                  <Select
+                                    options={weekdayOptions.map(([value, label]) => ({
+                                      value,
+                                      label: t(label),
+                                    }))}
+                                  />
+                                </Form.Item>
+                                <Form.Item
+                                  name={[field.name, 'endDay']}
+                                  label={t('End weekday')}
+                                  dependencies={[[field.name, 'startDay']]}
+                                  rules={[
+                                    { required: true },
+                                    ({ getFieldValue }) => ({
+                                      validator: (_, value) => {
+                                        const start = getFieldValue([
+                                          'profile',
+                                          'serviceHours',
+                                          'ranges',
+                                          field.name,
+                                          'startDay',
+                                        ])
+                                        const order = weekdayOptions.map(([day]) => day)
+                                        return order.indexOf(value) >= order.indexOf(start)
+                                          ? Promise.resolve()
+                                          : Promise.reject(
+                                              new Error(
+                                                t(
+                                                  'The ending weekday must not be before the starting weekday.'
+                                                )
                                               )
                                             )
-                                          )
-                                    },
-                                  }),
-                                ]}
-                              >
-                                <Select
-                                  options={weekdayOptions.map(([value, label]) => ({
-                                    value,
-                                    label: t(label),
-                                  }))}
-                                />
-                              </Form.Item>
-                              <Form.Item
-                                name={[field.name, 'startTime']}
-                                label={t('Start time')}
-                                rules={[{ required: true }]}
-                              >
-                                <Input type="time" />
-                              </Form.Item>
-                              <Form.Item
-                                name={[field.name, 'endTime']}
-                                label={t('End time')}
-                                dependencies={[[field.name, 'startTime']]}
-                                rules={[
-                                  { required: true },
-                                  ({ getFieldValue }) => ({
-                                    validator: (_, value) =>
-                                      value !==
-                                      getFieldValue([
-                                        'profile',
-                                        'serviceHours',
-                                        'ranges',
-                                        field.name,
-                                        'startTime',
-                                      ])
-                                        ? Promise.resolve()
-                                        : Promise.reject(
-                                            new Error(
-                                              t('The start and end times must be different.')
-                                            )
-                                          ),
-                                  }),
-                                ]}
-                              >
-                                <Input type="time" />
-                              </Form.Item>
-                              <Button
-                                danger
-                                onClick={() => {
-                                  if (fields.length === 1) {
-                                    replaceServiceHours(null)
-                                    return
-                                  }
-                                  remove(field.name)
-                                }}
-                              >
-                                {t('Remove service window')}
-                              </Button>
-                            </Card>
-                          ))}
-                          <Button onClick={() => add(newServiceRange())}>
-                            {t('Add service window')}
-                          </Button>
+                                      },
+                                    }),
+                                  ]}
+                                >
+                                  <Select
+                                    options={weekdayOptions.map(([value, label]) => ({
+                                      value,
+                                      label: t(label),
+                                    }))}
+                                  />
+                                </Form.Item>
+                                <Form.Item
+                                  name={[field.name, 'startTime']}
+                                  label={t('Start time')}
+                                  rules={[{ required: true }]}
+                                >
+                                  <Input type="time" />
+                                </Form.Item>
+                                <Form.Item
+                                  name={[field.name, 'endTime']}
+                                  label={t('End time')}
+                                  dependencies={[[field.name, 'startTime']]}
+                                  rules={[
+                                    { required: true },
+                                    ({ getFieldValue }) => ({
+                                      validator: (_, value) =>
+                                        value !==
+                                        getFieldValue([
+                                          'profile',
+                                          'serviceHours',
+                                          'ranges',
+                                          field.name,
+                                          'startTime',
+                                        ])
+                                          ? Promise.resolve()
+                                          : Promise.reject(
+                                              new Error(
+                                                t('The start and end times must be different.')
+                                              )
+                                            ),
+                                    }),
+                                  ]}
+                                >
+                                  <Input type="time" />
+                                </Form.Item>
+                                <Button
+                                  danger
+                                  onClick={() => {
+                                    if (fields.length === 1) {
+                                      replaceServiceHours(null)
+                                      return
+                                    }
+                                    remove(field.name)
+                                  }}
+                                >
+                                  {t('Remove service window')}
+                                </Button>
+                              </Card>
+                            ))}
+                            <Button onClick={() => add(newServiceRange())}>
+                              {t('Add service window')}
+                            </Button>
                           </div>
                         )}
                       </Form.List>
@@ -476,8 +483,7 @@ export const ContactSettingsPage = () => {
                   rules={[
                     ({ getFieldValue }) => ({
                       validator: (_, value) =>
-                        Boolean(value) ===
-                        Boolean(getFieldValue(['profile', 'serviceHours']))
+                        Boolean(value) === Boolean(getFieldValue(['profile', 'serviceHours']))
                           ? Promise.resolve()
                           : Promise.reject(
                               new Error(
@@ -509,96 +515,13 @@ export const ContactSettingsPage = () => {
                   'Leave this list empty for an online-only shop. Publish only complete, verified addresses.'
                 )}
               </Typography.Paragraph>
-              <Form.List name={['profile', 'locations']}>
-                {(fields, { add, remove, move }) => (
-                  <div className="space-y-4">
-                    {fields.map((field, index) => (
-                      <Card
-                        key={field.key}
-                        size="small"
-                        title={t('Location {number}', { number: index + 1 })}
-                      >
-                        <Form.Item name={[field.name, 'id']} hidden>
-                          <Input />
-                        </Form.Item>
-                        <div className="grid">
-                          <Form.Item
-                            name={[field.name, 'name']}
-                            label={t('Location name')}
-                            rules={[{ required: true }]}
-                          >
-                            <Input maxLength={120} />
-                          </Form.Item>
-                          <Form.Item
-                            name={[field.name, 'city']}
-                            label={t('City')}
-                            rules={[{ required: true }]}
-                          >
-                            <Input maxLength={120} />
-                          </Form.Item>
-                          <Form.Item
-                            name={[field.name, 'address']}
-                            label={t('Postal address')}
-                            rules={[{ required: true }]}
-                          >
-                            <Input maxLength={500} />
-                          </Form.Item>
-                          <Form.Item
-                            name={[field.name, 'phone']}
-                            label={t('Location phone')}
-                            rules={[
-                              {
-                                pattern: phonePattern,
-                                message: t(
-                                  'Use an international phone number, such as +12025550123.'
-                                ),
-                              },
-                            ]}
-                          >
-                            <Input type="tel" />
-                          </Form.Item>
-                          <Form.Item
-                            name={[field.name, 'email']}
-                            label={t('Location email')}
-                            rules={[{ type: 'email' }]}
-                          >
-                            <Input type="email" />
-                          </Form.Item>
-                          <Form.Item
-                            name={[field.name, 'mapUrl']}
-                            label={t('Verified map URL')}
-                            rules={[httpsRule(t('Enter an HTTPS URL.'))]}
-                          >
-                            <Input type="url" />
-                          </Form.Item>
-                          <Form.Item
-                            name={[field.name, 'visible']}
-                            label={t('Publish location')}
-                            valuePropName="checked"
-                          >
-                            <Switch />
-                          </Form.Item>
-                        </div>
-                        <Space wrap>
-                          <Button disabled={index === 0} onClick={() => move(index, index - 1)}>
-                            {t('Move up')}
-                          </Button>
-                          <Button
-                            disabled={index === fields.length - 1}
-                            onClick={() => move(index, index + 1)}
-                          >
-                            {t('Move down')}
-                          </Button>
-                          <Button danger onClick={() => remove(field.name)}>
-                            {t('Remove location')}
-                          </Button>
-                        </Space>
-                      </Card>
-                    ))}
-                    <Button onClick={() => add(newLocation())}>{t('Add location')}</Button>
-                  </div>
-                )}
-              </Form.List>
+              <Form.Item name={['profile', 'locations']} className="!mb-0">
+                <ContactLocationsField
+                  readOnly={!canWrite}
+                  busy={saving}
+                  onEditingChange={setLocationEditing}
+                />
+              </Form.Item>
             </Card>
             <Card
               title={t('Social links')}
@@ -692,87 +615,108 @@ export const ContactSettingsPage = () => {
                 )}
               </Form.List>
             </Card>
-            <Card classNames={{ body: FORM_CARD_BODY_WIDTH_CLASS_NAME.compact }}>
-              {saveError ? (
-                <Alert
-                  className="mb-4"
-                  type={saveError.status === 409 ? 'warning' : 'error'}
-                  showIcon
-                  title={t(
-                    saveError.status === 409
-                      ? 'Contact settings changed since you opened this page.'
-                      : 'Contact settings could not be saved.'
-                  )}
-                  description={t(
-                    saveError.status === 409
-                      ? 'Your edits are still here. Compare the latest values before replacing this form.'
-                      : localizeError(saveError)
-                  )}
-                  action={
-                    saveError.status === 409 ? (
-                      <Button loading={comparing} onClick={() => void compareLatest()}>
-                        {t('Compare current values')}
-                      </Button>
-                    ) : undefined
-                  }
-                />
-              ) : null}
-              {latest ? (
-                <Alert
-                  className="mb-4"
-                  type="info"
-                  showIcon
-                  title={t('Current saved contact values')}
-                  description={
-                    <div className="space-y-1">
-                      <p>
-                        {t('Support email')}: {latest.supportEmail}
-                      </p>
-                      <p>
-                        {t('Privacy contact email')}: {latest.privacyContactEmail}
-                      </p>
-                      <p>
-                        {t('Public phone')}: {latest.profile.publicPhone || '—'}
-                      </p>
-                      <p>
-                        {t('Service hours')}: {formatServiceHours(latest.profile.serviceHours)}
-                      </p>
-                      <p>
-                        {t('Time zone')}: {latest.profile.timeZone || '—'}
-                      </p>
-                      {latest.profile.locations.map((location) => (
-                        <p key={location.id}>
-                          {t('Location name')}: {location.name} — {location.address};{' '}
-                          {location.phone || '—'}; {location.email || '—'}; {location.mapUrl || '—'}
-                        </p>
-                      ))}
-                      {latest.profile.socials.map((social) => (
-                        <p key={social.id}>
-                          {t('Platform')}: {social.platform} — {social.label}: {social.url}
-                        </p>
-                      ))}
-                      <Button onClick={replaceWithLatest}>
-                        {t('Replace my edits with current values')}
-                      </Button>
-                    </div>
-                  }
-                />
-              ) : null}
-              {!canWrite ? (
-                <Typography.Paragraph type="secondary">
-                  {t('You can view these settings but cannot change them.')}
-                </Typography.Paragraph>
-              ) : null}
-            </Card>
+            {saveError || latest || !canWrite ? (
+              <Card classNames={{ body: FORM_CARD_BODY_WIDTH_CLASS_NAME.compact }}>
+                {saveError ? (
+                  <Alert
+                    className="mb-4"
+                    type={saveError.status === 409 ? 'warning' : 'error'}
+                    showIcon
+                    title={t(
+                      saveError.status === 409
+                        ? 'Contact settings changed since you opened this page.'
+                        : 'Contact settings could not be saved.'
+                    )}
+                    description={t(
+                      saveError.status === 409
+                        ? 'Your edits are still here. Compare the latest values before replacing this form.'
+                        : localizeError(saveError)
+                    )}
+                    action={
+                      saveError.status === 409 ? (
+                        <Button loading={comparing} onClick={() => void compareLatest()}>
+                          {t('Compare current values')}
+                        </Button>
+                      ) : undefined
+                    }
+                  />
+                ) : null}
+                {latest ? (
+                  <Alert
+                    className="mb-4"
+                    type="info"
+                    showIcon
+                    title={t('Current saved contact values')}
+                    description={
+                      <div className="space-y-3">
+                        <Descriptions
+                          size="small"
+                          column={1}
+                          styles={{ content: { overflowWrap: 'anywhere' } }}
+                          items={[
+                            {
+                              key: 'support',
+                              label: t('Support email'),
+                              children: latest.supportEmail,
+                            },
+                            {
+                              key: 'privacy',
+                              label: t('Privacy contact email'),
+                              children: latest.privacyContactEmail,
+                            },
+                            {
+                              key: 'phone',
+                              label: t('Public phone'),
+                              children: latest.profile.publicPhone || '—',
+                            },
+                            {
+                              key: 'hours',
+                              label: t('Service hours'),
+                              children: formatServiceHours(latest.profile.serviceHours),
+                            },
+                            {
+                              key: 'timeZone',
+                              label: t('Time zone'),
+                              children: latest.profile.timeZone || '—',
+                            },
+                          ]}
+                        />
+                        {latest.profile.locations.map((location) => (
+                          <p key={location.id}>
+                            {t('Location name')}: {location.name} — {location.address};{' '}
+                            {location.phone || '—'}; {location.email || '—'};{' '}
+                            {location.mapUrl || '—'}
+                          </p>
+                        ))}
+                        {latest.profile.socials.map((social) => (
+                          <p key={social.id}>
+                            {t('Platform')}: {social.platform} — {social.label}: {social.url}
+                          </p>
+                        ))}
+                        <Button onClick={replaceWithLatest}>
+                          {t('Replace my edits with current values')}
+                        </Button>
+                      </div>
+                    }
+                  />
+                ) : null}
+                {!canWrite ? (
+                  <Typography.Paragraph type="secondary">
+                    {t('You can view these settings but cannot change them.')}
+                  </Typography.Paragraph>
+                ) : null}
+              </Card>
+            ) : null}
             {modeView.showActions ? (
               <FormSubmitToolbar
                 submitLabel={t('Save contact settings')}
                 submitHtmlType="submit"
                 submitLoading={saving}
-                submitDisabled={saving || !canWrite}
+                submitDisabled={saving || !canWrite || locationEditing}
                 resetLabel={t('Reset changes')}
-                resetDisabled={saving || !canWrite}
+                resetDisabled={saving || !canWrite || locationEditing}
                 onReset={() => {
+                  if (saving || locationEditing) return
                   setServiceHours(settings.profile.serviceHours)
                   form.setFieldsValue({
                     profile: settings.profile,

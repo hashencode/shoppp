@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231e40af'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-family='sans-serif' font-size='24' font-weight='700' fill='white'%3ES%3C/text%3E%3C/svg%3E"
+    />
+    <title>Shoppp · 表单新旧对比</title>
+    <meta
+      name="description"
+      content="Shoppp 管理后台表单样式的逐页截图对比，支持拖动比较、主题切换和原图放大。"
+    />
+    <link rel="stylesheet" href="gallery.css" />
+    <script src="gallery-data.js?v=20261106" defer></script>
+    <script src="gallery.js?v=20261106" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到截图对比</a>
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">S</span>
+        <div><strong>SHOPPP</strong><span>表单样式验收</span></div>
+        <button
+          id="menu-toggle"
+          class="button mobile-menu"
+          aria-expanded="false"
+          aria-controls="page-nav"
+        >
+          目录
+        </button>
+      </div>
+      <div class="nav-content" id="page-nav">
+        <div class="round-picker">
+          <label for="round-select">证据轮次</label
+          ><select id="round-select"></select>
+        </div>
+        <label class="search-box"
+          ><span class="sr-only">搜索页面</span
+          ><svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="10.5" cy="10.5" r="6.5" />
+            <path d="m16 16 4.5 4.5" /></svg
+          ><input id="search" type="search" placeholder="搜索页面或表单…" autocomplete="off"
+        /></label>
+        <nav id="navigation" aria-label="页面目录"></nav>
+        <p class="empty-search" id="empty-search" hidden>
+          没有匹配的页面。<button class="text-button" id="clear-search">清空搜索</button>
+        </p>
+      </div>
+      <div class="sidebar-footer">
+        <span class="status-dot"></span>本地截图 · 隔离测试数据<br /><span id="counts"></span>
+      </div>
+    </aside>
+
+    <main id="main" tabindex="-1">
+      <header class="page-header">
+        <div class="eyebrow">ADMIN / 视觉验收 <span id="round-date">2026.10.31</span></div>
+        <div class="title-row">
+          <h1 id="page-title"></h1>
+          <span class="badge" id="page-badge"></span
+          ><span class="page-position" id="page-position"></span>
+        </div>
+        <p class="page-note" id="page-note"></p>
+        <p class="round-note" id="round-note"></p>
+      </header>
+
+      <section class="comparison-panel" id="comparison-panel" aria-label="新旧截图对比">
+        <div class="toolbar">
+          <div class="toolbar-group">
+            <span class="control-label">截图主题</span>
+            <div class="segmented" id="theme-controls">
+              <button data-theme="light" aria-pressed="true">浅色</button
+              ><button data-theme="dark" aria-pressed="false">深色</button>
+            </div>
+          </div>
+          <div class="toolbar-group view-controls">
+            <span class="control-label">查看方式</span>
+            <div class="segmented" id="view-controls">
+              <button data-view="wipe" aria-pressed="true">滑动对比</button
+              ><button data-view="side" aria-pressed="false">并排对比</button>
+            </div>
+          </div>
+          <button id="zoom-main" class="button zoom-button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" /></svg
+            >放大查看
+          </button>
+        </div>
+        <div class="region-bar">
+          <span class="control-label">区域</span>
+          <div id="region-controls" class="region-controls" aria-label="截图区域"></div>
+        </div>
+
+        <div id="evidence-pending" class="evidence-pending" hidden>
+          <p id="evidence-pending-note"></p>
+          <button id="baseline-open" class="image-button" aria-label="放大已有原图" hidden>
+            <img id="baseline-image" width="1280" height="900" alt="" />
+          </button>
+        </div>
+        <p id="image-load-error" class="evidence-pending" hidden></p>
+        <div id="wipe-view" class="wipe-view">
+          <button id="wipe-open" class="wipe-open" aria-label="放大查看当前截图">
+            <span class="wipe-stage" id="wipe-stage">
+              <img id="wipe-after" width="1280" height="900" alt="" />
+              <span id="before-layer" class="before-layer"
+                ><img id="wipe-before" width="1280" height="900" alt=""
+              /></span>
+              <span class="image-label label-before" id="before-label">修改前</span
+              ><span class="image-label label-after" id="after-label">修改后</span>
+              <span class="split-line" id="split-line"><span aria-hidden="true">‹ ›</span></span>
+            </span>
+          </button>
+          <div class="slider-bar">
+            <label for="comparison-range">拖动比较同一位置</label
+            ><input
+              id="comparison-range"
+              type="range"
+              min="0"
+              max="100"
+              value="50"
+              aria-label="新旧对比分界位置"
+            /><span id="split-value">50 / 50</span
+            ><button class="text-button" id="reset-range">居中</button>
+          </div>
+        </div>
+
+        <div id="side-view" class="side-view" hidden>
+          <figure>
+            <figcaption>
+              <span class="version-dot old"></span>修改前<button
+                class="text-button"
+                id="zoom-before"
+              >
+                放大原图 ↗
+              </button>
+            </figcaption>
+            <button id="side-before-open" class="image-button" aria-label="放大修改前原图">
+              <img id="side-before" width="1280" height="900" alt="" />
+            </button>
+          </figure>
+          <figure>
+            <figcaption>
+              <span class="version-dot new"></span>修改后<button
+                class="text-button"
+                id="zoom-after"
+              >
+                放大原图 ↗
+              </button>
+            </figcaption>
+            <button id="side-after-open" class="image-button" aria-label="放大修改后原图">
+              <img id="side-after" width="1280" height="900" alt="" />
+            </button>
+          </figure>
+        </div>
+        <div class="image-footnote">
+          <span>同条件原图 · 中文 · 1280 × 900 · 100% 缩放</span><span>点击图片可放大</span>
+        </div>
+      </section>
+
+      <section class="extras-section" id="extras-section">
+        <div class="section-heading">
+          <h2 id="extras-title">补充状态</h2>
+          <span id="extras-count"></span>
+        </div>
+        <p id="extras-note">确认弹窗、校验与只读等状态，按原始主题保留。</p>
+        <div class="extras-grid" id="extras-grid"></div>
+      </section>
+
+      <div class="page-navigation">
+        <button class="button" id="previous-page">← 上一页</button
+        ><span id="navigation-position"></span
+        ><button class="button" id="next-page">下一页 →</button>
+      </div>
+
+      <details class="evidence-notes">
+        <summary>截图说明与原始证据</summary>
+        <p id="evidence-description">
+          这是实际运行的 Admin
+          组件和本地隔离数据，没有创建、发布或删除真实业务记录。地点、集合的前后图表示两次复核；内容状态弹窗为新增组合，旧图对应原常驻原因区域。长页面按相同业务区域保留滚动锚点。
+        </p>
+        <p>
+          动态图片／链接为未保存草稿；数值、开关、非空媒体为明确的补充情景。中间版本图片单独标注，不作为最初基线。
+        </p>
+        <div class="evidence-links">
+          <a
+            id="evidence-index"
+            href="../2026-10-31-admin-form-style-comparisons.md"
+            target="_blank"
+            rel="noopener"
+            >原始截图索引 ↗</a
+          ><a
+            id="evidence-verification"
+            href="../2026-10-31-admin-form-style-unification-verification.md"
+            target="_blank"
+            rel="noopener"
+            >行为验收记录 ↗</a
+          ><a
+            id="evidence-audit"
+            href="../2026-10-31-admin-form-style-audit.md"
+            target="_blank"
+            rel="noopener"
+            >全后台排查 ↗</a
+          >
+        </div>
+      </details>
+      <footer class="page-footer">
+        SHOPPP · ADMIN FORM REVIEW <span>截图展示页，不连接业务 API</span>
+      </footer>
+    </main>
+
+    <dialog id="zoom-dialog" aria-labelledby="zoom-title">
+      <div class="zoom-header">
+        <div>
+          <p class="eyebrow">原图查看</p>
+          <h2 id="zoom-title"></h2>
+        </div>
+        <button id="close-zoom" class="button">关闭 <span aria-hidden="true">×</span></button>
+      </div>
+      <div class="zoom-toolbar">
+        <div id="zoom-versions" class="segmented">
+          <button data-version="before" aria-pressed="false">修改前</button
+          ><button data-version="after" aria-pressed="true">修改后</button>
+        </div>
+        <span id="zoom-image-note"></span>
+        <div class="segmented zoom-scales" id="zoom-scales">
+          <button data-scale="fit" aria-pressed="true">适应窗口</button
+          ><button data-scale="100" aria-pressed="false">100%</button
+          ><button data-scale="200" aria-pressed="false">200%</button>
+        </div>
+        <a id="open-original" target="_blank" rel="noopener">打开原图 ↗</a>
+      </div>
+      <div class="zoom-canvas" id="zoom-canvas">
+        <img id="zoom-image" width="1280" height="900" alt="" />
+      </div>
+    </dialog>
+    <noscript
+      ><p class="noscript">请启用 JavaScript，或打开同目录上一级的原始截图索引。</p></noscript
+    >
+  </body>
+</html>

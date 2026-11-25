@@ -1,0 +1,134 @@
+[
+  {
+    "id": "account",
+    "badge": "待判断",
+    "comparisonHidden": true,
+    "images": [
+      {
+        "complete": true,
+        "height": 900,
+        "src": "../assets/admin-description-candidates-2026-10-31/01-account-drawer.jpg",
+        "width": 1280
+      },
+      {
+        "complete": true,
+        "height": 900,
+        "src": "../assets/admin-description-candidates-2026-10-31/01-account-compatible.jpg",
+        "width": 1280
+      }
+    ],
+    "title": "01 · 账号已保存资料"
+  },
+  {
+    "id": "health",
+    "badge": "待判断",
+    "comparisonHidden": true,
+    "images": [
+      {
+        "complete": true,
+        "height": 900,
+        "src": "../assets/admin-description-candidates-2026-10-31/02-health.jpg",
+        "width": 1280
+      }
+    ],
+    "title": "02 · 运行健康"
+  },
+  {
+    "id": "contact-conflict",
+    "badge": "待判断",
+    "comparisonHidden": true,
+    "images": [
+      {
+        "complete": true,
+        "height": 900,
+        "src": "../assets/admin-description-candidates-2026-10-31/03-contact-conflict.jpg",
+        "width": 1280
+      }
+    ],
+    "title": "03 · 联系信息冲突核对"
+  },
+  {
+    "id": "theme-package",
+    "badge": "待判断",
+    "comparisonHidden": true,
+    "images": [
+      {
+        "complete": true,
+        "height": 900,
+        "src": "../assets/admin-description-candidates-2026-10-31/04-theme-package.jpg",
+        "width": 1280
+      }
+    ],
+    "title": "04 · 主题包资料"
+  },
+  {
+    "id": "editor-version",
+    "badge": "待判断",
+    "comparisonHidden": true,
+    "images": [
+      {
+        "complete": true,
+        "height": 900,
+        "src": "../assets/admin-description-candidates-2026-10-31/05-editor-version.jpg",
+        "width": 1280
+      }
+    ],
+    "title": "05 · 编辑器版本详情"
+  },
+  {
+    "id": "online-version",
+    "badge": "待判断",
+    "comparisonHidden": true,
+    "images": [
+      {
+        "complete": true,
+        "height": 900,
+        "src": "../assets/admin-description-candidates-2026-10-31/04-theme-package.jpg",
+        "width": 1280
+      }
+    ],
+    "title": "06 · 线上版本概览"
+  },
+  {
+    "id": "policy",
+    "badge": "待判断",
+    "comparisonHidden": true,
+    "images": [
+      {
+        "complete": true,
+        "height": 900,
+        "src": "../assets/admin-description-candidates-2026-10-31/07-policy.jpg",
+        "width": 1280
+      }
+    ],
+    "title": "07 · 政策审阅元信息"
+  },
+  {
+    "id": "location",
+    "badge": "待判断",
+    "comparisonHidden": true,
+    "images": [
+      {
+        "complete": true,
+        "height": 900,
+        "src": "../assets/admin-description-candidates-2026-10-31/08-location.jpg",
+        "width": 1280
+      }
+    ],
+    "title": "08 · 地点列表摘要"
+  },
+  {
+    "id": "single-version",
+    "badge": "待判断",
+    "comparisonHidden": true,
+    "images": [
+      {
+        "complete": true,
+        "height": 900,
+        "src": "../assets/admin-description-candidates-2026-10-31/09-single-version.jpg",
+        "width": 1280
+      }
+    ],
+    "title": "09 · 当前版本单项描述"
+  }
+]

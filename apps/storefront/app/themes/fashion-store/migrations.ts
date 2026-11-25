@@ -2,6 +2,7 @@ import type { ThemeOverride, ThemeOverrideOperation } from "@shoppp/contracts";
 
 import { fashionStoreHomeSections } from "./successor/composition";
 import { fashionStoreManifest } from "./successor/manifest";
+import { migrateFashionStoreVisualOverrides } from "./authoring/migration";
 
 const SOURCE_CONFIGURATION_SCHEMA_VERSION = 1;
 const SOURCE_HOME_INSTANCE_IDS = ["fashion-store-home"] as const;
@@ -130,6 +131,9 @@ export function migrateFashionStorePresentationOnlyOverrides(
 }
 
 export const fashionStoreConfigurationMigrations = [
+  { fromConfigurationSchemaVersion: 3, toConfigurationSchemaVersion: 4, themeId: "fashion-store",
+    migrate: migrateFashionStoreVisualOverrides,
+  },
   {
     fromConfigurationSchemaVersion: SOURCE_CONFIGURATION_SCHEMA_VERSION,
     migrate: migrateFashionStoreV1Overrides,

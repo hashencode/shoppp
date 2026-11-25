@@ -1,6 +1,6 @@
 import React from 'react'
-import { App } from 'antd'
-import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { App, ConfigProvider } from 'antd'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
@@ -75,6 +75,282 @@ afterEach(() => {
 afterAll(() => server.close())
 
 describe('Content editor', () => {
+  it.each(['page', 'article'] as const)(
+    'requires a successful reload after a %s conflict even after reset or a failed reload',
+    async (kind) => {
+      const namespace = kind === 'page' ? 'pages' : 'articles'
+      const current = {
+        ...page,
+        id: `${kind}.recovery`,
+        ...(kind === 'article' ? { coverAssetId: null } : {}),
+      }
+      let reads = 0
+      const writes: unknown[] = []
+      server.use(
+        http.get(`*/admin/content/${namespace}/${current.id}`, () => {
+          reads += 1
+          return reads === 2
+            ? HttpResponse.json(
+                { error: { code: 'temporarily_unavailable', message: 'Retry later.' } },
+                { status: 503 }
+              )
+            : HttpResponse.json({ data: { ...current, version: reads === 1 ? 3 : 4 } })
+        }),
+        http.get('*/admin/catalog/collections/media', () => HttpResponse.json({ data: [] })),
+        http.get('*/admin/content/media', () => HttpResponse.json({ data: [] })),
+        http.post(`*/admin/content/${namespace}/${current.id}/publish`, async ({ request }) => {
+          writes.push(await request.json())
+          return writes.length === 1
+            ? HttpResponse.json(
+                { error: { code: 'content_conflict', message: 'Stale version.' } },
+                { status: 409 }
+              )
+            : HttpResponse.json({ data: { ...current, version: 5, status: 'published' } })
+        })
+      )
+      renderInLocale(
+        <AuthTestProvider permissions={['content.read', 'content.write', 'content.publish']}>
+          <ThemeProvider>
+            <App>
+              <MemoryRouter
+                initialEntries={[`/content/${namespace}/form?mode=modify&id=${current.id}`]}
+              >
+                <ConfigProvider theme={{ token: { motion: false } }}>
+                  {kind === 'page' ? <PageEditorPage /> : <ArticleEditorPage />}
+                </ConfigProvider>
+              </MemoryRouter>
+            </App>
+          </ThemeProvider>
+        </AuthTestProvider>
+      )
+      fireEvent.click(await screen.findByRole('button', { name: 'Publish' }))
+      fireEvent.change(await screen.findByLabelText('Transition reason'), {
+        target: { value: 'Original reviewed version' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+      await screen.findByText('This Content record changed. Reload it before continuing.')
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+      fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }))
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+      expect((screen.getByRole('button', { name: 'Publish' }) as HTMLButtonElement).disabled).toBe(
+        true
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'Reload' }))
+      await screen.findByText('Request failed. Please try again later.')
+      expect(screen.queryByRole('button', { name: 'Publish' })).toBeNull()
+      expect(writes).toHaveLength(1)
+      fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+      await waitFor(() =>
+        expect(
+          (screen.getByRole('button', { name: 'Publish' }) as HTMLButtonElement).disabled
+        ).toBe(false)
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
+      expect(await screen.findByText('About · Saved v4')).toBeTruthy()
+      expect((screen.getByLabelText('Transition reason') as HTMLTextAreaElement).value).toBe('')
+      fireEvent.change(screen.getByLabelText('Transition reason'), {
+        target: { value: 'Reviewed new version' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+      await waitFor(() =>
+        expect(writes).toEqual([
+          {
+            confirm: true,
+            expectedVersion: 3,
+            reason: 'Original reviewed version',
+            redirectFromOldSlug: true,
+          },
+          {
+            confirm: true,
+            expectedVersion: 4,
+            reason: 'Reviewed new version',
+            redirectFromOldSlug: true,
+          },
+        ])
+      )
+    }
+  )
+
+  it.each(['page', 'article'] as const)(
+    'restores saved %s lifecycle actions after a confirmed reset without writing',
+    async (kind) => {
+      const namespace = kind === 'page' ? 'pages' : 'articles'
+      const current = {
+        ...page,
+        id: `${kind}.reset`,
+        ...(kind === 'article' ? { coverAssetId: null } : {}),
+      }
+      let writes = 0
+      server.use(
+        http.get(`*/admin/content/${namespace}/${current.id}`, () =>
+          HttpResponse.json({ data: current })
+        ),
+        http.get('*/admin/catalog/collections/media', () => HttpResponse.json({ data: [] })),
+        http.post(`*/admin/content/${namespace}/${current.id}/publish`, () => {
+          writes += 1
+          return HttpResponse.json({ data: { ...current, status: 'published' } })
+        })
+      )
+      renderInLocale(
+        <AuthTestProvider permissions={['content.read', 'content.write', 'content.publish']}>
+          <ThemeProvider>
+            <App>
+              <MemoryRouter
+                initialEntries={[`/content/${namespace}/form?mode=modify&id=${current.id}`]}
+              >
+                {kind === 'page' ? <PageEditorPage /> : <ArticleEditorPage />}
+              </MemoryRouter>
+            </App>
+          </ThemeProvider>
+        </AuthTestProvider>
+      )
+      await waitFor(() =>
+        expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe('About')
+      )
+      fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Unsaved title' } })
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Publish' }).hasAttribute('disabled')).toBe(true)
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }))
+      await waitFor(() =>
+        expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe('About')
+      )
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Publish' }).hasAttribute('disabled')).toBe(false)
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
+      expect(await screen.findByRole('dialog')).toBeTruthy()
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }))
+      expect(writes).toBe(0)
+    }
+  )
+
+  it.each(['page', 'article'] as const)(
+    'retains a failed %s confirmation and locks a pending write',
+    async (kind) => {
+      const namespace = kind === 'page' ? 'pages' : 'articles'
+      const current = {
+        ...page,
+        id: `${kind}.confirmation`,
+        ...(kind === 'article' ? { coverAssetId: null } : {}),
+      }
+      let attempts = 0
+      let release!: () => void
+      const pending = new Promise<void>((resolve) => {
+        release = resolve
+      })
+      let body: unknown
+      server.use(
+        http.get(`*/admin/content/${namespace}/${current.id}`, () =>
+          HttpResponse.json({ data: current })
+        ),
+        http.get('*/admin/catalog/collections/media', () => HttpResponse.json({ data: [] })),
+        http.post(`*/admin/content/${namespace}/${current.id}/publish`, async ({ request }) => {
+          attempts += 1
+          body = await request.json()
+          if (attempts === 1) {
+            await pending
+            return HttpResponse.json(
+              { error: { code: 'temporarily_unavailable', message: 'Retry later.' } },
+              { status: 503 }
+            )
+          }
+          return HttpResponse.json({ data: { ...current, status: 'published' } })
+        })
+      )
+      renderInLocale(
+        <AuthTestProvider permissions={['content.read', 'content.publish']}>
+          <ThemeProvider>
+            <App>
+              <MemoryRouter
+                initialEntries={[`/content/${namespace}/form?mode=readonly&id=${current.id}`]}
+              >
+                {kind === 'page' ? <PageEditorPage /> : <ArticleEditorPage />}
+              </MemoryRouter>
+            </App>
+          </ThemeProvider>
+        </AuthTestProvider>
+      )
+      fireEvent.click(await screen.findByRole('button', { name: 'Publish' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
+      expect(attempts).toBe(0)
+      fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
+      const reason = await screen.findByRole('textbox', { name: 'Transition reason' })
+      fireEvent.change(reason, { target: { value: '  x  ' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+      await waitFor(() => expect(reason.getAttribute('aria-invalid')).toBe('true'))
+      expect(attempts).toBe(0)
+      fireEvent.change(reason, { target: { value: 'a'.repeat(501) } })
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+      await waitFor(() => expect(reason.getAttribute('aria-invalid')).toBe('true'))
+      expect(attempts).toBe(0)
+      fireEvent.change(reason, { target: { value: '  Reviewed for publication  ' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+      await waitFor(() => expect(attempts).toBe(1))
+      expect((screen.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(
+        true
+      )
+      expect((reason as HTMLTextAreaElement).disabled).toBe(true)
+      await act(async () => {
+        release()
+        await pending
+      })
+      expect(
+        await within(screen.getByRole('dialog')).findByText(
+          'Request failed. Please try again later.'
+        )
+      ).toBeTruthy()
+      expect((reason as HTMLTextAreaElement).value).toBe('  Reviewed for publication  ')
+      fireEvent.click(await screen.findByRole('button', { name: /^(loading )?Confirm$/ }))
+      await waitFor(() => expect(attempts).toBe(2))
+      expect(body).toEqual({
+        confirm: true,
+        expectedVersion: 3,
+        reason: 'Reviewed for publication',
+        redirectFromOldSlug: true,
+      })
+    }
+  )
+
+  it('invalidates an open confirmation when the route changes', async () => {
+    server.use(
+      http.get('*/admin/content/pages/page.second', () =>
+        HttpResponse.json({ data: { ...page, id: 'page.second', title: 'Second page' } })
+      )
+    )
+    renderInLocale(
+      <AuthTestProvider permissions={['content.read', 'content.write', 'content.publish']}>
+        <ThemeProvider>
+          <App>
+            <MemoryRouter initialEntries={['/content/pages/form?mode=readonly&id=page.about']}>
+              <RouteChangeHarness />
+            </MemoryRouter>
+          </App>
+        </ThemeProvider>
+      </AuthTestProvider>
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Publish' }))
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Transition reason' }), {
+      target: { value: 'Old confirmation' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Open second page' }))
+    await screen.findByDisplayValue('Second page')
+    await waitFor(() =>
+      expect((screen.getByRole('button', { name: 'Publish' }) as HTMLButtonElement).disabled).toBe(
+        false
+      )
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
+    expect(await screen.findByText('Second page · Saved v3')).toBeTruthy()
+    expect(
+      (screen.getByRole('textbox', { name: 'Transition reason' }) as HTMLTextAreaElement).value
+    ).toBe('')
+    expect(submitted).toBeUndefined()
+  })
+
   it('prefills only a new English slug and saves without duplicate SEO or notes', async () => {
     server.use(
       http.post('*/admin/content/pages', async ({ request }) => {
@@ -158,6 +434,9 @@ describe('Content editor', () => {
       </AuthTestProvider>
     )
     const paragraph = await screen.findByRole('textbox', { name: 'Paragraph 1' })
+    expect((screen.getByLabelText('Content status') as HTMLInputElement).value).toBe('Draft')
+    expect((screen.getByLabelText('Content status') as HTMLInputElement).readOnly).toBe(true)
+    expect((screen.getByLabelText('Saved version') as HTMLInputElement).value).toBe('v3')
     fireEvent.change(paragraph, { target: { value: 'Unsaved story.' } })
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Edited business title' } })
     fireEvent.blur(screen.getByLabelText('Title'))
@@ -210,6 +489,11 @@ describe('Content editor', () => {
       </AuthTestProvider>
     )
     expect(await screen.findByRole('button', { name: 'Publish' })).toBeTruthy()
+    expect((screen.getByLabelText('Content status') as HTMLInputElement).readOnly).toBe(true)
+    expect((screen.getByLabelText('Saved version') as HTMLInputElement).readOnly).toBe(true)
+    expect((screen.getByRole('button', { name: 'Publish' }) as HTMLButtonElement).disabled).toBe(
+      false
+    )
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
     expect((screen.getByLabelText('Title') as HTMLInputElement).disabled).toBe(true)
     await act(async () => {
@@ -238,7 +522,7 @@ describe('Content editor', () => {
       </AuthTestProvider>,
       'zh-CN'
     )
-    expect(await screen.findByText('已发布')).toBeTruthy()
+    expect(((await screen.findByLabelText('内容状态')) as HTMLInputElement).value).toBe('已发布')
     expect(screen.queryByText('published')).toBeNull()
     const details = screen.getByText('内容版本详情').closest('details')
     expect(details?.open).toBe(false)
@@ -267,21 +551,20 @@ describe('Content editor', () => {
         </ThemeProvider>
       </AuthTestProvider>
     )
-    await screen.findByRole('button', { name: 'Publish' })
-    fireEvent.change(screen.getByLabelText('Transition reason'), {
+    fireEvent.click(await screen.findByRole('button', { name: 'Publish' }))
+    fireEvent.change(await screen.findByLabelText('Transition reason'), {
       target: { value: 'Publish reviewed copy' },
     })
     expect(screen.getByRole('button', { name: 'Publish' }).hasAttribute('disabled')).toBe(false)
     expect((screen.getByLabelText('Title') as HTMLInputElement).disabled).toBe(true)
-    fireEvent.click(screen.getByRole('button', { name: 'Publish' }))
     expect(
       await screen.findByText(
         'This content becomes available to future storefront versions. The current storefront is unchanged.'
       )
     ).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'OK' }).hasAttribute('disabled')).toBe(false)
+    expect(screen.getByRole('button', { name: 'Confirm' }).hasAttribute('disabled')).toBe(false)
     expect(screen.getByRole('button', { name: 'Cancel' }).hasAttribute('disabled')).toBe(false)
-    fireEvent.click(screen.getByRole('button', { name: 'OK' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
     await waitFor(() =>
       expect(publication).toEqual({
         confirm: true,
@@ -309,11 +592,11 @@ describe('Content editor', () => {
       </AuthTestProvider>
     )
     fireEvent.change(await screen.findByLabelText('Title'), { target: { value: 'Unsaved title' } })
-    fireEvent.change(screen.getByLabelText('Transition reason'), {
-      target: { value: 'Publish reviewed copy' },
-    })
-    expect((screen.getByRole('button', { name: 'Publish' }) as HTMLButtonElement).disabled).toBe(
-      true
+    expect(screen.queryByRole('textbox', { name: 'Transition reason' })).toBeNull()
+    await waitFor(() =>
+      expect((screen.getByRole('button', { name: 'Publish' }) as HTMLButtonElement).disabled).toBe(
+        true
+      )
     )
   })
 
@@ -478,12 +761,12 @@ describe('Content editor', () => {
       const button = await screen.findByRole('button', {
         name: action === 'archive' ? 'Archive' : 'Publish',
       })
-      fireEvent.change(screen.getByLabelText('Transition reason'), {
+      fireEvent.click(button)
+      fireEvent.change(await screen.findByLabelText('Transition reason'), {
         target: { value: 'Reviewed source transition' },
       })
-      fireEvent.click(button)
       expect(submitted).toBeUndefined()
-      fireEvent.click(await screen.findByRole('button', { name: 'OK' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }))
       await waitFor(() =>
         expect(submitted).toEqual({
           confirm: true,

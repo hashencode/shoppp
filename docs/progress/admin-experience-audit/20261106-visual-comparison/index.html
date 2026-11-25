@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Shoppp · 当前截图与目标效果对比</title>
+    <link rel="stylesheet" href="gallery.css" />
+    <script defer src="review-data.js"></script>
+    <script defer src="gallery.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">跳到截图对比</a>
+    <aside class="sidebar">
+      <a class="brand" href="../20261031-234330-admin-ux/report.html">Shoppp · 体验改进</a>
+      <p class="side-sub">当前截图 × 目标效果</p>
+      <label for="find">查找问题</label
+      ><input id="find" type="search" placeholder="编号或页面关键词" /><label for="category"
+        >问题类型</label
+      ><select id="category">
+        <option value="all">全部25项</option>
+        <option value="UI">UI／信息呈现</option>
+        <option value="UX">UX／操作流程</option>
+        <option value="MIXED">功能逻辑与UX</option>
+        <option value="PENDING">功能根因待查</option>
+      </select>
+      <nav id="directory" aria-label="问题目录"></nav>
+      <footer class="side-foot">2026年11月6日重新取证<br />31张截图 · 25项目标示意</footer>
+    </aside>
+    <main id="main">
+      <header class="page-head">
+        <div>
+          <p class="eyebrow">SHOPPP / 管理后台体验对比</p>
+          <h1>当前截图与目标效果</h1>
+          <p class="intro">
+            左侧是当前版本的真实截图与问题框选；右侧是建议修改后的界面或交互状态。
+          </p>
+        </div>
+        <a class="quiet-link" href="../20261031-234330-admin-ux/report.html">原审计报告 ↗</a>
+      </header>
+      <div class="scope">
+        <b>本轮复核：</b>22项代表问题仍存在，2项部分存在，1项上传流程未完成复核。<span
+          >目标均为设计示意，尚未实施。</span
+        >
+      </div>
+      <section class="issue-head">
+        <div id="badges"></div>
+        <h2 id="issue-title"></h2>
+        <p id="observation"></p>
+      </section>
+      <div class="toolbar">
+        <div id="frame-tabs" aria-label="截图状态"></div>
+        <div class="view-actions">
+          <label><input id="marks" type="checkbox" checked /> 显示问题框</label
+          ><button id="zoom" type="button">查看完整截图</button
+          ><a id="original" target="_blank" rel="noopener">打开原图 ↗</a>
+        </div>
+      </div>
+      <section class="comparison" aria-label="当前与目标并排对比">
+        <figure class="before">
+          <figcaption>
+            <span class="dot red"></span><b>当前版本 · 真实截图</b><small id="shot-label"></small>
+          </figcaption>
+          <div class="evidence-stage" id="stage"></div>
+          <div class="evidence-meta" id="shot-meta"></div>
+          <ol class="mark-list" id="mark-list"></ol>
+        </figure>
+        <figure class="after">
+          <figcaption>
+            <span class="dot green"></span><b>目标效果 · 设计示意</b
+            ><a id="target-link" target="_blank" rel="noopener">完整目标图 ↗</a>
+          </figcaption>
+          <iframe id="target" title="目标效果示意"></iframe>
+          <p class="target-note" id="design-note"></p>
+        </figure>
+      </section>
+      <section class="change-summary">
+        <h3>对应修改</h3>
+        <ol id="goal-list"></ol>
+      </section>
+      <details class="details">
+        <summary>修改理由、验收与证据说明</summary>
+        <div id="rationale"></div>
+        <p>
+          红色编号框叠加在原截图上，原图字节没有修改。目标中的绿色编号表达建议调整，源图片与目标示意可分别打开查看。这里的示意不代表逻辑修复已经完成。
+        </p>
+        <a id="old-detail">查看原发现与历史截图 ↗</a>
+        <p>
+          <a href="manifest.md">环境与测试数据回执</a> · <a href="review.json">结构化复核结果</a> ·
+          <a href="captures.json">新截图索引</a> · <a href="screenshot-hashes.json">原图校验和</a>
+        </p>
+      </details>
+      <nav class="pager" aria-label="相邻问题">
+        <button type="button" id="previous">← 上一项</button><span id="position"></span
+        ><button type="button" id="next">下一项 →</button>
+      </nav>
+      <footer class="page-foot">
+        原始问题编号沿用UX-001—UX-025。截图来自当前本地测试环境，目标示意于2026年11月6日制作。<br />本轮仅复核与制作对比，没有实施产品修改。
+      </footer>
+    </main>
+  </body>
+</html>

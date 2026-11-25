@@ -5,6 +5,7 @@ import {
   experienceDraftSchema,
   experienceSnapshotSchema,
   publicContactSchema,
+  navigationReferenceSchema,
   storefrontLinkSchema,
   storefrontResourceReferenceSchema,
   themePackageSchema,
@@ -26,6 +27,7 @@ import {
 } from "@shoppp/contracts";
 import {
   findUpgradeConflicts,
+  createTemplateOverride,
   packageRegistrationSupports,
   resolveTemplateOverride,
   resolveThemePackageRegistration,
@@ -46,6 +48,7 @@ import {
 } from "../../../storefront/app/themes/fashion-store/migrations";
 import { sha256Hex } from "../orders/tokens";
 import fashionStoreFixture from "../../../storefront/fixtures/experience/fashion-store.json";
+import { migrateFashionStoreVisualBindings } from "../../../storefront/app/themes/fashion-store/authoring/migration";
 import { storefrontThemeCatalog } from "../generated/storefront-theme-catalog";
 import type { ApiEnvironment } from "../http/context";
 import { ApiError } from "../http/errors";
@@ -88,6 +91,8 @@ export interface StorefrontExperienceServiceOptions {
 }
 
 interface DraftRow {
+  name: string | null;
+  removed_at: string | null;
   bindings_json: string;
   configuration_schema_version: number;
   created_at: string;
@@ -310,6 +315,7 @@ function mapDraft(row: DraftRow, validationRows: readonly ValidationRow[] = []) 
     createdAt: row.created_at,
     createdBy: row.created_by,
     experienceId: row.experience_id,
+    name: row.name ?? row.experience_id,
     id: row.id,
     overrides: parseOverrides(row.overrides_json),
     presetId: row.preset_id,
@@ -347,7 +353,7 @@ async function mapSnapshot(row: SnapshotRow) {
 
 async function draftRow(db: D1Database, id: string): Promise<DraftRow> {
   const row = await db
-    .prepare("SELECT * FROM storefront_experience_drafts WHERE id = ?")
+    .prepare("SELECT * FROM storefront_experience_drafts WHERE id = ? AND removed_at IS NULL")
     .bind(id)
     .first<DraftRow>();
   if (!row) {
@@ -551,13 +557,14 @@ function resolveDraft(
   ) {
     for (const template of resolvedTemplates.filter(({ pageType }) => pageType === "home")) {
       const home = template.sections.find(({ id }) => id === "fashion-store-home");
-      if (!home) continue;
-      const selected = home.settings["identity-logo-variant"] ?? "primary";
+      const settings = template.shell?.settings ?? home?.settings;
+      if (!settings) continue;
+      const selected = settings["identity-logo-variant"] ?? "primary";
       if (!catalogRelease.identity.logoAssets.some(({ variant }) => variant === selected)) {
         issues.push({
           code: "identity_logo_variant_missing",
           message: `Logo variant ${String(selected)} is not in the selected Catalog Release.`,
-          path: `${home.id}.identity-logo-variant`,
+          path: `${template.shell ? "shared-shell" : home!.id}.identity-logo-variant`,
         });
       }
     }
@@ -568,6 +575,21 @@ function resolveDraft(
       candidate.id === preset.id ? { ...candidate, templates: resolvedTemplates } : candidate,
     ),
   });
+  if (catalogRelease)
+    for (const template of resolvedTemplates)
+      for (const [settingId, value] of Object.entries(template.shell?.settings ?? {})) {
+        const reference = navigationReferenceSchema.safeParse(value);
+        if (
+          reference.success &&
+          (catalogRelease.schemaVersion !== 3 ||
+            !catalogRelease.navigation.some(({ id }) => id === reference.data.id))
+        )
+          issues.push({
+            code: "navigation_reference_missing",
+            message: "Select a menu present in the pinned published sources.",
+            path: `shared-shell.${settingId}`,
+          });
+      }
   if (!resolvedPackage.success) {
     for (const issue of resolvedPackage.error.issues.slice(0, 20)) {
       issues.push({
@@ -840,8 +862,8 @@ export async function createStorefrontExperienceDraft(
     `INSERT INTO storefront_experience_drafts
        (id, experience_id, theme_id, theme_version, configuration_schema_version,
         preset_id, bindings_json, overrides_json, version, created_by, updated_by,
-        created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`,
+        created_at, updated_at, name)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)`,
   )
     .bind(
       id,
@@ -856,6 +878,7 @@ export async function createStorefrontExperienceDraft(
       principal.id,
       now,
       now,
+      request.draft.name ?? `${selectedPackage.manifest.id} design`,
     )
     .run();
   await recordAuditEvent(context.env.DB, {
@@ -882,11 +905,63 @@ export async function getStorefrontExperienceDraft(db: D1Database, id: string) {
   return mapDraft(row, await validationRows(db, id, row.version));
 }
 
+export async function storefrontEditorDraftContext(db: D1Database, id: string) {
+  const row = await draftRow(db, id);
+  const selectedPackage = packageFor(
+    row.theme_id,
+    row.theme_version,
+    undefined,
+    "immutableRead",
+    row.configuration_schema_version,
+  );
+  const upgradeTargets = fashionStoreDirectMigrationBoundaries
+    .filter(
+      (boundary) =>
+        boundary.themeId === row.theme_id &&
+        boundary.source.themeVersion === row.theme_version &&
+        boundary.source.configurationSchemaVersion === row.configuration_schema_version,
+    )
+    .map((boundary) => {
+      const target = packageFor(
+        row.theme_id,
+        boundary.target.themeVersion,
+        undefined,
+        "activation",
+        boundary.target.configurationSchemaVersion,
+      );
+      return adminStorefrontThemeSchema.parse({
+        componentRegistry: target.manifest.componentRegistry,
+        id: target.manifest.id,
+        themeVersion: target.manifest.themeVersion,
+        configurationSchemaVersion: target.manifest.configurationSchemaVersion,
+        platformContractVersion: target.manifest.platformContractVersion,
+        platformCompatibility: target.manifest.platformCompatibility,
+        supportedPageTemplates: target.manifest.supportedPageTemplates,
+        presets: target.presets.map(({ id }) => id),
+        presetDefinitions: target.presets,
+        fixtureBindings: fixtureBindingsByThemeId["fashion-store"],
+      });
+    });
+  const registration = resolveThemePackageRegistration(
+    packageRegistrations(),
+    row.theme_id,
+    row.theme_version,
+    row.configuration_schema_version,
+  );
+  return {
+    draft: mapDraft(row, await validationRows(db, id, row.version)),
+    package: selectedPackage,
+    upgradeTargets,
+    writable: Boolean(registration && packageRegistrationSupports(registration, "activation")),
+  };
+}
+
 export async function listStorefrontExperienceDrafts(db: D1Database) {
   const rows = await db
     .prepare(
       `SELECT *
          FROM storefront_experience_drafts
+        WHERE removed_at IS NULL
         ORDER BY updated_at DESC, id DESC
         LIMIT 100`,
     )
@@ -923,13 +998,38 @@ export async function updateStorefrontExperienceDraft(
     themeVersion: current.theme_version,
     version: current.version + 1,
   });
+  if (
+    current.configuration_schema_version >= 4 ||
+    request.overrides.some((override) =>
+      override.operations.some(({ kind }) =>
+        ["add-section", "remove-section", "set-theme-styles", "set-shell-presentation"].includes(
+          kind,
+        ),
+      ),
+    )
+  ) {
+    const resolution = resolveDraft(
+      {
+        ...current,
+        bindings_json: JSON.stringify(request.bindings),
+        overrides_json: JSON.stringify(request.overrides),
+      },
+      options,
+    );
+    if (resolution.issues.length)
+      throw new ApiError(
+        422,
+        "storefront_experience_draft_invalid",
+        resolution.issues.map(({ message }) => message).join(" "),
+      );
+  }
   const principal = context.get("principal");
   const now = new Date().toISOString();
   const updated = await context.env.DB.prepare(
     `UPDATE storefront_experience_drafts
         SET bindings_json = ?, overrides_json = ?, version = version + 1,
             updated_by = ?, updated_at = ?
-      WHERE id = ? AND version = ?`,
+      WHERE id = ? AND version = ? AND removed_at IS NULL`,
   )
     .bind(
       JSON.stringify(request.bindings),
@@ -1010,109 +1110,11 @@ function normalizeTemplateOverride(
   base: PageTemplate,
   current: PageTemplate,
 ): ThemeOverride | undefined {
-  const operations: ThemeOverride["operations"] = [];
-  const currentSectionOrder = current.sections.map(({ id }) => id);
-  if (
-    !equalConfigurationValue(
-      currentSectionOrder,
-      base.sections.map(({ id }) => id),
-    )
-  ) {
-    operations.push({ instanceIds: currentSectionOrder, kind: "reorder-sections" });
-  }
-  for (const section of current.sections) {
-    const baseSection = base.sections.find(({ id }) => id === section.id);
-    if (!baseSection) continue;
-    if (section.visible !== baseSection.visible) {
-      operations.push({
-        instanceId: section.id,
-        kind: "set-visibility",
-        visible: section.visible,
-      });
-    }
-    for (const settingId of new Set([
-      ...Object.keys(baseSection.settings),
-      ...Object.keys(section.settings),
-    ])) {
-      if (equalConfigurationValue(section.settings[settingId], baseSection.settings[settingId])) {
-        continue;
-      }
-      operations.push(
-        section.settings[settingId] === undefined
-          ? { instanceId: section.id, kind: "reset-setting", settingId }
-          : {
-              instanceId: section.id,
-              kind: "set-setting",
-              settingId,
-              value: structuredClone(section.settings[settingId]),
-            },
-      );
-    }
-    const baseBlocks = new Map(baseSection.blocks.map((block) => [block.id, block]));
-    const currentBlocks = new Map(section.blocks.map((block) => [block.id, block]));
-    for (const baseBlock of baseSection.blocks) {
-      if (!currentBlocks.has(baseBlock.id)) {
-        operations.push({ instanceId: baseBlock.id, kind: "remove-block" });
-      }
-    }
-    for (const block of section.blocks) {
-      const baseBlock = baseBlocks.get(block.id);
-      if (!baseBlock) {
-        operations.push({
-          block: structuredClone(block),
-          kind: "add-block",
-          sectionId: section.id,
-        });
-        continue;
-      }
-      if (block.visible !== baseBlock.visible) {
-        operations.push({
-          instanceId: block.id,
-          kind: "set-visibility",
-          visible: block.visible,
-        });
-      }
-      for (const settingId of new Set([
-        ...Object.keys(baseBlock.settings),
-        ...Object.keys(block.settings),
-      ])) {
-        if (equalConfigurationValue(block.settings[settingId], baseBlock.settings[settingId])) {
-          continue;
-        }
-        operations.push(
-          block.settings[settingId] === undefined
-            ? { instanceId: block.id, kind: "reset-setting", settingId }
-            : {
-                instanceId: block.id,
-                kind: "set-setting",
-                settingId,
-                value: structuredClone(block.settings[settingId]),
-              },
-        );
-      }
-    }
-    const currentBlockOrder = section.blocks.map(({ id }) => id);
-    if (
-      !equalConfigurationValue(
-        currentBlockOrder,
-        baseSection.blocks.map(({ id }) => id),
-      )
-    ) {
-      operations.push({
-        instanceIds: currentBlockOrder,
-        kind: "reorder-blocks",
-        sectionId: section.id,
-      });
-    }
-  }
-  return operations.length === 0
-    ? undefined
-    : {
-        operations,
-        presetId: row.preset_id,
-        schemaVersion: row.configuration_schema_version,
-        templateId: current.id,
-      };
+  const override = createTemplateOverride(base, current, {
+    presetId: row.preset_id,
+    schemaVersion: row.configuration_schema_version,
+  });
+  return override.operations.length ? override : undefined;
 }
 
 export async function applyStorefrontExperienceBlockCommand(
@@ -1324,7 +1326,7 @@ export async function applyStorefrontExperienceBlockCommand(
   const [updated, audited] = await context.env.DB.batch([
     context.env.DB.prepare(
       `UPDATE storefront_experience_drafts SET bindings_json = ?, overrides_json = ?, version = version + 1,
-       updated_by = ?, updated_at = ? WHERE id = ? AND version = ?`,
+       updated_by = ?, updated_at = ? WHERE id = ? AND version = ? AND removed_at IS NULL`,
     ).bind(
       JSON.stringify(nextBindings),
       JSON.stringify(overrides),
@@ -1389,12 +1391,13 @@ export async function createStorefrontExperienceSuccessor(
   });
   const principal = context.get("principal");
   const now = new Date().toISOString();
-  await context.env.DB.prepare(
+  const inserted = await context.env.DB.prepare(
     `INSERT INTO storefront_experience_drafts
        (id, experience_id, theme_id, theme_version, configuration_schema_version,
         preset_id, bindings_json, overrides_json, version, created_by, updated_by,
         created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`,
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?
+     WHERE EXISTS (SELECT 1 FROM storefront_experience_drafts WHERE id = ? AND version = ? AND removed_at IS NULL)`,
   )
     .bind(
       id,
@@ -1409,8 +1412,11 @@ export async function createStorefrontExperienceSuccessor(
       principal.id,
       now,
       now,
+      sourceId,
+      source.version,
     )
     .run();
+  if (inserted.meta.changes !== 1) throw conflictError();
   await recordAuditEvent(context.env.DB, {
     action: "themes.draft.successor.create",
     actorId: principal.id,
@@ -1460,7 +1466,8 @@ export async function validateStorefrontExperienceDraft(
     `INSERT OR IGNORE INTO storefront_experience_validations
        (id, draft_id, draft_version, catalog_release_id, status, issues_json,
         resolved_templates_json, validated_by, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?
+     WHERE EXISTS (SELECT 1 FROM storefront_experience_drafts WHERE id = ? AND version = ? AND removed_at IS NULL)`,
   )
     .bind(
       validationId,
@@ -1472,8 +1479,11 @@ export async function validateStorefrontExperienceDraft(
       JSON.stringify(resolution.resolvedTemplates),
       principal.id,
       now,
+      id,
+      expectedVersion,
     )
     .run();
+  assertExpectedVersion(await draftRow(context.env.DB, id), expectedVersion);
   await recordAuditOnce(context, {
     action: "themes.draft.validate",
     id: `audit-${validationId}`,
@@ -1685,16 +1695,22 @@ async function insertSnapshot(
     version: input.row.version,
   });
   const contentDigest = await sha256Hex(canonicalJson(snapshot));
-  const operatorCondition = input.operatorApproval
-    ? `WHERE EXISTS (
+  const operatorCondition =
+    `WHERE EXISTS (SELECT 1 FROM storefront_experience_drafts WHERE id = ? AND version = ? AND removed_at IS NULL)` +
+    (input.operatorApproval
+      ? ` AND EXISTS (
          SELECT 1 FROM fashion_staging_operator_runs
           WHERE run_id = ? AND working_draft_id = ? AND status = 'awaiting_operator'
             AND expires_at > ? AND catalog_release_id = ?
        )`
-    : "";
-  const operatorBindings = input.operatorApproval
-    ? [input.operatorApproval.runId, input.row.id, now, input.validation.catalog_release_id]
-    : [];
+      : "");
+  const operatorBindings = [
+    input.row.id,
+    input.row.version,
+    ...(input.operatorApproval
+      ? [input.operatorApproval.runId, input.row.id, now, input.validation.catalog_release_id]
+      : []),
+  ];
   const snapshotInsert = context.env.DB.prepare(
     `INSERT OR IGNORE INTO storefront_experience_snapshots
        (id, deduplication_key, experience_id, source_draft_id, source_draft_version,
@@ -1977,6 +1993,7 @@ function mapMigration(row: MigrationRow) {
     approvedAt: row.approved_at,
     approvedBy: row.approved_by,
     conflicts: JSON.parse(row.conflicts_json) as UpgradeConflict[],
+    migratedOverrides: JSON.parse(row.migrated_overrides_json) as ThemeOverride[],
     createdAt: row.created_at,
     createdBy: row.created_by,
     draftId: row.draft_id,
@@ -2357,7 +2374,16 @@ export async function approveStorefrontExperienceMigration(
     migration.target_configuration_schema_version,
   );
   const overrides = JSON.parse(migration.migrated_overrides_json) as ThemeOverride[];
-  const resolution = resolveDraft(draft, options, targetPackage, overrides);
+  const bindings =
+    draft.theme_id === "fashion-store" && targetPackage.manifest.configurationSchemaVersion === 4
+      ? migrateFashionStoreVisualBindings(parseBindings(draft.bindings_json))
+      : parseBindings(draft.bindings_json);
+  const resolution = resolveDraft(
+    { ...draft, bindings_json: JSON.stringify(bindings) },
+    options,
+    targetPackage,
+    overrides,
+  );
   if (resolution.issues.length > 0) {
     throw new ApiError(
       422,
@@ -2374,7 +2400,8 @@ export async function approveStorefrontExperienceMigration(
          (id, experience_id, theme_id, theme_version, configuration_schema_version,
           preset_id, bindings_json, overrides_json, version, created_by, updated_by,
           created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`,
+       SELECT ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?
+       WHERE EXISTS (SELECT 1 FROM storefront_experience_drafts WHERE id = ? AND version = ? AND removed_at IS NULL)`,
     ).bind(
       successorId,
       draft.experience_id,
@@ -2382,18 +2409,22 @@ export async function approveStorefrontExperienceMigration(
       targetPackage.manifest.themeVersion,
       targetPackage.manifest.configurationSchemaVersion,
       draft.preset_id,
-      draft.bindings_json,
+      JSON.stringify(bindings),
       JSON.stringify(overrides),
       principal.id,
       principal.id,
       now,
       now,
+      draftId,
+      expectedVersion,
     ),
     context.env.DB.prepare(
       `UPDATE storefront_experience_migrations
           SET status = 'approved', approved_by = ?, approved_at = ?
-        WHERE id = ? AND status = 'dry_run'`,
-    ).bind(principal.id, now, migrationId),
+        WHERE id = ? AND status = 'dry_run'
+          AND EXISTS (SELECT 1 FROM storefront_experience_drafts WHERE id = ? AND version = ? AND removed_at IS NULL)
+          AND EXISTS (SELECT 1 FROM storefront_experience_drafts WHERE id = ?)`,
+    ).bind(principal.id, now, migrationId, draftId, expectedVersion, successorId),
   ]);
   const reconciled = await migrationRow(context.env.DB, migrationId);
   if (reconciled.status !== "approved") {

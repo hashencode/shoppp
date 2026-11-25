@@ -1,0 +1,180 @@
+[
+  {
+    "name": "01-account-drawer",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-description-candidates-2026-10-31/01-account-drawer.jpg",
+    "notes": "账号 Drawer，查看下方四项已保存资料；现状为只读输入框。",
+    "capturedAt": "2026-10-31T15:20:30.806Z",
+    "drawers": [
+      {
+        "bottom": 900,
+        "height": 900,
+        "left": 560,
+        "right": 1280,
+        "top": 0,
+        "width": 720,
+        "x": 560,
+        "y": 0
+      }
+    ],
+    "scroll": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/access/users",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "01-account-compatible",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-description-candidates-2026-10-31/01-account-compatible.jpg",
+    "notes": "账号兼容独立页；相同四项已保存资料。",
+    "capturedAt": "2026-10-31T15:21:04.506Z",
+    "drawers": [],
+    "scroll": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/access/users/identity_disabled",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "02-health",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-description-candidates-2026-10-31/02-health.jpg",
+    "notes": "页面底部总体健康状态与四类失败计数，当前使用横向标签／文字。",
+    "capturedAt": "2026-10-31T15:21:15.875Z",
+    "drawers": [],
+    "scroll": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "tag": "MAIN",
+        "top": 1425.5
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/launch",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "08-location",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-description-candidates-2026-10-31/08-location.jpg",
+    "notes": "联系人地点列表摘要：标题、城市与地址、公开状态；隔离测试地址。",
+    "capturedAt": "2026-10-31T15:22:05.547Z",
+    "drawers": [],
+    "scroll": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "tag": "MAIN",
+        "top": 1140.5
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "03-contact-conflict",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-description-candidates-2026-10-31/03-contact-conflict.jpg",
+    "notes": "409 测试响应后主动读取当前值；五项固定资料及地点列表，未替换输入或写入数据。",
+    "capturedAt": "2026-10-31T15:22:16.963Z",
+    "drawers": [],
+    "scroll": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "tag": "MAIN",
+        "top": 1598.5
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "04-theme-package",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-description-candidates-2026-10-31/04-theme-package.jpg",
+    "notes": "同一页面同时覆盖：顶部线上版本三项概览、下方主题包四项资料；均为隔离测试数据。",
+    "capturedAt": "2026-10-31T15:22:51.694Z",
+    "drawers": [],
+    "scroll": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "07-policy",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-description-candidates-2026-10-31/07-policy.jpg",
+    "notes": "政策审核 Card：版本在标题，摘要和生效日期为两行文本；未执行批准或归档。",
+    "capturedAt": "2026-10-31T15:23:07.459Z",
+    "drawers": [],
+    "scroll": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "tag": "MAIN",
+        "top": 690.5
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "05-editor-version",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-description-candidates-2026-10-31/05-editor-version.jpg",
+    "notes": "编辑器审核与发布页的版本详情：实际六项 JSON；没有构建、批准或保存。",
+    "capturedAt": "2026-10-31T15:23:44.942Z",
+    "drawers": [],
+    "scroll": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "tag": "MAIN",
+        "top": 370.5
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-visual-style",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "09-single-version",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-description-candidates-2026-10-31/09-single-version.jpg",
+    "notes": "右侧发布记录首项“当前版本”单独使用 Descriptions；下方为另一组多项发布记录。",
+    "capturedAt": "2026-10-31T15:24:35.646Z",
+    "drawers": [],
+    "scroll": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "tag": "MAIN",
+        "top": 201
+      },
+      {
+        "className": "theme-editor-inspector",
+        "tag": "ASIDE",
+        "top": 450
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-visual-style",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  }
+]

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react'
-import { Alert, Button, Card, Form, Input } from 'antd'
+import { Alert, Button, Card, Form, Input, theme } from 'antd'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { useI18n } from '../../shared/contexts/i18n-context'
@@ -14,6 +14,7 @@ interface LoginFields {
 export const LoginPage = () => {
   const { isLoading, login, sessionError } = useAuth()
   const { t } = useI18n()
+  const { token } = theme.useToken()
   const [submitting, setSubmitting] = useState(false)
   const submitLock = useRef(false)
 
@@ -32,10 +33,19 @@ export const LoginPage = () => {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
+    <main
+      className="flex min-h-screen items-center justify-center px-4 py-10"
+      style={{ background: token.colorBgLayout }}
+    >
       <Card className="w-full max-w-md" title={t('Sign in to Shoppp Admin')}>
-        {sessionError ? <Alert className="mb-4" type="error" showIcon message={sessionError} /> : null}
-        <Form<LoginFields> layout="vertical" disabled={submitting} onFinish={(values) => void submit(values)}>
+        {sessionError ? (
+          <Alert className="mb-4" type="error" showIcon message={sessionError} />
+        ) : null}
+        <Form<LoginFields>
+          layout="vertical"
+          disabled={submitting}
+          onFinish={(values) => void submit(values)}
+        >
           <Form.Item
             label={t('Email')}
             name="email"

@@ -30,7 +30,7 @@ export const FASHION_U8_SECURITY_SENSITIVE_PATHS = [
   "apps/admin/e2e/storefront-theme-preview.spec.ts",
   "apps/admin/src/pages/storefront/storefront-resource-picker.tsx",
   "apps/admin/src/pages/storefront/theme-editor-page.browser.test.tsx",
-  "apps/admin/src/pages/storefront/theme-editor-page.test.tsx",
+  "apps/admin/src/pages/storefront/theme-editor/visual-editor-page.test.tsx",
   "apps/admin/src/pages/storefront/theme-editor-page.tsx",
   "apps/admin/src/services/storefront/api.ts",
   "apps/admin/src/shared/i18n/translations.ts",

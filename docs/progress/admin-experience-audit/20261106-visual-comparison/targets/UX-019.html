@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>UX-019 目标示意</title>
+    <link rel="stylesheet" href="target.css" />
+  </head>
+  <body>
+    <header class="top">
+      <strong>Shoppp 后台</strong><span>UX-019</span
+      ><span class="watermark">目标设计示意 · 未实现</span>
+    </header>
+    <main class="canvas">
+      <section class="panel">
+        <h2>订单收入报表</h2>
+        <div class="changed">
+          <span class="number">1</span><label>统计日期范围</label>
+          <div class="row">
+            <div>
+              <div class="field">
+                <label>开始日期</label>
+                <div class="input">2026-10-08</div>
+              </div>
+            </div>
+            <div>
+              <div class="field">
+                <label>结束日期</label>
+                <div class="input invalid">2026-10-07</div>
+                <small class="error">结束日期不能早于开始日期。</small>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="footer">
+          <span class="btn">重置范围</span><span class="btn disabled">查询</span>
+        </div>
+      </section>
+      <section class="panel changed">
+        <span class="number">2</span>
+        <h2>上次有效结果</h2>
+        <p>2026-10-08 — 2026-11-06 · USD · Asia/Shanghai</p>
+        <div class="empty">
+          <h2>该范围暂无订单事件</h2>
+          <p>修正日期范围后再查询。</p>
+        </div>
+      </section>
+    </main>
+    <p class="footnote">静态示意：用于比较布局与状态，控件不会操作后台。</p>
+  </body>
+</html>

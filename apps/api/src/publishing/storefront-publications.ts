@@ -246,7 +246,7 @@ export async function getStorefrontPublicationContext(
 ): Promise<StorefrontPublicationContext> {
   requirePublicationHuman(context);
   const draft = await context.env.DB.prepare(
-    "SELECT version FROM storefront_experience_drafts WHERE id = ?",
+    "SELECT version FROM storefront_experience_drafts WHERE id = ? AND removed_at IS NULL",
   )
     .bind(draftId)
     .first<{ version: number }>();
@@ -291,6 +291,13 @@ export async function getStorefrontPublicationContext(
     publications: rows.results.map(mapPublication),
   };
 }
+export async function getStorefrontLibraryHistory(context: ApiContext) {
+  requirePublicationHuman(context);
+  const rows = await context.env.DB.prepare(`SELECT * FROM storefront_publications WHERE environment = ? ORDER BY created_at DESC, id DESC LIMIT 50`)
+    .bind(context.env.ENVIRONMENT).all<PublicationRow>();
+  return { active: await getActiveStorefrontPublication(context), publications: rows.results.map(mapPublication) };
+}
+
 async function pendingPublication(context: ApiContext) {
   const row = await context.env.DB.prepare(
     `SELECT * FROM storefront_publications
@@ -448,7 +455,7 @@ export async function createStorefrontPublication(
   requirePublicationHuman(context);
   const approved = await approval(context.env.DB, request.identity.experienceSnapshotId);
   const draft = await context.env.DB.prepare(
-    "SELECT version FROM storefront_experience_drafts WHERE id = ?",
+    "SELECT version FROM storefront_experience_drafts WHERE id = ? AND removed_at IS NULL",
   )
     .bind(request.draftId)
     .first<{ version: number }>();

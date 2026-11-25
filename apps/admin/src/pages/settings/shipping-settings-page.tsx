@@ -309,16 +309,12 @@ export const ShippingSettingsPage = () => {
                   {(fields, { add, remove }) => (
                     <Space orientation="vertical" className="w-full">
                       {fields.map((field, index) => (
-                        <div
-                          key={field.key}
-                          className="grid gap-3 rounded border border-slate-200 p-3 grid-cols-2 min-w-0"
-                        >
+                        <Card key={field.key} size="small" className="min-w-0">
                           <Form.Item name={[field.name, 'id']} hidden>
                             <Input />
                           </Form.Item>
                           <Form.Item
                             name={[field.name, 'name']}
-                            className="col-span-2"
                             label={t('Method {number}', { number: index + 1 })}
                             rules={[{ required: true }]}
                           >
@@ -381,15 +377,11 @@ export const ShippingSettingsPage = () => {
                             />
                           </Form.Item>
                           {fields.length > 1 ? (
-                            <Button
-                              danger
-                              className="col-span-2"
-                              onClick={() => remove(field.name)}
-                            >
+                            <Button danger onClick={() => remove(field.name)}>
                               {t('Remove method')}
                             </Button>
                           ) : null}
-                        </div>
+                        </Card>
                       ))}
                       <Button onClick={() => add(emptyMethod())}>{t('Add shipping method')}</Button>
                     </Space>

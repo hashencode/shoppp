@@ -33,6 +33,41 @@ const protectedRole = {
 }
 
 describe('IAM desktop form Drawers', () => {
+  it('resets the new role permission tree and retains only delegated leaf selections', async () => {
+    transport = installBrowserApi((request) => {
+      if (request.method === 'get' && request.url === '/admin/iam/roles')
+        return { data: { data: { items: [support], page: 1, pageSize: 25, total: 1 } } }
+      throw new Error(`Unexpected request ${request.url}`)
+    })
+    renderI18nBrowser(
+      <MemoryRouter initialEntries={['/access/roles']}>
+        <RolesPage />
+      </MemoryRouter>,
+      ['iam.roles.read', 'iam.roles.write', 'catalog.read', 'catalog.write'],
+      'en-US'
+    )
+    await page.getByRole('button', { name: 'New role', exact: true }).click()
+    await page.getByRole('checkbox', { name: 'View catalog', exact: true }).click()
+    await expect
+      .element(page.getByRole('checkbox', { name: /catalog 1\/2/ }))
+      .toHaveAttribute('aria-checked', 'mixed')
+    await expect
+      .element(page.getByRole('checkbox', { name: 'Edit catalog', exact: true }))
+      .not.toBeChecked()
+    expect(document.body.textContent).not.toContain('Publish catalog')
+    await page.getByLabel('Search permissions', { exact: true }).fill('catalog')
+    await page.getByRole('button', { name: 'Collapse all', exact: true }).click()
+    await page
+      .getByRole('dialog', { name: 'New role' })
+      .getByRole('button', { name: 'Reset', exact: true })
+      .click()
+    await page.getByRole('button', { name: 'Confirm', exact: true }).click()
+    await expect.element(page.getByLabel('Search permissions', { exact: true })).toHaveValue('')
+    await expect
+      .element(page.getByRole('checkbox', { name: 'View catalog', exact: true }))
+      .not.toBeChecked()
+    expect(transport.requests.every((request) => request.method === 'get')).toBe(true)
+  })
   it('resets an editable role and shows only Close for a protected role without changing the list route', async () => {
     transport = installBrowserApi((request) => {
       if (request.method === 'get' && request.url === '/admin/iam/roles')

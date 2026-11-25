@@ -1,6 +1,6 @@
 import type { StorefrontContentSection } from '@shoppp/contracts'
-import { Button, Card, Input, Select, Space } from 'antd'
-import React from 'react'
+import { Button, Card, Form, Input, Select, Space } from 'antd'
+import React, { useId } from 'react'
 
 import { useI18n } from '../contexts/i18n-context'
 import { ContentMediaSelect } from './content-media-select'
@@ -34,6 +34,7 @@ export const StructuredContentEditor = ({
   ...fieldProps
 }: Props) => {
   const { t } = useI18n()
+  const editorId = useId()
   const replace = (index: number, section: StorefrontContentSection) =>
     onChange(value.map((item, itemIndex) => (itemIndex === index ? section : item)))
   const append = (kind: StorefrontContentSection['kind']) => {
@@ -135,137 +136,189 @@ export const StructuredContentEditor = ({
               }
             />
           ) : section.kind === 'image' ? (
-            <Space orientation="vertical" className="w-full">
-              <ContentMediaSelect
-                disabled={disabled}
-                value={section.assetId}
-                onChange={(assetId) => replace(index, { ...section, assetId: assetId ?? '' })}
-              />
-              <Input
-                aria-label={t('Image alternative text {index}', { index: index + 1 })}
-                disabled={disabled}
-                maxLength={300}
-                value={section.alt}
-                onChange={(event) => replace(index, { ...section, alt: event.target.value })}
-              />
-            </Space>
-          ) : (
-            <Space orientation="vertical" className="w-full">
-              <Input
-                aria-label={t('Link label {index}', { index: index + 1 })}
-                disabled={disabled}
-                maxLength={120}
-                value={section.link.label}
-                onChange={(event) =>
-                  replace(index, {
-                    ...section,
-                    link: { ...section.link, label: event.target.value },
-                  })
-                }
-              />
-              <Select
-                aria-label={t('Link target type {index}', { index: index + 1 })}
-                disabled={disabled}
-                value={section.link.target.kind}
-                options={[
-                  { label: t('Internal resource'), value: 'internal' },
-                  { label: t('External HTTPS'), value: 'external' },
-                ]}
-                onChange={(kind: 'external' | 'internal') =>
-                  replace(index, {
-                    ...section,
-                    link: {
-                      ...section.link,
-                      target:
-                        kind === 'external'
-                          ? { kind, url: '' }
-                          : { kind, reference: { id: 'page.placeholder', kind: 'page' } },
-                    },
-                  })
-                }
-              />
-              {section.link.target.kind === 'external' ? (
-                <Input
-                  aria-label={t('External URL {index}', { index: index + 1 })}
+            <div>
+              <Form.Item
+                layout="vertical"
+                label={t('Image asset')}
+                htmlFor={`${editorId}-${section.id}-asset`}
+              >
+                <ContentMediaSelect
+                  id={`${editorId}-${section.id}-asset`}
                   disabled={disabled}
-                  placeholder="https://example.com/path"
-                  value={section.link.target.url}
+                  value={section.assetId}
+                  onChange={(assetId) => replace(index, { ...section, assetId: assetId ?? '' })}
+                />
+              </Form.Item>
+              <Form.Item
+                layout="vertical"
+                label={t('Image alternative text')}
+                htmlFor={`${editorId}-${section.id}-alt`}
+              >
+                <Input
+                  id={`${editorId}-${section.id}-alt`}
+                  disabled={disabled}
+                  maxLength={300}
+                  value={section.alt}
+                  onChange={(event) => replace(index, { ...section, alt: event.target.value })}
+                />
+              </Form.Item>
+            </div>
+          ) : (
+            <div>
+              <Form.Item
+                layout="vertical"
+                label={t('Link label')}
+                htmlFor={`${editorId}-${section.id}-link-label`}
+              >
+                <Input
+                  id={`${editorId}-${section.id}-link-label`}
+                  disabled={disabled}
+                  maxLength={120}
+                  value={section.link.label}
                   onChange={(event) =>
+                    replace(index, {
+                      ...section,
+                      link: { ...section.link, label: event.target.value },
+                    })
+                  }
+                />
+              </Form.Item>
+              <Form.Item
+                layout="vertical"
+                label={t('Destination type')}
+                htmlFor={`${editorId}-${section.id}-link-kind`}
+              >
+                <Select
+                  id={`${editorId}-${section.id}-link-kind`}
+                  disabled={disabled}
+                  value={section.link.target.kind}
+                  options={[
+                    { label: t('Internal resource'), value: 'internal' },
+                    { label: t('External HTTPS'), value: 'external' },
+                  ]}
+                  onChange={(kind: 'external' | 'internal') =>
                     replace(index, {
                       ...section,
                       link: {
                         ...section.link,
-                        target: { kind: 'external', url: event.target.value },
+                        target:
+                          kind === 'external'
+                            ? { kind, url: '' }
+                            : { kind, reference: { id: 'page.placeholder', kind: 'page' } },
                       },
                     })
                   }
                 />
-              ) : (
-                <Space.Compact className="w-full">
-                  <Select
-                    aria-label={t('Internal resource kind {index}', { index: index + 1 })}
-                    disabled={disabled}
-                    value={section.link.target.reference.kind}
-                    options={['product', 'collection', 'page', 'article', 'policy'].map((kind) => ({
-                      label: kind,
-                      value: kind,
-                    }))}
-                    onChange={(kind) =>
-                      replace(index, {
-                        ...section,
-                        link: {
-                          ...section.link,
-                          target: {
-                            kind: 'internal',
-                            reference: {
-                              id: `${kind}.placeholder`,
-                              kind,
-                            } as typeof section.link.target.reference,
-                          },
-                        },
-                      })
-                    }
-                  />
+              </Form.Item>
+              {section.link.target.kind === 'external' ? (
+                <Form.Item
+                  layout="vertical"
+                  label={t('HTTPS URL')}
+                  htmlFor={`${editorId}-${section.id}-external`}
+                >
                   <Input
-                    aria-label={t('Internal resource ID {index}', { index: index + 1 })}
+                    id={`${editorId}-${section.id}-external`}
                     disabled={disabled}
-                    value={section.link.target.reference.id}
+                    placeholder="https://example.com/path"
+                    value={section.link.target.url}
                     onChange={(event) =>
                       replace(index, {
                         ...section,
                         link: {
                           ...section.link,
-                          target: {
-                            kind: 'internal',
-                            reference: {
-                              ...('reference' in section.link.target
-                                ? section.link.target.reference
-                                : { id: 'page.placeholder', kind: 'page' as const }),
-                              id: event.target.value,
-                            },
-                          },
+                          target: { kind: 'external', url: event.target.value },
                         },
                       })
                     }
                   />
-                </Space.Compact>
+                </Form.Item>
+              ) : (
+                <div>
+                  <Form.Item
+                    layout="vertical"
+                    label={t('Resource type')}
+                    htmlFor={`${editorId}-${section.id}-internal-kind`}
+                  >
+                    <Select
+                      id={`${editorId}-${section.id}-internal-kind`}
+                      disabled={disabled}
+                      value={section.link.target.reference.kind}
+                      options={[
+                        { label: t('Product'), value: 'product' },
+                        { label: t('Collection'), value: 'collection' },
+                        { label: t('Page'), value: 'page' },
+                        { label: t('Article'), value: 'article' },
+                        { label: t('Policy'), value: 'policy' },
+                      ]}
+                      onChange={(kind) =>
+                        replace(index, {
+                          ...section,
+                          link: {
+                            ...section.link,
+                            target: {
+                              kind: 'internal',
+                              reference: {
+                                id: `${kind}.placeholder`,
+                                kind,
+                              } as typeof section.link.target.reference,
+                            },
+                          },
+                        })
+                      }
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    layout="vertical"
+                    label={t('Resource ID')}
+                    htmlFor={`${editorId}-${section.id}-internal-id`}
+                  >
+                    <Input
+                      id={`${editorId}-${section.id}-internal-id`}
+                      disabled={disabled}
+                      value={section.link.target.reference.id}
+                      onChange={(event) =>
+                        replace(index, {
+                          ...section,
+                          link: {
+                            ...section.link,
+                            target: {
+                              kind: 'internal',
+                              reference: {
+                                ...('reference' in section.link.target
+                                  ? section.link.target.reference
+                                  : { id: 'page.placeholder', kind: 'page' as const }),
+                                id: event.target.value,
+                              },
+                            },
+                          },
+                        })
+                      }
+                    />
+                  </Form.Item>
+                </div>
               )}
-              <Select
-                aria-label={t('Link window {index}', { index: index + 1 })}
-                disabled={disabled}
-                value={section.link.targetBehavior}
-                options={[
-                  { label: t('Same window'), value: 'same-window' },
-                  { label: t('New window'), value: 'new-window' },
-                ]}
-                onChange={(targetBehavior) =>
-                  replace(index, {
-                    ...section,
-                    link: { ...section.link, targetBehavior },
-                  })
-                }
-              />
-            </Space>
+              <Form.Item
+                layout="vertical"
+                label={t('Open behavior')}
+                htmlFor={`${editorId}-${section.id}-window`}
+              >
+                <Select
+                  id={`${editorId}-${section.id}-window`}
+                  disabled={disabled}
+                  value={section.link.targetBehavior}
+                  options={[
+                    { label: t('Same window'), value: 'same-window' },
+                    { label: t('New window'), value: 'new-window' },
+                  ]}
+                  onChange={(targetBehavior) =>
+                    replace(index, {
+                      ...section,
+                      link: { ...section.link, targetBehavior },
+                    })
+                  }
+                />
+              </Form.Item>
+            </div>
           )}
         </Card>
       ))}

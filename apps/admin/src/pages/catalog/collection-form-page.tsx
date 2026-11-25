@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Alert, App, Button, Checkbox, Form, Input, Select, Space, Tag } from 'antd'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Alert, App, Checkbox, Form, Input, Select, Space, Tag, Typography } from 'antd'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
@@ -14,6 +14,8 @@ import {
 import { useI18n } from '../../shared/contexts/i18n-context'
 import { ContentMediaSelect } from '../../shared/content/content-media-select'
 import { suggestEnglishSlug } from '../../shared/content/suggest-english-slug'
+import { CrudFormDrawerRecipe } from '../../shared/template-kit/recipes/crud-form-drawer-recipe'
+import { SortActionGroup } from '../../shared/components/sort-action-group'
 import { BasicCrudFormRecipe, type BasicCrudFormSpec } from '../../shared/template-kit/form'
 import { goBackOrCloseWindow, useFormModeAccess } from '../../shared/template-kit/hooks'
 import {
@@ -56,11 +58,28 @@ const toValues = (collection: CatalogCollection): Values => ({
   status: collection.status,
 })
 
-export const CollectionFormPage = () => {
+type DrawerContext = { search: string; onClose: () => void; onSaved: () => Promise<void> }
+export const CollectionFormPage = ({ drawer }: { drawer?: DrawerContext } = {}) => {
   const { message } = App.useApp()
   const { t } = useI18n()
   const [form] = Form.useForm<Values>()
-  const [searchParams] = useSearchParams()
+  const [routeSearchParams] = useSearchParams()
+  const drawerSearch = drawer?.search
+  const searchParams = useMemo(
+    () => (drawerSearch !== undefined ? new URLSearchParams(drawerSearch) : routeSearchParams),
+    [drawerSearch, routeSearchParams]
+  )
+  const alive = useRef(true)
+  const detailGeneration = useRef(0)
+  const searchGeneration = useRef(0)
+  const saveLock = useRef(false)
+  useEffect(() => {
+    alive.current = true
+    return () => {
+      alive.current = false
+      detailGeneration.current += 1
+    }
+  }, [])
   const navigate = useNavigate()
   const { role, permissions } = useAuth()
   const canPublish = hasPermission(role, 'catalog.publish', permissions)
@@ -88,10 +107,12 @@ export const CollectionFormPage = () => {
 
   const loadDetail = useCallback(async () => {
     if (!modeView?.canFetch || !id) return
+    const generation = ++detailGeneration.current
     setDetailLoading(true)
     setDetailError(null)
     try {
       const next = await fetchCatalogCollection(id)
+      if (!alive.current || generation !== detailGeneration.current) return
       setDetail(next)
       setProducts((current) => {
         const byId = new Map(current.map((product) => [product.id, product]))
@@ -105,37 +126,48 @@ export const CollectionFormPage = () => {
       )
       form.setFieldsValue(toValues(next))
     } catch (error) {
-      setDetailError(normalizeApiError(error))
+      if (alive.current && generation === detailGeneration.current)
+        setDetailError(normalizeApiError(error))
     } finally {
-      setDetailLoading(false)
+      if (alive.current && generation === detailGeneration.current) setDetailLoading(false)
     }
   }, [form, handoffProductId, id, modeView?.canFetch])
 
   useEffect(() => {
     if (!modeView?.canFetch) form.setFieldsValue(defaults)
-    queueMicrotask(() => void loadDetail())
+    queueMicrotask(() => {
+      if (alive.current) void loadDetail()
+    })
   }, [form, loadDetail, modeView?.canFetch])
 
   useEffect(() => {
+    let active = true
+    const generation = ++searchGeneration.current
     const timer = window.setTimeout(() => {
       void fetchCatalogProducts({
         page: 1,
         pageSize: 100,
         query: productQuery.trim() || undefined,
-      }).then(({ data }) =>
-        setProducts((current) => {
-          const selected = new Set(productIds)
-          const byId = new Map(
-            current
-              .filter(({ id: productId }) => selected.has(productId))
-              .map((product) => [product.id, product])
-          )
-          data.forEach((product) => byId.set(product.id, product))
-          return [...byId.values()]
+      })
+        .then(({ data }) => {
+          if (!active || generation !== searchGeneration.current) return
+          setProducts((current) => {
+            const selected = new Set(productIds)
+            const byId = new Map(
+              current
+                .filter(({ id: productId }) => selected.has(productId))
+                .map((product) => [product.id, product])
+            )
+            data.forEach((product) => byId.set(product.id, product))
+            return [...byId.values()]
+          })
         })
-      )
+        .catch(() => undefined)
     }, 200)
-    return () => window.clearTimeout(timer)
+    return () => {
+      active = false
+      window.clearTimeout(timer)
+    }
   }, [productIds, productQuery])
 
   const productById = useMemo(
@@ -158,8 +190,12 @@ export const CollectionFormPage = () => {
     }
     goBackOrCloseWindow('/catalog/collections')
   }
-  const onSubmit = async (values: Values) => {
-    if (isReadonly) return
+  const saveCollection = async (
+    values: Values
+  ): Promise<{ success: true } | { success: false; error: ApiError } | { cancelled: true }> => {
+    if (isReadonly || permissionDenied || !alive.current || saveLock.current)
+      return { cancelled: true }
+    saveLock.current = true
     setSaveLoading(true)
     setSaveError(null)
     setBacklinks([])
@@ -180,25 +216,31 @@ export const CollectionFormPage = () => {
       const saved = detail
         ? await updateCatalogCollection(detail.id, payload)
         : await createCatalogCollection(payload)
+      if (!alive.current) return { cancelled: true }
       setDetail(saved)
       setProductIds(saved.productIds)
       form.setFieldsValue({ ...toValues(saved), reason: '' })
-      void message.success(
-        t(
-          saved.status === 'published'
-            ? 'Collection published for future storefront versions.'
-            : detail
-              ? 'Collection saved'
-              : 'Collection created'
+      if (!drawer)
+        void message.success(
+          t(
+            saved.status === 'published'
+              ? 'Collection published for future storefront versions.'
+              : detail
+                ? 'Collection saved'
+                : 'Collection created'
+          )
         )
-      )
+      return { success: true }
     } catch (error) {
       const normalized = normalizeApiError(error)
+      if (!alive.current) return { cancelled: true }
       setSaveError(normalized.message)
       const details = normalized.details as { backlinks?: CollectionBacklink[] } | undefined
       setBacklinks(details?.backlinks ?? [])
+      return { success: false, error: normalized }
     } finally {
-      setSaveLoading(false)
+      saveLock.current = false
+      if (alive.current) setSaveLoading(false)
     }
   }
   const spec: BasicCrudFormSpec<Values> = {
@@ -220,7 +262,11 @@ export const CollectionFormPage = () => {
     onBackToList,
     onRetryDetail: () => void loadDetail(),
     onResetAll: () => {
+      searchGeneration.current += 1
+      form.resetFields()
       form.setFieldsValue(detail ? toValues(detail) : defaults)
+      setProductQuery('')
+      setProducts(detail?.products ?? [])
       setProductIds(
         detail
           ? handoffProductId && !detail.productIds.includes(handoffProductId)
@@ -233,7 +279,9 @@ export const CollectionFormPage = () => {
       setSaveError(null)
       setBacklinks([])
     },
-    onSubmit,
+    onSubmit: async (values) => {
+      await saveCollection(values)
+    },
     sections: [
       {
         key: 'identity',
@@ -308,6 +356,7 @@ export const CollectionFormPage = () => {
               placeholder={t('Add Product')}
               showSearch
               filterOption={false}
+              searchValue={productQuery}
               onSearch={setProductQuery}
               value={undefined}
               options={products
@@ -316,40 +365,34 @@ export const CollectionFormPage = () => {
                   label: `${product.name} — ${product.slug}`,
                   value: product.id,
                 }))}
-              onChange={(productId: string) => setProductIds((current) => [...current, productId])}
+              onChange={(productId: string) => {
+                setProductIds((current) => [...current, productId])
+                setProductQuery('')
+              }}
             />
             {productIds.length ? (
               productIds.map((productId, index) => {
                 const product = productById.get(productId)
                 const label = product?.name ?? productId
                 return (
-                  <div key={productId} className="flex items-center justify-between gap-3">
+                  <div
+                    key={productId}
+                    className="flex flex-wrap items-center justify-between gap-3"
+                  >
                     <span>{label}</span>
-                    <Space>
-                      <Button
-                        disabled={isReadonly || index === 0}
-                        aria-label={t('Move {name} up', { name: label })}
-                        onClick={() => moveProduct(index, -1)}
-                      >
-                        {t('Up')}
-                      </Button>
-                      <Button
-                        disabled={isReadonly || index === productIds.length - 1}
-                        aria-label={t('Move {name} down', { name: label })}
-                        onClick={() => moveProduct(index, 1)}
-                      >
-                        {t('Down')}
-                      </Button>
-                      <Button
-                        danger
-                        disabled={isReadonly}
-                        onClick={() =>
-                          setProductIds((current) => current.filter((id) => id !== productId))
-                        }
-                      >
-                        {t('Remove')}
-                      </Button>
-                    </Space>
+                    <SortActionGroup
+                      index={index}
+                      count={productIds.length}
+                      disabled={isReadonly}
+                      moveUpLabel={t('Move {name} up', { name: label })}
+                      moveDownLabel={t('Move {name} down', { name: label })}
+                      removeLabel={t('Remove {name}', { name: label })}
+                      onMoveUp={() => moveProduct(index, -1)}
+                      onMoveDown={() => moveProduct(index, 1)}
+                      onRemove={() =>
+                        setProductIds((current) => current.filter((id) => id !== productId))
+                      }
+                    />
                   </div>
                 )
               })
@@ -415,10 +458,58 @@ export const CollectionFormPage = () => {
             </details>
           </Space>
         ) : null}
-        {saveError ? <Alert type="error" title={saveError} /> : null}
+        {saveError ? (
+          drawer ? (
+            <Typography.Text type="danger">{saveError}</Typography.Text>
+          ) : (
+            <Alert type="error" title={saveError} />
+          )
+        ) : null}
         <CollectionBlockedDependencies backlinks={backlinks} />
       </Space>
     ),
+  }
+  if (drawer) {
+    const baselineIds = detail
+      ? handoffProductId && !detail.productIds.includes(handoffProductId)
+        ? [...detail.productIds, handoffProductId]
+        : detail.productIds
+      : handoffProductId
+        ? [handoffProductId]
+        : []
+    const snapshot = (values: Partial<Values>, ids: string[]) =>
+      JSON.stringify({
+        name: values.name ?? '',
+        slug: values.slug ?? '',
+        description: values.description ?? '',
+        coverAssetId: values.coverAssetId?.trim() || null,
+        status: values.status ?? 'draft',
+        redirectFromOldSlug: values.redirectFromOldSlug ?? false,
+        seoTitle: values.seoTitle ?? '',
+        seoDescription: values.seoDescription ?? '',
+        reason: values.reason ?? '',
+        productIds: ids,
+      })
+    return (
+      <CrudFormDrawerRecipe<Values>
+        spec={{
+          ...spec,
+          successTitle: t(
+            targetStatus === 'published'
+              ? 'Collection published for future storefront versions.'
+              : parsedMode.ok && parsedMode.mode === 'add'
+                ? 'Collection created'
+                : 'Collection saved'
+          ),
+          hasUnsavedChanges: () =>
+            snapshot(form.getFieldsValue(true), productIds) !==
+            snapshot(detail ? toValues(detail) : defaults, baselineIds),
+          onClose: drawer.onClose,
+          onSaved: drawer.onSaved,
+          onSubmit: saveCollection,
+        }}
+      />
+    )
   }
   return <BasicCrudFormRecipe spec={spec} />
 }

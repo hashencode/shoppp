@@ -4,10 +4,11 @@ import {
   Button,
   Card,
   DatePicker,
+  Descriptions,
   Form,
   Input,
   List,
-  Popconfirm,
+  Modal,
   Select,
   Space,
   Tag,
@@ -31,6 +32,7 @@ import {
 import { StructuredContentEditor } from '../../shared/content/structured-content-editor'
 import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
 import { useI18n } from '../../shared/contexts/i18n-context'
+import { localizeApiError } from '../../shared/i18n/api-error'
 import { FormSubmitToolbar } from '../../shared/components/form-submit-toolbar'
 import { FORM_CARD_BODY_WIDTH_CLASS_NAME } from '../../shared/template-kit/form/form-content-width'
 import { FORM_ERROR_SCROLL_OPTIONS } from '../../shared/template-kit/form/form-validation-scroll'
@@ -43,6 +45,12 @@ type Values = {
   reason: string
   sections: StorefrontContentSection[]
   slug: string
+  title: string
+}
+type TransitionContext = {
+  action: 'approve' | 'publish' | 'archive'
+  id: string
+  version: number
   title: string
 }
 
@@ -58,7 +66,10 @@ export const PoliciesPage = () => {
   const [selected, setSelected] = useState<PolicyAuthority | null>(null)
   const [review, setReview] = useState<PolicyReview | null>(null)
   const [error, setError] = useState<ApiError | null>(null)
-  const [transitionReason, setTransitionReason] = useState('')
+  const [transitionContext, setTransitionContext] = useState<TransitionContext | null>(null)
+  const [transitionError, setTransitionError] = useState<ApiError | null>(null)
+  const [transitionForm] = Form.useForm<{ reason: string }>()
+  const reviewGeneration = useRef(0)
   const mutationLock = useRef(false)
   const [busy, setBusy] = useState(false)
   const [form] = Form.useForm<Values>()
@@ -100,6 +111,8 @@ export const PoliciesPage = () => {
   }, [form, selected])
 
   const newPolicy = () => {
+    reviewGeneration.current += 1
+    setTransitionContext(null)
     setSelected(null)
     setReview(null)
     const values: Values = {
@@ -117,7 +130,7 @@ export const PoliciesPage = () => {
   }
 
   const save = async (values: Values) => {
-    if (!canWrite || mutationLock.current) return
+    if (!canWrite || transitionContext || mutationLock.current) return
     mutationLock.current = true
     setBusy(true)
     setError(null)
@@ -145,42 +158,89 @@ export const PoliciesPage = () => {
   }
 
   const inspect = async (policy: PolicyAuthorityView) => {
+    const generation = ++reviewGeneration.current
     setSelected(policy)
     setReview(null)
+    setTransitionContext(null)
     try {
-      setReview(await reviewPolicy(policy.id, policy.version))
+      const next = await reviewPolicy(policy.id, policy.version)
+      if (generation === reviewGeneration.current) setReview(next)
     } catch (cause) {
-      setError(normalizeApiError(cause))
+      if (generation === reviewGeneration.current) setError(normalizeApiError(cause))
     }
   }
 
-  const transition = async (action: 'approve' | 'publish' | 'archive') => {
+  const openTransition = (action: TransitionContext['action']) => {
     if (
       !review ||
-      transitionReason.trim().length < 3 ||
+      review.current.id !== selected?.id ||
+      review.current.version !== selected?.version ||
+      busy ||
       mutationLock.current ||
-      !(action === 'approve' ? canApprove : canPublish)
+      !(action === 'approve' ? canApprove : canPublish) ||
+      (action === 'approve'
+        ? review.current.status !== 'draft'
+        : action === 'publish'
+          ? review.current.status !== 'approved'
+          : review.current.status === 'archived')
+    )
+      return
+    transitionForm.resetFields()
+    setTransitionError(null)
+    setTransitionContext({
+      action,
+      id: review.current.id,
+      version: review.current.version,
+      title: review.current.title,
+    })
+  }
+
+  const transition = async ({ reason }: { reason: string }) => {
+    const context = transitionContext
+    if (
+      !context ||
+      !review ||
+      context.id !== selected?.id ||
+      context.version !== selected?.version ||
+      context.id !== review.current.id ||
+      context.version !== review.current.version ||
+      reason.trim().length < 3 ||
+      reason.trim().length > 500 ||
+      mutationLock.current ||
+      !(context.action === 'approve' ? canApprove : canPublish) ||
+      (context.action === 'approve'
+        ? review.current.status !== 'draft'
+        : context.action === 'publish'
+          ? review.current.status !== 'approved'
+          : review.current.status === 'archived')
     )
       return
     mutationLock.current = true
     setBusy(true)
+    setTransitionError(null)
     try {
-      const updated = await transitionPolicy(review.current.id, action, {
+      const updated = await transitionPolicy(context.id, context.action, {
         confirm: true,
-        expectedVersion: review.current.version,
-        reason: transitionReason,
+        expectedVersion: context.version,
+        reason: reason.trim(),
       })
+      setTransitionContext(null)
       setSelected(updated)
-      setReview(await reviewPolicy(updated.id, updated.version))
-      setTransitionReason('')
+      setReview(null)
+      try {
+        setReview(await reviewPolicy(updated.id, updated.version))
+      } catch (cause) {
+        setError(normalizeApiError(cause))
+      }
       await load()
     } catch (cause) {
       const normalized = normalizeApiError(cause)
-      setError(normalized)
       if (normalized.code === 'policy_conflict') {
-        setTransitionReason('')
+        setError(normalized)
+        setTransitionContext(null)
+        setReview(null)
         try {
-          const latest = await reviewPolicy(review.current.id)
+          const latest = await reviewPolicy(context.id)
           setSelected(latest.current)
           setPolicies((current) =>
             current.map((item) => (item.id === latest.current.id ? latest.current : item))
@@ -189,7 +249,7 @@ export const PoliciesPage = () => {
         } catch {
           setReview(null)
         }
-      }
+      } else setTransitionError(normalized)
     } finally {
       mutationLock.current = false
       setBusy(false)
@@ -289,7 +349,7 @@ export const PoliciesPage = () => {
                   label={t('Effective date')}
                   rules={[{ required: true }]}
                 >
-                  <DatePicker disabled={!canWrite} />
+                  <DatePicker className="w-full" disabled={!canWrite} />
                 </Form.Item>
                 <Form.Item
                   label={t('Structured content')}
@@ -327,14 +387,25 @@ export const PoliciesPage = () => {
             </Card>
           ) : null}
           {review ? (
-            <Card title={t('Review · version {version}', { version: review.current.version })}>
+            <Card
+              title={t('Policy review')}
+              classNames={{ body: FORM_CARD_BODY_WIDTH_CLASS_NAME.compact }}
+            >
               <Space orientation="vertical" className="w-full">
-                <Typography.Text>
-                  {t('Digest')}: {review.digest}
-                </Typography.Text>
-                <Typography.Text>
-                  {t('Effective date')}: {review.current.effectiveDate}
-                </Typography.Text>
+                <Descriptions
+                  size="small"
+                  column={1}
+                  styles={{ content: { overflowWrap: 'anywhere' } }}
+                  items={[
+                    { key: 'version', label: t('Version'), children: review.current.version },
+                    { key: 'digest', label: t('Digest'), children: review.digest },
+                    {
+                      key: 'effectiveDate',
+                      label: t('Effective date'),
+                      children: review.current.effectiveDate,
+                    },
+                  ]}
+                />
                 {review.previous ? (
                   <Card
                     size="small"
@@ -356,54 +427,21 @@ export const PoliciesPage = () => {
                     ? t('Compare the reviewed version with the currently published content above.')
                     : t('No currently published version.')}
                 </Typography.Text>
-                <Input
-                  aria-label={t('Transition reason')}
-                  value={transitionReason}
-                  onChange={(event) => setTransitionReason(event.target.value)}
-                  placeholder={t('Reason for this transition')}
-                />
                 <Space>
                   {canApprove && review.current.status === 'draft' ? (
-                    <Popconfirm
-                      title={t('Approve this exact Policy version?')}
-                      description={t(
-                        'The reviewed digest and effective date will be approval-stamped.'
-                      )}
-                      disabled={busy || transitionReason.trim().length < 3}
-                      onConfirm={() => void transition('approve')}
-                    >
-                      <Button disabled={busy || transitionReason.trim().length < 3}>
-                        {t('Approve exact version')}
-                      </Button>
-                    </Popconfirm>
+                    <Button disabled={busy} onClick={() => openTransition('approve')}>
+                      {t('Approve exact version')}
+                    </Button>
                   ) : null}
                   {canPublish && review.current.status === 'approved' ? (
-                    <Popconfirm
-                      title={t('Publish this approved Policy version?')}
-                      description={t(
-                        'After publishing, deploy a new storefront version that includes this policy for it to take effect.'
-                      )}
-                      disabled={busy || transitionReason.trim().length < 3}
-                      onConfirm={() => void transition('publish')}
-                    >
-                      <Button disabled={busy || transitionReason.trim().length < 3}>
-                        {t('Publish')}
-                      </Button>
-                    </Popconfirm>
+                    <Button disabled={busy} onClick={() => openTransition('publish')}>
+                      {t('Publish')}
+                    </Button>
                   ) : null}
                   {canPublish && review.current.status !== 'archived' ? (
-                    <Popconfirm
-                      title={t('Archive this Policy version?')}
-                      description={t(
-                        'Linked mutable content must be repaired before archival can complete.'
-                      )}
-                      disabled={busy || transitionReason.trim().length < 3}
-                      onConfirm={() => void transition('archive')}
-                    >
-                      <Button danger disabled={busy || transitionReason.trim().length < 3}>
-                        {t('Archive')}
-                      </Button>
-                    </Popconfirm>
+                    <Button danger disabled={busy} onClick={() => openTransition('archive')}>
+                      {t('Archive')}
+                    </Button>
                   ) : null}
                 </Space>
               </Space>
@@ -411,6 +449,70 @@ export const PoliciesPage = () => {
           ) : null}
         </Space>
       )}
+      <Modal
+        open={Boolean(
+          canRead &&
+          transitionContext &&
+          (transitionContext.action === 'approve' ? canApprove : canPublish) &&
+          transitionContext.id === selected?.id &&
+          transitionContext.version === selected?.version &&
+          transitionContext.version === review?.current.version
+        )}
+        title={t(
+          transitionContext?.action === 'approve'
+            ? 'Approve this exact Policy version?'
+            : transitionContext?.action === 'publish'
+              ? 'Publish this approved Policy version?'
+              : 'Archive this Policy version?'
+        )}
+        okText={t('Confirm')}
+        cancelText={t('Cancel')}
+        confirmLoading={busy}
+        okButtonProps={{ danger: transitionContext?.action === 'archive' }}
+        cancelButtonProps={{ disabled: busy }}
+        closable={!busy}
+        keyboard={!busy}
+        mask={{ closable: !busy }}
+        forceRender
+        onCancel={() => {
+          if (!mutationLock.current) setTransitionContext(null)
+        }}
+        onOk={() => transitionForm.submit()}
+      >
+        <Typography.Paragraph type="secondary">
+          {transitionContext?.title} ·{' '}
+          {t('Saved v{version}', { version: transitionContext?.version ?? 0 })}
+        </Typography.Paragraph>
+        <Typography.Paragraph>
+          {t(
+            transitionContext?.action === 'approve'
+              ? 'The reviewed digest and effective date will be approval-stamped.'
+              : transitionContext?.action === 'publish'
+                ? 'After publishing, deploy a new storefront version that includes this policy for it to take effect.'
+                : 'Linked mutable content must be repaired before archival can complete.'
+          )}
+        </Typography.Paragraph>
+        <Form
+          name="policy-transition"
+          form={transitionForm}
+          layout="vertical"
+          disabled={busy}
+          onFinish={(values) => void transition(values)}
+        >
+          <Form.Item
+            name="reason"
+            label={t('Transition reason')}
+            rules={[
+              { required: true, transform: (value: string) => value?.trim(), min: 3, max: 500 },
+            ]}
+          >
+            <Input.TextArea rows={3} maxLength={500} />
+          </Form.Item>
+        </Form>
+        {transitionError ? (
+          <Alert type="error" showIcon title={localizeApiError(transitionError, t)} />
+        ) : null}
+      </Modal>
     </CustomPageRecipe>
   )
 }

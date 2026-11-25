@@ -1,6 +1,6 @@
 import type { PublishableContentSection } from '@shoppp/contracts'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Alert, App, Button, Form, Input, Popconfirm, Space, Tag } from 'antd'
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { Alert, App, Button, Card, Divider, Form, Input, Modal, Space, Tag, Typography } from 'antd'
 import { useSearchParams } from 'react-router-dom'
 
 import { hasPermission } from '../../infrastructure/auth/permissions'
@@ -21,11 +21,19 @@ import { suggestEnglishSlug } from '../../shared/content/suggest-english-slug'
 import { useI18n } from '../../shared/contexts/i18n-context'
 import { localizeApiError } from '../../shared/i18n/api-error'
 import { BasicCrudFormRecipe, type BasicCrudFormSpec } from '../../shared/template-kit/form'
+import { FORM_CARD_BODY_WIDTH_CLASS_NAME } from '../../shared/template-kit/form/form-content-width'
 import { goBackOrCloseWindow, useFormModeAccess } from '../../shared/template-kit/hooks'
 
 void React
 
 type Record = ContentPageRecord | ContentArticleRecord
+type TransitionContext = {
+  action: 'archive' | 'publish'
+  id: string
+  kind: ContentKind
+  version: number
+  title: string
+}
 type Values = {
   body: PublishableContentSection[]
   coverAssetId?: string
@@ -68,6 +76,7 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
   const { permissions, role } = useAuth()
   const [searchParams] = useSearchParams()
   const [form] = Form.useForm<Values>()
+  const statusFieldId = useId()
   const { parsedMode, modeView, isReadonly, permissionDenied } = useFormModeAccess({
     permissions,
     readPermission: 'content.read',
@@ -82,16 +91,35 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
   const [saveLoading, setSaveLoading] = useState(false)
   const [saveError, setSaveError] = useState<ApiError | null>(null)
   const [transitionLoading, setTransitionLoading] = useState(false)
-  const [transitionReason, setTransitionReason] = useState('')
+  const [transitionContext, setTransitionContext] = useState<TransitionContext | null>(null)
+  const [transitionError, setTransitionError] = useState<ApiError | null>(null)
+  const [transitionForm] = Form.useForm<{ reason: string }>()
   const generationRef = useRef(0)
   const mutationLock = useRef(false)
   const canPublish = hasPermission(role, 'content.publish', permissions)
   const watchedValues = Form.useWatch([], { form, preserve: true })
   const isDirty = Boolean(watchedValues) && form.isFieldsTouched()
-  const transitionInputBlocked = isDirty || saveLoading || transitionReason.trim().length < 3
-  const transitionBlocked = transitionInputBlocked || transitionLoading
+  const transitionBlocked =
+    isDirty ||
+    saveLoading ||
+    transitionLoading ||
+    detailLoading ||
+    saveError?.code === 'content_conflict'
   const listRoute = `/content/${kind === 'page' ? 'pages' : 'articles'}`
   const singular = kind === 'page' ? t('Page') : t('Article')
+  const restoreRecord = useCallback(
+    (record: Record) => {
+      form.resetFields()
+      form.setFields(
+        Object.entries(toValues(record)).map(([name, value]) => ({
+          name: name as keyof Values,
+          value,
+          touched: false,
+        }))
+      )
+    },
+    [form]
+  )
 
   const load = useCallback(
     async (generation = generationRef.current) => {
@@ -105,14 +133,15 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
             : await fetchContentRecord('article', id)
         if (generation !== generationRef.current) return
         setDetail(next)
-        form.setFieldsValue(toValues(next))
+        restoreRecord(next)
+        setSaveError(null)
       } catch (error) {
         if (generation === generationRef.current) setDetailError(normalizeApiError(error))
       } finally {
         if (generation === generationRef.current) setDetailLoading(false)
       }
     },
-    [form, id, kind, modeView?.canFetch]
+    [id, kind, modeView?.canFetch, restoreRecord]
   )
 
   useEffect(() => {
@@ -122,7 +151,9 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
       setDetail(null)
       setDetailError(null)
       setSaveError(null)
-      setTransitionReason('')
+      setTransitionContext(null)
+      setTransitionError(null)
+      setTransitionLoading(false)
       form.resetFields()
       if (!modeView?.canFetch) {
         setDetailLoading(false)
@@ -138,7 +169,8 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
   }, [form, load, modeView?.canFetch])
 
   const save = async (values: Values) => {
-    if (isReadonly || saveLoading || transitionLoading || mutationLock.current) return
+    if (isReadonly || saveLoading || transitionLoading || transitionContext || mutationLock.current)
+      return
     mutationLock.current = true
     const generation = generationRef.current
     setSaveLoading(true)
@@ -169,8 +201,7 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
               })
       if (generation !== generationRef.current) return
       setDetail(saved)
-      form.resetFields()
-      form.setFieldsValue(toValues(saved))
+      restoreRecord(saved)
       void message.success(t('Content draft saved'))
     } catch (error) {
       if (generation === generationRef.current) setSaveError(normalizeApiError(error))
@@ -180,41 +211,75 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
     }
   }
 
-  const transition = async (action: 'archive' | 'publish') => {
+  const openTransition = (action: TransitionContext['action']) => {
     if (
       !detail ||
+      !canPublish ||
+      transitionBlocked ||
+      mutationLock.current ||
+      (action === 'publish' ? detail.status !== 'draft' : detail.status === 'archived')
+    )
+      return
+    transitionForm.resetFields()
+    setTransitionError(null)
+    setTransitionContext({
+      action,
+      id: detail.id,
+      kind,
+      version: detail.version,
+      title: detail.title,
+    })
+  }
+
+  const transition = async ({ reason }: { reason: string }) => {
+    const context = transitionContext
+    if (
+      !context ||
+      !detail ||
+      !canPublish ||
+      context.kind !== kind ||
+      context.id !== id ||
+      context.id !== detail.id ||
+      context.version !== detail.version ||
+      (context.action === 'publish' ? detail.status !== 'draft' : detail.status === 'archived') ||
       mutationLock.current ||
       isDirty ||
       saveLoading ||
       transitionLoading ||
-      transitionReason.trim().length < 3
+      reason.trim().length < 3 ||
+      reason.trim().length > 500
     )
       return
     const generation = generationRef.current
     mutationLock.current = true
     setTransitionLoading(true)
-    setSaveError(null)
+    setTransitionError(null)
     try {
-      const next = await transitionContentRecord(kind, detail.id, action, {
+      const next = await transitionContentRecord(context.kind, context.id, context.action, {
         confirm: true,
-        expectedVersion: detail.version,
-        reason: transitionReason,
-        redirectFromOldSlug: action === 'publish',
+        expectedVersion: context.version,
+        reason: reason.trim(),
+        redirectFromOldSlug: context.action === 'publish',
       })
       if (generation !== generationRef.current) return
       setDetail(next)
-      setTransitionReason('')
-      form.resetFields()
-      form.setFieldsValue(toValues(next))
+      setTransitionContext(null)
+      restoreRecord(next)
       void message.success(
         t(
-          action === 'publish'
+          context.action === 'publish'
             ? 'Content published for future storefront versions.'
             : 'Content archived'
         )
       )
     } catch (error) {
-      if (generation === generationRef.current) setSaveError(normalizeApiError(error))
+      if (generation === generationRef.current) {
+        const normalized = normalizeApiError(error)
+        if (normalized.code === 'content_conflict') {
+          setTransitionContext(null)
+          setSaveError(normalized)
+        } else setTransitionError(normalized)
+      }
     } finally {
       mutationLock.current = false
       if (generation === generationRef.current) setTransitionLoading(false)
@@ -231,23 +296,84 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
     modeView,
     onBackToList: () => goBackOrCloseWindow(listRoute),
     onResetAll: () => {
-      form.setFieldsValue(detail ? toValues(detail) : defaults)
-      setSaveError(null)
+      if (detail) restoreRecord(detail)
+      else form.resetFields()
+      setSaveError((current) => (current?.code === 'content_conflict' ? current : null))
     },
     onRetryDetail: () => void load(),
     onSubmit: save,
     parsedMode,
     permissionDenied,
     renderAfterForm: (
-      <Space orientation="vertical" className="w-full">
-        {saveError ? <Alert type="error" title={localizeApiError(saveError, t)} /> : null}
+      <div className="space-y-4">
+        {saveError ? (
+          <Alert
+            type="error"
+            title={localizeApiError(saveError, t)}
+            action={
+              saveError.code === 'content_conflict' ? (
+                <Button
+                  disabled={saveLoading || transitionLoading}
+                  onClick={() => {
+                    void load()
+                  }}
+                >
+                  {t('Reload')}
+                </Button>
+              ) : undefined
+            }
+          />
+        ) : null}
         {detail ? (
-          <Space orientation="vertical" className="w-full">
-            <Tag>{t(statusLabel[detail.status])}</Tag>
+          <Card
+            title={t('Status and publication')}
+            classNames={{ body: FORM_CARD_BODY_WIDTH_CLASS_NAME.compact }}
+            extra={
+              canPublish ? (
+                <Space>
+                  {detail.status === 'draft' ? (
+                    <Button
+                      loading={transitionLoading}
+                      disabled={transitionBlocked}
+                      onClick={() => openTransition('publish')}
+                    >
+                      {t('Publish')}
+                    </Button>
+                  ) : null}
+                  {detail.status !== 'archived' ? (
+                    <Button
+                      danger
+                      loading={transitionLoading}
+                      disabled={transitionBlocked}
+                      onClick={() => openTransition('archive')}
+                    >
+                      {t('Archive')}
+                    </Button>
+                  ) : null}
+                </Space>
+              ) : undefined
+            }
+          >
+            <Form.Item label={t('Content status')} htmlFor={`${statusFieldId}-status`}>
+              <Input
+                id={`${statusFieldId}-status`}
+                readOnly
+                variant="filled"
+                value={t(statusLabel[detail.status])}
+              />
+            </Form.Item>
+            <Form.Item label={t('Saved version')} htmlFor={`${statusFieldId}-version`}>
+              <Input
+                id={`${statusFieldId}-version`}
+                readOnly
+                variant="filled"
+                value={`v${detail.version}`}
+              />
+            </Form.Item>
+            <Divider className="!my-4" />
             <details>
               <summary>{t('Content version details')}</summary>
               <Space wrap>
-                <Tag>{t('Saved v{version}', { version: detail.version })}</Tag>
                 <Tag>
                   {t(
                     detail.inclusion.candidate
@@ -264,52 +390,9 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
                 ) : null}
               </Space>
             </details>
-          </Space>
+          </Card>
         ) : null}
-        {detail && canPublish ? (
-          <Space orientation="vertical" className="w-full">
-            <Input
-              aria-label={t('Transition reason')}
-              placeholder={t('Reason for publish or archive')}
-              value={transitionReason}
-              onChange={(event) => setTransitionReason(event.target.value)}
-              disabled={transitionLoading || saveLoading}
-            />
-            <Space>
-              {detail.status === 'draft' ? (
-                <Popconfirm
-                  title={t('Publish this exact content version?')}
-                  description={t(
-                    'This content becomes available to future storefront versions. The current storefront is unchanged.'
-                  )}
-                  okButtonProps={{ disabled: transitionBlocked }}
-                  cancelButtonProps={{ disabled: false }}
-                  onConfirm={() => void transition('publish')}
-                  disabled={transitionBlocked}
-                >
-                  <Button loading={transitionLoading} disabled={transitionInputBlocked}>
-                    {t('Publish')}
-                  </Button>
-                </Popconfirm>
-              ) : null}
-              {detail.status !== 'archived' ? (
-                <Popconfirm
-                  title={t('Archive this content version?')}
-                  description={t('Current references must be repaired before archive succeeds.')}
-                  okButtonProps={{ disabled: transitionBlocked }}
-                  cancelButtonProps={{ disabled: false }}
-                  onConfirm={() => void transition('archive')}
-                  disabled={transitionBlocked}
-                >
-                  <Button danger loading={transitionLoading} disabled={transitionInputBlocked}>
-                    {t('Archive')}
-                  </Button>
-                </Popconfirm>
-              ) : null}
-            </Space>
-          </Space>
-        ) : null}
-      </Space>
+      </div>
     ),
     saveLoading: saveLoading || transitionLoading,
     sections: [
@@ -398,5 +481,68 @@ export const ContentEditorPage = ({ kind }: { kind: ContentKind }) => {
     title:
       parsedMode.ok && parsedMode.mode === 'add' ? t('New {kind}', { kind: singular }) : singular,
   }
-  return <BasicCrudFormRecipe spec={spec} />
+  return (
+    <>
+      <BasicCrudFormRecipe spec={spec} />
+      <Modal
+        open={Boolean(
+          canPublish &&
+          transitionContext &&
+          transitionContext.kind === kind &&
+          transitionContext.id === id &&
+          transitionContext.version === detail?.version
+        )}
+        title={t(
+          transitionContext?.action === 'publish'
+            ? 'Publish this exact content version?'
+            : 'Archive this content version?'
+        )}
+        okText={t('Confirm')}
+        cancelText={t('Cancel')}
+        confirmLoading={transitionLoading}
+        okButtonProps={{ danger: transitionContext?.action === 'archive' }}
+        cancelButtonProps={{ disabled: transitionLoading }}
+        closable={!transitionLoading}
+        keyboard={!transitionLoading}
+        mask={{ closable: !transitionLoading }}
+        onCancel={() => {
+          if (!mutationLock.current) setTransitionContext(null)
+        }}
+        onOk={() => transitionForm.submit()}
+        forceRender
+      >
+        <Typography.Paragraph type="secondary">
+          {transitionContext?.title} ·{' '}
+          {t('Saved v{version}', { version: transitionContext?.version ?? 0 })}
+        </Typography.Paragraph>
+        <Typography.Paragraph>
+          {t(
+            transitionContext?.action === 'publish'
+              ? 'This content becomes available to future storefront versions. The current storefront is unchanged.'
+              : 'Current references must be repaired before archive succeeds.'
+          )}
+        </Typography.Paragraph>
+        <Form
+          name={`content-${kind}-transition`}
+          form={transitionForm}
+          layout="vertical"
+          disabled={transitionLoading}
+          onFinish={(values) => void transition(values)}
+        >
+          <Form.Item
+            name="reason"
+            label={t('Transition reason')}
+            rules={[
+              { required: true, transform: (value: string) => value?.trim(), min: 3, max: 500 },
+            ]}
+          >
+            <Input.TextArea rows={3} maxLength={500} />
+          </Form.Item>
+        </Form>
+        {transitionError ? (
+          <Alert type="error" showIcon title={localizeApiError(transitionError, t)} />
+        ) : null}
+      </Modal>
+    </>
+  )
 }

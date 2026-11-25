@@ -1,6 +1,7 @@
 import React from 'react'
+import { App, ConfigProvider } from 'antd'
 import type { ContactSettings, UpdateContactSettingsRequest } from '@shoppp/contracts'
-import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@rstest/core'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
@@ -88,13 +89,53 @@ const renderPage = (writable = true, locale: 'en-US' | 'zh-CN' = 'en-US') =>
       permissions={writable ? ['settings.read', 'settings.write'] : ['settings.read']}
     >
       <MemoryRouter>
-        <ContactSettingsPage />
+        <ConfigProvider theme={{ token: { motion: false } }}>
+          <App>
+            <ContactSettingsPage />
+          </App>
+        </ConfigProvider>
       </MemoryRouter>
     </AuthTestProvider>,
     locale
   )
 
+const confirmLocationDraft = async () => {
+  const drawer = screen.getByRole('dialog', { name: 'New location' })
+  fireEvent.click(within(drawer).getByRole('button', { name: 'Save' }))
+  await screen.findAllByText('Location added to unsaved changes')
+  await waitFor(() => expect(document.querySelector('.ant-drawer')).toBeNull())
+  const success = document.querySelector('.ant-modal-confirm-success') as HTMLElement
+  fireEvent.click(within(success).getByRole('button', { name: 'Confirm' }))
+}
+const addLocationDraft = async (name: string) => {
+  fireEvent.click(screen.getByRole('button', { name: 'Add location' }))
+  const drawer = await screen.findByRole('dialog', { name: 'New location' })
+  fireEvent.change(within(drawer).getByLabelText('Location name'), { target: { value: name } })
+  fireEvent.change(within(drawer).getByLabelText('City'), { target: { value: 'Shanghai' } })
+  fireEvent.change(within(drawer).getByLabelText('Postal address'), {
+    target: { value: '123 Test Road' },
+  })
+  await confirmLocationDraft()
+}
+
 describe('ContactSettingsPage', () => {
+  it('discards an unfinished location without changing or saving the page draft', async () => {
+    renderPage()
+    await screen.findByLabelText('Support email')
+    fireEvent.click(screen.getByRole('button', { name: 'Add location' }))
+    const drawer = await screen.findByRole('dialog', { name: 'New location' })
+    fireEvent.change(within(drawer).getByLabelText('Location name'), {
+      target: { value: 'Discarded location' },
+    })
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Close' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Discard changes and close' }))
+    await waitFor(() => expect(document.querySelector('.ant-drawer')).toBeNull())
+    expect(screen.queryByText('Discarded location')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Save contact settings' }))
+    await waitFor(() => expect(submitted).toHaveLength(1))
+    expect(submitted[0]!.profile.locations).toEqual([])
+  })
+
   it('keeps the route heading in permission, loading, load-error, and normal states', async () => {
     const noAccess = renderInLocale(
       <AuthTestProvider permissions={[]}>
@@ -174,7 +215,8 @@ describe('ContactSettingsPage', () => {
     renderPage()
     await screen.findByLabelText('Support email')
     fireEvent.click(screen.getByRole('button', { name: 'Add location' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Save contact settings' }))
+    const drawer = await screen.findByRole('dialog', { name: 'New location' })
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Save' }))
 
     const firstInvalidField = screen.getByLabelText('Location name')
     await waitFor(() => expect(document.activeElement).toBe(firstInvalidField))
@@ -191,6 +233,8 @@ describe('ContactSettingsPage', () => {
     fireEvent.change(screen.getByLabelText('Postal address'), {
       target: { value: '123 Test Road' },
     })
+    await confirmLocationDraft()
+    expect(submitted).toHaveLength(0)
     fireEvent.click(screen.getByRole('button', { name: 'Add service hours' }))
     await screen.findByLabelText('Start weekday')
     const timeZone = screen.getByLabelText('Time zone')
@@ -287,16 +331,16 @@ describe('ContactSettingsPage', () => {
   it('reorders and removes rows without discarding the remaining unsaved values', async () => {
     renderPage()
     await screen.findByLabelText('Support email')
-    fireEvent.click(screen.getByRole('button', { name: 'Add location' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Add location' }))
-    const names = screen.getAllByLabelText('Location name')
-    fireEvent.change(names[0]!, { target: { value: 'North' } })
-    fireEvent.change(names[1]!, { target: { value: 'South' } })
+    await addLocationDraft('North')
+    await addLocationDraft('South')
     fireEvent.click(screen.getAllByRole('button', { name: 'Move up' })[1]!)
-    expect((screen.getAllByLabelText('Location name')[0] as HTMLInputElement).value).toBe('South')
+    expect(
+      screen.getByText('South').compareDocumentPosition(screen.getByText('North')) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
     fireEvent.click(screen.getAllByRole('button', { name: 'Remove location' })[1]!)
-    expect(screen.getAllByLabelText('Location name')).toHaveLength(1)
-    expect((screen.getByLabelText('Location name') as HTMLInputElement).value).toBe('South')
+    expect(screen.queryByText('North')).toBeNull()
+    expect(screen.getByText('South')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Add social link' }))
     fireEvent.click(screen.getByRole('button', { name: 'Add social link' }))
     const urls = screen.getAllByLabelText('Destination URL')

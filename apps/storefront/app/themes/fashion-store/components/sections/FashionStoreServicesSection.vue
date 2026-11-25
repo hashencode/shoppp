@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { visibleBlockId } from "../../../../theme-engine/section-blocks";
+import { useStorefrontEditorBlockId } from "../../../../theme-engine/editor-context";
 import FashionStoreIcon from "../shared/FashionStoreIcon.vue";
 import type { FashionStoreHomeSectionProperties } from "./home-section-context";
 import {
@@ -7,6 +9,7 @@ import {
 } from "./home-section-context";
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
+const editorBlockId = useStorefrontEditorBlockId(() => properties.instance);
 const context = computed(() => resolveFashionStoreHomeSectionContext(properties.viewModel));
 const foundation = computed(() =>
   resolveFashionStoreHomeFoundation(properties.viewModel, properties.instance),
@@ -26,8 +29,8 @@ const foundation = computed(() =>
         data-anime='{ "el": "childs", "translateX": [30, 0], "opacity": [0,1], "duration": 800, "delay": 200, "staggervalue": 300, "easing": "easeOutQuad" }'
       >
         <div
-          v-for="(service, index) in foundation.services"
-          :key="service.title"
+          v-for="(service, index) in foundation.services" :data-editor-instance="editorBlockId('fashion-store.service', index)"
+          :key="visibleBlockId(properties.instance, 'fashion-store.service', index) ?? service.title"
           class="col icon-with-text-style-01"
           :class="{
             'md-mb-35px': index < 2,

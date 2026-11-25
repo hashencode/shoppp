@@ -45,11 +45,11 @@ template-specific repair does not change product membership or candidate scope b
 
 ## Current execution pointer
 
-- **Active product plan:** [Development Candidate Readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) — knowledge-work，validation-only。
-- **Current unit:** REL-Pre-DC — capability/identity reconciliation。
-- **Next action:** 明确本次候选所需能力及已批准延期，按 owner 核对完成证据，并补齐 validator 的完整 candidate identity 约束。
-- **Blockers:** REL 的能力范围审计、owner reconciliation 与 candidate identity 门禁仍待完成；候选未冻结，DC/PG 未开始。
-- **Tail ownership:** REL 拥有 Pre-DC、候选冻结、真实环境部署及 DC/PG；管理后台本地实施尾部已结束，FS-F14 完成基线保持。
+- **Active product plan:** [REL readiness](2026-08-12-003-refactor-development-candidate-readiness-plan.md) — knowledge-work；THEME-E1 本地实施完成后接回。
+- **Current unit:** REL-Pre-DC — 重新核对实现资格与候选身份。
+- **Next action:** 将已完成的 THEME-E1 纳入 capability/identity reconciliation，核对最新 package、Experience 和环境证据后再判断是否可冻结 Candidate。
+- **Blockers:** 沿用 REL 的 Pre-DC 资格判断；候选未冻结，DC/PG 未开始，本次没有远程部署。
+- **Tail ownership:** THEME-E1 已完成并冻结其本地实施正文；REL 拥有 Pre-DC、Candidate、DC/PG 与真实环境交付，原受保护发布流程继续拥有上线回执。
 
 The active child plan is authoritative if this summary and its execution checkpoint temporarily
 disagree. Repair this pointer in the same documentation change; do not copy the child plan's full
@@ -57,8 +57,8 @@ checkpoint here.
 
 ## Product-level sequence
 
-1. REL 核对已完成实现基线与选定能力范围，包括管理后台正式发布接入。
-2. 完成 Pre-DC capability/identity reconciliation。
+1. THEME-E1 已完成 Shopify 式可视化装修编辑器本地实现与验证，复用既有正式发布合同。
+2. REL 完成 Pre-DC capability/identity reconciliation。
 3. 仅由 REL 选择和冻结不可变候选，再按具名人工与生产权限执行 DC/PG。
 
 No candidate is currently frozen. DC and PG have not begun.

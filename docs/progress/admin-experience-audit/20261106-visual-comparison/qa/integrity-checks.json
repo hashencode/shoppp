@@ -1,0 +1,35 @@
+{
+  "review_items": 25,
+  "current_status_counts": {
+    "仍存在": 22,
+    "未完成复现": 1,
+    "部分存在": 2
+  },
+  "classification_counts": {
+    "UI": 6,
+    "UX": 9,
+    "MIXED": 8,
+    "PENDING": 2
+  },
+  "historical_originals_verified": 73,
+  "current_originals_verified": 31,
+  "capture_count": 31,
+  "target_count": 25,
+  "local_html_references_checked": 36,
+  "original_report_card_links": 25,
+  "offline_data_matches_json": true,
+  "targets_without_horizontal_overflow": 25,
+  "comparison-preview.jpg": {
+    "dimensions": [1600, 878],
+    "format": "JPEG"
+  },
+  "comparison-unsaved-preview.jpg": {
+    "dimensions": [1600, 878],
+    "format": "JPEG"
+  },
+  "gallery_http_status": 200,
+  "target_http_status": 200,
+  "admin_after_cleanup": "stopped",
+  "api_after_cleanup": "stopped",
+  "errors": []
+}

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>UX-023 目标示意</title>
+    <link rel="stylesheet" href="target.css" />
+  </head>
+  <body>
+    <header class="top">
+      <strong>Shoppp 后台</strong><span>UX-023</span
+      ><span class="watermark">目标设计示意 · 未实现</span>
+    </header>
+    <main class="canvas">
+      <section class="panel">
+        <h2>返回审计日志</h2>
+        <div class="changed">
+          <span class="number">1</span>
+          <div class="field">
+            <label>操作筛选</label>
+            <div class="input">report.export.create</div>
+          </div>
+          <p><span class="tag green">已恢复离开前的筛选</span></p>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>操作</th>
+              <th>结果</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>11月6日 15:21</td>
+              <td>report.export.create</td>
+              <td><span class="tag green">成功</span></td>
+            </tr>
+            <tr>
+              <td>11月1日 00:00</td>
+              <td>report.export.create</td>
+              <td><span class="tag green">成功</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="panel changed">
+        <span class="number">2</span>
+        <h2>筛选与页码</h2>
+        <p>显示原筛选范围内的2条记录。仅当主动重置时清空条件。</p>
+        <span class="btn">重置筛选</span>
+      </section>
+    </main>
+    <p class="footnote">静态示意：用于比较布局与状态，控件不会操作后台。</p>
+  </body>
+</html>

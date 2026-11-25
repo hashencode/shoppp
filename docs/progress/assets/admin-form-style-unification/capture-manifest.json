@@ -1,0 +1,3166 @@
+[
+  {
+    "name": "color/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/color/before-light.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "color/before-light-error",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/color/before-light-error.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "product-presentation/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/product-presentation/before-light.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "product-presentation/before-light-specifications",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/product-presentation/before-light-specifications.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 383,
+        "scrollWidth": 720
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "location/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/location/before-light.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "collection/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/collection/before-light.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/collections",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "collection/before-light-members",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/collection/before-light-members.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 523,
+        "scrollWidth": 720
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/collections",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "collection/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/collection/before-dark.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/collections",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "collection/before-dark-members",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/collection/before-dark-members.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 523,
+        "scrollWidth": 720
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/collections",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "product-presentation/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/product-presentation/before-dark.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "product-presentation/before-dark-specifications",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/product-presentation/before-dark-specifications.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 383,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "color/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/color/before-dark.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "color/before-dark-error",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/color/before-dark-error.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "location/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/location/before-dark.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "color/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/color/after-dark.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "color/after-dark-error",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/color/after-dark-error.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "color/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/color/after-light.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "color/after-light-error",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/color/after-light-error.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "color/after-light-long-values",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/color/after-light-long-values.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-long",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "product-presentation/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/product-presentation/after-light.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "product-presentation/after-light-specifications",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/product-presentation/after-light-specifications.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 722,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "product-presentation/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/product-presentation/after-dark.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "product-presentation/after-dark-specifications",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/product-presentation/after-dark-specifications.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 722,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "product-presentation/after-dark-error",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/product-presentation/after-dark-error.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 629,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "location/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/location/after-light.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "location/after-light-error",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/location/after-light-error.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "location/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/location/after-dark.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "collection/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/collection/after-dark.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/collections",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "collection/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/collection/after-light.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/collections",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "collection/after-light-members",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/collection/after-light-members.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 523,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/collections",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "collection/after-dark-members",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/collection/after-dark-members.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 523,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/collections",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "collection/readonly-compatible-url",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/collection/readonly-compatible-url.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/collections/form?mode=readonly&id=collection-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "roles-create/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/roles-create/before-dark.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/access/roles",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "roles-create/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/roles-create/before-light.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/access/roles",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "roles-create/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/roles-create/after-light.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/access/roles",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "roles-create/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/roles-create/after-dark.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/access/roles",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "content-page/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/content-page/before-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "content-article/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/content-article/before-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "policies/before-dark-date",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/policies/before-dark-date.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "policies/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/policies/before-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "content-article/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/content-article/before-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "content-page/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/content-page/before-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "policies/before-light-date",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/policies/before-light-date.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "policies/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/policies/before-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "content-page/after-light-request-error",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/content-page/after-light-request-error.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "content-page/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/content-page/after-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "content-page/after-light-confirmation",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/content-page/after-light-confirmation.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "content-article/after-light-confirmation",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/content-article/after-light-confirmation.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "content-article/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/content-article/after-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "content-page/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/content-page/after-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "content-page/after-dark-confirmation",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/content-page/after-dark-confirmation.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "content-article/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/content-article/after-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "content-article/after-dark-confirmation",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/content-article/after-dark-confirmation.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "policies/after-dark-confirmation",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/policies/after-dark-confirmation.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "contact/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/contact/before-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "contact/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/contact/before-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "contact/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/contact/after-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "contact/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/contact/after-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "policies/after-dark-date",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/policies/after-dark-date.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "policies/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/policies/after-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "policies/after-light-date",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/policies/after-light-date.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "policies/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/policies/after-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "policies/after-light-confirmation",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/policies/after-light-confirmation.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "collection/after-light-reset",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/collection/after-light-reset.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 523,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/collections",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/inventory-list-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/inventory-list-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/inventory",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/inventory-adjust-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/inventory-adjust-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/inventory",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/order-refund-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/order-refund-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/orders/ORD-TEST001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/order-fulfill-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/order-fulfill-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/orders/ORD-TEST001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/order-cancel-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/order-cancel-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/orders/ORD-TEST001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "shipping/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/shipping/before-light.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/shipping",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "shipping/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/shipping/before-dark.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/shipping",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "review-moderation/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/review-moderation/before-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/reviews",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/user-invite-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/user-invite-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/access/users",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/user-detail-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/user-detail-dark.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/access/users",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/store-identity-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/store-identity-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/identity",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/store-identity-assets-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/store-identity-assets-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/identity",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/launch-main-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/launch-main-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/launch",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/launch-tail-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/launch-tail-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/launch",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "privacy/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/privacy/before-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/privacy",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/privacy-correction-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/privacy-correction-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/privacy",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/jobs-replay-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/jobs-replay-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/operations/jobs",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/report-filters-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/report-filters-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/reports/orders",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/report-export-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/report-export-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/reports/orders",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/navigation-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/navigation-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/navigation",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/navigation-publication-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/navigation-publication-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/navigation",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-editor/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-editor/before-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-browser",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-editor/before-dark-pickers",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-editor/before-dark-pickers.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-browser",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/theme-create-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/theme-create-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "published-product/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/published-product/before-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-published",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "published-product/before-dark-presentation",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/published-product/before-dark-presentation.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-published",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "published-product/before-dark-variants",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/published-product/before-dark-variants.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-published",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "published-product/before-dark-media",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/published-product/before-dark-media.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-published",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "published-product/before-dark-actions",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/published-product/before-dark-actions.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-published",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "published-product/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/published-product/before-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-published",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "published-product/before-light-presentation",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/published-product/before-light-presentation.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-published",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "published-product/before-light-variants",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/published-product/before-light-variants.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-published",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "published-product/before-light-media",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/published-product/before-light-media.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-published",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "published-product/before-light-actions",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/published-product/before-light-actions.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-published",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "review-moderation/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/review-moderation/before-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/reviews",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "privacy/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/privacy/before-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/privacy",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-editor/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-editor/before-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-browser",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-editor/before-light-pickers",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-editor/before-light-pickers.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-browser",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "catalog-publish/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/catalog-publish/before-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "catalog-publish/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/catalog-publish/before-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/dashboard-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/dashboard-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/dashboard",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/orders-filters-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/orders-filters-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/orders",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/fulfillment-filters-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/fulfillment-filters-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/fulfillment",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/content-pages-filters-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/content-pages-filters-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/pages",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/content-articles-filters-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/content-articles-filters-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/articles",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/audit-filters-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/audit-filters-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/audit",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/welcome-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/welcome-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/welcome",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/order-shipped-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/order-shipped-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/orders/ORD-SHIP001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/role-detail-compatible-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/role-detail-compatible-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/access/roles/role_support",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/user-detail-compatible-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/user-detail-compatible-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/access/users/identity_alice",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/role-protected-drawer-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/role-protected-drawer-dark.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/access/roles",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/product-add-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/product-add-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=add",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-content/before-dark-image",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-content/before-dark-image.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-content/before-dark-link",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-content/before-dark-link.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/storefront-publication-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/storefront-publication-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-publication",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/storefront-rollback-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/storefront-rollback-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-rollback",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-editor/before-dark-actions",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-editor/before-dark-actions.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-browser",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "themes/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/themes/before-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "themes/before-dark-create",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/themes/before-dark-create.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "themes/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/themes/before-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "themes/before-light-create",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/themes/before-light-create.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-editor/before-light-actions",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-editor/before-light-actions.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-browser",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/change-password-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/change-password-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-browser",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-content/before-light-image",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-content/before-light-image.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-content/before-light-link",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-content/before-light-link.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-article/before-light-image",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-article/before-light-image.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-article/before-light-link",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-article/before-light-link.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-policy/before-light-image",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-policy/before-light-image.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-policy/before-light-link",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-policy/before-light-link.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-policy/before-dark-image",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-policy/before-dark-image.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-policy/before-dark-link",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-policy/before-dark-link.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-article/before-dark-image",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-article/before-dark-image.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-article/before-dark-link",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-article/before-dark-link.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/contact-socials-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/contact-socials-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "shipping/before-dark-methods",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/shipping/before-dark-methods.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 500,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/shipping",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "shipping/before-light-methods",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/shipping/before-light-methods.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 500,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/shipping",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "auth-reset/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/auth-reset/before-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/reset-password?token=reset-fixture-token-value",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "auth-activate/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/auth-activate/before-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/activate?token=activation-fixture-token",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "auth-forgot/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/auth-forgot/before-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/forgot-password",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "auth-login/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/auth-login/before-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/login",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "auth-login/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/auth-login/before-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/login",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "auth-forgot/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/auth-forgot/before-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/forgot-password",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "auth-reset/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/auth-reset/before-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/reset-password?token=reset-fixture-token-value",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "auth-activate/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/auth-activate/before-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/activate?token=activation-fixture-token",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "auth-reset/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/auth-reset/after-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/reset-password?token=reset-fixture-token-value",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "auth-login/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/auth-login/after-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/login",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "auth-activate/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/auth-activate/after-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/activate?token=activation-fixture-token",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "auth-forgot/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/auth-forgot/after-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/forgot-password",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "auth-forgot/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/auth-forgot/after-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/forgot-password",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "auth-login/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/auth-login/after-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/login",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "shipping/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/shipping/after-dark.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/shipping",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "auth-reset/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/auth-reset/after-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/reset-password?token=reset-fixture-token-value",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "shipping/after-dark-methods",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/shipping/after-dark-methods.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 698,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/shipping",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "auth-activate/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/auth-activate/after-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/activate?token=activation-fixture-token",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "review-moderation/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/review-moderation/after-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/reviews",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "privacy/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/privacy/after-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/privacy",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "catalog-publish/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/catalog-publish/after-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "catalog-publish/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/catalog-publish/after-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "privacy/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/privacy/after-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/privacy",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "review-moderation/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/review-moderation/after-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/reviews",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "shipping/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/shipping/after-light.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 0,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/shipping",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "shipping/after-light-methods",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/shipping/after-light-methods.jpg",
+    "drawers": [
+      {
+        "clientWidth": 720,
+        "scrollTop": 698,
+        "scrollWidth": 720
+      }
+    ],
+    "panels": [
+      {
+        "width": 720,
+        "x": 560
+      }
+    ],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/shipping",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/dashboard-light-clean",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/dashboard-light-clean.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/dashboard",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "published-product/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/published-product/after-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-published",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "published-product/after-light-presentation",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/published-product/after-light-presentation.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-published",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "published-product/after-light-variants",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/published-product/after-light-variants.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-published",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "published-product/after-light-media",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/published-product/after-light-media.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-published",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "published-product/after-light-actions",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/published-product/after-light-actions.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-published",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "published-product/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/published-product/after-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-published",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "published-product/after-dark-presentation",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/published-product/after-dark-presentation.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-published",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "published-product/after-dark-variants",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/published-product/after-dark-variants.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-published",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "published-product/after-dark-media",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/published-product/after-dark-media.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-published",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "published-product/after-dark-actions",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/published-product/after-dark-actions.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-published",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-content/after-dark-image",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-content/after-dark-image.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-content/after-dark-link",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-content/after-dark-link.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-article/after-dark-image",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-article/after-dark-image.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-article/after-dark-link",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-article/after-dark-link.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-policy/after-dark-image",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-policy/after-dark-image.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-policy/after-dark-link",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-policy/after-dark-link.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-policy/after-light-image",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-policy/after-light-image.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-policy/after-light-link",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-policy/after-light-link.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-article/after-light-image",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-article/after-light-image.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-article/after-light-link",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-article/after-light-link.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-content/after-light-image",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-content/after-light-image.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-content/after-light-link",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-content/after-light-link.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-content/intermediate-light-internal",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-content/intermediate-light-internal.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-content/intermediate-dark-internal",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-content/intermediate-dark-internal.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-content/after-dark-internal",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-content/after-dark-internal.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "structured-content/after-light-internal",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/structured-content/after-light-internal.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-fields/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-fields/before-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-audit-fields",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-fields/before-light-media",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-fields/before-light-media.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-audit-fields",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-fields/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-fields/before-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-audit-fields",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-fields/before-dark-media",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-fields/before-dark-media.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-audit-fields",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "navigation-picker/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/navigation-picker/before-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/navigation",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "navigation-picker/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/navigation-picker/before-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/navigation",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-select/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-select/before-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-synthetic-1",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-select/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-select/before-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-synthetic-1",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-select/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-select/after-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-synthetic-1",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-select/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-select/after-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-synthetic-1",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-fields/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-fields/after-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-audit-fields",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-fields/after-light-media",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-fields/after-light-media.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-audit-fields",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-fields/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-fields/after-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-audit-fields",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-fields/after-dark-media",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-fields/after-dark-media.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-audit-fields",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "themes/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/themes/after-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "themes/after-dark-create",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/themes/after-dark-create.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-editor/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-editor/after-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-browser",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-editor/after-dark-pickers",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-editor/after-dark-pickers.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-browser",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-editor/after-dark-actions",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-editor/after-dark-actions.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-browser",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-editor/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-editor/after-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-browser",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-editor/after-light-pickers",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-editor/after-light-pickers.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-browser",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "theme-editor/after-light-actions",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/theme-editor/after-light-actions.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-browser",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "themes/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/themes/after-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "themes/after-light-create",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/themes/after-light-create.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "navigation-picker/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/navigation-picker/after-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/navigation",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "navigation-picker/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/navigation-picker/after-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/navigation",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/navigation-footer-picker-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/navigation-footer-picker-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/navigation",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/contact-service-hours-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/contact-service-hours-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "content-reset/before-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/content-reset/before-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "content-reset/before-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/content-reset/before-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "content-reset/after-light",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/content-reset/after-light.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "content-reset/after-dark",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/content-reset/after-dark.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "name": "audit/final-system-theme",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-style-unification/audit/final-system-theme.jpg",
+    "drawers": [],
+    "panels": [],
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  }
+]

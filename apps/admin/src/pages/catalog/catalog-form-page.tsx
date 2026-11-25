@@ -1,5 +1,17 @@
 import { FilePicker } from '../../shared/components/file-picker'
-import { Alert, Button, ColorPicker, Form, Input, InputNumber, Select, Upload, App } from 'antd'
+import {
+  Alert,
+  Button,
+  ColorPicker,
+  Divider,
+  Form,
+  Input,
+  InputNumber,
+  Select,
+  Upload,
+  App,
+  Typography,
+} from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -32,9 +44,16 @@ import {
   useFormModeAccess,
   useListRefreshChannel,
 } from '../../shared/template-kit/hooks'
+import { CrudFormDrawerRecipe } from '../../shared/template-kit/recipes/crud-form-drawer-recipe'
+import { SortActionGroup } from '../../shared/components/sort-action-group'
 import { PublishedProductRevisionEditor } from './published-product-revision-editor'
 
 void React
+
+type PresentationSaveResult =
+  { success: true } | { success: false; error: ApiError } | { cancelled: true }
+
+type OptionFieldError = { kind: 'invalid-swatch' } | { kind: 'request'; message: string }
 
 type CatalogFormValues = {
   name: string
@@ -216,6 +235,31 @@ const deriveProductPresentation = (detail: ProductDetail): ProductPresentation =
   return { specifications: [] }
 }
 
+const normalizeProductPresentation = (presentation: ProductPresentation): ProductPresentation => {
+  const text = (value?: string) => value?.trim() || undefined
+  const detail = presentation.detail
+  return {
+    ...(text(presentation.brand) ? { brand: text(presentation.brand) } : {}),
+    ...(presentation.defaultVariantId ? { defaultVariantId: presentation.defaultVariantId } : {}),
+    ...(detail &&
+    (text(detail.body) || text(detail.eyebrow) || text(detail.heading) || detail.bullets.length)
+      ? {
+          detail: {
+            ...(text(detail.body) ? { body: text(detail.body) } : {}),
+            bullets: detail.bullets.map((bullet) => bullet.trim()).filter(Boolean),
+            ...(text(detail.eyebrow) ? { eyebrow: text(detail.eyebrow) } : {}),
+            ...(text(detail.heading) ? { heading: text(detail.heading) } : {}),
+          },
+        }
+      : {}),
+    ...(presentation.detailMediaId ? { detailMediaId: presentation.detailMediaId } : {}),
+    specifications: presentation.specifications.map(({ label, value }) => ({
+      label: label.trim(),
+      value: value.trim(),
+    })),
+  }
+}
+
 export const CatalogFormPage = () => {
   const { message, modal } = App.useApp()
   const [form] = Form.useForm<CatalogFormValues>()
@@ -227,8 +271,17 @@ export const CatalogFormPage = () => {
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [optionDefinitions, setOptionDefinitions] = useState<ProductOptionDefinition[]>([])
   const [optionExpectedVersion, setOptionExpectedVersion] = useState(0)
-  const [optionErrors, setOptionErrors] = useState<Record<string, string>>({})
+  const [optionErrors, setOptionErrors] = useState<Record<string, OptionFieldError>>({})
   const [optionSaving, setOptionSaving] = useState(false)
+  const [presentationEditor, setPresentationEditor] = useState<'options' | 'presentation' | null>(
+    null
+  )
+  const [swatchConfirmOpen, setSwatchConfirmOpen] = useState(false)
+  const [presentationForm] = Form.useForm()
+  const [savedOptions, setSavedOptions] = useState<ProductOptionDefinition[]>([])
+  const [savedPresentation, setSavedPresentation] = useState<ProductPresentation>({
+    specifications: [],
+  })
   const mutationLock = useRef(false)
   const [optionHydrationKey, setOptionHydrationKey] = useState<string | null>(null)
   const [productPresentation, setProductPresentation] = useState<ProductPresentation>({
@@ -236,7 +289,9 @@ export const CatalogFormPage = () => {
   })
   const [presentationExpectedVersion, setPresentationExpectedVersion] = useState(0)
   const [presentationSaving, setPresentationSaving] = useState(false)
-  const [presentationError, setPresentationError] = useState<string | null>(null)
+  const [presentationError, setPresentationError] = useState<'invalid-specifications' | null>(null)
+  const specificationFields = useRef<HTMLDivElement>(null)
+  const [presentationRequestError, setPresentationRequestError] = useState<string | null>(null)
   const { role, permissions } = useAuth()
   const { publishRefresh } = useListRefreshChannel({
     channelName: LIST_REFRESH_CHANNEL,
@@ -300,12 +355,17 @@ export const CatalogFormPage = () => {
     : null
   if (detailOptionHydrationKey !== optionHydrationKey) {
     setOptionHydrationKey(detailOptionHydrationKey)
-    setOptionDefinitions(detailData ? deriveOptionDefinitions(detailData) : [])
+    const nextOptions = detailData ? deriveOptionDefinitions(detailData) : []
+    const nextPresentation = detailData
+      ? deriveProductPresentation(detailData)
+      : { specifications: [] }
+    setSavedOptions(structuredClone(nextOptions))
+    setSavedPresentation(structuredClone(nextPresentation))
+    setOptionDefinitions(nextOptions)
     setOptionExpectedVersion(detailData?.product.version ?? 0)
     setOptionErrors({})
-    setProductPresentation(
-      detailData ? deriveProductPresentation(detailData) : { specifications: [] }
-    )
+    setPresentationRequestError(null)
+    setProductPresentation(nextPresentation)
     setPresentationExpectedVersion(detailData?.product.version ?? 0)
     setPresentationError(null)
   }
@@ -379,7 +439,9 @@ export const CatalogFormPage = () => {
           ),
         }))
       if (presentation === 'text' && definition.values.some(({ swatch }) => swatch)) {
+        setSwatchConfirmOpen(true)
         modal.confirm({
+          afterClose: () => setSwatchConfirmOpen(false),
           title: t('Remove color swatches?'),
           content: t('Changing this option to text presentation removes every saved swatch.'),
           okText: t('Confirm and save'),
@@ -409,19 +471,27 @@ export const CatalogFormPage = () => {
     [replaceOptionDefinition]
   )
 
-  const saveOptionDefinitions = useCallback(async () => {
-    if (!detailData || optionPresentationReadonly || mutationLock.current || saveLoading) return
-    const errors: Record<string, string> = {}
+  const saveOptionDefinitions = useCallback(async (): Promise<PresentationSaveResult> => {
+    if (
+      !detailData ||
+      optionPresentationReadonly ||
+      mutationLock.current ||
+      saveLoading ||
+      optionDefinitions.length === 0
+    )
+      return { cancelled: true }
+    const errors: Record<string, OptionFieldError> = {}
     optionDefinitions.forEach((definition, definitionIndex) => {
       if (definition.presentation !== 'color') return
       definition.values.forEach((value, valueIndex) => {
         if (!value.swatch || !/^#[0-9a-f]{6}$/.test(value.swatch)) {
-          errors[`${definitionIndex}:${valueIndex}`] = t('Use an opaque color in #rrggbb format.')
+          errors[`${definitionIndex}:${valueIndex}`] = { kind: 'invalid-swatch' }
         }
       })
     })
     setOptionErrors(errors)
-    if (Object.keys(errors).length) return
+    setPresentationRequestError(null)
+    if (Object.keys(errors).length) return { cancelled: true }
     mutationLock.current = true
     setOptionSaving(true)
     try {
@@ -430,44 +500,46 @@ export const CatalogFormPage = () => {
         optionDefinitions,
         optionExpectedVersion
       )
+      setSavedOptions(structuredClone(result.optionDefinitions))
       setOptionDefinitions(result.optionDefinitions)
       setOptionExpectedVersion(result.version)
       setPresentationExpectedVersion(result.version)
-      void message.success(t('Option presentation saved'))
-      publishRefresh({ source: 'catalog-option-presentation' })
+      return { success: true }
     } catch (error) {
       const normalized = normalizeApiError(error)
       const details = Array.isArray(normalized.details) ? normalized.details : []
-      const fieldErrors: Record<string, string> = {}
+      const fieldErrors: Record<string, OptionFieldError> = {}
       details.forEach((detail) => {
         if (!detail || typeof detail !== 'object' || !('path' in detail)) return
         const path = (detail as { message?: string; path?: unknown[] }).path
         const definitionIndex = path?.[1]
         const valueIndex = path?.[3]
         if (typeof definitionIndex === 'number' && typeof valueIndex === 'number') {
-          fieldErrors[`${definitionIndex}:${valueIndex}`] =
-            (detail as { message?: string }).message ?? normalized.message
+          fieldErrors[`${definitionIndex}:${valueIndex}`] = {
+            kind: 'request',
+            message: (detail as { message?: string }).message ?? normalized.message,
+          }
         }
       })
       setOptionErrors(fieldErrors)
-      if (!Object.keys(fieldErrors).length) void message.error(normalized.message)
+      if (!Object.keys(fieldErrors).length) setPresentationRequestError(normalized.message)
+      return { success: false, error: normalized }
     } finally {
       mutationLock.current = false
       setOptionSaving(false)
     }
   }, [
     detailData,
-    message,
     optionDefinitions,
     optionExpectedVersion,
     optionPresentationReadonly,
     saveLoading,
-    publishRefresh,
-    t,
   ])
 
-  const saveProductPresentation = useCallback(async () => {
-    if (!detailData || optionPresentationReadonly || mutationLock.current || saveLoading) return
+  const saveProductPresentation = useCallback(async (): Promise<PresentationSaveResult> => {
+    if (!detailData || optionPresentationReadonly || mutationLock.current || saveLoading)
+      return { cancelled: true }
+    setPresentationRequestError(null)
     const specifications = productPresentation.specifications.map(({ label, value }) => ({
       label: label.trim(),
       value: value.trim(),
@@ -479,33 +551,21 @@ export const CatalogFormPage = () => {
       if (labels.has(normalized)) duplicateLabels.add(normalized)
       labels.add(normalized)
     })
-    if (specifications.some(({ label, value }) => !label || !value) || duplicateLabels.size) {
-      setPresentationError(t('Every specification needs a unique label and a non-empty value.'))
-      return
+    const firstInvalidIndex = specifications.findIndex(
+      ({ label, value }) => !label || !value || duplicateLabels.has(label.toLocaleLowerCase())
+    )
+    if (firstInvalidIndex >= 0) {
+      setPresentationError('invalid-specifications')
+      const { label } = specifications[firstInvalidIndex]!
+      const field = !label || duplicateLabels.has(label.toLocaleLowerCase()) ? 'label' : 'value'
+      const input = specificationFields.current?.querySelector<HTMLInputElement>(
+        `#specification-${field}-${firstInvalidIndex}`
+      )
+      input?.scrollIntoView?.({ block: 'center' })
+      input?.focus({ preventScroll: true })
+      return { cancelled: true }
     }
-    const text = (value?: string) => value?.trim() || undefined
-    const detail = productPresentation.detail
-    const normalized: ProductPresentation = {
-      ...(text(productPresentation.brand) ? { brand: text(productPresentation.brand) } : {}),
-      ...(productPresentation.defaultVariantId
-        ? { defaultVariantId: productPresentation.defaultVariantId }
-        : {}),
-      ...(detail &&
-      (text(detail.body) || text(detail.eyebrow) || text(detail.heading) || detail.bullets.length)
-        ? {
-            detail: {
-              ...(text(detail.body) ? { body: text(detail.body) } : {}),
-              bullets: detail.bullets.map((bullet) => bullet.trim()).filter(Boolean),
-              ...(text(detail.eyebrow) ? { eyebrow: text(detail.eyebrow) } : {}),
-              ...(text(detail.heading) ? { heading: text(detail.heading) } : {}),
-            },
-          }
-        : {}),
-      ...(productPresentation.detailMediaId
-        ? { detailMediaId: productPresentation.detailMediaId }
-        : {}),
-      specifications,
-    }
+    const normalized = normalizeProductPresentation(productPresentation)
     mutationLock.current = true
     setPresentationSaving(true)
     setPresentationError(null)
@@ -515,27 +575,40 @@ export const CatalogFormPage = () => {
         normalized,
         presentationExpectedVersion
       )
+      setSavedPresentation(structuredClone(result.presentation))
       setProductPresentation(result.presentation)
       setPresentationExpectedVersion(result.version)
       setOptionExpectedVersion(result.version)
-      void message.success(t('Product presentation saved'))
-      publishRefresh({ source: 'catalog-product-presentation' })
+      return { success: true }
     } catch (error) {
-      setPresentationError(normalizeApiError(error).message)
+      const normalized = normalizeApiError(error)
+      setPresentationRequestError(normalized.message)
+      return { success: false, error: normalized }
     } finally {
       mutationLock.current = false
       setPresentationSaving(false)
     }
   }, [
     detailData,
-    message,
     optionPresentationReadonly,
     saveLoading,
     presentationExpectedVersion,
     productPresentation,
-    publishRefresh,
-    t,
   ])
+  const presentationControlsDisabled =
+    optionPresentationReadonly || saveLoading || optionSaving || presentationSaving
+  const moveSpecification = (index: number, offset: -1 | 1) => {
+    setProductPresentation((current) => {
+      const specifications = [...current.specifications]
+      const target = index + offset
+      if (target < 0 || target >= specifications.length) return current
+      ;[specifications[index], specifications[target]] = [
+        specifications[target]!,
+        specifications[index]!,
+      ]
+      return { ...current, specifications }
+    })
+  }
   const spec = useMemo<BasicCrudFormSpec<CatalogFormValues>>(
     () => ({
       parsedMode,
@@ -566,7 +639,7 @@ export const CatalogFormPage = () => {
         resetFormValues()
       },
       onSubmit: async (values) => {
-        if (effectiveReadonly || mutationLock.current) return
+        if (effectiveReadonly || mutationLock.current || presentationEditor !== null) return
         mutationLock.current = true
         try {
           const result = await submitFormValues(values)
@@ -800,294 +873,50 @@ export const CatalogFormPage = () => {
       ],
       renderAfterForm: detailData ? (
         <div className="space-y-6">
-          <section aria-label={t('Option presentation')} className="space-y-4">
-            <div>
-              <h2>{t('Option presentation')}</h2>
-              <p>{t('Option names and values come from variants and cannot be changed here.')}</p>
-            </div>
-            {optionDefinitions.map((definition, definitionIndex) => (
-              <fieldset
-                key={definition.name}
-                className="rounded border border-solid border-gray-200 p-4"
-              >
-                <legend className="px-2 font-medium">{definition.name}</legend>
-                <label className="mb-4 block">
-                  <span className="mb-1 block">{t('Presentation kind')}</span>
-                  <Select
-                    aria-label={`${definition.name} ${t('Presentation kind')}`}
-                    disabled={optionPresentationReadonly}
-                    value={definition.presentation}
-                    options={[
-                      { label: t('Text'), value: 'text' },
-                      { label: t('Color'), value: 'color' },
-                    ]}
-                    onChange={(value) => changePresentation(definitionIndex, value)}
-                  />
-                </label>
-                <ul className="space-y-3">
-                  {definition.values.map((value, valueIndex) => {
-                    const error = optionErrors[`${definitionIndex}:${valueIndex}`]
-                    const errorId = `option-swatch-error-${definitionIndex}-${valueIndex}`
-                    return (
-                      <li key={value.label} className="flex flex-wrap items-start gap-3">
-                        <span className="min-w-28 pt-1 font-medium">{value.label}</span>
-                        {definition.presentation === 'color' ? (
-                          <>
-                            <ColorPicker
-                              aria-label={`${definition.name} ${value.label} ${t('Color picker')}`}
-                              disabled={optionPresentationReadonly}
-                              disabledAlpha
-                              value={value.swatch || '#000000'}
-                              onChangeComplete={(color) =>
-                                changeSwatch(definitionIndex, valueIndex, color.toHexString())
-                              }
-                            />
-                            <div>
-                              <Input
-                                aria-label={`${definition.name} ${value.label} ${t('Swatch')}`}
-                                disabled={optionPresentationReadonly}
-                                aria-describedby={error ? errorId : undefined}
-                                aria-invalid={Boolean(error)}
-                                status={error ? 'error' : undefined}
-                                value={value.swatch ?? ''}
-                                onBlur={(event) =>
-                                  changeSwatch(definitionIndex, valueIndex, event.target.value)
-                                }
-                                onChange={(event) =>
-                                  changeSwatch(definitionIndex, valueIndex, event.target.value)
-                                }
-                              />
-                              {error ? (
-                                <p id={errorId} className="mt-1 text-red-600">
-                                  {error}
-                                </p>
-                              ) : null}
-                            </div>
-                          </>
-                        ) : null}
-                      </li>
-                    )
-                  })}
-                </ul>
-              </fieldset>
-            ))}
+          <section aria-label={t('Option presentation')} className="space-y-3">
+            <h2>{t('Option presentation')}</h2>
+            <p>
+              {optionDefinitions
+                .map(
+                  (definition) =>
+                    `${definition.name}: ${definition.values.map(({ label }) => label).join(', ')}`
+                )
+                .join(' · ') || '—'}
+            </p>
             <Button
-              type="primary"
-              disabled={optionPresentationReadonly || optionDefinitions.length === 0}
-              loading={optionSaving}
-              onClick={() => void saveOptionDefinitions()}
+              disabled={
+                saveLoading ||
+                optionSaving ||
+                presentationSaving ||
+                presentationEditor !== null ||
+                optionDefinitions.length === 0
+              }
+              onClick={() => setPresentationEditor('options')}
             >
-              {t('Save option presentation')}
+              {t(
+                isReadonly || optionPresentationReadonly
+                  ? 'View option presentation'
+                  : 'Edit option presentation'
+              )}
             </Button>
           </section>
-          <section aria-label={t('Product presentation')} className="space-y-4">
-            <div>
-              <h2>{t('Product presentation')}</h2>
-              <p>
-                {t(
-                  'These released fields supply the existing Product page; related products continue to follow collection order.'
-                )}
-              </p>
-            </div>
-            <label className="block">
-              <span className="mb-1 block">{t('Brand')}</span>
-              <Input
-                disabled={optionPresentationReadonly}
-                value={productPresentation.brand ?? ''}
-                onChange={(event) =>
-                  setProductPresentation((current) => ({
-                    ...current,
-                    brand: event.target.value,
-                  }))
-                }
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1 block">{t('Default variant')}</span>
-              <Select
-                allowClear
-                className="w-full"
-                disabled={optionPresentationReadonly}
-                options={detailData.variants.map((variant) => ({
-                  label: `${variant.sku} — ${variant.title}`,
-                  value: variant.id,
-                }))}
-                value={productPresentation.defaultVariantId}
-                onChange={(value) =>
-                  setProductPresentation((current) => ({
-                    ...current,
-                    defaultVariantId: value,
-                  }))
-                }
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1 block">{t('Detail media')}</span>
-              <Select
-                allowClear
-                className="w-full"
-                disabled={optionPresentationReadonly}
-                options={detailData.media.map((media) => ({
-                  label: `${media.alt_text} — ${media.r2_key}`,
-                  value: media.id,
-                }))}
-                value={productPresentation.detailMediaId}
-                onChange={(value) =>
-                  setProductPresentation((current) => ({ ...current, detailMediaId: value }))
-                }
-              />
-            </label>
-            {(['eyebrow', 'heading', 'body'] as const).map((field) => (
-              <label key={field} className="block">
-                <span className="mb-1 block">
-                  {t(
-                    field === 'eyebrow'
-                      ? 'Detail eyebrow'
-                      : field === 'heading'
-                        ? 'Detail heading'
-                        : 'Detail body'
-                  )}
-                </span>
-                <Input.TextArea
-                  disabled={optionPresentationReadonly}
-                  rows={field === 'body' ? 4 : 2}
-                  value={productPresentation.detail?.[field] ?? ''}
-                  onChange={(event) =>
-                    setProductPresentation((current) => ({
-                      ...current,
-                      detail: {
-                        bullets: current.detail?.bullets ?? [],
-                        ...current.detail,
-                        [field]: event.target.value,
-                      },
-                    }))
-                  }
-                />
-              </label>
-            ))}
-            <label className="block">
-              <span className="mb-1 block">{t('Detail bullets')}</span>
-              <Input.TextArea
-                disabled={optionPresentationReadonly}
-                rows={5}
-                value={(productPresentation.detail?.bullets ?? []).join('\n')}
-                onChange={(event) =>
-                  setProductPresentation((current) => ({
-                    ...current,
-                    detail: {
-                      ...current.detail,
-                      bullets: event.target.value.split('\n'),
-                    },
-                  }))
-                }
-              />
-            </label>
-            <fieldset className="space-y-3 rounded border border-solid border-gray-200 p-4">
-              <legend className="px-2 font-medium">{t('Specifications')}</legend>
-              {productPresentation.specifications.map((specification, index) => (
-                <div key={index} className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
-                  <Input
-                    aria-label={`${t('Specification label')} ${index + 1}`}
-                    disabled={optionPresentationReadonly}
-                    placeholder={t('Label')}
-                    value={specification.label}
-                    onChange={(event) =>
-                      setProductPresentation((current) => ({
-                        ...current,
-                        specifications: current.specifications.map((item, itemIndex) =>
-                          itemIndex === index ? { ...item, label: event.target.value } : item
-                        ),
-                      }))
-                    }
-                  />
-                  <Input
-                    aria-label={`${t('Specification value')} ${index + 1}`}
-                    disabled={optionPresentationReadonly}
-                    placeholder={t('Value')}
-                    value={specification.value}
-                    onChange={(event) =>
-                      setProductPresentation((current) => ({
-                        ...current,
-                        specifications: current.specifications.map((item, itemIndex) =>
-                          itemIndex === index ? { ...item, value: event.target.value } : item
-                        ),
-                      }))
-                    }
-                  />
-                  <div className="flex gap-1">
-                    <Button
-                      aria-label={`${t('Move specification up')} ${index + 1}`}
-                      disabled={optionPresentationReadonly || index === 0}
-                      onClick={() =>
-                        setProductPresentation((current) => {
-                          const specifications = [...current.specifications]
-                          ;[specifications[index - 1], specifications[index]] = [
-                            specifications[index]!,
-                            specifications[index - 1]!,
-                          ]
-                          return { ...current, specifications }
-                        })
-                      }
-                    >
-                      ↑
-                    </Button>
-                    <Button
-                      aria-label={`${t('Move specification down')} ${index + 1}`}
-                      disabled={
-                        optionPresentationReadonly ||
-                        index === productPresentation.specifications.length - 1
-                      }
-                      onClick={() =>
-                        setProductPresentation((current) => {
-                          const specifications = [...current.specifications]
-                          ;[specifications[index], specifications[index + 1]] = [
-                            specifications[index + 1]!,
-                            specifications[index]!,
-                          ]
-                          return { ...current, specifications }
-                        })
-                      }
-                    >
-                      ↓
-                    </Button>
-                    <Button
-                      danger
-                      aria-label={`${t('Remove specification')} ${index + 1}`}
-                      disabled={optionPresentationReadonly}
-                      onClick={() =>
-                        setProductPresentation((current) => ({
-                          ...current,
-                          specifications: current.specifications.filter(
-                            (_, itemIndex) => itemIndex !== index
-                          ),
-                        }))
-                      }
-                    >
-                      {t('Remove')}
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              <Button
-                disabled={optionPresentationReadonly}
-                onClick={() =>
-                  setProductPresentation((current) => ({
-                    ...current,
-                    specifications: [...current.specifications, { label: '', value: '' }],
-                  }))
-                }
-              >
-                {t('Add specification')}
-              </Button>
-            </fieldset>
-            {presentationError ? <Alert showIcon type="error" title={presentationError} /> : null}
+          <section aria-label={t('Product presentation')} className="space-y-3">
+            <h2>{t('Product presentation')}</h2>
+            <p>
+              {productPresentation.brand || '—'} · {t('Specifications')}:{' '}
+              {productPresentation.specifications.length}
+            </p>
             <Button
-              type="primary"
-              disabled={optionPresentationReadonly}
-              loading={presentationSaving}
-              onClick={() => void saveProductPresentation()}
+              disabled={
+                saveLoading || optionSaving || presentationSaving || presentationEditor !== null
+              }
+              onClick={() => setPresentationEditor('presentation')}
             >
-              {t('Save product presentation')}
+              {t(
+                isReadonly || optionPresentationReadonly
+                  ? 'View product presentation'
+                  : 'Edit product presentation'
+              )}
             </Button>
           </section>
           <section aria-label={t('Stored catalog shape')} className="space-y-3">
@@ -1145,19 +974,16 @@ export const CatalogFormPage = () => {
     }),
     [
       message,
+      presentationEditor,
       detailError,
       detailData,
       detailLoading,
       catalogShapeLocked,
-      changePresentation,
-      changeSwatch,
       optionDefinitions,
-      optionErrors,
       openCollectionManagement,
       optionPresentationReadonly,
       optionSaving,
       productPresentation,
-      presentationError,
       presentationSaving,
       effectiveReadonly,
       form,
@@ -1171,8 +997,6 @@ export const CatalogFormPage = () => {
       permissionDenied,
       publishRefresh,
       resetFormValues,
-      saveOptionDefinitions,
-      saveProductPresentation,
       saveLoading,
       submitFormValues,
       t,
@@ -1183,6 +1007,433 @@ export const CatalogFormPage = () => {
   return (
     <>
       <BasicCrudFormRecipe spec={spec} />
+      {presentationEditor && detailData ? (
+        <CrudFormDrawerRecipe
+          key={presentationEditor}
+          spec={{
+            title: t(
+              presentationEditor === 'options' ? 'Option presentation' : 'Product presentation'
+            ),
+            successTitle: t(
+              presentationEditor === 'options'
+                ? 'Option presentation saved'
+                : 'Product presentation saved'
+            ),
+            parsedMode: {
+              ok: true,
+              mode: optionPresentationReadonly ? 'readonly' : 'modify',
+              resourceKey: detailData.product.id,
+            },
+            permissionDenied,
+            detailLoading: false,
+            detailError: null,
+            saveLoading: optionSaving || presentationSaving,
+            actionBusy: saveLoading,
+            nestedModalOpen: swatchConfirmOpen,
+            isReadonly: optionPresentationReadonly,
+            form: presentationForm,
+            initialValues: {},
+            onRetryDetail: () => undefined,
+            hasUnsavedChanges: () =>
+              presentationEditor === 'options'
+                ? JSON.stringify(optionDefinitions) !== JSON.stringify(savedOptions)
+                : JSON.stringify(normalizeProductPresentation(productPresentation)) !==
+                  JSON.stringify(normalizeProductPresentation(savedPresentation)),
+            onResetAll: () => {
+              setOptionDefinitions(structuredClone(savedOptions))
+              setProductPresentation(structuredClone(savedPresentation))
+              setOptionErrors({})
+              setPresentationRequestError(null)
+              setPresentationError(null)
+            },
+            onClose: () => {
+              setOptionDefinitions(structuredClone(savedOptions))
+              setProductPresentation(structuredClone(savedPresentation))
+              setOptionErrors({})
+              setPresentationRequestError(null)
+              setPresentationError(null)
+              setPresentationEditor(null)
+            },
+            onSaved: async () => {
+              publishRefresh({
+                source:
+                  presentationEditor === 'options'
+                    ? 'catalog-option-presentation'
+                    : 'catalog-product-presentation',
+              })
+            },
+            onSubmit:
+              presentationEditor === 'options' ? saveOptionDefinitions : saveProductPresentation,
+            renderAfterForm: presentationRequestError ? (
+              <Typography.Text type="danger">{presentationRequestError}</Typography.Text>
+            ) : null,
+            sections:
+              presentationEditor === 'options'
+                ? [
+                    {
+                      key: 'option-guidance',
+                      title: null,
+                      renderFields: () => (
+                        <Typography.Paragraph type="secondary" className="!mb-0">
+                          {t(
+                            'Option names and values come from variants and cannot be changed here.'
+                          )}
+                        </Typography.Paragraph>
+                      ),
+                    },
+                    ...optionDefinitions.map((definition, definitionIndex) => ({
+                      key: definition.name,
+                      title: definition.name,
+                      renderFields: () => (
+                        <>
+                          <Form.Item
+                            label={t('Presentation kind')}
+                            htmlFor={`option-presentation-${definitionIndex}`}
+                          >
+                            <Select
+                              id={`option-presentation-${definitionIndex}`}
+                              aria-label={`${definition.name} ${t('Presentation kind')}`}
+                              className="w-full"
+                              disabled={presentationControlsDisabled}
+                              value={definition.presentation}
+                              options={[
+                                { label: t('Text'), value: 'text' },
+                                { label: t('Color'), value: 'color' },
+                              ]}
+                              onChange={(value) => changePresentation(definitionIndex, value)}
+                            />
+                          </Form.Item>
+                          <ul>
+                            {definition.values.map((value, valueIndex) => {
+                              const error = optionErrors[`${definitionIndex}:${valueIndex}`]
+                              const errorId = `option-swatch-error-${definitionIndex}-${valueIndex}`
+                              const fieldId = `option-swatch-${definitionIndex}-${valueIndex}`
+                              return (
+                                <li key={value.label}>
+                                  {definition.presentation === 'color' ? (
+                                    <Form.Item
+                                      label={value.label}
+                                      htmlFor={fieldId}
+                                      validateStatus={error ? 'error' : undefined}
+                                      help={
+                                        error ? (
+                                          <span id={errorId}>
+                                            {error.kind === 'invalid-swatch'
+                                              ? t('Use an opaque color in #rrggbb format.')
+                                              : error.message}
+                                          </span>
+                                        ) : undefined
+                                      }
+                                    >
+                                      <div className="flex flex-wrap items-start gap-2">
+                                        <ColorPicker
+                                          aria-label={`${definition.name} ${value.label} ${t('Color picker')}`}
+                                          disabled={presentationControlsDisabled}
+                                          disabledAlpha
+                                          value={value.swatch || '#000000'}
+                                          onChangeComplete={(color) =>
+                                            changeSwatch(
+                                              definitionIndex,
+                                              valueIndex,
+                                              color.toHexString()
+                                            )
+                                          }
+                                        />
+                                        <Input
+                                          id={fieldId}
+                                          className="max-w-40"
+                                          aria-label={`${definition.name} ${value.label} ${t('Swatch')}`}
+                                          disabled={presentationControlsDisabled}
+                                          aria-describedby={error ? errorId : undefined}
+                                          aria-invalid={Boolean(error)}
+                                          status={error ? 'error' : undefined}
+                                          value={value.swatch ?? ''}
+                                          onBlur={(event) =>
+                                            changeSwatch(
+                                              definitionIndex,
+                                              valueIndex,
+                                              event.target.value
+                                            )
+                                          }
+                                          onChange={(event) =>
+                                            changeSwatch(
+                                              definitionIndex,
+                                              valueIndex,
+                                              event.target.value
+                                            )
+                                          }
+                                        />
+                                      </div>
+                                    </Form.Item>
+                                  ) : (
+                                    <Typography.Paragraph>{value.label}</Typography.Paragraph>
+                                  )}
+                                </li>
+                              )
+                            })}
+                          </ul>
+                          {definitionIndex < optionDefinitions.length - 1 ? (
+                            <Divider className="!my-0" />
+                          ) : null}
+                        </>
+                      ),
+                    })),
+                  ]
+                : [
+                    {
+                      key: 'display',
+                      title: t('Display settings'),
+                      renderFields: () => (
+                        <>
+                          <Typography.Paragraph type="secondary">
+                            {t(
+                              'These released fields supply the existing Product page; related products continue to follow collection order.'
+                            )}
+                          </Typography.Paragraph>
+                          <Form.Item label={t('Brand')} htmlFor="presentation-brand">
+                            <Input
+                              id="presentation-brand"
+                              disabled={presentationControlsDisabled}
+                              value={productPresentation.brand ?? ''}
+                              onChange={(event) =>
+                                setProductPresentation((current) => ({
+                                  ...current,
+                                  brand: event.target.value,
+                                }))
+                              }
+                            />
+                          </Form.Item>
+                          <Form.Item label={t('Default variant')} htmlFor="presentation-variant">
+                            <Select
+                              id="presentation-variant"
+                              allowClear
+                              className="w-full"
+                              disabled={presentationControlsDisabled}
+                              options={detailData.variants.map((variant) => ({
+                                label: `${variant.sku} — ${variant.title}`,
+                                value: variant.id,
+                              }))}
+                              value={productPresentation.defaultVariantId}
+                              onChange={(value) =>
+                                setProductPresentation((current) => ({
+                                  ...current,
+                                  defaultVariantId: value,
+                                }))
+                              }
+                            />
+                          </Form.Item>
+                          <Form.Item label={t('Detail media')} htmlFor="presentation-media">
+                            <Select
+                              id="presentation-media"
+                              allowClear
+                              className="w-full"
+                              disabled={presentationControlsDisabled}
+                              options={detailData.media.map((media) => ({
+                                label: `${media.alt_text} — ${media.r2_key}`,
+                                value: media.id,
+                              }))}
+                              value={productPresentation.detailMediaId}
+                              onChange={(value) =>
+                                setProductPresentation((current) => ({
+                                  ...current,
+                                  detailMediaId: value,
+                                }))
+                              }
+                            />
+                          </Form.Item>
+                        </>
+                      ),
+                    },
+                    {
+                      key: 'detail',
+                      title: t('Detail content'),
+                      renderFields: () => (
+                        <>
+                          {(
+                            [
+                              { field: 'eyebrow', label: t('Detail eyebrow'), rows: 2 },
+                              { field: 'heading', label: t('Detail heading'), rows: 2 },
+                              { field: 'body', label: t('Detail body'), rows: 4 },
+                            ] as const
+                          ).map(({ field, label, rows }) => (
+                            <Form.Item key={field} label={label} htmlFor={`presentation-${field}`}>
+                              <Input.TextArea
+                                id={`presentation-${field}`}
+                                disabled={presentationControlsDisabled}
+                                rows={rows}
+                                value={productPresentation.detail?.[field] ?? ''}
+                                onChange={(event) =>
+                                  setProductPresentation((current) => ({
+                                    ...current,
+                                    detail: {
+                                      bullets: current.detail?.bullets ?? [],
+                                      ...current.detail,
+                                      [field]: event.target.value,
+                                    },
+                                  }))
+                                }
+                              />
+                            </Form.Item>
+                          ))}
+                          <Form.Item label={t('Detail bullets')} htmlFor="presentation-bullets">
+                            <Input.TextArea
+                              id="presentation-bullets"
+                              disabled={presentationControlsDisabled}
+                              rows={5}
+                              value={(productPresentation.detail?.bullets ?? []).join('\n')}
+                              onChange={(event) =>
+                                setProductPresentation((current) => ({
+                                  ...current,
+                                  detail: {
+                                    ...current.detail,
+                                    bullets: event.target.value.split('\n'),
+                                  },
+                                }))
+                              }
+                            />
+                          </Form.Item>
+                        </>
+                      ),
+                    },
+                    {
+                      key: 'specifications',
+                      title: t('Specifications'),
+                      renderFields: () => (
+                        <div ref={specificationFields}>
+                          {productPresentation.specifications.map((specification, index) => {
+                            const labelInvalid = Boolean(
+                              presentationError &&
+                              (!specification.label.trim() ||
+                                productPresentation.specifications.some(
+                                  (other, otherIndex) =>
+                                    otherIndex !== index &&
+                                    other.label.trim().toLocaleLowerCase() ===
+                                      specification.label.trim().toLocaleLowerCase()
+                                ))
+                            )
+                            const valueInvalid = Boolean(
+                              presentationError && !specification.value.trim()
+                            )
+                            return (
+                              <div key={index} className="mb-6">
+                                <Form.Item
+                                  label={t('Specification label')}
+                                  htmlFor={`specification-label-${index}`}
+                                  required
+                                  validateStatus={labelInvalid ? 'error' : undefined}
+                                  help={
+                                    labelInvalid ? (
+                                      <span id={`specification-label-error-${index}`}>
+                                        {t('Use a unique, non-empty specification label.')}
+                                      </span>
+                                    ) : undefined
+                                  }
+                                >
+                                  <Input
+                                    id={`specification-label-${index}`}
+                                    aria-label={`${t('Specification label')} ${index + 1}`}
+                                    aria-invalid={labelInvalid}
+                                    aria-describedby={
+                                      labelInvalid
+                                        ? `specification-label-error-${index}`
+                                        : undefined
+                                    }
+                                    disabled={presentationControlsDisabled}
+                                    placeholder={t('Label')}
+                                    value={specification.label}
+                                    onChange={(event) =>
+                                      setProductPresentation((current) => ({
+                                        ...current,
+                                        specifications: current.specifications.map(
+                                          (item, itemIndex) =>
+                                            itemIndex === index
+                                              ? { ...item, label: event.target.value }
+                                              : item
+                                        ),
+                                      }))
+                                    }
+                                  />
+                                </Form.Item>
+                                <Form.Item
+                                  label={t('Specification value')}
+                                  htmlFor={`specification-value-${index}`}
+                                  required
+                                  validateStatus={valueInvalid ? 'error' : undefined}
+                                  help={
+                                    valueInvalid ? (
+                                      <span id={`specification-value-error-${index}`}>
+                                        {t('Enter a specification value.')}
+                                      </span>
+                                    ) : undefined
+                                  }
+                                >
+                                  <Input
+                                    id={`specification-value-${index}`}
+                                    aria-label={`${t('Specification value')} ${index + 1}`}
+                                    aria-invalid={valueInvalid}
+                                    aria-describedby={
+                                      valueInvalid
+                                        ? `specification-value-error-${index}`
+                                        : undefined
+                                    }
+                                    disabled={presentationControlsDisabled}
+                                    placeholder={t('Value')}
+                                    value={specification.value}
+                                    onChange={(event) =>
+                                      setProductPresentation((current) => ({
+                                        ...current,
+                                        specifications: current.specifications.map(
+                                          (item, itemIndex) =>
+                                            itemIndex === index
+                                              ? { ...item, value: event.target.value }
+                                              : item
+                                        ),
+                                      }))
+                                    }
+                                  />
+                                </Form.Item>
+                                <SortActionGroup
+                                  index={index}
+                                  count={productPresentation.specifications.length}
+                                  disabled={presentationControlsDisabled}
+                                  moveUpLabel={`${t('Move specification up')} ${index + 1}`}
+                                  moveDownLabel={`${t('Move specification down')} ${index + 1}`}
+                                  removeLabel={`${t('Remove specification')} ${index + 1}`}
+                                  onMoveUp={() => moveSpecification(index, -1)}
+                                  onMoveDown={() => moveSpecification(index, 1)}
+                                  onRemove={() =>
+                                    setProductPresentation((current) => ({
+                                      ...current,
+                                      specifications: current.specifications.filter(
+                                        (_, itemIndex) => itemIndex !== index
+                                      ),
+                                    }))
+                                  }
+                                />
+                              </div>
+                            )
+                          })}
+                          <Button
+                            disabled={presentationControlsDisabled}
+                            onClick={() =>
+                              setProductPresentation((current) => ({
+                                ...current,
+                                specifications: [
+                                  ...current.specifications,
+                                  { label: '', value: '' },
+                                ],
+                              }))
+                            }
+                          >
+                            {t('Add specification')}
+                          </Button>
+                        </div>
+                      ),
+                    },
+                  ],
+          }}
+        />
+      ) : null}
       {detailData?.product.status === 'published' ? (
         <PublishedProductRevisionEditor
           canEdit={!isReadonly}

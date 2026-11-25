@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { visibleBlockId } from "../../../../theme-engine/section-blocks";
+import { useStorefrontEditorBlockId } from "../../../../theme-engine/editor-context";
 import type { FashionStoreHomeSectionProperties } from "./home-section-context";
 import {
   resolveFashionStoreHomeFoundation,
@@ -7,6 +9,7 @@ import {
 } from "./home-section-context";
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
+const editorBlockId = useStorefrontEditorBlockId(() => properties.instance);
 const context = computed(() => resolveFashionStoreHomeSectionContext(properties.viewModel));
 const foundation = computed(() =>
   resolveFashionStoreHomeFoundation(properties.viewModel, properties.instance),
@@ -40,8 +43,8 @@ function sourceAsset(sourcePath: string): string {
             :aria-hidden="copy === 2 ? 'true' : undefined"
           >
             <div
-              v-for="brand in foundation.brands"
-              :key="`${copy}-${brand.name}`"
+              v-for="(brand, index) in foundation.brands" :data-editor-instance="editorBlockId('fashion-store.brand', index)"
+              :key="`${copy}-${visibleBlockId(properties.instance, 'fashion-store.brand', index) ?? brand.name}`"
               class="col text-center sm-mb-30px"
             >
               <span
@@ -52,8 +55,8 @@ function sourceAsset(sourcePath: string): string {
         </template>
         <template v-else>
           <div
-            v-for="brand in foundation.brands"
-            :key="brand.name"
+            v-for="(brand, index) in foundation.brands" :data-editor-instance="editorBlockId('fashion-store.brand', index)"
+            :key="visibleBlockId(properties.instance, 'fashion-store.brand', index) ?? brand.name"
             class="col text-center sm-mb-30px"
           >
             <span

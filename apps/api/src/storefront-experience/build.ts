@@ -344,7 +344,10 @@ export async function triggerStorefrontExperienceBuild(
       `INSERT OR IGNORE INTO storefront_preview_builds
          (id, snapshot_id, catalog_release_id, experience_version, theme_id, theme_version,
           platform_contract_version, media_origins_json, attempt, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
+       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?
+       WHERE EXISTS (SELECT 1 FROM storefront_experience_snapshots snapshot
+         JOIN storefront_experience_drafts draft ON draft.id = snapshot.source_draft_id
+         WHERE snapshot.id = ? AND draft.removed_at IS NULL)`,
     )
       .bind(
         candidateId,
@@ -358,6 +361,7 @@ export async function triggerStorefrontExperienceBuild(
         attempt,
         now,
         now,
+        snapshotId,
       )
       .run();
     if (inserted.meta.changes > 0) {

@@ -1,7 +1,7 @@
-import { Button, Input, Modal, Table, Tag, App } from 'antd'
+import { Button, Form, Input, Modal, Table, Tag, App, Typography } from 'antd'
 import dayjs from 'dayjs'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState, useId } from 'react'
 import { hasPermission } from '../../infrastructure/auth/permissions'
 import { useAuth } from '../../infrastructure/auth/use-auth'
 import { normalizeApiError, type ApiError } from '../../infrastructure/http/api-client'
@@ -50,6 +50,7 @@ const PublishAction = ({
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState('')
+  const reasonId = useId()
   const dialog = useFormDialog({
     open,
     onClose: () => {
@@ -83,17 +84,25 @@ const PublishAction = ({
           })
         }
       >
-        <p>
+        <Typography.Paragraph type="secondary">
           {t('Publishing starts a public storefront build. Changes appear only after deployment.')}
-        </p>
-        <Input.TextArea
-          value={reason}
-          disabled={dialog.busy}
-          rows={3}
-          maxLength={500}
-          placeholder={t('Publication reason')}
-          onChange={(event) => setReason(event.target.value)}
-        />
+        </Typography.Paragraph>
+        <Form.Item
+          label={t('Publication reason')}
+          htmlFor={reasonId}
+          layout="vertical"
+          className="!mb-0"
+        >
+          <Input.TextArea
+            id={reasonId}
+            value={reason}
+            disabled={dialog.busy}
+            rows={3}
+            maxLength={500}
+            placeholder={t('Publication reason')}
+            onChange={(event) => setReason(event.target.value)}
+          />
+        </Form.Item>
       </Modal>
     </>
   )

@@ -7,6 +7,9 @@ import type {
   StorefrontPublicationContext,
   StorefrontPublicationRequest,
   StorefrontPublicationRollback,
+  ThemePackage,
+  StorefrontDraftLibraryAction,
+  StorefrontActivePublication,
 } from '@shoppp/contracts'
 import { apiClient } from '../../infrastructure/http/api-client'
 
@@ -27,6 +30,7 @@ export type StorefrontExperienceValidation = {
 }
 
 export type StorefrontExperienceDraft = {
+  name?: string
   bindings: ExperienceResourceBinding[]
   configurationSchemaVersion: number
   createdAt: string
@@ -102,6 +106,7 @@ export type StorefrontPreviewBuild = {
 }
 
 export type StorefrontCatalogRelease = {
+  menus?: Array<{ id: string; placement: 'header' | 'footer' }>
   manifestDigest?: string
   sourceDigest?: string
   approvedAt: string
@@ -142,6 +147,7 @@ export type StorefrontPreviewResolution = {
 }
 
 export type StorefrontExperienceMigration = {
+  migratedOverrides?: ThemeOverride[]
   approvedAt: string | null
   approvedBy: string | null
   conflicts: Array<{
@@ -166,6 +172,16 @@ export type StorefrontExperienceMigration = {
 
 const idempotencyKey = (operation: string) =>
   `${operation}-${crypto.randomUUID ? crypto.randomUUID() : Date.now()}`
+
+export const fetchStorefrontLibraryHistory = async (): Promise<{
+  active: StorefrontActivePublication
+  publications: StorefrontPublication[]
+}> => {
+  const response = await apiClient.get<{
+    data: { active: StorefrontActivePublication; publications: StorefrontPublication[] }
+  }>('/admin/storefront-publications')
+  return response.data.data
+}
 
 export const fetchStorefrontPublicationContext = async (
   draftId: string,
@@ -297,6 +313,16 @@ export const fetchStorefrontCatalogResources = async (input: {
   return response.data
 }
 
+export const fetchStorefrontEditorRelease = async (
+  id: string
+): Promise<StorefrontCatalogRelease> => {
+  const response = await apiClient.get<{ data: StorefrontCatalogRelease }>(
+    `/admin/storefront-experiences/catalog-releases/${id}`
+  )
+  if (response.data.data.id !== id) throw new Error('The saved preview source identity changed.')
+  return response.data.data
+}
+
 export const fetchStorefrontCatalogMedia = async (
   input: { page?: number; pageSize?: number; query?: string } = {}
 ): Promise<{ data: StorefrontCatalogMedia[]; page: number; pageSize: number; total: number }> => {
@@ -328,6 +354,25 @@ export const fetchStorefrontExperienceDraft = async (
   return response.data.data
 }
 
+export const fetchStorefrontEditorDefinition = async (
+  id: string
+): Promise<{
+  draft: StorefrontExperienceDraft
+  package: ThemePackage
+  upgradeTargets: AdminStorefrontTheme[]
+  writable?: boolean
+}> => {
+  const response = await apiClient.get<{
+    data: {
+      draft: StorefrontExperienceDraft
+      package: ThemePackage
+      upgradeTargets: AdminStorefrontTheme[]
+      writable?: boolean
+    }
+  }>(`/admin/storefront-experiences/drafts/${id}/editor-definition`)
+  return response.data.data
+}
+
 export const fetchFashionStagingOperatorRun = async (
   draftId: string
 ): Promise<FashionStagingOperatorRun | null> => {
@@ -352,12 +397,14 @@ export const fetchStorefrontPreviewContext = async (
 export const createStorefrontExperienceDraft = async (
   theme: AdminStorefrontTheme,
   presetId: string,
-  reason: string
+  reason: string,
+  name?: string
 ): Promise<StorefrontExperienceDraft> => {
   const response = await apiClient.post<{ data: StorefrontExperienceDraft }>(
     '/admin/storefront-experiences/drafts',
     {
       draft: {
+        name,
         bindings: theme.fixtureBindings,
         experienceId: `storefront-${theme.id}`,
         overrides: [],
@@ -369,6 +416,18 @@ export const createStorefrontExperienceDraft = async (
     },
     { headers: { 'Idempotency-Key': idempotencyKey('theme-draft-create') } }
   )
+  return response.data.data
+}
+
+export const applyStorefrontDraftLibraryAction = async (
+  id: string,
+  input: StorefrontDraftLibraryAction
+): Promise<StorefrontExperienceDraft | { id: string; removedAt: string }> => {
+  const response = await apiClient.post<{
+    data: StorefrontExperienceDraft | { id: string; removedAt: string }
+  }>(`/admin/storefront-experiences/drafts/${id}/library-actions`, input, {
+    headers: { 'Idempotency-Key': idempotencyKey(`theme-draft-${input.kind}`) },
+  })
   return response.data.data
 }
 
@@ -483,12 +542,14 @@ export const approveStorefrontExperienceDraft = async (
 export const dryRunStorefrontExperienceMigration = async (
   draft: StorefrontExperienceDraft,
   target: AdminStorefrontTheme,
-  reason: string
+  reason: string,
+  catalogReleaseId?: string
 ): Promise<StorefrontExperienceMigration> => {
   const response = await apiClient.post<{ data: StorefrontExperienceMigration }>(
     `/admin/storefront-experiences/drafts/${draft.id}/migrations/dry-run`,
     {
       expectedVersion: draft.version,
+      catalogReleaseId,
       reason,
       targetConfigurationSchemaVersion: target.configurationSchemaVersion,
       targetThemeVersion: target.themeVersion,

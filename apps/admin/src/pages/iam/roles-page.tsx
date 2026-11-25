@@ -12,7 +12,7 @@ import {
   type StandardListPageSpec,
   type TemplateListFilterField,
 } from '../../shared/template-kit/list'
-import { PermissionChecklist } from './permission-checklist'
+import { PermissionTree } from './permission-tree'
 import { CrudFormDrawerRecipe } from '../../shared/template-kit/recipes/crud-form-drawer-recipe'
 import { RoleDetailPage } from './role-detail-page'
 
@@ -126,7 +126,7 @@ const CreateRoleAction = ({
                   <Input.TextArea rows={2} />
                 </Form.Item>
                 <Form.Item name="permissions" label={t('Permissions')}>
-                  <PermissionChecklist permitted={permitted} />
+                  <PermissionTree permitted={permitted} />
                 </Form.Item>
               </>
             ),

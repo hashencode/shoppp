@@ -140,6 +140,7 @@ describe("storefront theme matrix", () => {
       ({ descriptor }) => descriptor.id === "fashion-store",
     );
     expect(fashionStore?.directPackageBoundaries).toEqual([
+      { fromSchemaVersion: 3, toSchemaVersion: 4 },
       { fromSchemaVersion: 1, toSchemaVersion: 2 },
       { fromSchemaVersion: 2, toSchemaVersion: 3 },
     ]);

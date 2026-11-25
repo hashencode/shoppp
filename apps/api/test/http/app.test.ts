@@ -17,6 +17,17 @@ interface AdminRoutePermission {
 }
 
 const ADMIN_ROUTE_PERMISSIONS: readonly AdminRoutePermission[] = [
+  { method: 'GET', path: '/admin/storefront-publications', permission: 'themes.read' },
+  { method: 'GET', path: '/admin/storefront-publications/active', permission: 'themes.read' },
+  { method: 'GET', path: '/admin/storefront-publications/:id', permission: 'themes.read' },
+  { method: 'POST', path: '/admin/storefront-publications', permission: 'themes.publish' },
+  { method: 'POST', path: '/admin/storefront-publications/rollback', permission: 'themes.publish' },
+  { method: 'GET', path: '/admin/storefront-experiences/drafts/:id/publication-context', permission: 'themes.read' },
+  { method: 'GET', path: '/admin/storefront-experiences/drafts/:id/editor-definition', permission: 'themes.read' },
+  { method: 'POST', path: '/admin/storefront-experiences/drafts/:id/editor-sessions', permission: 'themes.read' },
+  { method: 'GET', path: '/admin/storefront-editor/sessions/:id', permission: 'themes.read' },
+  { method: 'POST', path: '/admin/storefront-experiences/drafts/:id/library-actions', permission: 'themes.write' },
+  { method: 'GET', path: '/admin/storefront-experiences/catalog-releases/:id', permission: 'themes.preview' },
   { method: "GET", path: "/admin/iam/users", permission: "iam.users.read" },
   { method: "PATCH", path: "/admin/iam/users/:id", permission: "iam.users.write" },
   { method: "GET", path: "/admin/iam/users/:id", permission: "iam.users.read" },

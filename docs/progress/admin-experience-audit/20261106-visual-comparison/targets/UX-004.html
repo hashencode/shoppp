@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>UX-004 目标示意</title>
+    <link rel="stylesheet" href="target.css" />
+  </head>
+  <body>
+    <header class="top">
+      <strong>Shoppp 后台</strong><span>UX-004</span
+      ><span class="watermark">目标设计示意 · 未实现</span>
+    </header>
+    <main class="canvas">
+      <section class="panel changed">
+        <span class="number">1</span>
+        <h2>配送方式</h2>
+        <div class="field">
+          <label>计费方式</label>
+          <div class="input">固定运费</div>
+        </div>
+        <div class="row">
+          <div>
+            <div class="field">
+              <label>运费（USD）</label>
+              <div class="input">0.00</div>
+            </div>
+          </div>
+          <div>
+            <div class="field">
+              <label>免运费订单金额（USD）</label>
+              <div class="input">&nbsp;</div>
+              <small class="help">留空表示不设置免运费阈值。</small>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="panel changed">
+        <span class="number">2</span>
+        <h2>适用条件</h2>
+        <p>仅在按重量计费时要求对应重量条件。</p>
+        <details>
+          <summary>可选：限制此配送方式适用的重量</summary>
+          <div class="row">
+            <div>
+              <div class="field">
+                <label>最低重量（克）</label>
+                <div class="input">&nbsp;</div>
+              </div>
+            </div>
+            <div>
+              <div class="field">
+                <label>最高重量（克）</label>
+                <div class="input">&nbsp;</div>
+              </div>
+            </div>
+          </div>
+        </details>
+      </section>
+      <div class="footer">
+        <span class="btn">取消</span><span class="btn primary">保存配送方式</span>
+      </div>
+    </main>
+    <p class="footnote">静态示意：用于比较布局与状态，控件不会操作后台。</p>
+  </body>
+</html>

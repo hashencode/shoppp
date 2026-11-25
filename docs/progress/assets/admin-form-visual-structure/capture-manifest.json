@@ -1,0 +1,1422 @@
+[
+  {
+    "entry": "color",
+    "phase": "before",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/color/before-light.jpg",
+    "drawers": [
+      {
+        "scrollTop": 0,
+        "scrollWidth": 720,
+        "width": 720
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "color",
+    "phase": "before",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/color/before-dark.jpg",
+    "drawers": [
+      {
+        "scrollTop": 0,
+        "scrollWidth": 720,
+        "width": 720
+      }
+    ],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "color",
+    "phase": "before",
+    "region": "error",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/color/before-dark-error.jpg",
+    "drawers": [
+      {
+        "scrollTop": 0,
+        "scrollWidth": 720,
+        "width": 720
+      }
+    ],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "content-page",
+    "phase": "before",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/content-page/before-dark.jpg",
+    "drawers": [],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "content-page",
+    "phase": "before",
+    "region": "details",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/content-page/before-dark-details.jpg",
+    "drawers": [],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "content-article",
+    "phase": "before",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/content-article/before-dark.jpg",
+    "drawers": [],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "content-article",
+    "phase": "before",
+    "region": "details",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/content-article/before-dark-details.jpg",
+    "drawers": [],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "theme-editor",
+    "phase": "before",
+    "region": "link",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/theme-editor/before-dark-link.jpg",
+    "drawers": [],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-audit-fields",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "theme-editor",
+    "phase": "before",
+    "region": "media",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/theme-editor/before-dark-media.jpg",
+    "drawers": [],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-audit-fields",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "theme-editor",
+    "phase": "before",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/theme-editor/before-dark.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 585,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-audit-fields",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "navigation-header",
+    "phase": "before",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/navigation-header/before-dark.jpg",
+    "drawers": [],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/navigation",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "navigation-footer",
+    "phase": "before",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/navigation-footer/before-dark.jpg",
+    "drawers": [],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/navigation",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "navigation-footer",
+    "phase": "before",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/navigation-footer/before-light.jpg",
+    "drawers": [],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/navigation",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "navigation-header",
+    "phase": "before",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/navigation-header/before-light.jpg",
+    "drawers": [],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/navigation",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "theme-editor",
+    "phase": "before",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/theme-editor/before-light.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 585,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-audit-fields",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "theme-editor",
+    "phase": "before",
+    "region": "link",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/theme-editor/before-light-link.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 726,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-audit-fields",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "theme-editor",
+    "phase": "before",
+    "region": "media",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/theme-editor/before-light-media.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 554,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-audit-fields",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "content-article",
+    "phase": "before",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/content-article/before-light.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 811,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "content-article",
+    "phase": "before",
+    "region": "details",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/content-article/before-light-details.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 833.5,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "content-page",
+    "phase": "before",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/content-page/before-light.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 725,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "content-page",
+    "phase": "before",
+    "region": "details",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/content-page/before-light-details.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 747.5,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "color",
+    "phase": "before",
+    "region": "error",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/color/before-light-error.jpg",
+    "drawers": [
+      {
+        "scrollTop": 0,
+        "scrollWidth": 720,
+        "width": 720
+      }
+    ],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 2185.5,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "color",
+    "phase": "after",
+    "region": "error",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/color/after-light-error.jpg",
+    "drawers": [
+      {
+        "scrollTop": 0,
+        "scrollWidth": 720,
+        "width": 720
+      }
+    ],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 2185.5,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "color",
+    "phase": "after",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/color/after-dark.jpg",
+    "drawers": [
+      {
+        "scrollTop": 0,
+        "scrollWidth": 720,
+        "width": 720
+      }
+    ],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 2185.5,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "color",
+    "phase": "after",
+    "region": "error",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/color/after-dark-error.jpg",
+    "drawers": [
+      {
+        "scrollTop": 0,
+        "scrollWidth": 720,
+        "width": 720
+      }
+    ],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 2185.5,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "color",
+    "phase": "after",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/color/after-light.jpg",
+    "drawers": [
+      {
+        "scrollTop": 0,
+        "scrollWidth": 720,
+        "width": 720
+      }
+    ],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 2185.5,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "content-page",
+    "phase": "after",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/content-page/after-light.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 915.5,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "content-page",
+    "phase": "after",
+    "region": "details",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/content-page/after-light-details.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 965,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "content-page",
+    "phase": "after",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/content-page/after-dark.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 915.5,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "content-page",
+    "phase": "after",
+    "region": "details",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/content-page/after-dark-details.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 965,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/pages/form?mode=modify&id=page.about",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "content-article",
+    "phase": "after",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/content-article/after-dark.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 1001.5,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "content-article",
+    "phase": "after",
+    "region": "details",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/content-article/after-dark-details.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 1051,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "content-article",
+    "phase": "after",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/content-article/after-light.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 1001.5,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "content-article",
+    "phase": "after",
+    "region": "details",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/content-article/after-light-details.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 1051,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "content-article",
+    "phase": "after",
+    "region": "confirmation",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/content-article/after-light-confirmation.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 1051,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/content/articles/form?mode=modify&id=article.story",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "theme-workspace",
+    "phase": "before",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/theme-workspace/before-light.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 88,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3421/storefront/themes/draft-visual-style",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "theme-workspace",
+    "phase": "before",
+    "region": "media",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/theme-workspace/before-light-media.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 258.5,
+        "tag": "MAIN"
+      },
+      {
+        "className": "theme-editor-inspector",
+        "scrollTop": 238.5,
+        "tag": "ASIDE"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3421/storefront/themes/draft-visual-style",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "theme-workspace",
+    "phase": "before",
+    "region": "link",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/theme-workspace/before-light-link.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 267,
+        "tag": "MAIN"
+      },
+      {
+        "className": "theme-editor-inspector",
+        "scrollTop": 853,
+        "tag": "ASIDE"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3421/storefront/themes/draft-visual-style",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "theme-workspace",
+    "phase": "before",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/theme-workspace/before-dark.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 88,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3421/storefront/themes/draft-visual-style",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "theme-workspace",
+    "phase": "before",
+    "region": "media",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/theme-workspace/before-dark-media.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 258.5,
+        "tag": "MAIN"
+      },
+      {
+        "className": "theme-editor-inspector",
+        "scrollTop": 238.5,
+        "tag": "ASIDE"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3421/storefront/themes/draft-visual-style",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "theme-workspace",
+    "phase": "before",
+    "region": "link",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/theme-workspace/before-dark-link.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 267,
+        "tag": "MAIN"
+      },
+      {
+        "className": "theme-editor-inspector",
+        "scrollTop": 853,
+        "tag": "ASIDE"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3421/storefront/themes/draft-visual-style",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "theme-workspace",
+    "phase": "after",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/theme-workspace/after-light.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 88,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-visual-style",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "theme-workspace",
+    "phase": "after",
+    "region": "media",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/theme-workspace/after-light-media.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 259,
+        "tag": "MAIN"
+      },
+      {
+        "className": "theme-editor-inspector",
+        "scrollTop": 101,
+        "tag": "ASIDE"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-visual-style",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "theme-workspace",
+    "phase": "after",
+    "region": "link",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/theme-workspace/after-light-link.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 280,
+        "tag": "MAIN"
+      },
+      {
+        "className": "theme-editor-inspector",
+        "scrollTop": 636.5,
+        "tag": "ASIDE"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-visual-style",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "theme-workspace",
+    "phase": "after",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/theme-workspace/after-dark.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 88,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-visual-style",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "theme-workspace",
+    "phase": "after",
+    "region": "media",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/theme-workspace/after-dark-media.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 259,
+        "tag": "MAIN"
+      },
+      {
+        "className": "theme-editor-inspector",
+        "scrollTop": 101,
+        "tag": "ASIDE"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-visual-style",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "theme-workspace",
+    "phase": "after",
+    "region": "link",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/theme-workspace/after-dark-link.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 280,
+        "tag": "MAIN"
+      },
+      {
+        "className": "theme-editor-inspector",
+        "scrollTop": 636.5,
+        "tag": "ASIDE"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-visual-style",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "navigation-header",
+    "phase": "after",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/navigation-header/after-dark.jpg",
+    "drawers": [],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/navigation",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "navigation-footer",
+    "phase": "after",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/navigation-footer/after-dark.jpg",
+    "drawers": [],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/storefront/navigation",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "navigation-footer",
+    "phase": "after",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/navigation-footer/after-light.jpg",
+    "drawers": [],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/navigation",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "navigation-header",
+    "phase": "after",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/navigation-header/after-light.jpg",
+    "drawers": [],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/storefront/navigation",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "order-detail",
+    "phase": "before",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/order-detail/before-light.jpg",
+    "drawers": [],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/orders/ORD-TEST001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "order-detail",
+    "phase": "before",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/order-detail/before-dark.jpg",
+    "drawers": [],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/orders/ORD-TEST001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "order-detail",
+    "phase": "after",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/order-detail/after-dark.jpg",
+    "drawers": [],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/orders/ORD-TEST001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "order-detail",
+    "phase": "after",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/order-detail/after-light.jpg",
+    "drawers": [],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/orders/ORD-TEST001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "audit",
+    "phase": "audit",
+    "region": "contact",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/audit/audit-light-contact.jpg",
+    "drawers": [],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "audit",
+    "phase": "audit",
+    "region": "location",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/audit/audit-light-location.jpg",
+    "drawers": [
+      {
+        "scrollTop": 0,
+        "scrollWidth": 720,
+        "width": 720
+      }
+    ],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 481.5,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "user-drawer",
+    "phase": "before",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/user-drawer/before-light.jpg",
+    "drawers": [
+      {
+        "scrollTop": 0,
+        "scrollWidth": 720,
+        "width": 720
+      }
+    ],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/access/users",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "user-compatible",
+    "phase": "before",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/user-compatible/before-light.jpg",
+    "drawers": [],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/access/users/identity_disabled",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "user-compatible",
+    "phase": "before",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/user-compatible/before-dark.jpg",
+    "drawers": [],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/access/users/identity_disabled",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "user-drawer",
+    "phase": "before",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/user-drawer/before-dark.jpg",
+    "drawers": [
+      {
+        "scrollTop": 0,
+        "scrollWidth": 720,
+        "width": 720
+      }
+    ],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/access/users",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "user-drawer",
+    "phase": "after",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/user-drawer/after-dark.jpg",
+    "drawers": [
+      {
+        "scrollTop": 0,
+        "scrollWidth": 720,
+        "width": 720
+      }
+    ],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/access/users",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "user-drawer",
+    "phase": "after",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/user-drawer/after-light.jpg",
+    "drawers": [
+      {
+        "scrollTop": 0,
+        "scrollWidth": 720,
+        "width": 720
+      }
+    ],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/access/users",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "user-compatible",
+    "phase": "after",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/user-compatible/after-light.jpg",
+    "drawers": [],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/access/users/identity_disabled",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "user-compatible",
+    "phase": "after",
+    "region": "main",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/user-compatible/after-dark.jpg",
+    "drawers": [],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "dark",
+    "url": "http://127.0.0.1:3420/access/users/identity_disabled",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "audit",
+    "phase": "audit",
+    "region": "product-presentation",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/audit/audit-light-product-presentation.jpg",
+    "drawers": [
+      {
+        "scrollTop": 0,
+        "scrollWidth": 705,
+        "width": 705
+      }
+    ],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 2309.5,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/products/form?mode=modify&id=product-001",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "audit",
+    "phase": "audit",
+    "region": "collection",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/audit/audit-light-collection.jpg",
+    "drawers": [
+      {
+        "scrollTop": 0,
+        "scrollWidth": 705,
+        "width": 705
+      }
+    ],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/catalog/collections",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "audit",
+    "phase": "audit",
+    "region": "shipping",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/audit/audit-light-shipping.jpg",
+    "drawers": [
+      {
+        "scrollTop": 0,
+        "scrollWidth": 705,
+        "width": 705
+      }
+    ],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/shipping",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "audit",
+    "phase": "audit",
+    "region": "identity",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/audit/audit-light-identity.jpg",
+    "drawers": [],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/identity",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "audit",
+    "phase": "audit",
+    "region": "policies",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/audit/audit-light-policies.jpg",
+    "drawers": [],
+    "scrollAreas": [
+      {
+        "className": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "scrollTop": 690.5,
+        "tag": "MAIN"
+      }
+    ],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "entry": "audit",
+    "phase": "audit",
+    "region": "role",
+    "path": "/Users/studio/Documents/GitHub/shoppp/docs/progress/assets/admin-form-visual-structure/audit/audit-light-role.jpg",
+    "drawers": [
+      {
+        "scrollTop": 0,
+        "scrollWidth": 705,
+        "width": 705
+      }
+    ],
+    "scrollAreas": [],
+    "scrollY": 0,
+    "theme": "light",
+    "url": "http://127.0.0.1:3420/access/roles",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  }
+]

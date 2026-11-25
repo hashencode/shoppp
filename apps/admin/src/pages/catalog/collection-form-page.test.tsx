@@ -101,6 +101,42 @@ const renderPage = (entry = '/catalog/collections/form?mode=modify&id=collection
   )
 
 describe('CollectionFormPage', () => {
+  it('clears the product search on reset and ignores the old search response', async () => {
+    let release!: () => void
+    const delayed = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    let requested = false
+    server.use(
+      http.get('*/admin/catalog/products', async ({ request }) => {
+        if (new URL(request.url).searchParams.get('query') === 'Late') {
+          requested = true
+          await delayed
+          return HttpResponse.json({
+            data: [{ id: 'late-product', name: 'Late search result', slug: 'late' }],
+            meta: { total: 1 },
+          })
+        }
+        return HttpResponse.json({ data: [], meta: { total: 0 } })
+      })
+    )
+    renderPage()
+    await screen.findByLabelText('名称')
+    const search = screen.getByRole('combobox', { name: '添加商品' }) as HTMLInputElement
+    fireEvent.change(search, { target: { value: 'Late' } })
+    await waitFor(() => expect(requested).toBe(true))
+    fireEvent.click(screen.getByRole('button', { name: /^重\s*置$/ }))
+    fireEvent.click(await screen.findByRole('button', { name: /^确\s*认$/ }))
+    await waitFor(() => expect(search.value).toBe(''))
+    await act(async () => {
+      release()
+      await delayed
+    })
+    fireEvent.mouseDown(search)
+    expect(screen.queryByText('Late search result')).toBeNull()
+    expect(screen.getByText('Carry-on')).toBeTruthy()
+  })
+
   it('shows a published collection as a future source and keeps historical deployment in closed details', async () => {
     server.use(
       http.get('*/admin/catalog/collections/collection-001', () =>

@@ -5,6 +5,7 @@ date: 2026-10-10
 artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
 execution: code
+status: completed
 proposal_alias: THEME-E1
 ---
 
@@ -16,7 +17,7 @@ proposal_alias: THEME-E1
 
 **Means:** 采用 Shopify 式结构化装修编辑器，复用 Shoppp 的真实店面渲染器和业务数据边界（KTD1–KTD3）。
 
-本次交付为完整实施提案与可交互草图，尚未进入产品实施。用户已指定 Shopify 参考方向；本计划中的具体界面、范围与顺序是供评审的建议。草图使用示例内容，点击保存、删除、提交审核不会操作真实商店。
+本计划最初交付实施提案与可交互草图；2026-10-31 用户授权实施后，已完成本地实现与验证。保留下文提案的范围与决策作为实施依据，最终证据见同日可视化编辑器验收记录。草图仍只使用示例内容。
 
 ### Authority and Inheritance
 
@@ -33,20 +34,22 @@ proposal_alias: THEME-E1
 
 **Tail owner:** 激活后的 THEME-E1 负责合同、Admin、即时预览、草稿生命周期、生产 Experience 输入/产物接入、发布请求/状态、迁移与本地验收；REL 和现有受保护 release 工作流负责候选资格、DC/PG 与实际生产交付。生产合同实施由 U7 拥有，不让 U8 等待一个排在 U8 之后的 REL 实施任务。单开发者在当前 checkout 开发，不要求 PR 或新 worktree。
 
-**Stop conditions:** 本次止于可评审计划和草图。后续实施遇到身份/授权契约不能成立时停止对应 U；不通过修改正式 Preview 安全策略或伪造“已上线”状态绕过阻塞。
+**Stop conditions:** 本次止于本地实现与验证，不执行提交、推送或部署；正式 Preview 安全策略和 REL/DC/PG 资格不因装修完成而放宽。
 
 ### Execution Checkpoint
 
-本表按仓库 delivery-document 规则保留，优先于 ce-plan 的通用无生命周期建议；它尚不是活动产品队列。
+本表按仓库 delivery-document 规则记录本计划的最终完成状态；完成后冻结，后续产品资格由 REL 接回。
 
-| Item | Proposed checkpoint |
+| Item | Execution checkpoint |
 | --- | --- |
-| Activation | 未激活；等待用户评审本次具体提案 |
-| Current unit | 无正在执行的 U |
-| Next concrete action | 方向获准后，激活 U1.1：核对 authoring capability matrix 与即时预览部署拓扑 |
-| Units | U1–U8 均未开始 |
-| Blocker | 无计划/草图交付阻塞；生产构建当前不消费 Snapshot，U7.1 必须补齐这个合同，U7.2 不能只做状态适配 |
+| Activation | 2026-10-31 用户授权按本计划完成本地实现与验证；不包含部署、提交、推送或候选冻结 |
+| Current unit | U8 — Complete：迁移、旧入口替换、受影响消费者、实际浏览器和本地构建验收完成 |
+| Next concrete action | 回交 REL-Pre-DC，重新核对实现资格、最新 package 与冻结 Candidate 所需身份；本计划无剩余本地实施队列 |
+| Units | U1–U8 Complete；U7 复用 2026-10-11 发布基线并通过 1.3.0 实际公开构建及精确回执检查 |
+| Blocker | 本次本地范围无阻塞；未执行远程部署，Candidate/DC/PG 未开始，仍由 REL 判断资格 |
 | Completion authority | 激活后仅本文记录其 U 状态；证据写入 `docs/progress/`，不另建 current-unit queue |
+
+2026-10-31 执行修订：本次用户授权取代上文“止于计划和草图”的历史 stop condition。继承已完成的管理后台商家任务计划 U1–U7，尤其是 approved Snapshot 的公开构建、发布请求、回执与回滚合同；本计划只补齐编辑体验及其实际集成缺口，不重复实现发布器。既有表单与 Drawer 的未提交修改作为基线保留。使用当前主 checkout 串行实施，native engine；无提交或发布尾部。U1–U7 按 L3 consumer closure 验证，U8 按实际构建变化执行必要 L4；证据见 `docs/progress/2026-10-31-storefront-visual-editor-verification.md`。
 
 ## Product Contract
 
@@ -414,7 +417,7 @@ U7.2 在 U7.1 成立后接 request/status。使用一个持久请求记录或复
 
 ### Risk and Commands
 
-本次仅新增计划与草图，属于文档 L0：检查合同、路径、图示、引用与草图可用性；不以运行应用测试来伪装实施已完成。
+提案阶段仅新增计划与草图，曾按 L0 验收。2026-10-31 实施阶段按 L3 consumer closure 展开，并因独立 Vue bundle、Admin gateway 和公开构建变化按 L4 收口；实际执行结果见验收记录。
 
 未来实施跨 contracts/domain/API/Admin/storefront，按 Admin testing standards 采用 L3 affected-consumer 证据；release/build 收尾使用需要的 L4。每个 U 运行其实际变化所需 checks，不在每个阶段重复整个 monorepo。
 
@@ -439,14 +442,14 @@ U7.2 在 U7.1 成立后接 request/status。使用一个持久请求记录或复
 
 ## Definition of Done
 
-- [ ] AE1–AE12 均有实际运行证据；R1–R10 能追溯到完成的 U。
-- [ ] 同一编辑会话覆盖标量、结构、引用、shell 和 style；保存/冲突/撤销/异步响应不丢输入。
-- [ ] 同一 Vue runtime 实时渲染，授权/消息/只读 action/过期恢复成立；正式 Preview 安全策略保留。
-- [ ] 增删复制真正保存与渲染；shell 不依赖 Hero；全局 token 在支持页面实际生效。
-- [ ] 草稿生命周期、活动操作拦截和所有 mutable backlinks 一起完成；历史版本可读。
-- [ ] 正式审核绑定 exact identity；已批准配置能由生产输入/产物合同实际消费，request/status 接入权威交付；缺少资格时真实阻塞，成功只由目标 receipt 确认。
-- [ ] 新旧 schema、migration、链接兼容可恢复；旧编辑主体退役；默认 source parity 和代表性行为无回归。
-- [ ] 必要 focused tests/typechecks/build 与评审完成；本文 checkpoint 和 master 仅按真实状态更新，REL 接回下一 concrete action。
+- [x] AE1–AE12 均有实际运行证据；R1–R10 的验收映射保存在同日记录。
+- [x] 同一编辑会话覆盖标量、结构、引用、shell 和 style；保存/冲突/撤销/异步响应不丢输入。
+- [x] 同一 Vue runtime 实时渲染，授权/消息/只读 action/过期恢复成立；正式 Preview 安全策略保留。
+- [x] 增删复制真正保存与渲染；shell 不依赖 Hero；全局 token 在支持页面实际生效。
+- [x] 草稿生命周期、活动操作拦截和 mutable backlinks 一起完成；历史版本可读。
+- [x] 正式审核绑定 exact identity；已批准配置由公开构建实际消费，request/status 接入既有权威交付；未放宽资格，未伪造线上成功。
+- [x] 新旧 schema、migration、链接兼容可恢复；旧编辑主体退役；默认 source parity 和代表性行为检查通过。
+- [x] 必要 focused tests/typechecks/build 与串行本地评审完成；master 回交 REL，未执行实际部署或 DC/PG。
 
 ## Appendix
 

@@ -11,7 +11,11 @@ import {
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
 const context = computed(() => resolveFashionStoreHomeSectionContext(properties.viewModel));
-const variant = computed(() => fashionStoreProductSectionVariant(properties.instance.id));
+const variant = computed(() => {
+  const declared = properties.instance.settings["product-layout"];
+  return declared === "best-sellers" || declared === "featured-products"
+    ? declared : fashionStoreProductSectionVariant(properties.instance.id);
+});
 const actions = computed(() => resolveFashionStoreHomeProductActions(properties.viewModel));
 const actionIntentCount = inject(storefrontPreviewIntentCountKey, ref(0));
 const group = computed(() => {

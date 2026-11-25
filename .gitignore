@@ -43,3 +43,7 @@ artifacts/live/
 /artifacts/ui-notices/**/*.avif
 
 /.idea
+apps/admin/public/theme-editor/
+apps/storefront/editor/.nuxt/
+apps/storefront/editor/.output/
+apps/storefront/editor/dist

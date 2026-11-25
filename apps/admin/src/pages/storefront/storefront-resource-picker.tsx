@@ -6,6 +6,7 @@ import { normalizeApiError } from '../../infrastructure/http/api-client'
 import { useI18n } from '../../shared/contexts/i18n-context'
 import { localizeApiError } from '../../shared/i18n/api-error'
 import { resourceKindMessages } from './theme-feedback'
+import { StorefrontFieldGroup } from './storefront-field-group'
 import {
   fetchStorefrontCatalogResources,
   type StorefrontCatalogResource,
@@ -24,6 +25,7 @@ export const StorefrontResourcePicker = ({
   onChange,
   releaseId,
   selected,
+  showLabel = true,
   value,
 }: {
   disabled: boolean
@@ -44,6 +46,7 @@ export const StorefrontResourcePicker = ({
   onChange: (id?: string) => void
   releaseId?: string
   selected?: StorefrontCatalogResource
+  showLabel?: boolean
   value?: string
 }) => {
   const { t } = useI18n()
@@ -101,8 +104,7 @@ export const StorefrontResourcePicker = ({
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   return (
-    <fieldset aria-label={label} className="min-w-0 rounded border border-slate-200 p-3">
-      <legend className="px-1 text-sm font-medium">{label}</legend>
+    <StorefrontFieldGroup label={label} showLabel={showLabel}>
       <Space orientation="vertical" className="w-full">
         <Input.Search
           aria-label={t('{label} Search', { label })}
@@ -176,6 +178,6 @@ export const StorefrontResourcePicker = ({
           </Button>
         </Space>
       </Space>
-    </fieldset>
+    </StorefrontFieldGroup>
   )
 }

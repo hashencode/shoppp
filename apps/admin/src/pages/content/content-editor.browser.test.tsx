@@ -1,4 +1,5 @@
 import React from 'react'
+import { ConfigProvider } from 'antd'
 import { afterEach, describe, expect, it } from '@rstest/core'
 import { page } from '@rstest/browser'
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
@@ -32,6 +33,62 @@ afterEach(() => {
 })
 
 describe('Content editor browser recovery', () => {
+  it('keeps a publication reason after failure and requires a new version confirmation after conflict', async () => {
+    let writes = 0
+    let version = 1
+    transport = installBrowserApi((request) => {
+      if (request.method === 'get') return { data: { data: { ...record, version } } }
+      if (request.method === 'post' && request.url?.endsWith('/publish')) {
+        writes += 1
+        return writes === 1
+          ? {
+              status: 503,
+              data: {
+                error: { code: 'temporarily_unavailable', message: 'Retry reviewed publication.' },
+              },
+            }
+          : { status: 409, data: { error: { code: 'content_conflict', message: 'Stale version' } } }
+      }
+      throw new Error(`Unexpected request ${request.url}`)
+    })
+    const router = createMemoryRouter(
+      [{ path: '/content/pages/form', element: <PageEditorPage /> }],
+      { initialEntries: ['/content/pages/form?mode=readonly&id=page.browser-story'] }
+    )
+    renderI18nBrowser(
+      <ConfigProvider theme={{ token: { motion: false } }}>
+        <RouterProvider router={router} />
+      </ConfigProvider>,
+      ['content.read', 'content.publish'],
+      'en-US'
+    )
+    await screen.findByLabelText('Title')
+    await expect.element(page.getByLabel('Title', { exact: true })).toHaveValue('Browser story')
+    await expect.element(page.getByRole('button', { name: 'Publish', exact: true })).toBeEnabled()
+    await page.getByRole('button', { name: 'Publish', exact: true }).click()
+    await page
+      .getByLabel('Transition reason', { exact: true })
+      .fill('Reviewed source for publication')
+    await page.getByRole('button', { name: /^(loading )?Confirm$/ }).click()
+    await expect
+      .element(page.getByText('Request failed. Please try again later.', { exact: true }))
+      .toBeVisible()
+    await expect
+      .element(page.getByLabel('Transition reason', { exact: true }))
+      .toHaveValue('Reviewed source for publication')
+    await page.getByRole('button', { name: /^(loading )?Confirm$/ }).click()
+    await expect.element(page.getByRole('dialog')).not.toBeVisible()
+    await expect.element(page.getByRole('button', { name: 'Publish', exact: true })).toBeDisabled()
+    expect(writes).toBe(2)
+    version = 2
+    await page.getByRole('button', { name: 'Reload', exact: true }).click()
+    await page.getByRole('button', { name: 'Publish', exact: true }).click()
+    await expect.element(page.getByText('Browser story · Saved v2', { exact: true })).toBeVisible()
+    await expect.element(page.getByLabel('Transition reason', { exact: true })).toHaveValue('')
+    await page.getByLabel('Transition reason', { exact: true }).press('Escape')
+    await expect.element(page.getByRole('dialog')).not.toBeVisible()
+    expect(writes).toBe(2)
+  })
   it('preserves pasted keyboard input through validation and optimistic failure', async () => {
     let updates = 0
     transport = installBrowserApi((request) => {

@@ -1,0 +1,180 @@
+{
+  "date": "2026-11-06",
+  "source": "actual Admin components with a loopback, read-only fixture API; no database or business writes",
+  "conditions": {
+    "viewport": "1280×900",
+    "locale": "zh-CN",
+    "zoom": "100%"
+  },
+  "captures": [
+    {
+      "page": "account",
+      "phase": "before",
+      "theme": "light",
+      "region": "drawer",
+      "file": "before-light-drawer.jpg",
+      "drawerWidth": 720,
+      "height": 900,
+      "horizontalOverflow": false,
+      "scrollTop": 0,
+      "url": "http://127.0.0.1:3420/access/users",
+      "width": 1280
+    },
+    {
+      "page": "account",
+      "phase": "before",
+      "theme": "light",
+      "region": "compatible",
+      "file": "before-light-compatible.jpg",
+      "height": 900,
+      "horizontalOverflow": false,
+      "scrollTop": 0,
+      "url": "http://127.0.0.1:3420/access/users/identity_disabled",
+      "width": 1280
+    },
+    {
+      "page": "account",
+      "phase": "before",
+      "theme": "dark",
+      "region": "compatible",
+      "file": "before-dark-compatible.jpg",
+      "height": 900,
+      "horizontalOverflow": false,
+      "scrollTop": 0,
+      "url": "http://127.0.0.1:3420/access/users/identity_disabled",
+      "width": 1280
+    },
+    {
+      "page": "account",
+      "phase": "before",
+      "theme": "dark",
+      "region": "drawer",
+      "file": "before-dark-drawer.jpg",
+      "drawerWidth": 720,
+      "height": 900,
+      "horizontalOverflow": false,
+      "scrollTop": 0,
+      "url": "http://127.0.0.1:3420/access/users",
+      "width": 1280
+    },
+    {
+      "page": "account",
+      "phase": "after",
+      "theme": "dark",
+      "region": "drawer",
+      "file": "after-dark-drawer.jpg",
+      "drawerWidth": 720.0000610351562,
+      "height": 900,
+      "horizontalOverflow": false,
+      "scrollTop": 0,
+      "url": "http://127.0.0.1:3420/access/users",
+      "width": 1280
+    },
+    {
+      "page": "account",
+      "phase": "after",
+      "theme": "dark",
+      "region": "compatible",
+      "file": "after-dark-compatible.jpg",
+      "height": 900,
+      "horizontalOverflow": false,
+      "scrollTop": 0,
+      "url": "http://127.0.0.1:3420/access/users/identity_disabled",
+      "width": 1280
+    },
+    {
+      "page": "account",
+      "phase": "after",
+      "theme": "light",
+      "region": "compatible",
+      "file": "after-light-compatible.jpg",
+      "height": 900,
+      "horizontalOverflow": false,
+      "scrollTop": 0,
+      "url": "http://127.0.0.1:3420/access/users/identity_disabled",
+      "width": 1280
+    },
+    {
+      "page": "account",
+      "phase": "after",
+      "theme": "light",
+      "region": "drawer",
+      "file": "after-light-drawer.jpg",
+      "drawerWidth": 720,
+      "height": 900,
+      "horizontalOverflow": false,
+      "scrollTop": 0,
+      "url": "http://127.0.0.1:3420/access/users",
+      "width": 1280
+    },
+    {
+      "page": "health",
+      "phase": "before",
+      "theme": "light",
+      "region": "main",
+      "file": "before-light.jpg",
+      "height": 900,
+      "horizontalOverflow": false,
+      "scrollTop": 1550,
+      "url": "http://127.0.0.1:3420/settings/launch",
+      "width": 1280
+    },
+    {
+      "page": "health",
+      "phase": "before",
+      "theme": "dark",
+      "region": "main",
+      "file": "before-dark.jpg",
+      "height": 900,
+      "horizontalOverflow": false,
+      "scrollTop": 1550,
+      "url": "http://127.0.0.1:3420/settings/launch",
+      "width": 1280
+    },
+    {
+      "page": "health",
+      "phase": "after",
+      "theme": "dark",
+      "region": "main",
+      "file": "after-dark.jpg",
+      "height": 900,
+      "horizontalOverflow": false,
+      "scrollTop": 1550,
+      "url": "http://127.0.0.1:3420/settings/launch",
+      "width": 1280
+    },
+    {
+      "page": "health",
+      "phase": "after",
+      "theme": "light",
+      "region": "main",
+      "file": "after-light.jpg",
+      "height": 900,
+      "horizontalOverflow": false,
+      "scrollTop": 1550,
+      "url": "http://127.0.0.1:3420/settings/launch",
+      "width": 1280
+    }
+  ],
+  "healthAlignmentAfter": {
+    "body": {
+      "height": 195,
+      "width": 800,
+      "x": 352,
+      "y": 600.421875
+    },
+    "description": {
+      "height": 147,
+      "width": 752,
+      "x": 376,
+      "y": 624.421875
+    },
+    "input": {
+      "height": 76,
+      "width": 752,
+      "x": 376,
+      "y": 409.421875
+    },
+    "scroll": 1550
+  }
+}

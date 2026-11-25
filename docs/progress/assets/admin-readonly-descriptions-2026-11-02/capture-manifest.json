@@ -1,0 +1,902 @@
+[
+  {
+    "page": "account",
+    "phase": "before",
+    "theme": "light",
+    "region": "drawer",
+    "file": "account/before-light-drawer.jpg",
+    "drawer": [
+      {
+        "height": 900,
+        "width": 720
+      }
+    ],
+    "horizontalOverflow": false,
+    "scroll": 0,
+    "url": "http://127.0.0.1:3420/access/users",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "account",
+    "phase": "before",
+    "theme": "dark",
+    "region": "drawer",
+    "file": "account/before-dark-drawer.jpg",
+    "drawer": [
+      {
+        "height": 900,
+        "width": 720
+      }
+    ],
+    "horizontalOverflow": false,
+    "scroll": 0,
+    "url": "http://127.0.0.1:3420/access/users",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "account",
+    "phase": "before",
+    "theme": "dark",
+    "region": "compatible",
+    "file": "account/before-dark-compatible.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 0,
+    "url": "http://127.0.0.1:3420/access/users/identity_disabled",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "account",
+    "phase": "before",
+    "theme": "light",
+    "region": "compatible",
+    "file": "account/before-light-compatible.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 0,
+    "url": "http://127.0.0.1:3420/access/users/identity_disabled",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "account",
+    "phase": "after",
+    "theme": "light",
+    "region": "compatible",
+    "file": "account/after-light-compatible.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 0,
+    "url": "http://127.0.0.1:3420/access/users/identity_disabled",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "account",
+    "phase": "after",
+    "theme": "dark",
+    "region": "compatible",
+    "file": "account/after-dark-compatible.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 0,
+    "url": "http://127.0.0.1:3420/access/users/identity_disabled",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "account",
+    "phase": "after",
+    "theme": "dark",
+    "region": "drawer",
+    "file": "account/after-dark-drawer.jpg",
+    "drawer": [
+      {
+        "height": 900,
+        "width": 720
+      }
+    ],
+    "horizontalOverflow": false,
+    "scroll": 0,
+    "url": "http://127.0.0.1:3420/access/users",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "account",
+    "phase": "after",
+    "theme": "light",
+    "region": "drawer",
+    "file": "account/after-light-drawer.jpg",
+    "drawer": [
+      {
+        "height": 900,
+        "width": 720.0000610351562
+      }
+    ],
+    "horizontalOverflow": false,
+    "scroll": 0,
+    "url": "http://127.0.0.1:3420/access/users",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "health",
+    "phase": "before",
+    "theme": "light",
+    "region": "main",
+    "file": "health/before-light.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 1425.5,
+    "url": "http://127.0.0.1:3420/settings/launch",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "health",
+    "phase": "before",
+    "theme": "dark",
+    "region": "main",
+    "file": "health/before-dark.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 1425.5,
+    "url": "http://127.0.0.1:3420/settings/launch",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "health",
+    "phase": "after",
+    "theme": "dark",
+    "region": "main",
+    "file": "health/after-dark.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 1550,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 2394,
+        "scrollTop": 1550,
+        "tag": "MAIN"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/settings/launch",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "health",
+    "phase": "after",
+    "theme": "light",
+    "region": "main",
+    "file": "health/after-light.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 1550,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 2394,
+        "scrollTop": 1550,
+        "tag": "MAIN"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/settings/launch",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "location",
+    "phase": "before",
+    "theme": "light",
+    "region": "main",
+    "file": "location/before-light.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 1140.5,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 1984,
+        "scrollTop": 1140.5,
+        "tag": "MAIN"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "contact-conflict",
+    "phase": "before",
+    "theme": "light",
+    "region": "main",
+    "file": "contact-conflict/before-light.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 1598.5,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 2443,
+        "scrollTop": 1598.5,
+        "tag": "MAIN"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "location",
+    "phase": "before",
+    "theme": "dark",
+    "region": "main",
+    "file": "location/before-dark.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 1140.5,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 1984,
+        "scrollTop": 1140.5,
+        "tag": "MAIN"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "contact-conflict",
+    "phase": "before",
+    "theme": "dark",
+    "region": "main",
+    "file": "contact-conflict/before-dark.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 1598.5,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 2443,
+        "scrollTop": 1598.5,
+        "tag": "MAIN"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "location",
+    "phase": "after",
+    "theme": "dark",
+    "region": "main",
+    "file": "location/after-dark.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 1181.5,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 2025,
+        "scrollTop": 1181.5,
+        "tag": "MAIN"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "contact-conflict",
+    "phase": "after",
+    "theme": "dark",
+    "region": "main",
+    "file": "contact-conflict/after-dark.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 1676.5,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 2521,
+        "scrollTop": 1676.5,
+        "tag": "MAIN"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "location",
+    "phase": "after",
+    "theme": "light",
+    "region": "main",
+    "file": "location/after-light.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 1181.5,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 2025,
+        "scrollTop": 1181.5,
+        "tag": "MAIN"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "contact-conflict",
+    "phase": "after",
+    "theme": "light",
+    "region": "main",
+    "file": "contact-conflict/after-light.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 1676.5,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 2521,
+        "scrollTop": 1676.5,
+        "tag": "MAIN"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/settings/contact",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "theme-package",
+    "phase": "before",
+    "theme": "light",
+    "region": "main",
+    "file": "theme-package/before-light.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 0,
+    "scrollContainers": [],
+    "url": "http://127.0.0.1:3420/storefront/themes",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "online-version",
+    "phase": "before",
+    "theme": "light",
+    "region": "main",
+    "file": "online-version/before-light.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 0,
+    "scrollContainers": [],
+    "url": "http://127.0.0.1:3420/storefront/themes",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "theme-package",
+    "phase": "before",
+    "theme": "dark",
+    "region": "main",
+    "file": "theme-package/before-dark.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 0,
+    "scrollContainers": [],
+    "url": "http://127.0.0.1:3420/storefront/themes",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "online-version",
+    "phase": "before",
+    "theme": "dark",
+    "region": "main",
+    "file": "online-version/before-dark.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 0,
+    "scrollContainers": [],
+    "url": "http://127.0.0.1:3420/storefront/themes",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "theme-package",
+    "phase": "after",
+    "theme": "dark",
+    "region": "main",
+    "file": "theme-package/after-dark.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 0,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 871,
+        "scrollTop": 0,
+        "tag": "MAIN"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/storefront/themes",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "online-version",
+    "phase": "after",
+    "theme": "dark",
+    "region": "main",
+    "file": "online-version/after-dark.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 0,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 871,
+        "scrollTop": 0,
+        "tag": "MAIN"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/storefront/themes",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "theme-package",
+    "phase": "after",
+    "theme": "light",
+    "region": "main",
+    "file": "theme-package/after-light.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 0,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 871,
+        "scrollTop": 0,
+        "tag": "MAIN"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/storefront/themes",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "online-version",
+    "phase": "after",
+    "theme": "light",
+    "region": "main",
+    "file": "online-version/after-light.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 0,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 871,
+        "scrollTop": 0,
+        "tag": "MAIN"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/storefront/themes",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "editor-version",
+    "phase": "before",
+    "theme": "light",
+    "region": "main",
+    "file": "editor-version/before-light.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 370.5,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 1214,
+        "scrollTop": 370.5,
+        "tag": "MAIN"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-visual-style",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "single-version",
+    "phase": "before",
+    "theme": "light",
+    "region": "main",
+    "file": "single-version/before-light.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 201,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 1219,
+        "scrollTop": 201,
+        "tag": "MAIN"
+      },
+      {
+        "class": "theme-editor-inspector",
+        "clientHeight": 868,
+        "scrollHeight": 2073,
+        "scrollTop": 360,
+        "tag": "ASIDE"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-visual-style",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "editor-version",
+    "phase": "before",
+    "theme": "dark",
+    "region": "main",
+    "file": "editor-version/before-dark.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 370.5,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 1214,
+        "scrollTop": 370.5,
+        "tag": "MAIN"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-visual-style",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "single-version",
+    "phase": "before",
+    "theme": "dark",
+    "region": "main",
+    "file": "single-version/before-dark.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 201,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 1219,
+        "scrollTop": 201,
+        "tag": "MAIN"
+      },
+      {
+        "class": "theme-editor-inspector",
+        "clientHeight": 868,
+        "scrollHeight": 2073,
+        "scrollTop": 360,
+        "tag": "ASIDE"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-visual-style",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "editor-version",
+    "phase": "after",
+    "theme": "dark",
+    "region": "main",
+    "file": "editor-version/after-dark.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 374,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 1218,
+        "scrollTop": 374,
+        "tag": "MAIN"
+      },
+      {
+        "class": "theme-editor-inspector",
+        "clientHeight": 868,
+        "scrollHeight": 899,
+        "scrollTop": 31,
+        "tag": "ASIDE"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-visual-style",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "single-version",
+    "phase": "after",
+    "theme": "dark",
+    "region": "main",
+    "file": "single-version/after-dark.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 200,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 1218,
+        "scrollTop": 200,
+        "tag": "MAIN"
+      },
+      {
+        "class": "theme-editor-inspector",
+        "clientHeight": 868,
+        "scrollHeight": 1879,
+        "scrollTop": 360,
+        "tag": "ASIDE"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-visual-style",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "editor-version",
+    "phase": "after",
+    "theme": "light",
+    "region": "main",
+    "file": "editor-version/after-light.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 374,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 1218,
+        "scrollTop": 374,
+        "tag": "MAIN"
+      },
+      {
+        "class": "theme-editor-inspector",
+        "clientHeight": 868,
+        "scrollHeight": 899,
+        "scrollTop": 31,
+        "tag": "ASIDE"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-visual-style",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "single-version",
+    "phase": "after",
+    "theme": "light",
+    "region": "main",
+    "file": "single-version/after-light.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 200,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 1218,
+        "scrollTop": 200,
+        "tag": "MAIN"
+      },
+      {
+        "class": "theme-editor-inspector",
+        "clientHeight": 868,
+        "scrollHeight": 1879,
+        "scrollTop": 360,
+        "tag": "ASIDE"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/storefront/themes/draft-visual-style",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "policy",
+    "phase": "before",
+    "theme": "light",
+    "region": "main",
+    "file": "policy/before-light.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 690,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 1534,
+        "scrollTop": 690,
+        "tag": "MAIN"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "policy",
+    "phase": "before",
+    "theme": "dark",
+    "region": "main",
+    "file": "policy/before-dark.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 690,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 1534,
+        "scrollTop": 690,
+        "tag": "MAIN"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "policy",
+    "phase": "after",
+    "theme": "dark",
+    "region": "main",
+    "file": "policy/after-dark.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 723,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 1567,
+        "scrollTop": 723,
+        "tag": "MAIN"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  },
+  {
+    "page": "policy",
+    "phase": "after",
+    "theme": "light",
+    "region": "main",
+    "file": "policy/after-light.jpg",
+    "drawer": [],
+    "horizontalOverflow": false,
+    "scroll": 723,
+    "scrollContainers": [
+      {
+        "class": "ant-layout-content min-h-0 overflow-y-auto p-6 css-dev-only-do-not-override-la24ln css-var-_r_0_",
+        "clientHeight": 844,
+        "scrollHeight": 1567,
+        "scrollTop": 723,
+        "tag": "MAIN"
+      }
+    ],
+    "url": "http://127.0.0.1:3420/settings/policies",
+    "viewport": {
+      "height": 900,
+      "width": 1280
+    }
+  }
+]

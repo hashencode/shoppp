@@ -1,0 +1,79 @@
+{
+  "entries": 9,
+  "regions": 10,
+  "images": 40,
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "phases": [
+    "before",
+    "after"
+  ],
+  "gallery_pairs_checked": 20,
+  "all_40_images_loaded": true,
+  "historical_counts": {
+    "descriptions": 9,
+    "structure": 71,
+    "history": 226
+  },
+  "source_ownership": {
+    "changed": [
+      "apps/admin/src/pages/settings/policies-page.test.tsx",
+      "apps/admin/src/pages/settings/policies-page.tsx",
+      "apps/admin/src/pages/settings/contact-location-drawer.tsx",
+      "apps/admin/src/pages/settings/launch-settings-page.tsx",
+      "apps/admin/src/pages/settings/contact-settings-page.tsx",
+      "apps/admin/src/pages/storefront/themes-page.tsx",
+      "apps/admin/src/pages/storefront/storefront-publication-panel.tsx",
+      "apps/admin/src/pages/iam/user-detail-page.tsx",
+      "apps/admin/src/pages/iam/iam-pages.test.tsx",
+      "apps/admin/src/pages/storefront/theme-editor/library-history.tsx",
+      "apps/admin/src/pages/storefront/theme-editor/review-panel.tsx",
+      "apps/admin/src/shared/i18n/translations.ts"
+    ],
+    "unowned_changes": []
+  },
+  "sha256": {
+    "account/after-dark-compatible.jpg": "93d56dbb2dbb8c592c331e7369d6dda9a4ca5a516e48bdb0d615b0755e297829",
+    "account/after-dark-drawer.jpg": "94d50490073e03bef5f98ddf581d9117786452181a0ef19f190c65c2a716b6d1",
+    "account/after-light-compatible.jpg": "b25cb1f42cc8eaf9af995da042e4c2716de83cfb30f8743a3b799c98eff90ce3",
+    "account/after-light-drawer.jpg": "448339f7c4ce35136e93d19557917877f12f985dc3efecdf93e9a3534871b18b",
+    "account/before-dark-compatible.jpg": "56524a1b10130f470b5629d7c70aa2012dbc5303ee4d390db13ad2d19fc22c93",
+    "account/before-dark-drawer.jpg": "08e457c9d576f4d6b3fe370db8feff57c14519b5c1541290a7ee72643ff4f320",
+    "account/before-light-compatible.jpg": "483987aa3e81caac44c5a2a99a7c570852b77e85a6ad2d2eb0f8b86399e6d00f",
+    "account/before-light-drawer.jpg": "b0bed35891082ecb0407a8641495786bebfa121123c898aab7ae424015edd7be",
+    "contact-conflict/after-dark.jpg": "51b66ecb9c65b32f72b0640e5c84a39557a7b4f1b54d1bdd559bc3e55b26f629",
+    "contact-conflict/after-light.jpg": "a19d0a0d3715e909d4d93f7b878ff13c24e6b33ac2486357560cfcf3eec5e8f5",
+    "contact-conflict/before-dark.jpg": "d236aaececdc13f370200056fe35f80b65f868743e8cfd157840c997fe3d3a1e",
+    "contact-conflict/before-light.jpg": "010d268a8e2d1091e009cf93b8328329a1a2e659aec0efce5831475b3319a640",
+    "editor-version/after-dark.jpg": "f5ff1e5e1ee59803ce7c2dd2f8f7da2a6545d1f3f6e44e6252b181c8df2ead3f",
+    "editor-version/after-light.jpg": "a7e071db36aff895c064ce0199f50ace32eb49574037bff24fecfd7a4f05213f",
+    "editor-version/before-dark.jpg": "21688eebcf31d35134a4d0174149c0890b5aed857c1a85725cd5dd48c4ee258f",
+    "editor-version/before-light.jpg": "03128437efcef1d6e02cbda08fc0f5ee17023449c97eab58fbe10f548b8de9bd",
+    "health/after-dark.jpg": "d98695b78bd81a311af8d212b5c61bbc866f232a3ffc1751c00af20142b3bccd",
+    "health/after-light.jpg": "a23564efdb85d8ef13355d24c2cd69f0bf02ef761a1d520b96b0764f4ae14252",
+    "health/before-dark.jpg": "7e8b2f77a16c9b54185847c178f1d1bc61511dc47bc1df1c2709a9eb3ae0b213",
+    "health/before-light.jpg": "b899dc5ae17590deea832abcf9d676aaf9563a8f0e61293569984205a3d054ae",
+    "location/after-dark.jpg": "ff93ef69fbb9f579a90a13b09348bd6d8feb49cb308c1be5621ecbd924fef9c2",
+    "location/after-light.jpg": "98d2ffe3a610a4ff2f7f5c27ffb3e55aa75487c5bd75f9c8546bbae156b49491",
+    "location/before-dark.jpg": "98394036941dbc48416e6c67cd35cef83af016cb9dbd3336065fcd9a65b19fba",
+    "location/before-light.jpg": "da2a58aa608b70d4824e1189253c448ca8b135844202019cdcf10de658d81ee7",
+    "online-version/after-dark.jpg": "c8c4f523ec5f8e5e6c12799d92408de9d566f5e9e7cb0fa4fea8c3c890aaa4a0",
+    "online-version/after-light.jpg": "7951dae65ed17fa90b7dba75dc599884eace18e60e16c071bcbf7674c0bb0f1d",
+    "online-version/before-dark.jpg": "9b7e7ff2bc4835019c56d9111de9cbc2d95d51c3b5011f14d79ec7eae05adc8e",
+    "online-version/before-light.jpg": "bbda0a71b29d059eb2408e9ca0e88bd572b70e75fc82c874758ab67a98b25dfc",
+    "policy/after-dark.jpg": "d75d9514e0635a9df9bdb3e0a556016cb94f0a706557d21eef9524bc0d9989d1",
+    "policy/after-light.jpg": "e08e670603a7aa4f8407ee11ddf42c998d6808671ae200497af836850163320a",
+    "policy/before-dark.jpg": "384faa176fd79e88ff5ec8e552cb2561f7ca0c4672ce7099c7a8306e706c3773",
+    "policy/before-light.jpg": "a844a86e057a74cb0a00dcf3974df4488b25aa1399ca72e57367ca48b4858b3e",
+    "single-version/after-dark.jpg": "04a235893691cfb4dac0e036e03b5d05d602c73d3e8827dd98a69a3404e9bafc",
+    "single-version/after-light.jpg": "9239a15a548183487ee6b6ab4ddef9f90661f4460ec59db5d2fe98b2e2c1bc7d",
+    "single-version/before-dark.jpg": "6947cc89ad56939c7912d5ded136ac93cacc1e8306ba0736c71639782e9ce3a6",
+    "single-version/before-light.jpg": "b684f5408445f75ab27927f9d5606001724b4db902e60fcdd308abd50a6bcfdf",
+    "theme-package/after-dark.jpg": "85fef56b85df6990120158068266859fe0f0eaa2e3247a20a7f62a3030a010b0",
+    "theme-package/after-light.jpg": "d916a154b72c46403f2c54b8bd74f06f577e8b7c5db4ac5ff5b0acc07779b56b",
+    "theme-package/before-dark.jpg": "9b7e7ff2bc4835019c56d9111de9cbc2d95d51c3b5011f14d79ec7eae05adc8e",
+    "theme-package/before-light.jpg": "bbda0a71b29d059eb2408e9ca0e88bd572b70e75fc82c874758ab67a98b25dfc"
+  }
+}

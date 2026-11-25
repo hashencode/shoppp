@@ -127,25 +127,37 @@ export const CrudFormDrawerRecipe = <TValues extends object>({
       return
     }
     complete()
-    modal.success({ title: closeState.current.spec.successTitle, okText: currentTranslate('Confirm') })
+    modal.success({
+      title: closeState.current.spec.successTitle,
+      okText: currentTranslate('Confirm'),
+    })
   }
 
   let state: React.ReactNode = null
   if (!spec.parsedMode.ok) {
     state = (
-      <QueryStateBlock state="error" title={t('Invalid form parameters')} description={t(spec.parsedMode.message)} />
+      <QueryStateBlock
+        state="error"
+        title={t('Invalid form parameters')}
+        description={t(spec.parsedMode.message)}
+      />
     )
   } else if (spec.permissionDenied) {
-    state = <QueryStateBlock state="error" title={t('You do not have permission to access this form.')} />
+    state = (
+      <QueryStateBlock state="error" title={t('You do not have permission to access this form.')} />
+    )
   } else if (spec.detailLoading) {
     state = <QueryStateBlock state="loading" title={t('Loading form details…')} />
   } else if (spec.detailError) {
-    const notFound = spec.detailError.code === 'RESOURCE_NOT_FOUND' || spec.detailError.status === 404
+    const notFound =
+      spec.detailError.code === 'RESOURCE_NOT_FOUND' || spec.detailError.status === 404
     state = (
       <QueryStateBlock
         state={notFound ? 'empty' : 'error'}
         title={t(notFound ? 'Record not found or deleted' : 'Form details could not be loaded')}
-        description={notFound ? t('Close and select another record.') : localizeApiError(spec.detailError, t)}
+        description={
+          notFound ? t('Close and select another record.') : localizeApiError(spec.detailError, t)
+        }
         primaryActionLabel={notFound ? undefined : t('Retry')}
         onPrimaryAction={notFound ? undefined : spec.onRetryDetail}
       />
@@ -212,7 +224,9 @@ export const CrudFormDrawerRecipe = <TValues extends object>({
             {spec.sections?.length
               ? spec.sections.map((section) => (
                   <section key={section.key} className="mb-6">
-                    <h3 className="mb-4 text-base font-medium">{section.title}</h3>
+                    {section.title ? (
+                      <h3 className="mb-4 text-base font-medium">{section.title}</h3>
+                    ) : null}
                     {section.renderFields()}
                   </section>
                 ))

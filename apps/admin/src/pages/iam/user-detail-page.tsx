@@ -1,6 +1,6 @@
 import type { AdminRole, AdminUser } from '@shoppp/contracts'
-import { Alert, Button, Descriptions, Form, Input, Select, Tag, App } from 'antd'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { Alert, Button, Form, Input, Select, App } from 'antd'
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import { hasPermission } from '../../infrastructure/auth/permissions'
@@ -60,6 +60,7 @@ export const UserDetailPage = ({
   }, [])
   const [error, setError] = useState<string | null>(null)
   const [form] = Form.useForm<UserValues>()
+  const detailsId = useId()
 
   const isSelf = session?.identityId === id
 
@@ -147,20 +148,31 @@ export const UserDetailPage = ({
   }
 
   const details = user ? (
-    <>
-      <Descriptions className="mb-6" column={{ xs: 1, sm: 2 }}>
-        <Descriptions.Item label={t('Email')}>{user.email}</Descriptions.Item>
-        <Descriptions.Item label={t('State')}>
-          <Tag color={user.status === 'active' ? 'success' : 'default'}>
-            {t(user.status === 'active' ? 'Active' : 'Disabled')}
-          </Tag>
-        </Descriptions.Item>
-        <Descriptions.Item label={t('Version')}>{user.version}</Descriptions.Item>
-        <Descriptions.Item label={t('Updated')}>
-          {new Date(user.updatedAt).toLocaleString(locale)}
-        </Descriptions.Item>
-      </Descriptions>
-    </>
+    <section>
+      <h3 className="mb-4 text-sm font-medium">{t('Saved account details')}</h3>
+      <Form.Item label={t('Email')} htmlFor={`${detailsId}-email`}>
+        <Input id={`${detailsId}-email`} value={user.email} readOnly variant="filled" />
+      </Form.Item>
+      <Form.Item label={t('Saved status')} htmlFor={`${detailsId}-status`}>
+        <Input
+          id={`${detailsId}-status`}
+          value={t(user.status === 'active' ? 'Active' : 'Disabled')}
+          readOnly
+          variant="filled"
+        />
+      </Form.Item>
+      <Form.Item label={t('Saved version')} htmlFor={`${detailsId}-version`}>
+        <Input id={`${detailsId}-version`} value={user.version} readOnly variant="filled" />
+      </Form.Item>
+      <Form.Item label={t('Updated')} htmlFor={`${detailsId}-updated`}>
+        <Input
+          id={`${detailsId}-updated`}
+          value={new Date(user.updatedAt).toLocaleString(locale)}
+          readOnly
+          variant="filled"
+        />
+      </Form.Item>
+    </section>
   ) : null
   const fields = (
     <>
@@ -258,10 +270,14 @@ export const UserDetailPage = ({
           onClose,
           onSaved: onSaved ?? (async () => undefined),
           onSubmit: submit,
-          renderFields: () => fields,
+          renderFields: () => (
+            <>
+              {fields}
+              {details}
+            </>
+          ),
           renderAfterForm: (
             <>
-              {details}
               {isSelf ? (
                 <Alert
                   type="info"

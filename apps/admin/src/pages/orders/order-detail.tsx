@@ -178,9 +178,11 @@ export const OrderDetailPage = () => {
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm text-slate-500">{t('Immutable order facts')}</p>
+          <p className="text-sm text-[color:var(--ant-color-text-secondary)]">
+            {t('Immutable order facts')}
+          </p>
           <h1 className="text-2xl font-semibold">{facts.publicReference}</h1>
-          <p className="text-slate-500">{facts.email}</p>
+          <p className="text-[color:var(--ant-color-text-secondary)]">{facts.email}</p>
         </div>
         <Space wrap>
           <Tag color={facts.paymentStatus === 'paid' ? 'success' : 'blue'}>
@@ -257,7 +259,9 @@ export const OrderDetailPage = () => {
           {!detail.allowedActions.fulfill.length &&
           !detail.allowedActions.cancel &&
           detail.allowedActions.refundMaximum === 0 ? (
-            <span className="text-slate-500">{t('No operation is currently available.')}</span>
+            <span className="text-[color:var(--ant-color-text-secondary)]">
+              {t('No operation is currently available.')}
+            </span>
           ) : null}
         </Space>
       </Card>

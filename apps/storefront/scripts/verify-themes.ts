@@ -1,8 +1,10 @@
 import {
+  canonicalStorefrontJson,
   storefrontThemeDescriptorSchema,
   themePackageSchema,
   type StorefrontThemeDescriptor,
   type ThemePackage,
+  type ThemeManifest,
 } from "@shoppp/contracts";
 import { readdir, readFile } from "node:fs/promises";
 import { extname, resolve } from "node:path";
@@ -10,9 +12,8 @@ import { extname, resolve } from "node:path";
 import { storefrontThemeCatalog } from "../app/generated/theme-catalog";
 import {
   fashionStoreDirectMigrationBoundaries,
-  fashionStoreSuccessorPackage,
-  fashionStoreThemeDescriptor,
 } from "../app/themes/fashion-store/package-registry";
+import { fashionStoreEditorPackage, fashionStoreEditorDescriptor } from "../app/themes/fashion-store/authoring/package";
 
 export const STOREFRONT_PLATFORM_CONTRACT_VERSION = "1.0.0";
 export const REQUIRED_STOREFRONT_PAGE_TYPES = [
@@ -41,12 +42,12 @@ export type ThemeMatrixEntry = {
 export const storefrontThemeMatrix: readonly ThemeMatrixEntry[] = [
   {
     assetPolicy: "source-equivalent",
-    descriptor: fashionStoreThemeDescriptor,
+    descriptor: fashionStoreEditorDescriptor,
     directPackageBoundaries: fashionStoreDirectMigrationBoundaries.map(({ source, target }) => ({
       fromSchemaVersion: source.configurationSchemaVersion,
       toSchemaVersion: target.configurationSchemaVersion,
     })),
-    package: fashionStoreSuccessorPackage,
+    package: fashionStoreEditorPackage,
     requiredPageTypes: ["home"],
   },
 ];
@@ -111,7 +112,7 @@ function assert(condition: unknown, message: string): asserts condition {
 }
 
 function stable(value: unknown): string {
-  return JSON.stringify(value);
+  return canonicalStorefrontJson(value);
 }
 
 function assertDirectPackageBoundaries(entry: ThemeMatrixEntry): void {

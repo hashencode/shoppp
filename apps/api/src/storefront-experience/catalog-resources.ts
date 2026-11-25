@@ -288,6 +288,7 @@ export async function listStorefrontCatalogReleases(env: ApiBindings) {
         })),
         deployedAt: row.deployed_at,
         destinations: storefrontDestinationsForRelease(release),
+        menus: release.schemaVersion === 3 ? release.navigation.map(({ id, placement }) => ({ id, placement })) : [],
         environment: env.ENVIRONMENT,
         id: row.id,
         products: release.products.map(({ id, name, slug }) => ({

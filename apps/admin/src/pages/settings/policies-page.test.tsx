@@ -1,6 +1,6 @@
 import React from 'react'
 import dayjs from 'dayjs'
-import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
 import { MemoryRouter } from 'react-router-dom'
@@ -35,6 +35,128 @@ const policy = {
 }
 
 describe('PoliciesPage', () => {
+  it('keeps a failed approval reason, cancels without writes and locks pending confirmation', async () => {
+    let attempts = 0
+    let release!: () => void
+    const pending = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    server.use(
+      http.get('*/admin/settings/policies', () => HttpResponse.json({ data: [policy] })),
+      http.get('*/admin/settings/policies/policy.returns/review', () =>
+        HttpResponse.json({
+          data: {
+            current: policy,
+            digest: 'a'.repeat(64),
+            previous: null,
+            previousRenderedText: null,
+            renderedText: 'Returns in 30 days.',
+          },
+        })
+      ),
+      http.post('*/admin/settings/policies/policy.returns/approve', async () => {
+        attempts += 1
+        await pending
+        return HttpResponse.json(
+          { error: { code: 'temporarily_unavailable', message: 'Retry policy approval.' } },
+          { status: 503 }
+        )
+      })
+    )
+    renderInLocale(
+      <AuthTestProvider permissions={['policies.read', 'policies.approve']}>
+        <MemoryRouter>
+          <PoliciesPage />
+        </MemoryRouter>
+      </AuthTestProvider>
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Review policy' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Approve exact version' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
+    expect(attempts).toBe(0)
+    fireEvent.click(screen.getByRole('button', { name: 'Approve exact version' }))
+    const reason = await screen.findByRole('textbox', { name: 'Transition reason' })
+    fireEvent.change(reason, { target: { value: '   ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+    await waitFor(() => expect(reason.getAttribute('aria-invalid')).toBe('true'))
+    expect(attempts).toBe(0)
+    fireEvent.change(reason, { target: { value: 'Legal approved exact version' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+    await waitFor(() => expect(attempts).toBe(1))
+    expect((screen.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(
+      true
+    )
+    expect((reason as HTMLTextAreaElement).disabled).toBe(true)
+    await act(async () => {
+      release()
+      await pending
+    })
+    expect(await screen.findByText('Request failed. Please try again later.')).toBeTruthy()
+    expect((reason as HTMLTextAreaElement).value).toBe('Legal approved exact version')
+    expect((screen.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(
+      false
+    )
+  })
+
+  it('ignores a late review of the previously selected policy', async () => {
+    const second = { ...policy, id: 'policy.privacy', title: 'Privacy policy', version: 2 }
+    let release!: () => void
+    let started = false
+    const pending = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const review = (current: typeof policy) => ({
+      data: {
+        current,
+        digest: 'a'.repeat(64),
+        previous: null,
+        previousRenderedText: null,
+        renderedText: current.title,
+      },
+    })
+    server.use(
+      http.get('*/admin/settings/policies', () => HttpResponse.json({ data: [policy, second] })),
+      http.get('*/admin/settings/policies/policy.returns/review', async () => {
+        started = true
+        await pending
+        return HttpResponse.json(review(policy))
+      }),
+      http.get('*/admin/settings/policies/policy.privacy/review', () =>
+        HttpResponse.json(review(second))
+      )
+    )
+    renderInLocale(
+      <AuthTestProvider permissions={['policies.read', 'policies.approve']}>
+        <MemoryRouter>
+          <PoliciesPage />
+        </MemoryRouter>
+      </AuthTestProvider>
+    )
+    const buttons = await screen.findAllByRole('button', { name: 'Review policy' })
+    fireEvent.click(buttons[0]!)
+    await waitFor(() => expect(started).toBe(true))
+    fireEvent.click(buttons[1]!)
+    await screen.findByText('Policy review')
+    await waitFor(() =>
+      expect(
+        within(screen.getByText('Policy review').closest<HTMLElement>('.ant-card')!).getByText('2')
+      ).toBeTruthy()
+    )
+    await act(async () => {
+      release()
+      await pending
+    })
+    await waitFor(() =>
+      expect(
+        within(screen.getByText('Policy review').closest<HTMLElement>('.ant-card')!).queryByText(
+          '1'
+        )
+      ).toBeNull()
+    )
+    expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe('Privacy policy')
+  })
+
   it('resets edits and validation to the last loaded policy without writing', async () => {
     let writes = 0
     server.use(
@@ -199,12 +321,12 @@ describe('PoliciesPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Review policy' }))
     expect(await screen.findByText('Returns in 30 days.')).toBeTruthy()
     expect(reviewedVersion).toBe('1')
-    expect(screen.getByText(`Digest: ${'a'.repeat(64)}`)).toBeTruthy()
-    expect(screen.getByText('Effective date: 2026-10-01')).toBeTruthy()
-    fireEvent.change(screen.getByRole('textbox', { name: 'Transition reason' }), {
+    expect(screen.getByText('a'.repeat(64))).toBeTruthy()
+    expect(screen.getByText('2026-10-01')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Approve exact version' }))
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Transition reason' }), {
       target: { value: 'Legal reviewed the exact version' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Approve exact version' }))
     expect(await screen.findByText('Approve this exact Policy version?')).toBeTruthy()
     expect(submitted).toBeUndefined()
     expect(screen.queryByRole('button', { name: 'Publish' })).toBeNull()
@@ -248,13 +370,18 @@ describe('PoliciesPage', () => {
     )
     fireEvent.click(await screen.findByRole('button', { name: 'Review policy' }))
     expect(await screen.findByText('Returns in 30 days.')).toBeTruthy()
-    fireEvent.change(screen.getByRole('textbox', { name: 'Transition reason' }), {
+    fireEvent.click(screen.getByRole('button', { name: 'Approve exact version' }))
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Transition reason' }), {
       target: { value: 'Approve the exact reviewed version' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Approve exact version' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'OK' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }))
 
-    expect(await screen.findByText('Review · version 2')).toBeTruthy()
+    await screen.findByText('Policy review')
+    await waitFor(() =>
+      expect(
+        within(screen.getByText('Policy review').closest<HTMLElement>('.ant-card')!).getByText('2')
+      ).toBeTruthy()
+    )
     expect(submitted).toEqual({
       confirm: true,
       expectedVersion: 1,
@@ -264,7 +391,12 @@ describe('PoliciesPage', () => {
     expect(screen.getByText('Updated returns policy')).toBeTruthy()
     expect(
       screen.getByRole('button', { name: 'Approve exact version' }).hasAttribute('disabled')
-    ).toBe(true)
+    ).toBe(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Approve exact version' }))
+    expect(await screen.findByText('Updated returns policy · Saved v2')).toBeTruthy()
+    expect(
+      (screen.getByRole('textbox', { name: 'Transition reason' }) as HTMLTextAreaElement).value
+    ).toBe('')
   })
   it.each([
     {
@@ -317,12 +449,12 @@ describe('PoliciesPage', () => {
       )
       fireEvent.click(await screen.findByRole('button', { name: 'Review policy' }))
       await screen.findByText('Returns in 30 days.')
-      fireEvent.change(screen.getByRole('textbox', { name: 'Transition reason' }), {
+      fireEvent.click(screen.getByRole('button', { name: button }))
+      fireEvent.change(await screen.findByRole('textbox', { name: 'Transition reason' }), {
         target: { value: 'Reviewed exact policy' },
       })
-      fireEvent.click(screen.getByRole('button', { name: button }))
       expect(submitted).toBeUndefined()
-      fireEvent.click(await screen.findByRole('button', { name: 'OK' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }))
       await waitFor(() =>
         expect(submitted).toEqual({
           confirm: true,

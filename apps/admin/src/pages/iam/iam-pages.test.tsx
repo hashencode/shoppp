@@ -317,12 +317,21 @@ describe('IAM management pages', () => {
         { locale, path: `/access/users/${disabledUser.id}` }
       )
       await screen.findByDisplayValue('Disabled User')
-      expect(screen.getByText(new Date(updatedAt).toLocaleString(locale))).toBeTruthy()
+      expect(
+        (screen.getByLabelText(locale === 'zh-CN' ? '更新时间' : 'Updated') as HTMLInputElement)
+          .value
+      ).toBe(new Date(updatedAt).toLocaleString(locale))
       fireEvent.change(screen.getByDisplayValue('Disabled User'), {
         target: { value: 'Unsaved name' },
       })
       fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
-      expect(screen.getByText(new Date(updatedAt).toLocaleString(otherLocale))).toBeTruthy()
+      expect(
+        (
+          screen.getByLabelText(
+            otherLocale === 'zh-CN' ? '更新时间' : 'Updated'
+          ) as HTMLInputElement
+        ).value
+      ).toBe(new Date(updatedAt).toLocaleString(otherLocale))
       expect(screen.getByDisplayValue('Unsaved name')).toBeTruthy()
       await act(async () => {
         await new Promise((resolve) => window.setTimeout(resolve, 0))
@@ -668,6 +677,13 @@ describe('IAM management pages', () => {
       permissions: ['iam.users.read', 'iam.users.write'],
     })
     await waitFor(() => expect(screen.getByDisplayValue('Disabled User')).toBeTruthy())
+    const details = within(screen.getByText('Saved account details').closest('section')!)
+    expect((details.getByLabelText('Email') as HTMLInputElement).value).toBe(disabledUser.email)
+    expect((details.getByLabelText('Saved status') as HTMLInputElement).value).toBe('Disabled')
+    expect((details.getByLabelText('Saved version') as HTMLInputElement).value).toBe('2')
+    expect(
+      details.getAllByRole('textbox').every((input) => (input as HTMLInputElement).readOnly)
+    ).toBe(true)
     expect(
       screen
         .getByLabelText('Role')
@@ -1007,7 +1023,10 @@ describe('IAM management pages', () => {
   })
 
   it('creates a permitted role and reloads the committed list', async () => {
-    renderPage(<RolesPage />, { path: '/access/roles' })
+    renderPage(<RolesPage />, {
+      path: '/access/roles',
+      permissions: ['iam.roles.read', 'iam.roles.write', 'catalog.read', 'catalog.write'],
+    })
     await screen.findByText('Administrator')
 
     fireEvent.change(screen.getByLabelText('Search roles'), { target: { value: 'support' } })
@@ -1017,6 +1036,22 @@ describe('IAM management pages', () => {
     fireEvent.click(screen.getByRole('button', { name: 'New role' }))
     fireEvent.change(screen.getByLabelText('Role key'), { target: { value: 'support_lead' } })
     fireEvent.change(screen.getByLabelText('Role name'), { target: { value: 'Support Lead' } })
+    const drawer = document.querySelector('.ant-drawer') as HTMLElement
+    const category = within(drawer)
+      .getByText('catalog', { exact: true })
+      .closest('.ant-tree-treenode')!
+    fireEvent.click(category.querySelector('.ant-tree-checkbox')!)
+    fireEvent.click(
+      within(drawer)
+        .getByText('Edit catalog', { exact: true })
+        .closest('.ant-tree-treenode')!
+        .querySelector('.ant-tree-checkbox')!
+    )
+    expect(category.querySelector('.ant-tree-checkbox-indeterminate')).toBeTruthy()
+    fireEvent.change(within(drawer).getByLabelText('Search permissions'), {
+      target: { value: 'catalog' },
+    })
+    expect(within(drawer).queryByText('Publish catalog', { exact: true })).toBeNull()
     expect(document.querySelector('.ant-drawer-content-wrapper')?.getAttribute('style')).toContain(
       '720px'
     )
@@ -1036,7 +1071,7 @@ describe('IAM management pages', () => {
       description: null,
       key: 'support_lead',
       name: 'Support Lead',
-      permissions: [],
+      permissions: ['catalog.read'],
     })
     await waitFor(() => expect(roleLoads).toBe(3))
     expect(roleQueries.at(-1)).toEqual({ page: '1', pageSize: '25', search: 'support' })
@@ -1059,6 +1094,18 @@ describe('IAM management pages', () => {
     await screen.findByText('Disabled User')
     fireEvent.click(screen.getAllByRole('button', { name: 'Inspect' })[1]!)
     await screen.findByDisplayValue('Disabled User')
+    const savedDetails = within(screen.getByText('Saved account details').closest('section')!)
+    expect((savedDetails.getByLabelText('Email') as HTMLInputElement).value).toBe(
+      disabledUser.email
+    )
+    expect((savedDetails.getByLabelText('Saved status') as HTMLInputElement).value).toBe('Disabled')
+    expect((savedDetails.getByLabelText('Saved version') as HTMLInputElement).value).toBe('2')
+    expect((savedDetails.getByLabelText('Updated') as HTMLInputElement).value).toBe(
+      new Date(disabledUser.updatedAt).toLocaleString('en-US')
+    )
+    expect(
+      savedDetails.getAllByRole('textbox').every((input) => (input as HTMLInputElement).readOnly)
+    ).toBe(true)
     fireEvent.change(
       within(document.querySelector('.ant-drawer') as HTMLElement).getByLabelText('Display name'),
       { target: { value: 'Discarded local edit' } }

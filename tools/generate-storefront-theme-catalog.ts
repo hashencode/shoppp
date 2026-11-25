@@ -5,7 +5,7 @@ import {
   storefrontThemeDescriptorSchema,
   type StorefrontThemeDescriptor,
 } from "../packages/contracts/src/storefront-experience";
-import { fashionStoreThemeDescriptor } from "../apps/storefront/app/themes/fashion-store/successor/manifest";
+import { fashionStoreEditorDescriptor as fashionStoreThemeDescriptor } from "../apps/storefront/app/themes/fashion-store/authoring/package";
 
 export interface StorefrontThemeCatalogOptions {
   descriptors: readonly StorefrontThemeDescriptor[];

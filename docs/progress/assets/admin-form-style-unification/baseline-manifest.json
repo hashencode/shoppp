@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-31",
+  "branch": "codex/fix-new-arrival-icon",
+  "head": "b3680807f62ea70e4416415691c028be2880eb54",
+  "source": "Worktree before this implementation; includes prior Drawer WIP",
+  "files": {
+    "apps/admin/src/pages/settings/contact-location-drawer.tsx": "42658504ec619d6d343b633a45f4ebd02f15a0b1ec9b76985eba686c3b5bdf60",
+    "apps/admin/src/test/admin-local-form-drawers.browser.test.tsx": "24d1c8736d77ea458d9b93f281dd082953ef5fdb733bc866de7f8ddb6fb0ee96",
+    "docs/plans/2026-10-29-0018-refactor-admin-form-consistency-plan.md": "978f9b13370561d5f6fb14a1c5c9733dfdd62551c8263b54784da342c033d610",
+    "docs/plans/2026-10-31-0307-fix-admin-form-style-unification-plan.md": "ec61167531207bda895005fe59290e335b8c11c9ae531c22ed5a06a06ce3f9e3",
+    "docs/plans/2026-10-31-refactor-admin-local-form-drawers-plan.md": "58b16d1b20c8fbd5595485a996c0a544c9d06a591f0e8e37cc488f328ebb80a3",
+    "docs/progress/2026-10-31-admin-local-form-drawers-verification.md": "1e87200cb9519063c7f896d2faf14ed92c0a1a79928aa5e8a7e37213c64a829d",
+    "apps/admin/src/pages/catalog/catalog-form-page.test.tsx": "321138a4728ec3017c2bf32385708786f5552597edf514c0ff444feec8a2a386",
+    "apps/admin/src/pages/catalog/catalog-form-page.tsx": "e9a2428628db25dcdbf2f097304eb22e4715421a890f25d69d18b214b71cc834",
+    "apps/admin/src/pages/catalog/collection-form-page.test.tsx": "1a1428c49491c0a167fb34096d75e2af8c5d6aaeee9c6bc0c4bdce3ceef7e614",
+    "apps/admin/src/pages/catalog/collection-form-page.tsx": "cd1f7a6ca268551fe5d13643f435852b81c8dce6e227bb9434d11f5fed75949f",
+    "apps/admin/src/pages/catalog/collection-list-page.test.tsx": "5cca5ebab99296a13547ecc403056e2d582c29f706d1590cfd3e63318b85a5e3",
+    "apps/admin/src/pages/catalog/collection-list-page.tsx": "d8c083df07a9f8475e0b7c43968111fd1456b2dd31ce87826b8d7e2c24581958",
+    "apps/admin/src/pages/settings/contact-settings-page.test.tsx": "a2db44c8f466c8847016f9ba358e43ca18a5fcc2bd8f76546941f964633175f4",
+    "apps/admin/src/pages/settings/contact-settings-page.tsx": "7f3f50c714eef60df8348c2c364042d84a7611f15b5e84cabbe761017626823c",
+    "apps/admin/src/shared/i18n/translations.ts": "471cf327a65854300e7b7d7e52f4141b7bb05a598633fefbb9dcd6132a3092cd"
+  },
+  "roles_create_baseline": {
+    "file": "apps/admin/src/pages/iam/roles-page.tsx",
+    "sha256": "8299ce93504ad080552b5b4e53b85ae80b2973efd26105e97a44d8918e4c8076"
+  },
+  "apps/admin/src/pages/content/content-editor-page.tsx": {
+    "sha256": "acd0e45e5e9a8133267abdd9589e930504030227886eec0801afe496ddbaa918"
+  },
+  "apps/admin/src/pages/settings/policies-page.tsx": {
+    "sha256": "c6782d717cfb80783315322d1b2fca043ebc114bb2fcc70768934ca28bcc0e30"
+  },
+  "u9_baseline": {
+    "apps/admin/src/pages/settings/shipping-settings-page.tsx": "98bf43f54eebb58f5e3594e84b97374e59e7d90009f5ed0325acbccfa48c7b57",
+    "apps/admin/src/pages/catalog/review-moderation-page.tsx": "48b661316bf85274673ac4f832bd4dfc811df5ae66e156fe2a31d00f52645c97",
+    "apps/admin/src/pages/privacy/privacy-page.tsx": "e3f70f2d18b52900e2e70113ff0ad8907ef017e9cb17508eeee4fa27d40869eb",
+    "apps/admin/src/pages/catalog/catalog-list-page.tsx": "9d190ab4128cc424221c2ac5b36e6f3ce740f1b2300a5c8e2afd491b26999413",
+    "apps/admin/src/pages/auth/login-page.tsx": "a48319f9a3ffd87037fbb29ca1e2bc3fee0b602fa940c2150004ecc8468de683",
+    "apps/admin/src/pages/auth/forgot-password-page.tsx": "6f5494e3c65119f5bc315513034ef71fdf53cc11809833bd1af94d104a80bc28",
+    "apps/admin/src/pages/auth/reset-password-page.tsx": "7493280af7b1f655c95cd30b5bb3b6b7afb823759a16d98e25c1b4af7968941d",
+    "apps/admin/src/pages/auth/activate-account-page.tsx": "17408476bd9abd84a784d6603da1005717ec8e380a56ce7527e3d492fb88cc87",
+    "apps/admin/src/pages/catalog/published-product-revision-editor.tsx": "1ed3a648d4ad4e5faea24e8dcf9202a4901f340330eceb8d620633edd57fa015",
+    "apps/admin/src/shared/content/structured-content-editor.tsx": "3b96d04c69c3bf9f5a90383cd4935dbe11827dae85a8e04dfbaf179953a1dfeb",
+    "apps/admin/src/pages/storefront/themes-page.tsx": "877ba882858d44673148222d39a551a9c0ec9751e801efb792c3b095289d9581",
+    "apps/admin/src/pages/storefront/theme-editor-page.tsx": "86069bd22ee2d94d6e6e0d177bbf71d6ffd6433dd4d1e2b5a2c9307e0230b85e",
+    "apps/admin/src/pages/storefront/storefront-resource-picker.tsx": "68c6af90a8784b4b4416a0bb4cd264d8cfd9a4e0a48f0a8b2c68274b9fa97fb6",
+    "apps/admin/src/pages/storefront/catalog-media-picker.tsx": "edcf55b2eab726b5fdfbfbc2af54d583e2a94f5e3dc353633772f3c9a92593ca",
+    "apps/admin/src/pages/storefront/storefront-link-editor.tsx": "f438d170c85315cd803f8d1542b5872e18d8f6d27a418798cd9dc2ff6bf3dd4c"
+  }
+}

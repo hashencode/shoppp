@@ -1,12 +1,24 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, test } from "vitest";
+import { seedHumanAdmin } from '../fixtures/admin-iam';
 
 import {
   filterStorefrontBacklinks,
   findPolicyBacklinks,
+  findNavigationBacklinks,
 } from "../../src/storefront-control/backlinks";
 
 describe("storefront authority backlinks", () => {
+  test('releases mutable navigation references after tombstoning a visual draft', async () => {
+    await seedHumanAdmin(env.DB, { id: 'fixture', subject: 'visual-backlinks' });
+    const id = `draft-${crypto.randomUUID()}`;
+    await env.DB.prepare(`INSERT INTO storefront_experience_drafts (id,experience_id,theme_id,theme_version,configuration_schema_version,preset_id,bindings_json,overrides_json,version,created_by,updated_by,created_at,updated_at)
+      VALUES (?,?,'fashion-store','1.3.0',4,'source-parity','[]',?,1,'fixture','fixture',?,?)`)
+      .bind(id, id, JSON.stringify([{ operations: [{ kind: 'set-shell-presentation', settings: { 'header-menu': { kind: 'navigation', id: 'menu.editor' } } }] }]), '2026-10-31T00:00:00Z', '2026-10-31T00:00:00Z').run();
+    expect((await findNavigationBacklinks(env.DB, 'menu.editor', 1, 'staging')).map(value => value.sourceId)).toContain(id);
+    await env.DB.prepare('UPDATE storefront_experience_drafts SET removed_at = ? WHERE id = ?').bind('2026-10-31T01:00:00Z', id).run();
+    expect((await findNavigationBacklinks(env.DB, 'menu.editor', 1, 'staging')).map(value => value.sourceId)).not.toContain(id);
+  });
   test("returns a permission-filterable common diagnostic shape", async () => {
     const suffix = crypto.randomUUID();
     const policyId = `policy.${suffix}`;

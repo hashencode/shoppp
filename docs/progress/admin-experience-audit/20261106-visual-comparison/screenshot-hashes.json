@@ -1,0 +1,157 @@
+[
+  {
+    "file": "screenshots/C001-setup-guide.jpg",
+    "sha256": "fe94d59323993a82e829c8141176e758f781e18bd1113cdf0acad9a6d3c40340",
+    "bytes": 88141
+  },
+  {
+    "file": "screenshots/C002-shipping-guide.jpg",
+    "sha256": "10f5e87e6fba3364d4578dc2679f1e41449d37a7a8c5911e310edc96d640fefd",
+    "bytes": 96795
+  },
+  {
+    "file": "screenshots/C003-business-shipping-id.jpg",
+    "sha256": "6cc8473347969108d91e1ad2efd6f0a09338195af057317f50cb288ed275ebcb",
+    "bytes": 66332
+  },
+  {
+    "file": "screenshots/C004-contact-location-drawer.jpg",
+    "sha256": "70c19a06672a6d10c0ea1eacd0fe515e7d185e48740379f1c6c580cb41577627",
+    "bytes": 65922
+  },
+  {
+    "file": "screenshots/C005-contact-dirty-input.jpg",
+    "sha256": "429b4a5cd83d55bc5084f87285343c368e82f39cafffea1a5944eeb628688d23",
+    "bytes": 66995
+  },
+  {
+    "file": "screenshots/C006-left-contact-without-warning.jpg",
+    "sha256": "4019f2813fb37889f4eebd1908f56c794f4acee90bb2994554ef1006242df93e",
+    "bytes": 42732
+  },
+  {
+    "file": "screenshots/C007-contact-input-lost.jpg",
+    "sha256": "963104b55eb1d6d10664e19e781da318862162fbecc61b0843e08ab8ec84f87a",
+    "bytes": 64698
+  },
+  {
+    "file": "screenshots/C008-shipping-price-fields.jpg",
+    "sha256": "8934c8a7d74740f0d8b7dda73fddaab5b1728ee2bcfda1348b5265dbd2bfc129",
+    "bytes": 57215
+  },
+  {
+    "file": "screenshots/C009-identity-media-empty.jpg",
+    "sha256": "a8acee2537c2e004911c0c60ea8c9898d681d883ba24706608a48e24a919ae67",
+    "bytes": 63188
+  },
+  {
+    "file": "screenshots/C010-product-create-top.jpg",
+    "sha256": "892bc2167f2a952789738c50ecf1c9b5d4bb689ecca6a5ecf513082c5ac76802",
+    "bytes": 50298
+  },
+  {
+    "file": "screenshots/C011-product-price-fields.jpg",
+    "sha256": "bc3071d3a379f0054ae2daa8efc4b8d76f01cef3a973b5f8e81d3d7dad60821f",
+    "bytes": 56481
+  },
+  {
+    "file": "screenshots/C012-product-media-current.jpg",
+    "sha256": "4978163f84a1fcdf58531b8c3e6383e83535a3bc40d5b6c61aa332b6fc892a16",
+    "bytes": 52115
+  },
+  {
+    "file": "screenshots/C013-product-publish-error.jpg",
+    "sha256": "da7655d85db694921934a4dd494545a3ba3f216aea04f3f212da01f418dcbb34",
+    "bytes": 51556
+  },
+  {
+    "file": "screenshots/C014-inventory-empty.jpg",
+    "sha256": "dd96c9beb84dcb5bfbffe922d74fed80238f168eda82517f014a8d5bc4034811",
+    "bytes": 36198
+  },
+  {
+    "file": "screenshots/C015-collection-created-modal.jpg",
+    "sha256": "47cdec0ddfdc079a631c2e2acbcd0c759a00ae8b857a0cedcdaa922a6d327b03",
+    "bytes": 52112
+  },
+  {
+    "file": "screenshots/C016-page-saved-still-new.jpg",
+    "sha256": "631b795109a2fbbf52f87d17d8a904559e3631e7b8f8e56175d06202abe39e7e",
+    "bytes": 62050
+  },
+  {
+    "file": "screenshots/C017-page-saved-version.jpg",
+    "sha256": "a6f4919880e43c05d4a8ccee5bdaf42f6d972650654849b091bcf7ee0b86778b",
+    "bytes": 55310
+  },
+  {
+    "file": "screenshots/C018-themes-current.jpg",
+    "sha256": "3ddab6ada43a4cd055e407805b311a709341bfffca52ac7473511bb89ab2365e",
+    "bytes": 65147
+  },
+  {
+    "file": "screenshots/C019-editor-no-source.jpg",
+    "sha256": "0cfdb3773ac5edf5b311a4c080fa02175becf6f67ab0ff9ef061ade6f32ca870",
+    "bytes": 84852
+  },
+  {
+    "file": "screenshots/C020-editor-publish-status.jpg",
+    "sha256": "1df2cec771ac2e5a038679c0198cb515edc5b7827786783473ee8c092f176b38",
+    "bytes": 83194
+  },
+  {
+    "file": "screenshots/C021-dashboard-empty.jpg",
+    "sha256": "281b01842f87454f1b737ed68f61e2d311c47866d30fef3c8b9133dcc74bfefb",
+    "bytes": 24659
+  },
+  {
+    "file": "screenshots/C022-report-invalid-date.jpg",
+    "sha256": "49186e31de5024be493dc2a9f82ef951546202583beca3b8a8653c7862a374b7",
+    "bytes": 47538
+  },
+  {
+    "file": "screenshots/C023-report-export-ready.jpg",
+    "sha256": "73418fb5aa9cff304be7e11dd0405fcc0c8f71c7e43400a8cc95b3d3beaae31d",
+    "bytes": 55997
+  },
+  {
+    "file": "screenshots/C024-export-download-misdirect.jpg",
+    "sha256": "a91a09368885e75f09e985945fd4da04d6e9e431a33a20fd9fcf41b0c06327b8",
+    "bytes": 68045
+  },
+  {
+    "file": "screenshots/C025-permission-search.jpg",
+    "sha256": "e84b80b8e41c2106293946a3dee9e9cf0ebe2f6fa659ef6e6d3103137ac7ba8e",
+    "bytes": 79573
+  },
+  {
+    "file": "screenshots/C026-audit-technical-codes.jpg",
+    "sha256": "a93abc6599516d3413b6191e40d5e5376b308108d6609093d05930e5efeefdc4",
+    "bytes": 118168
+  },
+  {
+    "file": "screenshots/C027-audit-filtered.jpg",
+    "sha256": "764000e32b82c773551b4eb2b30b457d814e15e3bb7184b538b5c16d3f6848d5",
+    "bytes": 63542
+  },
+  {
+    "file": "screenshots/C028-jobs-empty.jpg",
+    "sha256": "c6958d651041bbf3a1a66547220d7c847f3f02b57c65fc55cf08b0ce3095ea39",
+    "bytes": 45327
+  },
+  {
+    "file": "screenshots/C029-audit-back-filter-lost.jpg",
+    "sha256": "308fe56fc7585bc567b959714844c606448bc462e9640fe7cf1f379d0ab6ff5b",
+    "bytes": 118378
+  },
+  {
+    "file": "screenshots/C030-reset-invalid-link.jpg",
+    "sha256": "5ff967c6ae8da7c142c727ecd4403d2c5cfa4bc11a2945db28568984439f2231",
+    "bytes": 15010
+  },
+  {
+    "file": "screenshots/C031-activate-invalid-link.jpg",
+    "sha256": "c94692737eaab79e5bb5a31179d45052d16cf97a1e5a16ef017804477d93e406",
+    "bytes": 15217
+  }
+]

@@ -158,7 +158,7 @@ async function resourceBacklinks(
               COALESCE(reference.fullkey, reference.path, '$') AS source_item_id
          FROM storefront_experience_drafts draft,
               json_tree(json_array(json(draft.bindings_json), json(draft.overrides_json))) reference
-        WHERE reference.type = 'object'
+        WHERE draft.removed_at IS NULL AND reference.type = 'object'
           AND json_extract(reference.value, '$.kind') = ?
           AND json_extract(reference.value, '$.id') = ?
         ORDER BY draft.id, draft.version, source_item_id`,
@@ -221,7 +221,7 @@ export async function findNavigationBacklinks(
       `SELECT draft.id AS source_id, draft.version AS source_version,
               json_extract(binding.value, '$.id') AS source_item_id
          FROM storefront_experience_drafts draft, json_each(draft.bindings_json) binding
-        WHERE json_extract(binding.value, '$.kind') = 'navigation'
+        WHERE draft.removed_at IS NULL AND json_extract(binding.value, '$.kind') = 'navigation'
           AND json_extract(binding.value, '$.reference.id') = ?
           AND json_extract(binding.value, '$.reference.version') = ?
           AND COALESCE(json_extract(binding.value, '$.reference.environment'), ?) = ?
@@ -229,7 +229,11 @@ export async function findNavigationBacklinks(
     )
     .bind(targetId, targetVersion, environment, environment)
     .all<{ source_id: string; source_item_id: string; source_version: number }>();
-  return rows.results.map((row) => ({
+  const visualRows = await db.prepare(`SELECT DISTINCT draft.id AS source_id, draft.version AS source_version, reference.fullkey AS source_item_id
+    FROM storefront_experience_drafts draft, json_tree(draft.overrides_json) reference
+    WHERE draft.removed_at IS NULL AND reference.type = 'object' AND json_extract(reference.value, '$.kind') = 'navigation'
+      AND json_extract(reference.value, '$.id') = ?`).bind(targetId).all<{ source_id: string; source_item_id: string; source_version: number }>();
+  return [...rows.results, ...visualRows.results].map((row) => ({
     code: "resource_referenced",
     environment,
     sourceDomain: "theme",

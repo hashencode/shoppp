@@ -4,10 +4,11 @@ import {
   type StorefrontLink,
   type StorefrontResourceReference,
 } from '@shoppp/contracts'
-import { Alert, Input, Select, Space, Typography } from 'antd'
-import React from 'react'
+import { Alert, Form, Input, Select } from 'antd'
+import React, { useId } from 'react'
 import { useI18n } from '../../shared/contexts/i18n-context'
 import { resourceKindMessages } from './theme-feedback'
+import { StorefrontFieldGroup } from './storefront-field-group'
 
 void React
 
@@ -27,6 +28,7 @@ export const StorefrontLinkEditor = ({
   onChange,
   allowedTargets,
   resources,
+  showLabel = true,
   value,
 }: {
   disabled: boolean
@@ -34,9 +36,11 @@ export const StorefrontLinkEditor = ({
   onChange: (value: StorefrontLink) => void
   allowedTargets: Array<StorefrontResourceReference['kind'] | 'external'>
   resources: StorefrontEditorResource[]
+  showLabel?: boolean
   value: StorefrontLink
 }) => {
   const { t } = useI18n()
+  const fieldId = useId()
   const reference = value.target.kind === 'internal' ? value.target.reference : null
   const allowedResources = resources.filter(({ kind }) => allowedTargets.includes(kind))
   const matchingResources = reference
@@ -54,22 +58,21 @@ export const StorefrontLinkEditor = ({
   }
 
   return (
-    <fieldset aria-label={label} className="min-w-0 rounded border border-slate-200 p-3">
-      <legend className="px-1 text-sm font-medium">{label}</legend>
-      <Space orientation="vertical" className="w-full">
-        <label>
-          <Typography.Text>{t('Link label')}</Typography.Text>
+    <StorefrontFieldGroup label={label} showLabel={showLabel}>
+      <div>
+        <Form.Item layout="vertical" label={t('Link label')} htmlFor={`${fieldId}-label`}>
           <Input
+            id={`${fieldId}-label`}
             aria-label={t('{label} label', { label })}
             disabled={disabled}
             maxLength={120}
             value={value.label}
             onChange={(event) => onChange({ ...value, label: event.target.value })}
           />
-        </label>
-        <label>
-          <Typography.Text>{t('Destination type')}</Typography.Text>
+        </Form.Item>
+        <Form.Item layout="vertical" label={t('Destination type')} htmlFor={`${fieldId}-type`}>
           <Select
+            id={`${fieldId}-type`}
             aria-label={t('{label} destination type', { label })}
             className="w-full"
             disabled={disabled}
@@ -101,12 +104,16 @@ export const StorefrontLinkEditor = ({
               }
             }}
           />
-        </label>
+        </Form.Item>
         {value.target.kind === 'internal' && reference ? (
           <>
-            <label>
-              <Typography.Text>{t('Resource type')}</Typography.Text>
+            <Form.Item
+              layout="vertical"
+              label={t('Resource type')}
+              htmlFor={`${fieldId}-resource-kind`}
+            >
               <Select
+                id={`${fieldId}-resource-kind`}
                 aria-label={t('{label} resource type', { label })}
                 className="w-full"
                 disabled={disabled}
@@ -121,10 +128,14 @@ export const StorefrontLinkEditor = ({
                   }))}
                 onChange={setInternalKind}
               />
-            </label>
-            <label>
-              <Typography.Text>{t('Destination')}</Typography.Text>
+            </Form.Item>
+            <Form.Item
+              layout="vertical"
+              label={t('Destination')}
+              htmlFor={`${fieldId}-destination`}
+            >
               <Select
+                id={`${fieldId}-destination`}
                 aria-label={t('{label} destination', { label })}
                 className="w-full"
                 disabled={disabled || matchingResources.length === 0}
@@ -142,7 +153,7 @@ export const StorefrontLinkEditor = ({
                   })
                 }
               />
-            </label>
+            </Form.Item>
             {missingReference ? (
               <Alert
                 type="error"
@@ -153,9 +164,9 @@ export const StorefrontLinkEditor = ({
             ) : null}
           </>
         ) : value.target.kind === 'external' ? (
-          <label>
-            <Typography.Text>{t('HTTPS URL')}</Typography.Text>
+          <Form.Item layout="vertical" label={t('HTTPS URL')} htmlFor={`${fieldId}-url`}>
             <Input
+              id={`${fieldId}-url`}
               aria-label={t('{label} external URL', { label })}
               disabled={disabled}
               value={value.target.url}
@@ -164,11 +175,11 @@ export const StorefrontLinkEditor = ({
                 onChange({ ...value, target: { kind: 'external', url: event.target.value.trim() } })
               }
             />
-          </label>
+          </Form.Item>
         ) : null}
-        <label>
-          <Typography.Text>{t('Open behavior')}</Typography.Text>
+        <Form.Item layout="vertical" label={t('Open behavior')} htmlFor={`${fieldId}-behavior`}>
           <Select
+            id={`${fieldId}-behavior`}
             aria-label={t('{label} open behavior', { label })}
             className="w-full"
             disabled={disabled}
@@ -179,8 +190,8 @@ export const StorefrontLinkEditor = ({
             }))}
             onChange={(targetBehavior) => onChange({ ...value, targetBehavior })}
           />
-        </label>
-      </Space>
-    </fieldset>
+        </Form.Item>
+      </div>
+    </StorefrontFieldGroup>
   )
 }

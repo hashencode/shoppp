@@ -1,0 +1,20 @@
+{
+  "candidateAreas": 9,
+  "sourceImages": 9,
+  "displayReferences": 10,
+  "sharedImage": "Theme-package and online-version are the same page, explicitly shared.",
+  "historyImages": 226,
+  "structureImages": 71,
+  "adminSourceChangesSinceCaptureStart": [],
+  "images": {
+    "02-health.jpg": "b899dc5ae17590deea832abcf9d676aaf9563a8f0e61293569984205a3d054ae",
+    "05-editor-version.jpg": "4ff039177e09ee83821d766adbb28a390f91e6a06a066ea22fe2bbc97998df44",
+    "09-single-version.jpg": "b01fe5ed659fd7e562b7c06b6dd3cedba0e33f0d10ede3dfd794621b4e541538",
+    "08-location.jpg": "da2a58aa608b70d4824e1189253c448ca8b135844202019cdcf10de658d81ee7",
+    "03-contact-conflict.jpg": "010d268a8e2d1091e009cf93b8328329a1a2e659aec0efce5831475b3319a640",
+    "07-policy.jpg": "7822b0895bb78785b50747ddd9ae20730b067a3cb8c5030709196b8a90d6683f",
+    "04-theme-package.jpg": "bbda0a71b29d059eb2408e9ca0e88bd572b70e75fc82c874758ab67a98b25dfc",
+    "01-account-compatible.jpg": "483987aa3e81caac44c5a2a99a7c570852b77e85a6ad2d2eb0f8b86399e6d00f",
+    "01-account-drawer.jpg": "b0bed35891082ecb0407a8641495786bebfa121123c898aab7ae424015edd7be"
+  }
+}

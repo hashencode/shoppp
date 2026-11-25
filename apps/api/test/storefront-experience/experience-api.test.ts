@@ -13,6 +13,7 @@ import {
 
 import fashionStoreFixture from "../../../storefront/fixtures/experience/fashion-store.json";
 import releaseFixture from "../../../storefront/fixtures/release.json";
+import { editorBindings, editorRelease } from "../../../storefront/tests/fixtures/editor-context";
 import { fashionStoreManifest } from "../../../storefront/app/themes/fashion-store/manifest";
 import {
   fashionStoreHistoricalPackages,
@@ -460,6 +461,129 @@ describe("storefront experience API", () => {
        VALUES ('role_admin', 'catalog.read', '2026-08-04T00:00:00.000Z')`,
     ).run();
     await seedOperator();
+  });
+
+  test("pins authenticated editor sessions and rejects expired, foreign and removed drafts", async () => {
+    const app = appFor();
+    await seedPreviewCatalogRelease("editor-catalog", previewCatalogReleaseV3);
+    const created = await createDraft(app, "editor-session-draft");
+    expect(created.response.status).toBe(201);
+    const draftId = created.body.data.id;
+    const response = await app.fetch(writeRequest(`/admin/storefront-experiences/drafts/${draftId}/editor-sessions`, { catalogReleaseId: "editor-catalog" }, "editor-session-create"), env);
+    expect(response.status).toBe(201);
+    const { data: session } = await response.json<{ data: { id: string; nonce: string } }>();
+    const read = () => app.fetch(request(`/admin/storefront-editor/sessions/${session.id}`), env);
+    const context = await read();
+    expect(context.status).toBe(200);
+    const { data } = await context.json<{ data: { nonce: string; release: { releaseId: string }; draft: { id: string } } }>();
+    expect(data.nonce).toBe(session.nonce);
+    expect(data.release.releaseId).toBe("editor-catalog");
+    expect(data.draft.id).toBe(draftId);
+    await seedOperator("admin", "other-editor");
+    expect((await appFor("other-editor").fetch(request(`/admin/storefront-editor/sessions/${session.id}`), env)).status).toBe(404);
+    await env.DB.prepare("UPDATE storefront_editor_sessions SET expires_at = '2000-01-01' WHERE id = ?").bind(session.id).run();
+    expect((await read()).status).toBe(404);
+    await cleanupExpiredStorefrontPreviews(env);
+    expect(await env.DB.prepare('SELECT id FROM storefront_editor_sessions WHERE id = ?').bind(session.id).first()).toBeNull();
+  });
+
+  test("renames, copies and tombstones exact saved drafts without losing immutable history", async () => {
+    const app = appFor();
+    const { body, response: created } = await createDraft(app, "library-source-draft-create");
+    expect(created.status).toBe(201);
+    const id = body.data.id;
+    const action = (draftId: string, input: unknown, key: string) => app.fetch(writeRequest(`/admin/storefront-experiences/drafts/${draftId}/library-actions`, input, `local-editor-${key}`), env);
+    const renamed = await action(id, { kind: "rename", expectedVersion: 1, name: "Autumn design" }, "library-rename");
+    expect(renamed.status).toBe(200);
+    expect((await renamed.json<{ data: { name: string; version: number } }>()).data).toMatchObject({ name: "Autumn design", version: 2 });
+    expect((await action(id, { kind: "remove", expectedVersion: 1, confirm: true }, "library-stale-remove")).status).toBe(409);
+    const copy = await action(id, { kind: "copy", expectedVersion: 2, name: "Autumn copy" }, "library-copy");
+    expect(copy.status).toBe(201);
+    const copied = (await copy.json<{ data: { id: string; version: number; name: string } }>()).data;
+    expect(copied.id).not.toBe(id);
+    expect(copied).toMatchObject({ name: "Autumn copy", version: 1 });
+    expect((await action(id, { kind: "remove", expectedVersion: 2, confirm: true }, "library-remove")).status).toBe(200);
+    expect((await app.fetch(request(`/admin/storefront-experiences/drafts/${id}`), env)).status).toBe(404);
+    expect((await app.fetch(request(`/admin/storefront-experiences/drafts/${copied.id}`), env)).status).toBe(200);
+    const list = await app.fetch(request("/admin/storefront-experiences/drafts"), env);
+    expect((await list.json<{ data: Array<{ id: string }> }>()).data.some(draft => draft.id === id)).toBe(false);
+    const update = await app.fetch(writeRequest(`/admin/storefront-experiences/drafts/${id}`, { expectedVersion: 3, reason: "Should not write", bindings: draftInput.bindings, overrides: [] }, "removed-draft-update-write", "PUT"), env);
+    expect(update.status).toBe(404);
+  });
+
+  test("blocks removal during a preview build and preserves the completed immutable snapshot", async () => {
+    const app = createApp({ testIdentityVerifier: async () => ({ email: "theme-admin@example.test", principalKind: "human", subject: "theme-admin" }), experienceBuildTrigger: async () => ({ correlationId: "editor-library-build" }) });
+    const created = await createDraft(app, "library-busy-source-create");
+    const id = created.body.data.id;
+    expect((await validateDraft(app, id, 1, "library-busy-source-validate")).status).toBe(200);
+    const preview = await app.fetch(writeRequest(`/admin/storefront-experiences/drafts/${id}/preview`, { expectedVersion: 1 }, "library-busy-preview-create"), env);
+    expect(preview.status).toBe(202);
+    const { data } = await preview.json<{ data: { build: { id: string }; snapshot: { id: string } } }>();
+    const remove = (key: string) => app.fetch(writeRequest(`/admin/storefront-experiences/drafts/${id}/library-actions`, { kind: "remove", expectedVersion: 1, confirm: true }, key), env);
+    expect((await remove("library-busy-remove-blocked")).status).toBe(409);
+    await env.DB.prepare("UPDATE storefront_preview_builds SET status = 'failed', failure_code = 'fixture-completed' WHERE id = ?").bind(data.build.id).run();
+    expect((await remove("library-busy-remove-completed")).status).toBe(200);
+    expect((await app.fetch(request(`/admin/storefront-experiences/snapshots/${data.snapshot.id}`), env)).status).toBe(200);
+    expect((await validateDraft(app, id, 2, "library-removed-source-validate")).status).toBe(404);
+  });
+
+  test("allows only one writer to win removal versus saving the same draft version", async () => {
+    const app = appFor();
+    const created = await createDraft(app, "library-race-source-create");
+    const id = created.body.data.id;
+    const responses = await Promise.all([
+      app.fetch(writeRequest(`/admin/storefront-experiences/drafts/${id}/library-actions`, { kind: "remove", expectedVersion: 1, confirm: true }, "library-race-source-remove"), env),
+      app.fetch(writeRequest(`/admin/storefront-experiences/drafts/${id}`, { expectedVersion: 1, bindings: draftInput.bindings, overrides: [] }, "library-race-source-update", "PUT"), env),
+    ]);
+    expect(responses.filter(response => response.ok)).toHaveLength(1);
+    expect(responses.filter(response => !response.ok).every(response => [404, 409].includes(response.status))).toBe(true);
+  });
+  test('reconciles approval racing removal without resurrecting a deleted draft', async () => {
+    const app = appFor();
+    const created = await createDraft(app, 'library-approval-race-create');
+    const id = created.body.data.id;
+    const validation = await app.fetch(writeRequest(`/admin/storefront-experiences/drafts/${id}/validate`, { expectedVersion: 1, reason: '' }, 'library-approval-race-validate'), env);
+    expect(validation.status).toBe(200);
+    const [removed, approved] = await Promise.all([
+      app.fetch(writeRequest(`/admin/storefront-experiences/drafts/${id}/library-actions`, { kind: 'remove', expectedVersion: 1, confirm: true }, 'library-approval-race-remove'), env),
+      app.fetch(writeRequest(`/admin/storefront-experiences/drafts/${id}/approve`, { confirm: true, expectedVersion: 1, reason: 'Approve the frozen saved design' }, 'library-approval-race-approve'), env),
+    ]);
+    expect(removed.status).toBe(200);
+    expect([200, 404, 409]).toContain(approved.status);
+    expect((await app.fetch(request(`/admin/storefront-experiences/drafts/${id}`), env)).status).toBe(404);
+    const retry = await app.fetch(writeRequest(`/admin/storefront-experiences/drafts/${id}/approve`, { confirm: true, expectedVersion: 1, reason: 'Retry removed draft approval' }, 'library-approval-race-retry'), env);
+    expect(retry.status).toBe(404);
+  });
+
+  test("migrates saved presentation into a fresh visual draft with an independent shared shell", async () => {
+    const app = appFor();
+    await seedPreviewCatalogRelease("editor-migration-catalog", editorRelease);
+    const home = fashionStoreSuccessorPackage.presets[0]!.templates.find(({ pageType }) => pageType === "home")!;
+    const created = await createDraft(app, "editor-migration-source-create", { ...draftInput, themeVersion: "1.2.0", bindings: editorBindings.filter(({ instanceId }) => ["fashion-store-home", "fashion-store-collection"].includes(instanceId)), overrides: [{ templateId: home.id, presetId: draftInput.presetId, schemaVersion: 3, operations: [
+      { kind: "set-setting", instanceId: home.sections[0]!.id, settingId: "identity-logo-width", value: 188 },
+      { kind: "set-setting", instanceId: home.sections[0]!.blocks[0]!.id, settingId: "title", value: "Preserved autumn title" },
+    ] }] });
+    expect(created.response.status).toBe(201);
+    const id = created.body.data.id;
+    const sourceCheck = await validateDraft(app, id, 1, "editor-migration-source-validate", "editor-migration-catalog");
+    expect(sourceCheck.status).toBe(200);
+    expect((await sourceCheck.json<{ data: { status: string; issues: unknown[] } }>()).data).toMatchObject({ status: "valid", issues: [] });
+    const dryRun = await app.fetch(writeRequest(`/admin/storefront-experiences/drafts/${id}/migrations/dry-run`, { expectedVersion: 1, targetThemeVersion: "1.3.0", targetConfigurationSchemaVersion: 4, catalogReleaseId: "editor-migration-catalog" }, "editor-migration-review-request"), env);
+    expect(dryRun.status, await dryRun.clone().text()).toBe(200);
+    const { data: migration } = await dryRun.json<{ data: { id: string; conflicts: unknown[]; migratedOverrides: ThemeOverride[] } }>();
+    expect(migration.conflicts).toEqual([]);
+    expect(JSON.stringify(migration.migratedOverrides)).toContain("set-shell-presentation");
+    expect(JSON.stringify(migration.migratedOverrides)).toContain("Preserved autumn title");
+    const upgrade = await app.fetch(writeRequest(`/admin/storefront-experiences/drafts/${id}/migrations/approve`, { expectedVersion: 1, migrationId: migration.id, reason: "Upgrade the saved design", confirm: true }, "editor-migration-approve-request"), env);
+    expect(upgrade.status, await upgrade.clone().text()).toBe(201);
+    const { data: successor } = await upgrade.json<{ data: { id: string; themeVersion: string; version: number } }>();
+    expect(successor.id).not.toBe(id);
+    expect(successor).toMatchObject({ themeVersion: "1.3.0", version: 1 });
+    const original = await app.fetch(request(`/admin/storefront-experiences/drafts/${id}`), env);
+    expect((await original.json<{ data: { version: number; themeVersion: string } }>()).data).toMatchObject({ version: 1, themeVersion: "1.2.0" });
+    const checked = await validateDraft(app, successor.id, 1, "editor-migration-successor-validate", "editor-migration-catalog");
+    expect(checked.status).toBe(200);
+    expect((await checked.json<{ data: { status: string; issues: unknown[] } }>()).data).toMatchObject({ status: "valid", issues: [] });
   });
 
   test("applies strict server-owned Block commands with optimistic concurrency", async () => {
@@ -1113,7 +1237,7 @@ describe("storefront experience API", () => {
             expect.objectContaining({ id: "source-parity" }),
             expect.objectContaining({ id: "unified-store", label: "Unified store" }),
           ],
-          themeVersion: "1.2.0",
+          themeVersion: "1.3.0",
         },
       ],
     });

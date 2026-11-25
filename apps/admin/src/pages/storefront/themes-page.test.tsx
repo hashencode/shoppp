@@ -35,6 +35,7 @@ const theme: AdminStorefrontTheme = {
 }
 
 const server = setupServer(
+  http.get('*/admin/storefront-publications', () => HttpResponse.json({ data: { active: { publication: null, verification: 'none' }, publications: [] } })),
   http.get('*/admin/storefront-experiences/themes', () => HttpResponse.json({ data: [theme] })),
   http.get('*/admin/storefront-experiences/drafts', () => HttpResponse.json({ data: [] }))
 )
@@ -139,6 +140,7 @@ describe('ThemesPage', () => {
     expect((reason as HTMLTextAreaElement).value).toBe('Selected editorial preset')
     const expected = {
       draft: {
+        name: 'My store design',
         bindings: [],
         experienceId: 'storefront-fashion-store',
         overrides: [],

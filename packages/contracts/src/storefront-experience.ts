@@ -274,6 +274,14 @@ const resourceReferenceSettingDefinitionSchema = z.discriminatedUnion("kind", [
   z
     .object({
       ...editorSettingMetadata,
+      id: storefrontIdentifierSchema,
+      kind: z.literal("navigation-reference"),
+      required: z.boolean(),
+    })
+    .strict(),
+  z
+    .object({
+      ...editorSettingMetadata,
       cardinality: z.literal("one").optional(),
       id: storefrontIdentifierSchema,
       kind: z.literal("product-reference"),
@@ -328,7 +336,15 @@ export const settingDefinitionSchema = z.discriminatedUnion("kind", [
   ...resourceReferenceSettingDefinitionSchema.options,
 ]);
 
+export const navigationReferenceSchema = z
+  .object({
+    kind: z.literal("navigation"),
+    id: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{2,159}$/),
+  })
+  .strict();
+
 export const settingValueSchema = z.union([
+  navigationReferenceSchema,
   safeTextSchema,
   z.number().finite(),
   z.boolean(),
@@ -351,6 +367,14 @@ export const blockDefinitionSchema = z
 export const sectionDefinitionSchema = z
   .object({
     ...componentDefinitionBase,
+    authoring: z
+      .object({
+        label: z.string().trim().min(1).max(100),
+        maxInstances: z.int().min(1).max(MAX_SECTIONS),
+        pageTypes: z.array(pageTypeSchema).min(1).max(10),
+      })
+      .strict()
+      .optional(),
     allowedBlockTypes: z.array(storefrontIdentifierSchema).max(30),
     blockRules: z
       .array(
@@ -432,12 +456,40 @@ export const sectionInstanceSchema = z
   })
   .strict();
 
+export const themeStylesSchema = z
+  .object({
+    accent: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .optional(),
+    background: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .optional(),
+    text: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .optional(),
+    font: z.enum(["figtree", "outfit"]).optional(),
+    spacing: z.number().min(0).max(80).optional(),
+    buttonRadius: z.number().min(0).max(40).optional(),
+  })
+  .strict();
+
 export const pageTemplateSchema = z
   .object({
     id: storefrontIdentifierSchema,
     pageType: pageTypeSchema,
     requiredCapabilities: z.array(storefrontCapabilitySchema).max(30),
     sections: z.array(sectionInstanceSchema).max(MAX_SECTIONS),
+    styles: themeStylesSchema.optional(),
+    shell: z
+      .object({
+        capabilities: z.array(storefrontCapabilitySchema).max(30),
+        settings: settingsRecordSchema,
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 
@@ -498,6 +550,8 @@ export const themeManifestSchema = z
       })
       .strict(),
     configurationSchemaVersion: z.int().positive(),
+    shellSettings: z.array(settingDefinitionSchema).max(MAX_SETTINGS_PER_COMPONENT).optional(),
+    shellCapabilities: z.array(storefrontCapabilitySchema).max(30).optional(),
     designTokens: z
       .record(
         z.string().regex(/^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/),
@@ -817,6 +871,10 @@ const reorderBlocksOperationSchema = z
   })
   .strict();
 export const themeOverrideOperationSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("set-shell-presentation"), settings: settingsRecordSchema }).strict(),
+  z.object({ kind: z.literal("add-section"), section: sectionInstanceSchema }).strict(),
+  z.object({ kind: z.literal("remove-section"), instanceId: storefrontIdentifierSchema }).strict(),
+  z.object({ kind: z.literal("set-theme-styles"), styles: themeStylesSchema }).strict(),
   addBlockOperationSchema,
   removeBlockOperationSchema,
   reorderBlocksOperationSchema,
@@ -911,10 +969,23 @@ function validateUnique(
 function settingMatchesDefinition(
   value: z.infer<typeof settingValueSchema>,
   definition: z.infer<typeof settingDefinitionSchema>,
+  boundedThemeAssets: boolean,
 ): boolean {
   switch (definition.kind) {
+    case "navigation-reference":
+      return navigationReferenceSchema.safeParse(value).success;
     case "asset":
-      return assetReferenceSchema.safeParse(value).success;
+      return (
+        assetReferenceSchema.safeParse(value).success &&
+        (!boundedThemeAssets ||
+          !definition.themeOptions ||
+          (typeof value === "object" &&
+            value !== null &&
+            "kind" in value &&
+            value.kind === "theme" &&
+            "path" in value &&
+            definition.themeOptions.some((option) => option.value.path === value.path)))
+      );
     case "boolean":
       return typeof value === "boolean";
     case "link": {
@@ -950,6 +1021,7 @@ function validateInstanceSettings(
   approvedRemoteMediaHosts: Set<string>,
   context: z.RefinementCtx,
   path: PropertyKey[],
+  boundedThemeAssets = false,
 ): void {
   const definitionsById = new Map(definitions.map((definition) => [definition.id, definition]));
   for (const [settingId, value] of Object.entries(settings)) {
@@ -958,7 +1030,7 @@ function validateInstanceSettings(
       addIssue(context, [...path, "settings", settingId], "The setting is not declared.");
       continue;
     }
-    if (!settingMatchesDefinition(value, definition)) {
+    if (!settingMatchesDefinition(value, definition, boundedThemeAssets)) {
       addIssue(context, [...path, "settings", settingId], "The setting value has the wrong type.");
     }
     if (typeof value === "object" && value !== null && "kind" in value && value.kind === "remote") {
@@ -1073,6 +1145,58 @@ function validateThemePackage(
     );
     preset.templates.forEach((template, templateIndex) => {
       const templatePath = ["presets", presetIndex, "templates", templateIndex] as PropertyKey[];
+      if (template.styles && manifest.configurationSchemaVersion < 4)
+        addIssue(
+          context,
+          [...templatePath, "styles"],
+          "This package does not declare editable theme styles.",
+        );
+      if (manifest.shellSettings) {
+        if (!template.shell)
+          addIssue(
+            context,
+            [...templatePath, "shell"],
+            "The shared header and footer presentation is required.",
+          );
+        else {
+          validateInstanceSettings(
+            template.shell.settings,
+            manifest.shellSettings,
+            approvedRemoteMediaHosts,
+            context,
+            [...templatePath, "shell"],
+            manifest.configurationSchemaVersion >= 4,
+          );
+          if (
+            JSON.stringify(template.shell.capabilities) !==
+            JSON.stringify(manifest.shellCapabilities ?? [])
+          )
+            addIssue(
+              context,
+              [...templatePath, "shell"],
+              "Shared shell capabilities must match the package.",
+            );
+        }
+      } else if (template.shell)
+        addIssue(
+          context,
+          [...templatePath, "shell"],
+          "This package does not declare shared shell presentation.",
+        );
+      for (const definition of sections) {
+        const instances = template.sections.filter(({ type }) => type === definition.type);
+        if (
+          definition.authoring &&
+          instances.length > 0 &&
+          (!definition.authoring.pageTypes.includes(template.pageType) ||
+            instances.length > definition.authoring.maxInstances)
+        )
+          addIssue(
+            context,
+            [...templatePath, "sections"],
+            "The section exceeds its declared page or instance limit.",
+          );
+      }
       if (!manifest.supportedPageTemplates.includes(template.pageType)) {
         addIssue(context, [...templatePath, "pageType"], "The page template is not supported.");
       }
@@ -1088,7 +1212,7 @@ function validateThemePackage(
         [...templatePath, "sections"],
         "Section and block instance IDs must be unique within a template.",
       );
-      const visibleCapabilities = new Set<string>();
+      const visibleCapabilities = new Set<string>(template.shell?.capabilities ?? []);
       template.sections.forEach((section, sectionIndex) => {
         const sectionPath = [...templatePath, "sections", sectionIndex] as PropertyKey[];
         const definition = sectionByType.get(section.type);
@@ -1106,6 +1230,7 @@ function validateThemePackage(
           approvedRemoteMediaHosts,
           context,
           sectionPath,
+          manifest.configurationSchemaVersion >= 4,
         );
         if (section.required && !section.visible) {
           addIssue(context, [...sectionPath, "visible"], "A required section cannot be hidden.");
@@ -1164,6 +1289,7 @@ function validateThemePackage(
             approvedRemoteMediaHosts,
             context,
             blockPath,
+            manifest.configurationSchemaVersion >= 4,
           );
           for (const capability of block.capabilities) {
             if (!blockDefinition.capabilities.includes(capability)) {

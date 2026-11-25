@@ -5,6 +5,8 @@ import { pathToFileURL } from "node:url";
 import { storefrontThemeDescriptorSchema, type StorefrontThemeDescriptor } from "@shoppp/contracts";
 
 import { storefrontThemeCatalog } from "../app/generated/theme-catalog";
+import { fashionStoreEditorDescriptor } from "../app/themes/fashion-store/authoring/package";
+import { fashionStorePackageRegistrations } from "../app/themes/fashion-store/package-registry";
 import { buildCatalogSearchIndex } from "../app/theme-engine/search";
 import { experienceBuildInputSchema, type ExperienceBuildInput } from "./experience-build-input";
 
@@ -41,9 +43,18 @@ function validatedDescriptor(
   catalog: readonly StorefrontThemeDescriptor[],
 ): StorefrontThemeDescriptor {
   const descriptors = catalog.map((entry) => storefrontThemeDescriptorSchema.parse(entry));
-  const descriptor = descriptors.find(({ id }) => id === input.themeId);
+  let descriptor = descriptors.find(({ id }) => id === input.themeId);
   if (!descriptor) {
     throw new Error(`Theme ${input.themeId} is not present in the approved theme catalog.`);
+  }
+  // A selectable catalog advances independently of already approved exact packages.
+  // Only the repository's current descriptor grants access to its retained readers.
+  if (input.themeId === "fashion-store" && JSON.stringify(descriptor) === JSON.stringify(storefrontThemeDescriptorSchema.parse(fashionStoreEditorDescriptor))) {
+    const registration = fashionStorePackageRegistrations.find(entry => entry.lifecycle === "successor" && entry.package.manifest.themeVersion === input.snapshot.themeVersion && entry.package.manifest.configurationSchemaVersion === input.snapshot.configurationSchemaVersion && entry.package.manifest.platformContractVersion === input.snapshot.platformContractVersion);
+    if (registration) {
+      const manifest = registration.package.manifest;
+      descriptor = { ...descriptor, themeVersion: manifest.themeVersion, configurationSchemaVersion: manifest.configurationSchemaVersion, platformContractVersion: manifest.platformContractVersion, platformCompatibility: manifest.platformCompatibility, supportedPageTemplates: manifest.supportedPageTemplates, presets: registration.package.presets.map(({ id }) => id) };
+    }
   }
   if (
     input.snapshot.themeId !== descriptor.id ||

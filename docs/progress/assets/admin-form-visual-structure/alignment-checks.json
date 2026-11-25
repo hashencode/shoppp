@@ -1,0 +1,62 @@
+[
+  {
+    "label": "left",
+    "fields": [
+      {
+        "label": "SEO 标题",
+        "left": 288,
+        "width": 752
+      },
+      {
+        "label": "内容状态",
+        "left": 288,
+        "width": 752
+      },
+      {
+        "label": "已保存版本",
+        "left": 288,
+        "width": 752
+      }
+    ]
+  },
+  {
+    "label": "right",
+    "fields": [
+      {
+        "label": "SEO 标题",
+        "left": 464,
+        "width": 752
+      },
+      {
+        "label": "内容状态",
+        "left": 464,
+        "width": 752
+      },
+      {
+        "label": "已保存版本",
+        "left": 464,
+        "width": 752
+      }
+    ]
+  },
+  {
+    "label": "center",
+    "fields": [
+      {
+        "label": "SEO 标题",
+        "left": 376,
+        "width": 752
+      },
+      {
+        "label": "内容状态",
+        "left": 376,
+        "width": 752
+      },
+      {
+        "label": "已保存版本",
+        "left": 376,
+        "width": 752
+      }
+    ]
+  }
+]

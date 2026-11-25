@@ -1,6 +1,6 @@
 import { ReloadOutlined } from '@ant-design/icons'
-import { Alert, Button, Card, Input, Modal } from 'antd'
-import React, { useEffect, useState } from 'react'
+import { Alert, Button, Card, Form, Input, Modal, Typography } from 'antd'
+import React, { useEffect, useState, useId } from 'react'
 
 import { normalizeApiError } from '../../infrastructure/http/api-client'
 import {
@@ -23,6 +23,7 @@ export function ReviewModerationPage() {
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [selected, setSelected] = useState<ProductReview | null>(null)
   const [reason, setReason] = useState('')
+  const reasonId = useId()
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -158,9 +159,9 @@ export function ReviewModerationPage() {
                         <p className="font-medium">
                           {review.displayName} · {review.rating}/5
                         </p>
-                        <p className="text-sm text-gray-600">
+                        <Typography.Paragraph type="secondary" className="!mb-0 text-sm">
                           {review.productId} · {review.submittedAt}
-                        </p>
+                        </Typography.Paragraph>
                         <p className="break-words">{review.body}</p>
                       </div>
                       <Button disabled={busy || loading} onClick={() => void openReview(review.id)}>
@@ -188,26 +189,26 @@ export function ReviewModerationPage() {
         keyboard={!busy && !dialog.busy}
       >
         {selected ? (
-          <div className="space-y-3">
-            <p>
+          <div>
+            <Typography.Paragraph>
               {selected.displayName} · {selected.rating}/5
-            </p>
-            <p className="break-words">{selected.body}</p>
-            <label className="block space-y-1">
-              <span>{t('Decision reason')}</span>
+            </Typography.Paragraph>
+            <Typography.Paragraph className="break-words">{selected.body}</Typography.Paragraph>
+            <Form.Item label={t('Decision reason')} htmlFor={reasonId} layout="vertical">
               <Input.TextArea
+                id={reasonId}
                 disabled={busy || dialog.busy}
                 maxLength={500}
                 rows={3}
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
               />
-            </label>
-            <p className="text-sm text-gray-600">
+            </Form.Item>
+            <Typography.Paragraph type="secondary">
               {t(
                 'Approval is saved now; the public page changes after a new Catalog release is deployed.'
               )}
-            </p>
+            </Typography.Paragraph>
             <div className="flex flex-wrap gap-2">
               <Button
                 type="primary"

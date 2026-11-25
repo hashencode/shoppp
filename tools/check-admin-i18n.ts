@@ -186,26 +186,14 @@ export const dynamicCatalogs = [
     variable: "targetBehaviorLabels",
   },
   {
-    filePath: "apps/admin/src/pages/storefront/theme-editor-page.tsx",
-    variable: "moveSection",
-    fields: ["message"],
-  },
-  {
     filePath: "packages/contracts/src/admin.ts",
     variable: "ADMIN_PERMISSION_CATALOG",
     fields: ["category", "label", "description"],
   },
   { filePath: "apps/admin/src/shared/i18n/api-error.ts", variable: "API_ERROR_MESSAGE" },
   { filePath: "apps/admin/src/pages/iam/users-page.tsx", variable: "labels" },
-  {
-    filePath: "apps/admin/src/pages/storefront/theme-editor-page.tsx",
-    variable: "operatorRunStatusMessages",
-  },
-  {
-    filePath: "apps/admin/src/pages/storefront/theme-editor-page.tsx",
-    variable: "previewBuildStatus",
-    fields: ["label"],
-  },
+  { filePath: "apps/admin/src/pages/storefront/theme-editor/editor-labels.ts", variable: "editorPageLabels" },
+  { filePath: "apps/admin/src/pages/storefront/theme-editor/editor-labels.ts", variable: "editorRegionLabels" },
 ] as const;
 
 export const scanMessageCatalog = (

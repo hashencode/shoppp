@@ -110,6 +110,9 @@ const DISPOSABLE_TABLES = [
   "store_identity_logo_assets",
   "store_identity_versions",
   "storefront_experience_drafts",
+  "storefront_editor_sessions",
+  "storefront_active_publications",
+  "storefront_publications",
   "storefront_experience_migrations",
   "storefront_experience_snapshots",
   "storefront_experience_validations",
@@ -297,7 +300,7 @@ export async function getFashionStagingCatalogPreflight(db: D1Database): Promise
   activeWorkCount: number;
   iamFingerprint: string;
 }> {
-  const [acceptance, operator, releases, builds, iamFingerprint] = await Promise.all([
+  const [acceptance, operator, releases, builds, publications, iamFingerprint] = await Promise.all([
     db
       .prepare(
         "SELECT COUNT(*) AS count FROM fashion_staging_acceptance_runs WHERE status IN ('acquired', 'running', 'cleanup_pending')",
@@ -316,6 +319,7 @@ export async function getFashionStagingCatalogPreflight(db: D1Database): Promise
         "SELECT COUNT(*) AS count FROM storefront_preview_builds WHERE status IN ('pending', 'building')",
       )
       .first<{ count: number }>(),
+    db.prepare("SELECT (SELECT COUNT(*) FROM storefront_active_publications) + (SELECT COUNT(*) FROM storefront_publications WHERE status IN ('queued', 'building', 'unresolved')) AS count").first<{ count: number }>(),
     fashionStagingIamFingerprint(db),
   ]);
   return {
@@ -323,7 +327,7 @@ export async function getFashionStagingCatalogPreflight(db: D1Database): Promise
       Number(acceptance?.count ?? 0) +
       Number(operator?.count ?? 0) +
       Number(releases?.count ?? 0) +
-      Number(builds?.count ?? 0),
+      Number(builds?.count ?? 0) + Number(publications?.count ?? 0),
     iamFingerprint,
   };
 }
@@ -456,7 +460,9 @@ async function acquireFashionStagingCatalogResetLock(
           AND NOT EXISTS (SELECT 1 FROM catalog_releases WHERE status = 'building')
           AND NOT EXISTS (
             SELECT 1 FROM storefront_preview_builds WHERE status IN ('pending', 'building')
-          )`,
+          )
+          AND NOT EXISTS (SELECT 1 FROM storefront_active_publications)
+          AND NOT EXISTS (SELECT 1 FROM storefront_publications WHERE status IN ('queued', 'building', 'unresolved'))`,
     )
     .bind(RESET_LOCK_ID, requestId, now.toISOString(), RESET_LOCK_ID)
     .run();

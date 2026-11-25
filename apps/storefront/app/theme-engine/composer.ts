@@ -36,6 +36,7 @@ import {
 } from "./view-models";
 
 type StorefrontCatalogRelease = CanonicalCatalogRelease | CatalogReleaseV3;
+export type CompositionExperience = Pick<ExperienceSnapshot, "bindings" | "contact" | "configurationSchemaVersion" | "resolvedTemplates" | "themeId" | "themeVersion">;
 type CatalogProduct = StorefrontCatalogRelease["products"][number];
 type CatalogCollection = StorefrontCatalogRelease["collections"][number];
 
@@ -53,7 +54,7 @@ function relatedCollectionForProduct(
 }
 
 function selectedRelatedCollectionId(
-  experience: ExperienceSnapshot | undefined,
+  experience: CompositionExperience | undefined,
   instanceId: string | undefined,
 ): string | undefined {
   for (const binding of experience?.bindings ?? []) {
@@ -117,7 +118,7 @@ export interface ComposeExperienceRouteInput {
 }
 
 function matchingTemplate(
-  experience: ExperienceSnapshot,
+  experience: CompositionExperience,
   route: ResolvedThemeRouteContract,
 ): { pageId: string; template?: PageTemplate } {
   const stableId = route.parameters?.productId ?? route.parameters?.collectionId;
@@ -632,6 +633,7 @@ function editorMedia(
 export function resolveReleasedNavigation(
   release: StorefrontCatalogRelease,
   placement: "footer" | "header",
+  selectedId?: string,
 ): PresentationShellViewModel["footer"]["navigation"] {
   if (release.schemaVersion === 2) return undefined;
   const navigation = "navigation" in release ? release.navigation : [];
@@ -659,7 +661,7 @@ export function resolveReleasedNavigation(
         : undefined;
     return resource ? { href: resource.route, targetBehavior: "same-window" } : undefined;
   };
-  const record = navigation.find((candidate) => candidate.placement === placement);
+  const record = navigation.find((candidate) => selectedId ? candidate.id === selectedId : candidate.placement === placement);
   if (!record) return undefined;
   const roots = record.items
     .filter(({ parentId }) => parentId === null)
@@ -791,7 +793,7 @@ function shellViewModel(
         logo ??
         (canonicalClaims ? undefined : editorMedia(release, settings["footer-logo"], mediaOrigin)),
       logoPresentation,
-      navigation: resolveReleasedNavigation(release, "footer"),
+      navigation: resolveReleasedNavigation(release, "footer", typeof settings["footer-menu"] === "object" && settings["footer-menu"] !== null && "id" in settings["footer-menu"] ? String(settings["footer-menu"].id) : undefined),
       ...(!contact && !canonicalClaims
         ? { socialLink: editorLink(adapter, release, settings["footer-social-link"]) }
         : {}),
@@ -809,7 +811,7 @@ function shellViewModel(
         logo ??
         (canonicalClaims ? undefined : editorMedia(release, settings["header-logo"], mediaOrigin)),
       logoPresentation,
-      navigation: resolveReleasedNavigation(release, "header"),
+      navigation: resolveReleasedNavigation(release, "header", typeof settings["header-menu"] === "object" && settings["header-menu"] !== null && "id" in settings["header-menu"] ? String(settings["header-menu"].id) : undefined),
       ...(!contact && !canonicalClaims
         ? { socialLink: editorLink(adapter, release, settings["header-social-link"]) }
         : {}),
@@ -962,6 +964,7 @@ export function composeExperienceShell(input: {
   const shellSource = homeTemplate?.sections.find(
     ({ type, visible }) => visible && type === shellSourceType,
   );
+  if (homeTemplate?.shell) return shellViewModel(input.adapter, release.data, homeTemplate.shell.settings, experience.data.contact, exactClaimReader(experience.data, release.data) === "canonical");
   return shellSource
     ? shellViewModel(
         input.adapter,
@@ -1242,6 +1245,7 @@ function composeDeclaredSections(input: {
   const shellSection = shellContract
     ? visibleSections.find(({ type }) => type === shellContract.sourceSectionType)
     : undefined;
+  const shellSettings = input.template.shell?.settings ?? shellSection?.settings;
   let composedHome: Extract<PresentationViewModel, { kind: "home" }> | undefined;
 
   for (const section of visibleSections) {
@@ -1257,7 +1261,7 @@ function composeDeclaredSections(input: {
       continue;
     }
     const bindingSource =
-      contract.live.resolver === "home-sections" && shellSection ? shellSection : section;
+      contract.live.resolver === "home-sections" && shellSection && !input.template.shell ? shellSection : section;
     const bindings = input.bindingsByInstance.get(bindingSource?.id ?? section.id) ?? [];
     const resolvedBindings = new Map<string, CatalogResourceBinding>();
     let invalid = false;
@@ -1392,6 +1396,7 @@ function composeDeclaredSections(input: {
       const featuredProduct = firstProduct
         ? input.productsById.get(firstProduct.reference.id)
         : undefined;
+      if (input.template.shell) composedHome = undefined;
       composedHome ??= homeViewModel(
         input.adapter,
         input.release,
@@ -1462,7 +1467,7 @@ function composeDeclaredSections(input: {
     viewModels[section.id] = viewModel;
   }
 
-  if (shellContract && !shellSection) {
+  if (shellContract && !shellSettings) {
     diagnostics.push({
       code: "section-resolver-mismatch",
       message: `Renderer shell source ${shellContract.sourceSectionType} is not visible in the selected template.`,
@@ -1473,12 +1478,12 @@ function composeDeclaredSections(input: {
 
   return {
     diagnostics,
-    ...(shellSection
+    ...(shellSettings
       ? {
           shell: shellViewModel(
             input.adapter,
             input.release,
-            shellSection.settings,
+            shellSettings,
             input.contact,
             input.canonicalClaims,
           ),
@@ -1492,6 +1497,14 @@ export function composeExperienceRoute(
   input: ComposeExperienceRouteInput,
 ): ComposedExperienceRoute {
   const experience = experienceSnapshotSchema.parse(input.experience);
+  return composeEditorExperienceRoute({ ...input, experience });
+}
+
+// Transient editor input has no approval, Snapshot ID or publication authority.
+export function composeEditorExperienceRoute(
+  input: Omit<ComposeExperienceRouteInput, "experience"> & { experience: CompositionExperience },
+): ComposedExperienceRoute {
+  const experience = input.experience;
   const parsedRelease = catalogReleaseV3Schema
     .or(canonicalCatalogReleaseSchema)
     .safeParse(input.release);
@@ -1543,6 +1556,11 @@ export function composeExperienceRoute(
   const diagnostics: CompositionDiagnostic[] = [];
   const viewModels: Record<string, PresentationViewModel> = {};
   const catalogBindingsByInstance = new Map<string, CatalogResourceBinding[]>();
+  for (const [settingId, value] of Object.entries(template.shell?.settings ?? {})) {
+    if (typeof value === "object" && value !== null && "kind" in value && value.kind === "navigation" &&
+      (release.schemaVersion !== 3 || !release.navigation.some(({ id }) => id === value.id)))
+      return { diagnostics: [{ code: "catalog-reference-missing", message: "Select a menu present in the pinned published sources.", pageId, path, sectionId: "shared-header", settingId }], locale: input.locale, ok: false, pageId, path, releaseId: release.releaseId, template, viewModels: {} };
+  }
   for (const candidate of experience.bindings) {
     if (candidate.kind !== "catalog") continue;
     const binding = catalogResourceBindingSchema.parse(candidate);
@@ -1761,6 +1779,7 @@ export function composeExperienceRoute(
     path,
     releaseId: release.releaseId,
     template,
+    ...(template.shell ? { shell: shellViewModel(input.adapter, release, template.shell.settings, experience.contact, canonicalClaims) } : {}),
     viewModels,
   };
 }

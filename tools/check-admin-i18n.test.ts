@@ -121,7 +121,7 @@ describe("Admin translation coverage", () => {
     const audit = auditAdminI18n(fileURLToPath(new URL("..", import.meta.url)), zhCNMessages);
     expect(audit.messages.length).toBeGreaterThan(500);
     for (const key of [
-      "{id} moved to position {position} of {count} on {pageType}.",
+      "Save design",
       "Checkout payment succeeded",
       "Payment event applied",
       "Order confirmed",

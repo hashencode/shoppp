@@ -25,6 +25,9 @@ export async function cleanupExpiredStorefrontPreviews(
   now = new Date(),
 ): Promise<{ artifacts: number; grants: number; objects: number; sessions: number }> {
   const timestamp = now.toISOString();
+  await environment.DB.prepare("DELETE FROM storefront_editor_sessions WHERE expires_at <= ?")
+    .bind(timestamp)
+    .run();
   const expired = await environment.DB.prepare(
     `SELECT b.id, b.artifact_prefix, b.expires_at
        FROM storefront_preview_builds b

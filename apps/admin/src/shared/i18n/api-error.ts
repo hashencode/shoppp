@@ -6,6 +6,8 @@ import { useCurrentTranslate } from '../contexts/i18n-context'
 type Translate = (message: string, values?: Record<string, number | string>) => string
 
 const API_ERROR_MESSAGE: Record<ApiErrorCode, string> = {
+  storefront_experience_draft_busy: 'This draft has an active operator run or preview build. Complete that operation before removing it.',
+  storefront_editor_session_unavailable: 'The editor preview session expired. Reconnect to continue editing.',
   fashion_u8_operator_run_canceled: 'The operator acceptance run was canceled.',
   fashion_u8_operator_run_consumed: 'The operator acceptance run has already been consumed.',
   fashion_u8_operator_run_expired: 'The operator acceptance run has expired.',

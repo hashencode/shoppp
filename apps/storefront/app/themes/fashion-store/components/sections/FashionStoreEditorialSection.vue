@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { visibleBlockId } from "../../../../theme-engine/section-blocks";
+import { useStorefrontEditorBlockId } from "../../../../theme-engine/editor-context";
 import type { FashionStoreHomeSectionProperties } from "./home-section-context";
 import {
   resolveFashionStoreHomeEditorial,
@@ -7,6 +9,7 @@ import {
 } from "./home-section-context";
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
+const editorBlockId = useStorefrontEditorBlockId(() => properties.instance);
 const context = computed(() => resolveFashionStoreHomeSectionContext(properties.viewModel));
 const editorial = computed(() =>
   resolveFashionStoreHomeEditorial(properties.viewModel, properties.instance),
@@ -44,7 +47,7 @@ function sourceAsset(sourcePath: string): string {
             data-anime='{ "el": "childs", "translateY": [15, 0], "translateX": [-15, 0], "opacity": [0,1], "duration": 500, "delay": 300, "staggervalue": 300, "easing": "easeOutQuad" }'
           >
             <li class="grid-sizer"></li>
-            <li v-for="entry in editorial.magazine" :key="entry.name" class="grid-item">
+            <li v-for="(entry, index) in editorial.magazine" :data-editor-instance="editorBlockId('fashion-store.editorial-card', index)" :key="visibleBlockId(properties.instance, 'fashion-store.editorial-card', index) ?? entry.name" class="grid-item">
               <article class="card bg-transparent border-0 h-100">
                 <div class="blog-image position-relative overflow-hidden">
                   <a

@@ -82,6 +82,7 @@ import {
 import {
   createStorefrontPublication,
   getActiveStorefrontPublication,
+  getStorefrontLibraryHistory,
   getStorefrontPublication,
   getStorefrontPublicationBuildManifest,
   getStorefrontPublicationContext,
@@ -145,6 +146,9 @@ import {
   revokeAdminInvitation,
 } from "../iam/invitations";
 import { requirePermission } from "../iam/permissions";
+import { createEditorSession, editorSessionRecord, editorSessionContext } from "../storefront-experience/editor-sessions";
+import { applyDraftLibraryAction } from "../storefront-experience/draft-library";
+import { storefrontDraftLibraryActionSchema } from "@shoppp/contracts";
 import { getSetupGuide } from "../settings/setup-guide";
 import { getSetupGuideDestinations } from "../settings/setup-guide-destinations";
 import { getContactSettings, updateContactSettings } from "../settings/contact-profile";
@@ -197,6 +201,7 @@ import {
   getCanonicalDeployedCatalogRelease,
   listStorefrontCatalogResources,
   listStorefrontCatalogReleases,
+  storefrontDestinationsForRelease,
 } from "../storefront-experience/catalog-resources";
 import { adminAuthentication, type TestIdentityVerifier } from "../middleware/auth";
 import { adminOriginProtection, isAllowedAdminBrowserOrigin } from "../middleware/admin-origin";
@@ -285,6 +290,7 @@ import {
   createStorefrontExperiencePreviewSnapshot,
   dryRunStorefrontExperienceMigration,
   getStorefrontExperienceDraft,
+  storefrontEditorDraftContext,
   getStorefrontExperienceSnapshot,
   listStorefrontExperienceDrafts,
   listStorefrontThemes,
@@ -1588,6 +1594,12 @@ export function createApp(options: CreateAppOptions = {}) {
       meta: { requestId: context.get("requestId") },
     });
   });
+  app.get("/admin/storefront-publications", async (context) => {
+    requirePublicationHuman(context);
+    await requirePermission(context, "themes.read", { type: "storefront_publication" });
+    context.header("Cache-Control", "private, no-store");
+    return context.json({ data: await getStorefrontLibraryHistory(context) });
+  });
   app.get("/admin/storefront-publications/active", async (context) => {
     requirePublicationHuman(context);
     await requirePermission(context, "themes.read", { type: "storefront_publication" });
@@ -1799,6 +1811,20 @@ export function createApp(options: CreateAppOptions = {}) {
       meta: { requestId: context.get("requestId") },
     });
   });
+  app.get("/admin/storefront-experiences/catalog-releases/:id", async (context) => {
+    await requirePermission(context, "themes.preview", { type: "storefront_catalog_release" });
+    await requireCatalogReleaseRead(context, context.req.param("id"));
+    const release = await getCanonicalDeployedCatalogRelease(context.env.DB, context.req.param("id"), { allowPrivateCandidate: true, environment: context.env.ENVIRONMENT, principalKind: context.get("principal").principalKind });
+    context.header("Cache-Control", "private, no-store");
+    return context.json({ data: {
+      id: release.releaseId, approvedAt: release.generatedAt, deployedAt: null, environment: context.env.ENVIRONMENT,
+      status: release.schemaVersion === 3 && release.purpose === "private-preview" ? "private-preview" : "deployed",
+      products: release.products.map(({ id, name, slug }) => ({ id, name, slug, kind: "product" })),
+      collections: release.collections.map(({ id, name, slug }) => ({ id, name, slug, kind: "collection" })),
+      destinations: storefrontDestinationsForRelease(release),
+      menus: release.schemaVersion === 3 ? release.navigation.map(({ id, placement }) => ({ id, placement })) : [],
+    } });
+  });
   app.get("/admin/storefront-experiences/catalog-releases/:id/resources", async (context) => {
     await requirePermission(context, "themes.preview", {
       id: context.req.param("id"),
@@ -1898,6 +1924,38 @@ export function createApp(options: CreateAppOptions = {}) {
       data: await getStorefrontExperienceDraft(context.env.DB, context.req.param("id")),
       meta: { requestId: context.get("requestId") },
     });
+  });
+  app.post("/admin/storefront-experiences/drafts/:id/library-actions", async (context, next) => {
+    await requirePermission(context, "themes.write", { type: "storefront_experience_draft", id: context.req.param("id") });
+    await next();
+  }, idempotency("storefront.draft.library"), async (context) => {
+    const input = await parseJson(context, storefrontDraftLibraryActionSchema);
+    const data = await applyDraftLibraryAction(context, context.req.param("id"), input);
+    return context.json({ data }, input.kind === "copy" ? 201 : 200);
+  });
+  app.get("/admin/storefront-experiences/drafts/:id/editor-definition", async (context) => {
+    await requirePermission(context, "themes.read", { type: "storefront_editor" });
+    context.header("Cache-Control", "private, no-store");
+    return context.json({ data: await storefrontEditorDraftContext(context.env.DB, context.req.param("id")) });
+  });
+  app.post("/admin/storefront-experiences/drafts/:id/editor-sessions", async (context) => {
+    requireAdminBrowserOrigin(context);
+    await requirePermission(context, "themes.read", { type: "storefront_editor" });
+    await requirePermission(context, "themes.preview", { type: "storefront_editor" });
+    await requirePermission(context, "settings.read", { type: "storefront_editor" });
+    const input = await parseJson(context, z.object({ catalogReleaseId: z.string().min(1).max(100) }).strict());
+    await requireCatalogReleaseRead(context, input.catalogReleaseId);
+    context.header("Cache-Control", "private, no-store");
+    return context.json({ data: await createEditorSession(context, context.req.param("id"), input.catalogReleaseId) }, 201);
+  });
+  app.get("/admin/storefront-editor/sessions/:id", async (context) => {
+    await requirePermission(context, "themes.read", { type: "storefront_editor" });
+    await requirePermission(context, "themes.preview", { type: "storefront_editor" });
+    await requirePermission(context, "settings.read", { type: "storefront_editor" });
+    const session = await editorSessionRecord(context, context.req.param("id"));
+    await requireCatalogReleaseRead(context, session.catalog_release_id);
+    context.header("Cache-Control", "private, no-store");
+    return context.json({ data: await editorSessionContext(context, session) });
   });
   app.get("/admin/storefront-experiences/drafts/:id/operator-run", async (context) => {
     await requirePermission(context, "themes.read", {

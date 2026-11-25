@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { visibleBlockId } from "../../../../theme-engine/section-blocks";
+import { useStorefrontEditorBlockId } from "../../../../theme-engine/editor-context";
 import type { FashionStoreHomeSectionProperties } from "./home-section-context";
 import {
   resolveFashionStoreHomeFoundation,
@@ -7,6 +9,7 @@ import {
 import { useFashionStoreMotionViewport } from "../../composables/useFashionStoreMotionViewport";
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
+const editorBlockId = useStorefrontEditorBlockId(() => properties.instance);
 const context = computed(() => resolveFashionStoreHomeSectionContext(properties.viewModel));
 const foundation = computed(() =>
   resolveFashionStoreHomeFoundation(properties.viewModel, properties.instance),
@@ -64,7 +67,7 @@ onBeforeUnmount(() => {
             data-fashion-store-marquee
             :data-motion-paused="motionPauseReason"
           >
-            <div v-for="(message, index) in marqueeMessages" :key="index" class="swiper-slide">
+            <div v-for="(message, index) in marqueeMessages" :data-editor-instance="editorBlockId('fashion-store.marquee-item', index)" :key="visibleBlockId(properties.instance, 'fashion-store.marquee-item', index) ?? index" class="swiper-slide">
               <div
                 class="alt-font fs-26 fw-500 text-dark-gray border-color-extra-medium-gray border-end pt-30px pb-30px ps-60px pe-60px sm-p-25px"
               >

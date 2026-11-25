@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>UX-008 目标示意</title>
+    <link rel="stylesheet" href="target.css" />
+  </head>
+  <body>
+    <header class="top">
+      <strong>Shoppp 后台</strong><span>UX-008</span
+      ><span class="watermark">目标设计示意 · 未实现</span>
+    </header>
+    <main class="canvas">
+      <section class="panel">
+        <h2>自动化恢复</h2>
+        <div class="field">
+          <label>任务筛选</label>
+          <div class="input">全部任务</div>
+        </div>
+        <div class="changed">
+          <span class="number">1</span>
+          <div class="empty">
+            <div class="empty-icon">✓</div>
+            <h2>当前没有需要恢复的任务</h2>
+            <p>没有失败任务需要你处理。新的失败任务出现后会列在这里。</p>
+            <span class="btn">刷新任务列表</span>
+          </div>
+        </div>
+      </section>
+      <section class="panel changed">
+        <span class="number">2</span>
+        <h2>其他状态也分别表达</h2>
+        <p><b>筛选无匹配：</b>没有符合条件的任务，可清空筛选。</p>
+        <p><b>加载失败：</b>暂时无法取得任务，可重试。</p>
+      </section>
+    </main>
+    <p class="footnote">静态示意：用于比较布局与状态，控件不会操作后台。</p>
+  </body>
+</html>

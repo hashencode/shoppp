@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react'
-import { Alert, Button, Card, Form, Input } from 'antd'
+import { Alert, Button, Card, Form, Input, theme } from 'antd'
 import { Link, useSearchParams } from 'react-router-dom'
 import { confirmAdminPasswordReset } from '../../services/auth/api'
 import { useI18n } from '../../shared/contexts/i18n-context'
@@ -13,6 +13,7 @@ interface ResetFields {
 
 export const ResetPasswordPage = () => {
   const { t } = useI18n()
+  const { token: themeToken } = theme.useToken()
   const [params] = useSearchParams()
   const token = params.get('token') ?? ''
   const [complete, setComplete] = useState(false)
@@ -37,14 +38,27 @@ export const ResetPasswordPage = () => {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
+    <main
+      className="flex min-h-screen items-center justify-center px-4 py-10"
+      style={{ background: themeToken.colorBgLayout }}
+    >
       <Card className="w-full max-w-md" title={t('Set a new password')}>
-        {!token ? <Alert type="error" showIcon message={t('The reset link is invalid.')} /> : complete ? (
-          <Alert type="success" showIcon message={t('Password updated. All previous sessions have been signed out.')} />
+        {!token ? (
+          <Alert type="error" showIcon message={t('The reset link is invalid.')} />
+        ) : complete ? (
+          <Alert
+            type="success"
+            showIcon
+            message={t('Password updated. All previous sessions have been signed out.')}
+          />
         ) : (
           <>
             {error ? <Alert className="mb-4" type="error" showIcon message={error} /> : null}
-            <Form<ResetFields> layout="vertical" disabled={submitting} onFinish={(values) => void submit(values)}>
+            <Form<ResetFields>
+              layout="vertical"
+              disabled={submitting}
+              onFinish={(values) => void submit(values)}
+            >
               <Form.Item
                 label={t('New password')}
                 name="newPassword"
@@ -69,11 +83,15 @@ export const ResetPasswordPage = () => {
               >
                 <Input.Password autoComplete="new-password" />
               </Form.Item>
-              <Button block htmlType="submit" loading={submitting} type="primary">{t('Update password')}</Button>
+              <Button block htmlType="submit" loading={submitting} type="primary">
+                {t('Update password')}
+              </Button>
             </Form>
           </>
         )}
-        <div className="mt-4 text-center"><Link to="/login">{t('Back to sign in')}</Link></div>
+        <div className="mt-4 text-center">
+          <Link to="/login">{t('Back to sign in')}</Link>
+        </div>
       </Card>
     </main>
   )

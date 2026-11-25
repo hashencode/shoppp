@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>UX-001 目标示意</title>
+    <link rel="stylesheet" href="target.css" />
+  </head>
+  <body>
+    <header class="top">
+      <strong>Shoppp 后台</strong><span>UX-001</span
+      ><span class="watermark">目标设计示意 · 未实现</span>
+    </header>
+    <main class="canvas">
+      <section class="panel">
+        <h2>开店进度</h2>
+        <span class="tag neutral">5 / 13项已通过</span>
+        <div class="progress"><i></i></div>
+      </section>
+      <section class="panel changed">
+        <span class="number">1</span>
+        <h2>下一步：确认公开联系方式</h2>
+        <p>让顾客能找到客服，并为隐私请求提供联系渠道。</p>
+        <span class="btn primary">前往联系信息</span>
+      </section>
+      <section class="panel changed">
+        <span class="number">2</span>
+        <h2>完整开店清单</h2>
+        <details open>
+          <summary>基础与联系方式 · 当前阶段</summary>
+          <p>商业设置已保存 ✓　公开联系方式待确认</p>
+        </details>
+        <details>
+          <summary>商品与库存 · 待完成</summary>
+          <p>查看商品准备状态</p>
+        </details>
+        <details>
+          <summary>配送与收款 · 待完成</summary>
+          <p>包含需要环境维护者处理的配置</p>
+        </details>
+      </section>
+    </main>
+    <p class="footnote">静态示意：用于比较布局与状态，控件不会操作后台。</p>
+  </body>
+</html>

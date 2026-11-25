@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   Col,
+  Descriptions,
   Empty,
   Form,
   Input,
@@ -31,11 +32,15 @@ import { QueryStateBlock } from '../../shared/components/query-state-block'
 import { useI18n } from '../../shared/contexts/i18n-context'
 import { CustomPageRecipe } from '../../shared/template-kit/recipes/custom-page-recipe'
 
+import { validationStatusMessages } from './theme-feedback'
 import { useFormDialog } from '../../shared/hooks/use-form-dialog'
+import { DraftLibraryActions } from './theme-editor/draft-library-actions'
+import { StorefrontLibraryHistory } from './theme-editor/library-history'
 
 void React
 
 type CreateValues = {
+  name: string
   presetId: string
   reason: string
   themeKey: string
@@ -93,6 +98,7 @@ export const ThemesPage = () => {
   const openCreate = (theme?: AdminStorefrontTheme) => {
     const initialTheme = theme ?? themes[0]
     form.setFieldsValue({
+      name: t('My store design'),
       presetId: initialTheme?.presetDefinitions[0]?.id,
       reason: '',
       themeKey: initialTheme ? themeKey(initialTheme) : undefined,
@@ -111,6 +117,7 @@ export const ThemesPage = () => {
         ) : null
       }
     >
+      <StorefrontLibraryHistory />
       {loading ? (
         <QueryStateBlock state="loading" title={t('Loading storefront themes…')} />
       ) : error ? (
@@ -155,16 +162,33 @@ export const ThemesPage = () => {
                     ) : null
                   }
                 >
-                  <Space orientation="vertical" size="small">
-                    <span>
-                      {t('Contract')} {theme.platformContractVersion} · {t('schema')}{' '}
-                      {theme.configurationSchemaVersion}
-                    </span>
-                    <span>{theme.supportedPageTemplates.join(', ')}</span>
-                    <span>
-                      {t('Presets')}: {theme.presetDefinitions.map(({ label }) => label).join(', ')}
-                    </span>
-                  </Space>
+                  <Descriptions
+                    size="small"
+                    column={1}
+                    styles={{ content: { overflowWrap: 'anywhere' } }}
+                    items={[
+                      {
+                        key: 'contract',
+                        label: t('Platform contract'),
+                        children: theme.platformContractVersion,
+                      },
+                      {
+                        key: 'schema',
+                        label: t('Configuration schema'),
+                        children: theme.configurationSchemaVersion,
+                      },
+                      {
+                        key: 'pages',
+                        label: t('Supported pages'),
+                        children: theme.supportedPageTemplates.join(', '),
+                      },
+                      {
+                        key: 'presets',
+                        label: t('Presets'),
+                        children: theme.presetDefinitions.map(({ label }) => label).join(', '),
+                      },
+                    ]}
+                  />
                 </Card>
               </Col>
             ))}
@@ -180,34 +204,52 @@ export const ThemesPage = () => {
           {drafts.length === 0 ? (
             <Empty description={t('No experience drafts yet.')} />
           ) : (
-            <ul className="divide-y rounded-lg border border-solid border-slate-200">
+            <ul
+              className="rounded-lg border border-solid"
+              style={{ borderColor: 'var(--ant-color-border-secondary)' }}
+            >
               {drafts.map((draft) => (
                 <li
                   key={draft.id}
-                  className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+                  className="flex flex-wrap items-center justify-between gap-3 border-0 border-solid px-4 py-3 [&+li]:border-t"
+                  style={{ borderColor: 'var(--ant-color-border-secondary)' }}
                 >
                   <div>
                     <Space wrap>
-                      <span>{draft.experienceId}</span>
+                      <span>{draft.name ?? draft.experienceId}</span>
                       <Tag>
                         {draft.themeId} {draft.themeVersion}
                       </Tag>
                       <Tag>v{draft.version}</Tag>
                       <Tag color={draft.validation?.status === 'valid' ? 'success' : 'default'}>
-                        {t(draft.validation?.status ?? 'not validated')}
+                        {t(
+                          draft.validation
+                            ? (validationStatusMessages[draft.validation.status] ??
+                                draft.validation.status)
+                            : 'Not validated'
+                        )}
                       </Tag>
                     </Space>
-                    <div className="mt-1 text-sm text-slate-500">
+                    <Typography.Text type="secondary" className="mt-1 block text-sm">
                       {t('Preset')} {draft.presetId} · {t('updated')} {draft.updatedAt}
-                    </div>
+                    </Typography.Text>
                   </div>
-                  <Button
-                    type="link"
-                    icon={<EditOutlined aria-hidden />}
-                    onClick={() => navigate(`/storefront/themes/${draft.id}${guideSearch}`)}
-                  >
-                    {t(canWrite ? 'Edit' : 'View')}
-                  </Button>
+                  <Space wrap>
+                    {canWrite ? (
+                      <DraftLibraryActions
+                        draft={draft}
+                        onUpdated={load}
+                        onCopy={(draft) => navigate(`/storefront/themes/${draft.id}${guideSearch}`)}
+                      />
+                    ) : null}
+                    <Button
+                      type="link"
+                      icon={<EditOutlined aria-hidden />}
+                      onClick={() => navigate(`/storefront/themes/${draft.id}${guideSearch}`)}
+                    >
+                      {t(canWrite ? 'Edit' : 'View')}
+                    </Button>
+                  </Space>
                 </li>
               ))}
             </ul>
@@ -251,7 +293,8 @@ export const ThemesPage = () => {
                   const draft = await createStorefrontExperienceDraft(
                     theme,
                     values.presetId,
-                    values.reason
+                    values.reason,
+                    values.name
                   )
                   if (!createDialog.isCurrent()) return
                   void message.success(t('Experience draft created.'))
@@ -264,6 +307,13 @@ export const ThemesPage = () => {
             }
             disabled={createDialog.busy}
           >
+            <Form.Item
+              name="name"
+              label={t('Draft name')}
+              rules={[{ required: true, whitespace: true, max: 120 }]}
+            >
+              <Input maxLength={120} />
+            </Form.Item>
             <Form.Item name="themeKey" label={t('Theme package')} rules={[{ required: true }]}>
               <Select
                 options={themes.map((theme) => ({

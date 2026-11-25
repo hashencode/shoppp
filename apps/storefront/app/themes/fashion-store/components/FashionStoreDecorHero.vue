@@ -4,6 +4,7 @@ import type { Swiper as SwiperInstance } from "swiper/types";
 import { Swiper, SwiperSlide } from "swiper/vue";
 
 import type { ThemeAssetResolver } from "../../../theme-engine/assets";
+import { storefrontEditorModeKey } from "../../../theme-engine/editor-context";
 import type { FashionStoreDecorHeroSlide } from "../contracts/home-hero";
 import { fashionStoreDecorHeroContract, fashionStoreDecorHeroSlides } from "../contracts/home-hero";
 import { useFashionStoreDecorHeroMotion } from "../composables/useFashionStoreDecorHeroMotion";
@@ -35,6 +36,7 @@ const properties = defineProps<{
 }>();
 const slides = computed(() => properties.slides ?? fashionStoreDecorHeroSlides);
 const root = ref<HTMLElement>();
+const editorMode = inject(storefrontEditorModeKey, false);
 const swiper = shallowRef<SwiperInstance>();
 const activeIndex = ref(0);
 const initialized = ref(false);
@@ -168,6 +170,7 @@ watch([motion.ready, motion.phase], syncInputBoundary, { flush: "sync" });
       >
         <article
           class="fashion-store-decor-hero__slide"
+          :data-editor-instance="editorMode ? slide.id : undefined"
           :data-hero-slide="index + 1"
           :style="{ backgroundColor: slide.background, color: slide.foreground }"
         >

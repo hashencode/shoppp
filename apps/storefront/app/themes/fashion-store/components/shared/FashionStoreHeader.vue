@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { storefrontEditorModeKey } from "../../../../theme-engine/editor-context";
+const editorMode = inject(storefrontEditorModeKey, false);
 import type { ThemeAssetResolver } from "../../../../theme-engine/assets";
 import type { PresentationViewModel } from "../../../../theme-engine/view-models";
 import { liveCommerceModeKey } from "../../../../theme-engine/runtime-commerce";
@@ -143,6 +145,7 @@ defineExpose({ closeTransient });
 <template>
   <header
     class="header-with-topbar fashion-store-header-canonical"
+    :data-editor-instance="editorMode ? 'shared-header' : undefined"
     :class="`fashion-store-header-surface-${background ?? 'solid'}`"
     data-fashion-store-header="true"
     @click="handleHeaderNavigation"

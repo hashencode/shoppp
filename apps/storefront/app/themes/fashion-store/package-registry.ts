@@ -5,6 +5,7 @@ import {
 } from "@shoppp/contracts";
 
 import historicalV1PackagePayload from "./historical/1.0.0/theme-package.json";
+import { fashionStoreEditorPackage } from "./authoring/package";
 import {
   fashionStoreManifest,
   fashionStoreThemeDescriptor,
@@ -57,6 +58,7 @@ export const fashionStorePackageRegistrations = deepFreeze([
   historicalV1Registration,
   legacyV11Registration,
   successorRegistration,
+  deepFreeze(themePackageRegistrationSchema.parse({ lifecycle: "successor", package: fashionStoreEditorPackage })),
 ] as const);
 export const fashionStoreHistoricalPackages = deepFreeze([
   historicalV1Registration.package,
@@ -71,6 +73,7 @@ export function fashionStoreFixtureBindingAliasesForPackage(
   const supportsSplitHomeFixtures = [
     legacyV11Registration.package.manifest,
     fashionStoreSuccessorPackage.manifest,
+    fashionStoreEditorPackage.manifest,
   ].some(
     (supported) =>
       manifest.id === supported.id &&
@@ -82,6 +85,7 @@ export function fashionStoreFixtureBindingAliasesForPackage(
 
 export const fashionStoreDirectMigrationBoundaries = deepFreeze(
   themePackageMigrationBoundarySchema.array().parse([
+    { themeId: "fashion-store", source: { themeVersion: "1.2.0", configurationSchemaVersion: 3 }, target: { themeVersion: "1.3.0", configurationSchemaVersion: 4 } },
     {
       source: {
         configurationSchemaVersion:
@@ -112,6 +116,7 @@ export const fashionStoreDirectMigrationBoundaries = deepFreeze(
 );
 
 export const fashionStoreReaderCompatibilityMatrix = deepFreeze([
+  { experienceSchemaVersion: 4, packageVersion: "1.3.0", reader: "canonical" as const, releaseSchemaVersion: 3 },
   {
     experienceSchemaVersion: 1,
     packageVersion: "1.0.0",
@@ -157,7 +162,7 @@ const exactBoundaryKey = (
   boundary: (typeof fashionStoreDirectMigrationBoundaries)[number],
 ): string =>
   `${boundary.themeId}@${boundary.source.themeVersion}/schema-${boundary.source.configurationSchemaVersion}`;
-const historicalKeys = [historicalV1Registration.package, legacyV11Registration.package]
+const historicalKeys = [historicalV1Registration.package, legacyV11Registration.package, successorRegistration.package]
   .map(exactPackageKey)
   .sort();
 const mappedSourceKeys = fashionStoreDirectMigrationBoundaries.map(exactBoundaryKey).sort();

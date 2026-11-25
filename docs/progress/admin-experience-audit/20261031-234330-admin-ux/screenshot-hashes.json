@@ -1,0 +1,367 @@
+[
+  {
+    "file": "screenshots/SS001-U2-login-initial.jpg",
+    "bytes": 62314,
+    "sha256": "a1549c409fadfc06596b25e3c46242d76f3923ad2b6f468a8814beb180ddd99d"
+  },
+  {
+    "file": "screenshots/SS002-U2-welcome.jpg",
+    "bytes": 194416,
+    "sha256": "dd2f6ae401519062afa77004630eb15c304ed55c98ad595ccd7eb358ad171ec8"
+  },
+  {
+    "file": "screenshots/SS003-U3-business-settings.jpg",
+    "bytes": 152862,
+    "sha256": "d727547a7e32da260e751563f90d2c385515abe70260cb9a6dbd5734d09b7bdf"
+  },
+  {
+    "file": "screenshots/SS004-U3-business-validation.jpg",
+    "bytes": 165101,
+    "sha256": "008d678adcf7e8740c6e8641fea90e0018097f01ff5991a4e24107644d231832"
+  },
+  {
+    "file": "screenshots/SS005-U3-contact-initial.jpg",
+    "bytes": 145777,
+    "sha256": "b01584c7254c1a6a1d04a0b7aa25763124b0f5d88c710817640e62afb1dac2db"
+  },
+  {
+    "file": "screenshots/SS006-U3-contact-saved.jpg",
+    "bytes": 145229,
+    "sha256": "fc05698a766b4a9efb4032e857e2d2bd0a53105ab3a4059f8ce665ed7934a68b"
+  },
+  {
+    "file": "screenshots/SS007-U3-location-drawer.jpg",
+    "bytes": 156805,
+    "sha256": "4b0a00efb8034ab3482ceedb85f58b76811fc9e9ee8ff663a313e4c21798a58e"
+  },
+  {
+    "file": "screenshots/SS008-U3-shipping-empty.jpg",
+    "bytes": 108720,
+    "sha256": "f16179a1c23c08c6acc433506e7675074d6f29534aae0d27b4458825d0424638"
+  },
+  {
+    "file": "screenshots/SS009-U3-shipping-form.jpg",
+    "bytes": 141935,
+    "sha256": "4462e61c3c4e2c48dfebd7508bfe3b93dba69deea1f0fcf5955e3066cfde0e96"
+  },
+  {
+    "file": "screenshots/SS010-U3-shipping-success-modal.jpg",
+    "bytes": 120187,
+    "sha256": "e478dc9249e8ea1d0c05bd843e08ebcc88fb9df47a9e1921ea8d0ce97d044dda"
+  },
+  {
+    "file": "screenshots/SS011-U3-guide-payment-shipping.jpg",
+    "bytes": 192320,
+    "sha256": "7c56949e3d70b1186a3e304ef4c140c8db54a7b8977c8fc23ad5482483fdf248"
+  },
+  {
+    "file": "screenshots/SS012-U3-identity-media.jpg",
+    "bytes": 141838,
+    "sha256": "580531f79e3df29795a19263548e32c906edf8f49bdcf7020f71975d299ebe93"
+  },
+  {
+    "file": "screenshots/SS013-U3-identity-media-options.jpg",
+    "bytes": 154794,
+    "sha256": "02c6af5df5ff5802236175bea52e398f9f01d526a4359cf6f2d81de0fb5498dd"
+  },
+  {
+    "file": "screenshots/SS014-U3-identity-no-data.jpg",
+    "bytes": 150633,
+    "sha256": "4c03e89ae7abaa636a7d94c59099863c7e6ea2a2fefa74d115bab00af93c2bb9"
+  },
+  {
+    "file": "screenshots/SS015-U3-policy-editor.jpg",
+    "bytes": 153706,
+    "sha256": "3e1d9b08ed8215409d191fe698859c559733048abbc095d87b1efd707b9e8a87"
+  },
+  {
+    "file": "screenshots/SS016-U3-policy-validation.jpg",
+    "bytes": 171940,
+    "sha256": "ac222e96fba419c3620f694eb1f1977534c9bf8157e08fdc5d73d102e83e15df"
+  },
+  {
+    "file": "screenshots/SS017-U4-products-empty.jpg",
+    "bytes": 125607,
+    "sha256": "e532235d2b35b20febd572c49ad70445c0c8b50441b955e790f011713346f47b"
+  },
+  {
+    "file": "screenshots/SS018-U4-product-form-top.jpg",
+    "bytes": 142042,
+    "sha256": "e1673bea8c9fd15de5640270571f60a7d48ee0a210c5087dfc03b50211a0fbf3"
+  },
+  {
+    "file": "screenshots/SS019-U4-product-variant.jpg",
+    "bytes": 145130,
+    "sha256": "bfb5827cc90936ed4356685dd3cae827c89deadee5fbf48ebe5fee6165568b30"
+  },
+  {
+    "file": "screenshots/SS020-U4-product-media.jpg",
+    "bytes": 141165,
+    "sha256": "4e1381f0f591c1f23603b660bda25cd40f9429b3047698c9fb5a434aa81386ad"
+  },
+  {
+    "file": "screenshots/SS021-U4-media-uploaded.jpg",
+    "bytes": 151561,
+    "sha256": "2644fc2766d41f8764380c5c86f172843388cdc1bc54d76e924c26c860becaf7"
+  },
+  {
+    "file": "screenshots/SS022-U4-product-created.jpg",
+    "bytes": 160873,
+    "sha256": "a7daad26fe5008f8e5e9dad31ba6c460c488902f99bc2ee88fdedda550480c02"
+  },
+  {
+    "file": "screenshots/SS023-U4-product-list-persisted.jpg",
+    "bytes": 136667,
+    "sha256": "d0b57e5574d138b51c4817b6b043aa1e2895d52659af9e6a56f1f78e5bd0080f"
+  },
+  {
+    "file": "screenshots/SS024-U4-product-publish-confirm.jpg",
+    "bytes": 133314,
+    "sha256": "20b6fa2d74cb73ee36844363e6f64f22e101091e9d9d4ac0c1cd06dec4ffec79"
+  },
+  {
+    "file": "screenshots/SS025-U4-product-published.jpg",
+    "bytes": 135511,
+    "sha256": "5c322aba9e1721de46ba89bece5e250ff3f3110bb75b44c0ea8879c1577ecd0d"
+  },
+  {
+    "file": "screenshots/SS026-U4-publish-no-progress.jpg",
+    "bytes": 139874,
+    "sha256": "ad6f47d9bfac02c431f8e9e80dbb99888a1419fe9847b88a956e91a2ce183939"
+  },
+  {
+    "file": "screenshots/SS027-U4-inventory-empty.jpg",
+    "bytes": 113672,
+    "sha256": "13c3cb02a52a476f79121b0d3369d8a032e304f9eb6b395417b3a2cdb9fcb8a8"
+  },
+  {
+    "file": "screenshots/SS028-U4-collection-drawer.jpg",
+    "bytes": 146545,
+    "sha256": "f63db5c4512218cdef93a244dbe26226876efb4b2da44dc1f2a80f27241b127b"
+  },
+  {
+    "file": "screenshots/SS029-U4-collection-created.jpg",
+    "bytes": 131785,
+    "sha256": "8e488d17f0a021c5ad875febcb666a5ceee9432dbf247e05476a594365c8e7e0"
+  },
+  {
+    "file": "screenshots/SS030-U4-reviews-empty.jpg",
+    "bytes": 103882,
+    "sha256": "a200f415ea6ff8c8494b2def3bc623466fdc7c605f8ee029320a046b0b9186bb"
+  },
+  {
+    "file": "screenshots/SS031-U5-content-form.jpg",
+    "bytes": 146534,
+    "sha256": "6e8cd7b16a8c63ce79573a37a1be8bbf5ab97e05194397ee84a13e1ee767bb92"
+  },
+  {
+    "file": "screenshots/SS032-U5-page-saved.jpg",
+    "bytes": 154805,
+    "sha256": "f3558e8593484b2a28ee189dbd8dc89a084b843522e3fef6353c880ec191996c"
+  },
+  {
+    "file": "screenshots/SS033-U5-page-status.jpg",
+    "bytes": 149366,
+    "sha256": "07929e8b8c6e9ba8bf374ae4764da744c31f8ee8d61b2b250c98848e0cdf8184"
+  },
+  {
+    "file": "screenshots/SS034-U5-article-validation.jpg",
+    "bytes": 161385,
+    "sha256": "79f7b9050c541123a46ec1aba28bf5fd5785041fd409839e26a0981fad7c1d4d"
+  },
+  {
+    "file": "screenshots/SS035-U5-navigation-edit.jpg",
+    "bytes": 147441,
+    "sha256": "626af6827b675781645aa137da071cb860ca33556d068604a129c6920e9c74d2"
+  },
+  {
+    "file": "screenshots/SS036-U5-navigation-saved.jpg",
+    "bytes": 152384,
+    "sha256": "cdfa99936478bff035819b17ef554d3425801c87cfba2b19949f7ba013e7387d"
+  },
+  {
+    "file": "screenshots/SS037-U6-themes.jpg",
+    "bytes": 149430,
+    "sha256": "3c5ff7cccd509628cab67d794e9d0148593f6f77a5d55ae3e4be302dea80ec97"
+  },
+  {
+    "file": "screenshots/SS038-U6-editor-no-source.jpg",
+    "bytes": 197925,
+    "sha256": "8d09fe2fee3e0d73a302bb0a420557ec05831211f633c294221ebcf5412be389"
+  },
+  {
+    "file": "screenshots/SS039-U6-theme-saved.jpg",
+    "bytes": 198101,
+    "sha256": "2ecad29e6ca04ebb058adec89070c5893246c2bda49f7ff550d16984065d5c8f"
+  },
+  {
+    "file": "screenshots/SS040-U6-theme-review-blocked.jpg",
+    "bytes": 196555,
+    "sha256": "3379ff52ca2b32b895de6ddead65a174252435e1c0e515999cf03c71dc573b90"
+  },
+  {
+    "file": "screenshots/SS041-U7-orders-empty.jpg",
+    "bytes": 124119,
+    "sha256": "70476b522c85581876d28ebec1851c8b104c1618221c1d8867029b7e734eb81d"
+  },
+  {
+    "file": "screenshots/SS042-U7-fulfillment-empty.jpg",
+    "bytes": 110205,
+    "sha256": "a897001ecaa79190e3bdc053357361005d3f1228953954a00fa4b36dead0c245"
+  },
+  {
+    "file": "screenshots/SS043-U7-storefront-unavailable.jpg",
+    "bytes": 99691,
+    "sha256": "db4b998c94274f4c2d8f7e2bf242a1e6117b5d9d8bd19c7bfc208e88c8d53671"
+  },
+  {
+    "file": "screenshots/SS044-U8-dashboard-empty.jpg",
+    "bytes": 104745,
+    "sha256": "e330f8a27d504331f22fe1474640fd9720319456399c010829c37862a84d719e"
+  },
+  {
+    "file": "screenshots/SS045-U8-revenue-report.jpg",
+    "bytes": 139003,
+    "sha256": "e2dfe234cc46ba456b60c4985ba0ae09f2fbf0ae7b19d4b1734c4b8b3972f39f"
+  },
+  {
+    "file": "screenshots/SS046-U8-report-date-invalid.jpg",
+    "bytes": 139370,
+    "sha256": "585ad1a4d6a3ee48c92e479e026221dcadcbd4334d658e74714b4a5539ae51a4"
+  },
+  {
+    "file": "screenshots/SS047-U8-export-confirm.jpg",
+    "bytes": 145308,
+    "sha256": "7e2491f6bbf75f3673ff1de2907dffb9ba2da48e2d7eac90028d6a96336eedae"
+  },
+  {
+    "file": "screenshots/SS048-U8-export-ready.jpg",
+    "bytes": 155834,
+    "sha256": "ed719a2f06eb8ac8a8416db11b5099de2b9ba83fc9f9e8f8e6c5df92ea23dbe1"
+  },
+  {
+    "file": "screenshots/SS049-U8-export-download-misdirect.jpg",
+    "bytes": 193781,
+    "sha256": "e3c14643474be7dfb14af9db00bbc5f6a530c2b9d1f3f0b281eb06b1ee9e66ad"
+  },
+  {
+    "file": "screenshots/SS050-U9-users.jpg",
+    "bytes": 140097,
+    "sha256": "d4e2325d5f1897ab82bf204e09072456b70a4d9545f5327cdb63b2cd682105ec"
+  },
+  {
+    "file": "screenshots/SS051-U9-invite-validation.jpg",
+    "bytes": 146686,
+    "sha256": "fbc119a41c13b9f3ca7e7ae3e5186db468d24f328b4294c0967a6b87777d7f39"
+  },
+  {
+    "file": "screenshots/SS052-U9-user-self.jpg",
+    "bytes": 159128,
+    "sha256": "8faa69bedd22cc1898980ab904baf464c78c1f66f55782059937dd3c9dbb200e"
+  },
+  {
+    "file": "screenshots/SS053-U9-role-permissions.jpg",
+    "bytes": 181674,
+    "sha256": "b4b517d9c29ac9c5104cfe1c0db5edf80e8f5788324e2a6708267f44cb8e11d3"
+  },
+  {
+    "file": "screenshots/SS054-U9-role-search.jpg",
+    "bytes": 185673,
+    "sha256": "a30438a6ed04a4e63f1f0de0046bdc77d9dd60744d83e34bf7ef40e229d2de6c"
+  },
+  {
+    "file": "screenshots/SS055-U9-privacy-validation.jpg",
+    "bytes": 143421,
+    "sha256": "84bba4fbcbc3e8ac0f7250b2f342e694c98e1025a133df0d5c86f52f2f7f5be0"
+  },
+  {
+    "file": "screenshots/SS056-U9-audit-log.jpg",
+    "bytes": 286322,
+    "sha256": "ae3713cd7be1f1f98c37067adac409f9f8a4780889ce91d587cafef242eba2b2"
+  },
+  {
+    "file": "screenshots/SS057-U9-audit-filter.jpg",
+    "bytes": 146689,
+    "sha256": "008550d43cacd80742bc94b1313b7d8c78484fecb0d43221615aa32762e4f4cd"
+  },
+  {
+    "file": "screenshots/SS058-U9-jobs-empty.jpg",
+    "bytes": 130407,
+    "sha256": "b239595398dfcc21a9ba3306c6899252e7b812d7a809a281a179a87ea36637e8"
+  },
+  {
+    "file": "screenshots/SS059-U10-audit-back-loses-filter.jpg",
+    "bytes": 286560,
+    "sha256": "cd11a39b465b9ce58507a6759d620a99cbc7e5bd3e7a8ba9366bf4586925c8ec"
+  },
+  {
+    "file": "screenshots/SS060-U10-audit-zoom-200.jpg",
+    "bytes": 186731,
+    "sha256": "ef2b3a74e1424b1a09f27c82f0e7e3fa2ad8dfcdeed6d4c2a6cba72ce0b6d988"
+  },
+  {
+    "file": "screenshots/SS061-U10-audit-width-1440.jpg",
+    "bytes": 230826,
+    "sha256": "2200918e02b3e7b679c60df63ad7d318c211fd1ea4f974ab03b749738d0c59fe"
+  },
+  {
+    "file": "screenshots/SS062-U10-audit-dark-1280.jpg",
+    "bytes": 222586,
+    "sha256": "129afc815a508d6862fb09f9370d2cf07f1c787ca7e6e29b0f02f5a07ec92386"
+  },
+  {
+    "file": "screenshots/SS063-U10-contact-dark.jpg",
+    "bytes": 143093,
+    "sha256": "1d04e69be319785394d03f913d1e4241fbf58e51bf555abbe8fd276a8a5aef1a"
+  },
+  {
+    "file": "screenshots/SS064-U10-contact-english-dirty.jpg",
+    "bytes": 155260,
+    "sha256": "6131006f55fd28949a2aa8d9181c1f092ba1e9df4f090bca7583d873d966a7c0"
+  },
+  {
+    "file": "screenshots/SS065-U10-left-dirty-form.jpg",
+    "bytes": 118987,
+    "sha256": "50c277fe9d6364395301e7b7169acdc126c6cca7d122daec1657b6d1cf5fa0ed"
+  },
+  {
+    "file": "screenshots/SS066-U10-dirty-value-lost.jpg",
+    "bytes": 151025,
+    "sha256": "02188e879f1824037632a03f4379aa02b78b8904a0790581bb66f79b2d9e1ace"
+  },
+  {
+    "file": "screenshots/SS067-U11-zone-disabled.jpg",
+    "bytes": 111198,
+    "sha256": "0f3dc3137966c673d20dc230027c757abafb36095c476a1071aec833f54edca9"
+  },
+  {
+    "file": "screenshots/SS068-U2-login-invalid.jpg",
+    "bytes": 87318,
+    "sha256": "f13d66e1e74c5e803b03801889852a21b8f83276ad2ce0b2003771480462177a"
+  },
+  {
+    "file": "screenshots/SS069-U2-forgot-password.jpg",
+    "bytes": 80778,
+    "sha256": "cce083eed1d5d65062e29621501b3d3f124aa44cc08ed73420426dd04cfadaa6"
+  },
+  {
+    "file": "screenshots/SS070-U2-reset-no-token.jpg",
+    "bytes": 70188,
+    "sha256": "8f5e5bc7208fc6637f9baac7737f7f3670fec6950e14919f9f2ed0692e78f949"
+  },
+  {
+    "file": "screenshots/SS071-U2-activate-no-token.jpg",
+    "bytes": 69777,
+    "sha256": "6d4eb15eae479de9d671fe2c6ac2687396fb36dadb2f45c52770720b39920216"
+  },
+  {
+    "file": "screenshots/SS072-U2-login-restored.jpg",
+    "bytes": 170472,
+    "sha256": "e8d57042c1a34b5baa30de36224484e232b59578f0707150746325b7971b211d"
+  },
+  {
+    "file": "screenshots/SS073-U10-unknown-route.jpg",
+    "bytes": 170142,
+    "sha256": "688753fc0b229f7428fb82486d73c8e75ce0299a3e96bd1faf861629236a2d43"
+  }
+]

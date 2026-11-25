@@ -62,6 +62,41 @@ export default defineConfig(({ command, envMode }) => {
     },
     server: apiProxyTarget
       ? {
+          setup({ server }) {
+            server.middlewares.use('/theme-editor', async (request, response, next) => {
+              const headers = new Headers()
+              for (const key of ['cookie', 'origin', 'sec-fetch-site']) {
+                const value = request.headers[key]
+                if (typeof value === 'string') headers.set(key, value)
+              }
+              try {
+                const session = await fetch(new URL('/admin/session', apiProxyTarget), {
+                  headers,
+                  redirect: 'error',
+                })
+                const body = session.ok
+                  ? ((await session.json()) as { data?: { permissions?: string[] } })
+                  : null
+                if (!session.ok || !body?.data?.permissions?.includes('themes.read')) {
+                  response.writeHead(session.ok ? 403 : session.status, {
+                    'Cache-Control': 'no-store',
+                  })
+                  response.end()
+                  return
+                }
+                response.setHeader('Cache-Control', 'private, no-store')
+                response.setHeader('X-Frame-Options', 'SAMEORIGIN')
+                response.setHeader(
+                  'Content-Security-Policy',
+                  "frame-ancestors 'self'; form-action 'none'; base-uri 'self'"
+                )
+                next()
+              } catch {
+                response.writeHead(503, { 'Cache-Control': 'no-store' })
+                response.end()
+              }
+            })
+          },
           proxy: {
             '/api': {
               target: apiProxyTarget,

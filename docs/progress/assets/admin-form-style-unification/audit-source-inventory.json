@@ -1,0 +1,364 @@
+[
+  {
+    "file": "apps/admin/src/pages/auth/activate-account-page.tsx",
+    "widgets": {
+      "Form.Item": 2
+    },
+    "fixedStyleCandidates": [
+      "bg-slate-50"
+    ]
+  },
+  {
+    "file": "apps/admin/src/pages/auth/change-password-modal.tsx",
+    "widgets": {
+      "Form": 1,
+      "Form.Item": 3,
+      "Modal": 1
+    },
+    "fixedStyleCandidates": []
+  },
+  {
+    "file": "apps/admin/src/pages/auth/forgot-password-page.tsx",
+    "widgets": {
+      "Form": 1,
+      "Form.Item": 1,
+      "Input": 1
+    },
+    "fixedStyleCandidates": [
+      "bg-slate-50"
+    ]
+  },
+  {
+    "file": "apps/admin/src/pages/auth/login-page.tsx",
+    "widgets": {
+      "Form.Item": 2,
+      "Input": 1
+    },
+    "fixedStyleCandidates": [
+      "bg-slate-50"
+    ]
+  },
+  {
+    "file": "apps/admin/src/pages/auth/reset-password-page.tsx",
+    "widgets": {
+      "Form.Item": 2
+    },
+    "fixedStyleCandidates": [
+      "bg-slate-50"
+    ]
+  },
+  {
+    "file": "apps/admin/src/pages/catalog/catalog-form-page.tsx",
+    "widgets": {
+      "Form.Item": 35,
+      "Input": 16,
+      "InputNumber": 8,
+      "Select": 4
+    },
+    "fixedStyleCandidates": []
+  },
+  {
+    "file": "apps/admin/src/pages/catalog/catalog-list-page.tsx",
+    "widgets": {
+      "Modal": 1
+    },
+    "fixedStyleCandidates": []
+  },
+  {
+    "file": "apps/admin/src/pages/catalog/collection-form-page.tsx",
+    "widgets": {
+      "Form.Item": 9,
+      "Input": 3,
+      "Select": 2
+    },
+    "fixedStyleCandidates": []
+  },
+  {
+    "file": "apps/admin/src/pages/catalog/published-product-revision-editor.tsx",
+    "widgets": {
+      "Input": 9,
+      "InputNumber": 2,
+      "fieldset": 2,
+      "label": 16
+    },
+    "fixedStyleCandidates": [
+      "border-gray-200",
+      "border-gray-200",
+      "border-gray-200"
+    ]
+  },
+  {
+    "file": "apps/admin/src/pages/catalog/review-moderation-page.tsx",
+    "widgets": {
+      "Modal": 1,
+      "label": 1
+    },
+    "fixedStyleCandidates": [
+      "text-gray-600",
+      "text-gray-600"
+    ]
+  },
+  {
+    "file": "apps/admin/src/pages/content/content-editor-page.tsx",
+    "widgets": {
+      "Form": 1,
+      "Form.Item": 9,
+      "Modal": 1,
+      "Input": 4
+    },
+    "fixedStyleCandidates": []
+  },
+  {
+    "file": "apps/admin/src/pages/dashboard/dashboard-page.tsx",
+    "widgets": {
+      "Select": 2
+    },
+    "fixedStyleCandidates": []
+  },
+  {
+    "file": "apps/admin/src/pages/iam/permission-checklist.tsx",
+    "widgets": {
+      "fieldset": 1
+    },
+    "fixedStyleCandidates": [
+      "border-slate-200",
+      "text-slate-500"
+    ]
+  },
+  {
+    "file": "apps/admin/src/pages/iam/permission-tree.tsx",
+    "widgets": {
+      "Input": 1
+    },
+    "fixedStyleCandidates": []
+  },
+  {
+    "file": "apps/admin/src/pages/iam/role-detail-page.tsx",
+    "widgets": {
+      "Form.Item": 4,
+      "Input": 2
+    },
+    "fixedStyleCandidates": []
+  },
+  {
+    "file": "apps/admin/src/pages/iam/roles-page.tsx",
+    "widgets": {
+      "Form.Item": 4,
+      "Input": 2
+    },
+    "fixedStyleCandidates": [
+      "text-slate-500"
+    ]
+  },
+  {
+    "file": "apps/admin/src/pages/iam/user-detail-page.tsx",
+    "widgets": {
+      "Form.Item": 3,
+      "Input": 1,
+      "Select": 2
+    },
+    "fixedStyleCandidates": []
+  },
+  {
+    "file": "apps/admin/src/pages/iam/users-page.tsx",
+    "widgets": {
+      "Form.Item": 3,
+      "Modal": 1,
+      "Input": 2,
+      "Select": 1
+    },
+    "fixedStyleCandidates": [
+      "text-slate-500",
+      "text-slate-500"
+    ]
+  },
+  {
+    "file": "apps/admin/src/pages/inventory/inventory-page.tsx",
+    "widgets": {
+      "Form.Item": 2,
+      "Modal": 2,
+      "InputNumber": 1
+    },
+    "fixedStyleCandidates": [
+      "text-slate-500"
+    ]
+  },
+  {
+    "file": "apps/admin/src/pages/operations/jobs/notification-jobs-page.tsx",
+    "widgets": {
+      "Form": 1,
+      "Form.Item": 1,
+      "Modal": 1
+    },
+    "fixedStyleCandidates": []
+  },
+  {
+    "file": "apps/admin/src/pages/orders/order-detail.tsx",
+    "widgets": {
+      "Form.Item": 4,
+      "Modal": 1,
+      "Input": 2,
+      "InputNumber": 1
+    },
+    "fixedStyleCandidates": [
+      "text-slate-500",
+      "text-slate-500",
+      "text-slate-500"
+    ]
+  },
+  {
+    "file": "apps/admin/src/pages/privacy/privacy-page.tsx",
+    "widgets": {
+      "Form.Item": 5,
+      "Modal": 1,
+      "Input": 1,
+      "Select": 2
+    },
+    "fixedStyleCandidates": [
+      "text-slate-500"
+    ]
+  },
+  {
+    "file": "apps/admin/src/pages/reports/order-report-page.tsx",
+    "widgets": {
+      "Form": 1,
+      "Form.Item": 1,
+      "Modal": 1
+    },
+    "fixedStyleCandidates": []
+  },
+  {
+    "file": "apps/admin/src/pages/settings/contact-location-drawer.tsx",
+    "widgets": {
+      "Form.Item": 8,
+      "Input": 7
+    },
+    "fixedStyleCandidates": []
+  },
+  {
+    "file": "apps/admin/src/pages/settings/contact-settings-page.tsx",
+    "widgets": {
+      "Form.Item": 18,
+      "Input": 10,
+      "Select": 4
+    },
+    "fixedStyleCandidates": []
+  },
+  {
+    "file": "apps/admin/src/pages/settings/launch-settings-page.tsx",
+    "widgets": {
+      "Form.Item": 15,
+      "Input": 4,
+      "InputNumber": 1,
+      "Select": 6
+    },
+    "fixedStyleCandidates": []
+  },
+  {
+    "file": "apps/admin/src/pages/settings/policies-page.tsx",
+    "widgets": {
+      "Form": 2,
+      "Form.Item": 7,
+      "Modal": 1,
+      "Input": 3,
+      "Select": 1
+    },
+    "fixedStyleCandidates": []
+  },
+  {
+    "file": "apps/admin/src/pages/settings/shipping-settings-page.tsx",
+    "widgets": {
+      "Form.Item": 14,
+      "Input": 5,
+      "InputNumber": 4,
+      "Select": 4
+    },
+    "fixedStyleCandidates": [
+      "border-slate-200"
+    ]
+  },
+  {
+    "file": "apps/admin/src/pages/settings/store-identity-page.tsx",
+    "widgets": {
+      "Form": 1,
+      "Form.Item": 11,
+      "Input": 4
+    },
+    "fixedStyleCandidates": []
+  },
+  {
+    "file": "apps/admin/src/pages/storefront/catalog-media-picker.tsx",
+    "widgets": {
+      "fieldset": 1
+    },
+    "fixedStyleCandidates": [
+      "border-slate-200",
+      "border-slate-200",
+      "text-slate-500"
+    ]
+  },
+  {
+    "file": "apps/admin/src/pages/storefront/navigation-page.tsx",
+    "widgets": {
+      "Form": 3,
+      "Form.Item": 8,
+      "Modal": 1,
+      "Input": 3,
+      "Select": 2
+    },
+    "fixedStyleCandidates": []
+  },
+  {
+    "file": "apps/admin/src/pages/storefront/storefront-link-editor.tsx",
+    "widgets": {
+      "Input": 2,
+      "Select": 4,
+      "fieldset": 1,
+      "label": 6
+    },
+    "fixedStyleCandidates": [
+      "border-slate-200"
+    ]
+  },
+  {
+    "file": "apps/admin/src/pages/storefront/storefront-publication-panel.tsx",
+    "widgets": {
+      "Form": 1,
+      "Form.Item": 1,
+      "Modal": 1
+    },
+    "fixedStyleCandidates": []
+  },
+  {
+    "file": "apps/admin/src/pages/storefront/storefront-resource-picker.tsx",
+    "widgets": {
+      "Select": 1,
+      "fieldset": 1
+    },
+    "fixedStyleCandidates": [
+      "border-slate-200"
+    ]
+  },
+  {
+    "file": "apps/admin/src/pages/storefront/theme-editor-page.tsx",
+    "widgets": {
+      "Input": 1,
+      "InputNumber": 1,
+      "Select": 5,
+      "label": 4
+    },
+    "fixedStyleCandidates": []
+  },
+  {
+    "file": "apps/admin/src/pages/storefront/themes-page.tsx",
+    "widgets": {
+      "Form.Item": 3,
+      "Modal": 1,
+      "Select": 2
+    },
+    "fixedStyleCandidates": [
+      "border-slate-200",
+      "text-slate-500"
+    ]
+  }
+]

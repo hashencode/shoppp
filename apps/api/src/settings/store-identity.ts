@@ -104,7 +104,7 @@ async function logoBacklinks(db: D1Database, removed: readonly string[]) {
   const rows = await db
     .prepare(
       `SELECT id FROM storefront_experience_drafts
-        WHERE ${removed.map(() => "instr(bindings_json, json_quote(?)) > 0 OR instr(overrides_json, json_quote(?)) > 0").join(" OR ")}
+        WHERE removed_at IS NULL AND (${removed.map(() => "instr(bindings_json, json_quote(?)) > 0 OR instr(overrides_json, json_quote(?)) > 0").join(" OR ")})
         ORDER BY id`,
     )
     .bind(...removed.flatMap((id) => [id, id]))

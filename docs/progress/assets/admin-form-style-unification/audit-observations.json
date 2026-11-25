@@ -1,0 +1,134 @@
+{
+  "scope": "只保存实际排查事实；执行检查点属于主计划 U8",
+  "observed": [
+    {
+      "entry": "库存列表／调整",
+      "evidence": [
+        "audit/inventory-list-light.jpg",
+        "audit/inventory-adjust-light.jpg"
+      ],
+      "finding": "标准 Form.Item 与全列输入；列表中的固定灰色元数据不属于表单字段，仅作为源码线索保留。"
+    },
+    {
+      "entry": "订单详情／退款／拣货／取消",
+      "evidence": [
+        "audit/order-refund-light.jpg",
+        "audit/order-fulfill-light.jpg",
+        "audit/order-cancel-light.jpg"
+      ],
+      "finding": "标准 Modal 与字段反馈；不可变订单事实区灰色文字在本轮表单范围之外。发货后的承运商分支另核验。"
+    },
+    {
+      "entry": "配送编辑 Drawer",
+      "evidence": [
+        "shipping/before-light.jpg",
+        "shipping/before-dark.jpg"
+      ],
+      "finding": "A01：固定 border-slate-200 在深色显示高亮浅色框；Edit shipping zone 未翻译；动态方式字段采用非标准两列和叠加间距。"
+    },
+    {
+      "entry": "评价审核 Modal",
+      "evidence": [
+        "review-moderation/before-dark.jpg"
+      ],
+      "finding": "A02：固定 text-gray-600 提示在深色低对比，手写 label 缺少标准字段间距。"
+    },
+    {
+      "entry": "用户邀请／用户详情 Drawer",
+      "evidence": [
+        "audit/user-invite-dark.jpg",
+        "audit/user-detail-dark.jpg"
+      ],
+      "finding": "标准 Form.Item、全列字段与 token 反馈。"
+    },
+    {
+      "entry": "店铺资料／品牌素材",
+      "evidence": [
+        "audit/store-identity-dark.jpg",
+        "audit/store-identity-assets-dark.jpg"
+      ],
+      "finding": "标准分区与完整内容列，品牌素材选择器采用现有 RemoteSearchSelect。"
+    },
+    {
+      "entry": "经营设置",
+      "evidence": [
+        "audit/launch-main-dark.jpg",
+        "audit/launch-tail-dark.jpg"
+      ],
+      "finding": "标准分区与字段，长配送方式 ID、日期／数字与 footer 可达。"
+    },
+    {
+      "entry": "隐私请求／更正分支",
+      "evidence": [
+        "privacy/before-dark.jpg",
+        "audit/privacy-correction-dark.jpg"
+      ],
+      "finding": "A03：身份核验说明固定 text-slate-500，深色对比偏低；动态字段其余标准。"
+    },
+    {
+      "entry": "任务重放／报表筛选和导出／导航编辑与发布",
+      "evidence": [
+        "audit/jobs-replay-dark.jpg",
+        "audit/report-filters-dark.jpg",
+        "audit/report-export-dark.jpg",
+        "audit/navigation-dark.jpg"
+      ],
+      "finding": "现有标准字段与 Modal 组合；报表紧凑日期属于列表筛选，导航树＋编辑列属于专用复合编辑器布局。"
+    },
+    {
+      "entry": "主题编辑器共享字段",
+      "evidence": [
+        "theme-editor/before-light.jpg",
+        "theme-editor/before-dark.jpg",
+        "theme-editor/before-light-pickers.jpg",
+        "theme-editor/before-dark-pickers.jpg"
+      ],
+      "finding": "A04：资源／媒体／链接选择器的 fieldset 使用固定浅色边框，链接内部为手写标签和紧挨字段。保留复杂组的原生语义、schema 与 state owner；标准化字段间距与 token。"
+    },
+    {
+      "entry": "已发布商品修订",
+      "evidence": [
+        "published-product/before-light.jpg",
+        "published-product/before-dark.jpg",
+        "published-product/before-dark-variants.jpg",
+        "published-product/before-dark-media.jpg",
+        "published-product/before-dark-actions.jpg"
+      ],
+      "finding": "A05：修订仍使用手写标签与原生分区固定边框；媒体排序为散装按钮；尾部发布按钮被父页面固定工具栏遮挡。需保留完整修订 payload／媒体上传及权限，修复标准字段与底部可达性。"
+    },
+    {
+      "entry": "主题创建弹窗及草稿选择区",
+      "evidence": [
+        "audit/theme-create-dark.jpg"
+      ],
+      "finding": "A06：创建表单为标准 Form.Item；其草稿选择列表的固定浅色边框和固定次要文字仍需主题化，not validated 为未翻译应用状态。"
+    },
+    {
+      "entry": "商品列表／发布确认",
+      "evidence": [
+        "catalog-publish/before-light.jpg",
+        "catalog-publish/before-dark.jpg"
+      ],
+      "finding": "A07：原因 TextArea 只有 placeholder，没有可见标签或可访问名称；说明与输入无标准字段间距。保留原弹窗、3–500 字及完整发布合同，接入标准字段标签。"
+    },
+    {
+      "entry": "页面／文章／政策的动态图片与链接",
+      "evidence": [
+        "structured-content/before-light-link.jpg",
+        "structured-article/before-dark-image.jpg",
+        "structured-policy/before-dark-link.jpg"
+      ],
+      "finding": "A08：图片媒体 combobox 无名称；图片和链接字段缺少可见标签与标准字段间距。共享消费者为 page/article/policy，保留结构化合同和原受控状态。"
+    },
+    {
+      "entry": "登录／找回密码／重置／激活",
+      "evidence": [
+        "auth-login/before-dark.jpg",
+        "auth-forgot/before-dark.jpg",
+        "auth-reset/before-dark.jpg",
+        "auth-activate/before-dark.jpg"
+      ],
+      "finding": "A09：四页固定 bg-slate-50，在深色模式保留浅色整页背景。字段本身为标准 Form.Item；只替换背景 token。"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>UX-020 目标示意</title>
+    <link rel="stylesheet" href="target.css" />
+  </head>
+  <body>
+    <header class="top">
+      <strong>Shoppp 后台</strong><span>UX-020</span
+      ><span class="watermark">目标设计示意 · 未实现</span>
+    </header>
+    <main class="canvas">
+      <section class="panel">
+        <h2>订单收入报表</h2>
+        <div class="field">
+          <label>统计范围</label>
+          <div class="input">2026-10-08 — 2026-11-06</div>
+        </div>
+        <div class="changed">
+          <span class="number">1</span>
+          <div class="notice success">✓ 导出已就绪 · 0行</div>
+          <p>下载包含当前筛选范围的CSV；访问审计与有效期继续保留。</p>
+          <span class="btn primary">下载 CSV</span>
+        </div>
+      </section>
+      <section class="panel changed">
+        <span class="number">2</span>
+        <h2>下载失败时的恢复状态</h2>
+        <div class="notice error">未能取得导出文件，请重试下载。</div>
+        <p>保留当前报表与导出状态，不跳转到开店指南。</p>
+        <div class="footer">
+          <span class="btn primary">重新下载</span><span class="btn">重新生成导出</span>
+        </div>
+      </section>
+    </main>
+    <p class="footnote">静态示意：用于比较布局与状态，控件不会操作后台。</p>
+  </body>
+</html>

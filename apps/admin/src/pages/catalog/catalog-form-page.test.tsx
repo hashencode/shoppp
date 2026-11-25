@@ -1,5 +1,5 @@
 import React from 'react'
-import { App } from 'antd'
+import { App, ConfigProvider } from 'antd'
 import axios from 'axios'
 import { apiClient } from '../../infrastructure/http/api-client'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
@@ -9,6 +9,7 @@ import { setupServer } from 'msw/node'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthTestProvider } from '../../test/auth-context-fixture'
 import { ThemeProvider } from '../../shared/contexts/theme-context'
+import { I18nProvider, LANGUAGE_STORAGE_KEY, useI18n } from '../../shared/contexts/i18n-context'
 import type {
   ProductDetail,
   ProductDraftPayload,
@@ -102,31 +103,70 @@ const renderReadonly = () =>
     <MemoryRouter initialEntries={['/catalog/products/form?mode=readonly&id=product-001']}>
       <AuthTestProvider permissions={['catalog.read']}>
         <ThemeProvider>
-          <App>
-            <CatalogFormPage />
-          </App>
+          <ConfigProvider theme={{ token: { motion: false } }}>
+            <App>
+              <CatalogFormPage />
+            </App>
+          </ConfigProvider>
         </ThemeProvider>
       </AuthTestProvider>
     </MemoryRouter>
   )
 
-const renderModify = (productDetail: ProductDetail = detail) => {
+const LocaleControl = () => {
+  const { locale, setLocale } = useI18n()
+  return (
+    <button onClick={() => setLocale(locale === 'zh-CN' ? 'en-US' : 'zh-CN')}>
+      Switch language
+    </button>
+  )
+}
+
+const renderModify = (productDetail: ProductDetail = detail, withLocaleControl = false) => {
   server.use(
     http.get('*/admin/catalog/products/product-001', () =>
       HttpResponse.json({ data: productDetail })
     )
   )
-  return render(
+  const editor = (
     <MemoryRouter initialEntries={['/catalog/products/form?mode=modify&id=product-001']}>
       <AuthTestProvider permissions={['catalog.read', 'catalog.write']}>
         <ThemeProvider>
-          <App>
-            <CatalogFormPage />
-          </App>
+          <ConfigProvider theme={{ token: { motion: false } }}>
+            <App>
+              <CatalogFormPage />
+            </App>
+          </ConfigProvider>
         </ThemeProvider>
       </AuthTestProvider>
     </MemoryRouter>
   )
+  return render(
+    withLocaleControl ? (
+      <I18nProvider>
+        <LocaleControl />
+        {editor}
+      </I18nProvider>
+    ) : (
+      editor
+    )
+  )
+}
+
+const openOptions = async (readonly = false) => {
+  fireEvent.click(
+    await screen.findByRole('button', { name: readonly ? '查看选项展示' : '编辑选项展示' })
+  )
+  return screen.findByRole('dialog', { name: '选项展示' })
+}
+const openPresentation = async () => {
+  fireEvent.click(await screen.findByRole('button', { name: '编辑商品展示' }))
+  return screen.findByRole('dialog', { name: '商品展示' })
+}
+const confirmSaveResult = async () => {
+  const success = document.querySelector('.ant-modal-confirm-success') as HTMLElement
+  fireEvent.click(within(success).getByRole('button', { name: /^确\s*认$/ }))
+  await waitFor(() => expect(document.querySelector('.ant-drawer')).toBeNull())
 }
 
 const deferredResponse = () => {
@@ -146,6 +186,48 @@ afterEach(() => {
 afterAll(() => server.close())
 
 describe('CatalogFormPage', () => {
+  it('retains failed option edits and resets to the saved swatches without replaying the write', async () => {
+    let writes = 0
+    server.use(
+      http.patch('*/admin/catalog/products/product-001/option-definitions', () => {
+        writes += 1
+        return HttpResponse.json(
+          { error: { code: 'save_failed', message: 'Unable to save these color swatches' } },
+          { status: 503 }
+        )
+      })
+    )
+    renderModify({
+      ...detail,
+      product: {
+        ...detail.product,
+        option_definitions_json:
+          '[{"name":"color","presentation":"color","values":[{"label":"Black","swatch":"#111111"}]}]',
+      },
+    })
+    const drawer = await openOptions()
+    const swatch = within(drawer).getByLabelText('color Black 色样') as HTMLInputElement
+    fireEvent.change(swatch, { target: { value: '#225588' } })
+    fireEvent.click(within(drawer).getByRole('button', { name: /^保\s*存$/ }))
+    await within(drawer).findByText('Unable to save these color swatches')
+    expect(swatch.value).toBe('#225588')
+    fireEvent.click(within(drawer).getByRole('button', { name: /^重\s*置$/ }))
+    fireEvent.click(await screen.findByRole('button', { name: /^确\s*认$/ }))
+    await waitFor(() => expect(swatch.value).toBe('#111111'))
+    expect(writes).toBe(1)
+  })
+
+  it('opens option maintenance in a drawer without replacing the main product draft', async () => {
+    renderModify()
+    const name = await screen.findByLabelText('名称')
+    fireEvent.change(name, { target: { value: 'Unsaved product name' } })
+    expect(screen.queryByRole('combobox', { name: 'color 展示类型' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '编辑选项展示' }))
+    const drawer = await screen.findByRole('dialog', { name: '选项展示' })
+    expect(within(drawer).getByRole('combobox', { name: 'color 展示类型' })).toBeTruthy()
+    expect((name as HTMLInputElement).value).toBe('Unsaved product name')
+  })
+
   it('loads a product in readonly mode without mutation controls', async () => {
     renderReadonly()
     await waitFor(() => expect(screen.getByDisplayValue('Carry-on')).toBeTruthy())
@@ -356,6 +438,7 @@ describe('CatalogFormPage', () => {
       })
     )
     renderModify(optionDetail)
+    const drawer = await openOptions()
 
     const blue = await screen.findByLabelText('Color Blue 色样')
     expect((blue as HTMLInputElement).value).toBe('#5881bf')
@@ -363,7 +446,7 @@ describe('CatalogFormPage', () => {
     expect(screen.getByText('XL')).toBeTruthy()
     fireEvent.change(blue, { target: { value: '#ABCDEF' } })
     fireEvent.blur(blue)
-    fireEvent.click(screen.getByRole('button', { name: '保存选项展示' }))
+    fireEvent.click(within(drawer).getByRole('button', { name: /^保\s*存$/ }))
 
     await waitFor(() =>
       expect(submitted).toEqual({
@@ -392,14 +475,29 @@ describe('CatalogFormPage', () => {
           '[{"name":"color","presentation":"color","values":[{"label":"Black","swatch":"#111111"}]}]',
       },
     }
-    const editableView = renderModify(colorDetail)
+    let writes = 0
+    server.use(
+      http.patch('*/admin/catalog/products/product-001/option-definitions', () => {
+        writes += 1
+        return HttpResponse.json({ data: {} })
+      })
+    )
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, 'zh-CN')
+    const editableView = renderModify(colorDetail, true)
+    const drawer = await openOptions()
     const swatch = await screen.findByLabelText('color Black 色样')
     fireEvent.change(swatch, { target: { value: 'red' } })
-    fireEvent.click(screen.getByRole('button', { name: '保存选项展示' }))
+    fireEvent.click(within(drawer).getByRole('button', { name: /^保\s*存$/ }))
     const error = await screen.findByText('请输入 #rrggbb 格式的不透明颜色。')
     expect(swatch.getAttribute('aria-invalid')).toBe('true')
     expect(swatch.getAttribute('aria-describedby')).toBe(error.id)
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+    const translatedError = await screen.findByText('Use an opaque color in #rrggbb format.')
+    expect((swatch as HTMLInputElement).value).toBe('red')
+    expect(swatch.getAttribute('aria-describedby')).toBe(translatedError.id)
+    expect(writes).toBe(0)
     editableView.unmount()
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, 'zh-CN')
 
     server.resetHandlers()
     const published = {
@@ -407,8 +505,11 @@ describe('CatalogFormPage', () => {
       product: { ...colorDetail.product, status: 'published' as const },
     }
     const view = renderModify(published)
-    const button = await screen.findByRole('button', { name: '保存选项展示' })
-    expect((button as HTMLButtonElement).disabled).toBe(true)
+    const readonlyDrawer = await openOptions(true)
+    expect(within(readonlyDrawer).queryByRole('button', { name: /^保\s*存$/ })).toBeNull()
+    expect(
+      (within(readonlyDrawer).getByLabelText('color Black 色样') as HTMLInputElement).disabled
+    ).toBe(true)
     view.unmount()
   })
 
@@ -646,13 +747,34 @@ describe('CatalogFormPage', () => {
         })
       })
     )
-    renderModify(presentationDetail)
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, 'zh-CN')
+    renderModify(presentationDetail, true)
+    const drawer = await openPresentation()
 
     const brand = await screen.findByLabelText('品牌')
     expect((brand as HTMLInputElement).value).toBe('Zalando')
+    expect((within(drawer).getByLabelText('详情引导文案') as HTMLTextAreaElement).value).toBe(
+      'Everyday comfort'
+    )
+    expect((within(drawer).getByLabelText('详情正文') as HTMLTextAreaElement).value).toBe(
+      'Soft structured finish.'
+    )
+    const specification = within(drawer).getByLabelText('规格名称 1')
+    fireEvent.change(specification, { target: { value: '' } })
+    fireEvent.click(within(drawer).getByRole('button', { name: /^保\s*存$/ }))
+    expect(submitted).toBeUndefined()
+    await waitFor(() => expect(document.activeElement).toBe(specification))
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+    const specificationError = await within(drawer).findByText(
+      'Use a unique, non-empty specification label.'
+    )
+    expect(specification.getAttribute('aria-describedby')).toBe(specificationError.id)
+    expect((specification as HTMLInputElement).value).toBe('')
+    fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
+    fireEvent.change(specification, { target: { value: 'Material' } })
     fireEvent.change(brand, { target: { value: 'Shoppp' } })
     fireEvent.click(screen.getByRole('button', { name: '上移规格 2' }))
-    fireEvent.click(screen.getByRole('button', { name: '保存商品展示' }))
+    fireEvent.click(within(drawer).getByRole('button', { name: /^保\s*存$/ }))
 
     await waitFor(() =>
       expect(submitted).toEqual({
@@ -714,7 +836,6 @@ describe('CatalogFormPage', () => {
       fireEvent.change(await screen.findByLabelText('名称'), {
         target: { value: 'Unsaved Carry-on' },
       })
-      fireEvent.change(screen.getByLabelText('品牌'), { target: { value: 'Shoppp' } })
       const save = screen.getByRole('button', { name: /^保\s*存$/ })
       fireEvent.click(save)
       await waitFor(() => expect(updates).toHaveLength(1))
@@ -748,9 +869,14 @@ describe('CatalogFormPage', () => {
         ],
       })
       expect(updates[0]).not.toHaveProperty('optionDefinitions')
-      fireEvent.click(screen.getByRole('button', { name: '保存选项展示' }))
-      fireEvent.click(screen.getByRole('button', { name: '保存商品展示' }))
+      const editOptions = screen.getByRole('button', { name: '编辑选项展示' })
+      const editPresentation = screen.getByRole('button', { name: '编辑商品展示' })
+      expect((editOptions as HTMLButtonElement).disabled).toBe(true)
+      expect((editPresentation as HTMLButtonElement).disabled).toBe(true)
+      fireEvent.click(editOptions)
+      fireEvent.click(editPresentation)
       fireEvent.click(save)
+      expect(screen.queryByRole('dialog', { name: '选项展示' })).toBeNull()
       expect(optionUpdates).toHaveLength(0)
       expect(presentationUpdates).toHaveLength(0)
 
@@ -761,8 +887,9 @@ describe('CatalogFormPage', () => {
       expect(presentationUpdates).toHaveLength(0)
       expect((screen.getByLabelText('名称') as HTMLInputElement).value).toBe('Unsaved Carry-on')
 
-      fireEvent.click(screen.getByRole('button', { name: '保存选项展示' }))
-      expect(await screen.findByText('选项展示已保存')).toBeTruthy()
+      const optionsDrawer = await openOptions()
+      fireEvent.click(within(optionsDrawer).getByRole('button', { name: /^保\s*存$/ }))
+      expect(await screen.findAllByText('选项展示已保存')).toBeTruthy()
       expect(optionUpdates).toEqual([
         {
           expectedVersion: 3,
@@ -771,8 +898,13 @@ describe('CatalogFormPage', () => {
           ],
         },
       ])
-      fireEvent.click(screen.getByRole('button', { name: '保存商品展示' }))
-      expect(await screen.findByText('商品展示设置已保存')).toBeTruthy()
+      await confirmSaveResult()
+      const presentationDrawer = await openPresentation()
+      fireEvent.change(within(presentationDrawer).getByLabelText('品牌'), {
+        target: { value: 'Shoppp' },
+      })
+      fireEvent.click(within(presentationDrawer).getByRole('button', { name: /^保\s*存$/ }))
+      expect(await screen.findAllByText('商品展示设置已保存')).toBeTruthy()
       expect(presentationUpdates).toEqual([
         {
           expectedVersion: 4,
@@ -1067,9 +1199,11 @@ it('creates a scheduled product with the entire original taxonomy, option, media
     <MemoryRouter initialEntries={['/catalog/products/form?mode=add']}>
       <AuthTestProvider permissions={['catalog.read', 'catalog.write']}>
         <ThemeProvider>
-          <App>
-            <CatalogFormPage />
-          </App>
+          <ConfigProvider theme={{ token: { motion: false } }}>
+            <App>
+              <CatalogFormPage />
+            </App>
+          </ConfigProvider>
         </ThemeProvider>
       </AuthTestProvider>
     </MemoryRouter>
@@ -1183,9 +1317,11 @@ it('publishes review-only updates without replacing a staged revision identity',
     <MemoryRouter initialEntries={['/catalog/products/form?mode=modify&id=product-001']}>
       <AuthTestProvider permissions={['catalog.read', 'catalog.write', 'catalog.publish']}>
         <ThemeProvider>
-          <App>
-            <CatalogFormPage />
-          </App>
+          <ConfigProvider theme={{ token: { motion: false } }}>
+            <App>
+              <CatalogFormPage />
+            </App>
+          </ConfigProvider>
         </ThemeProvider>
       </AuthTestProvider>
     </MemoryRouter>

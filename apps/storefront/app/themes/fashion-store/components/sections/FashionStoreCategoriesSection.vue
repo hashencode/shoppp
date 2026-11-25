@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { visibleBlockId } from "../../../../theme-engine/section-blocks";
+import { useStorefrontEditorBlockId } from "../../../../theme-engine/editor-context";
 import type { FashionStoreHomeSectionProperties } from "./home-section-context";
 import {
   resolveFashionStoreHomeEditorial,
@@ -7,6 +9,7 @@ import {
 } from "./home-section-context";
 
 const properties = defineProps<FashionStoreHomeSectionProperties>();
+const editorBlockId = useStorefrontEditorBlockId(() => properties.instance);
 const context = computed(() => resolveFashionStoreHomeSectionContext(properties.viewModel));
 const editorial = computed(() =>
   resolveFashionStoreHomeEditorial(properties.viewModel, properties.instance),
@@ -29,8 +32,8 @@ function sourceAsset(sourcePath: string): string {
         data-anime='{ "el": "childs", "translateY": [-15, 0], "perspective": [1200,1200], "scale": [1.1, 1], "rotateX": [50, 0], "opacity": [0,1], "duration": 400, "delay": 100, "staggervalue": 200, "easing": "easeOutQuad" }'
       >
         <div
-          v-for="(category, index) in editorial.categories"
-          :key="category.name"
+          v-for="(category, index) in editorial.categories" :data-editor-instance="editorBlockId('fashion-store.category', index)"
+          :key="visibleBlockId(properties.instance, 'fashion-store.category', index) ?? category.name"
           class="col categories-style-02"
           :class="{ 'lg-mb-30px': index < 2, 'sm-mb-30px': index === 2 }"
         >

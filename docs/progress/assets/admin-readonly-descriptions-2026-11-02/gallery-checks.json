@@ -1,0 +1,302 @@
+[
+  {
+    "badge": "对比已齐",
+    "images": [
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/account/before-light-drawer.jpg"
+      },
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/account/after-light-drawer.jpg"
+      }
+    ],
+    "title": "01 · 账号已保存资料",
+    "url": "http://127.0.0.1:4381/admin-form-style-gallery/?v=20261102#round=readonly&page=account&region=drawer&theme=light&view=side"
+  },
+  {
+    "badge": "对比已齐",
+    "images": [
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/account/before-dark-drawer.jpg"
+      },
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/account/after-dark-drawer.jpg"
+      }
+    ],
+    "title": "01 · 账号已保存资料",
+    "url": "http://127.0.0.1:4381/admin-form-style-gallery/?v=20261102#round=readonly&page=account&region=drawer&theme=dark&view=side"
+  },
+  {
+    "badge": "对比已齐",
+    "images": [
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/account/before-light-compatible.jpg"
+      },
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/account/after-light-compatible.jpg"
+      }
+    ],
+    "title": "01 · 账号已保存资料",
+    "url": "http://127.0.0.1:4381/admin-form-style-gallery/?v=20261102#round=readonly&page=account&region=compatible&theme=light&view=side"
+  },
+  {
+    "badge": "对比已齐",
+    "images": [
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/account/before-dark-compatible.jpg"
+      },
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/account/after-dark-compatible.jpg"
+      }
+    ],
+    "title": "01 · 账号已保存资料",
+    "url": "http://127.0.0.1:4381/admin-form-style-gallery/?v=20261102#round=readonly&page=account&region=compatible&theme=dark&view=side"
+  },
+  {
+    "badge": "对比已齐",
+    "images": [
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/health/before-light.jpg"
+      },
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/health/after-light.jpg"
+      }
+    ],
+    "title": "02 · 运行健康",
+    "url": "http://127.0.0.1:4381/admin-form-style-gallery/?v=20261102#round=readonly&page=health&region=main&theme=light&view=side"
+  },
+  {
+    "badge": "对比已齐",
+    "images": [
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/health/before-dark.jpg"
+      },
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/health/after-dark.jpg"
+      }
+    ],
+    "title": "02 · 运行健康",
+    "url": "http://127.0.0.1:4381/admin-form-style-gallery/?v=20261102#round=readonly&page=health&region=main&theme=dark&view=side"
+  },
+  {
+    "badge": "对比已齐",
+    "images": [
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/contact-conflict/before-light.jpg"
+      },
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/contact-conflict/after-light.jpg"
+      }
+    ],
+    "title": "03 · 联系信息冲突核对",
+    "url": "http://127.0.0.1:4381/admin-form-style-gallery/?v=20261102#round=readonly&page=contact-conflict&region=main&theme=light&view=side"
+  },
+  {
+    "badge": "对比已齐",
+    "images": [
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/contact-conflict/before-dark.jpg"
+      },
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/contact-conflict/after-dark.jpg"
+      }
+    ],
+    "title": "03 · 联系信息冲突核对",
+    "url": "http://127.0.0.1:4381/admin-form-style-gallery/?v=20261102#round=readonly&page=contact-conflict&region=main&theme=dark&view=side"
+  },
+  {
+    "badge": "对比已齐",
+    "images": [
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/theme-package/before-light.jpg"
+      },
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/theme-package/after-light.jpg"
+      }
+    ],
+    "title": "04 · 主题包资料",
+    "url": "http://127.0.0.1:4381/admin-form-style-gallery/?v=20261102#round=readonly&page=theme-package&region=main&theme=light&view=side"
+  },
+  {
+    "badge": "对比已齐",
+    "images": [
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/theme-package/before-dark.jpg"
+      },
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/theme-package/after-dark.jpg"
+      }
+    ],
+    "title": "04 · 主题包资料",
+    "url": "http://127.0.0.1:4381/admin-form-style-gallery/?v=20261102#round=readonly&page=theme-package&region=main&theme=dark&view=side"
+  },
+  {
+    "badge": "对比已齐",
+    "images": [
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/editor-version/before-light.jpg"
+      },
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/editor-version/after-light.jpg"
+      }
+    ],
+    "title": "05 · 编辑器版本详情",
+    "url": "http://127.0.0.1:4381/admin-form-style-gallery/?v=20261102#round=readonly&page=editor-version&region=main&theme=light&view=side"
+  },
+  {
+    "badge": "对比已齐",
+    "images": [
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/editor-version/before-dark.jpg"
+      },
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/editor-version/after-dark.jpg"
+      }
+    ],
+    "title": "05 · 编辑器版本详情",
+    "url": "http://127.0.0.1:4381/admin-form-style-gallery/?v=20261102#round=readonly&page=editor-version&region=main&theme=dark&view=side"
+  },
+  {
+    "badge": "对比已齐",
+    "images": [
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/online-version/before-light.jpg"
+      },
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/online-version/after-light.jpg"
+      }
+    ],
+    "title": "06 · 线上版本概览",
+    "url": "http://127.0.0.1:4381/admin-form-style-gallery/?v=20261102#round=readonly&page=online-version&region=main&theme=light&view=side"
+  },
+  {
+    "badge": "对比已齐",
+    "images": [
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/online-version/before-dark.jpg"
+      },
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/online-version/after-dark.jpg"
+      }
+    ],
+    "title": "06 · 线上版本概览",
+    "url": "http://127.0.0.1:4381/admin-form-style-gallery/?v=20261102#round=readonly&page=online-version&region=main&theme=dark&view=side"
+  },
+  {
+    "badge": "对比已齐",
+    "images": [
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/policy/before-light.jpg"
+      },
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/policy/after-light.jpg"
+      }
+    ],
+    "title": "07 · 政策审阅元信息",
+    "url": "http://127.0.0.1:4381/admin-form-style-gallery/?v=20261102#round=readonly&page=policy&region=main&theme=light&view=side"
+  },
+  {
+    "badge": "对比已齐",
+    "images": [
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/policy/before-dark.jpg"
+      },
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/policy/after-dark.jpg"
+      }
+    ],
+    "title": "07 · 政策审阅元信息",
+    "url": "http://127.0.0.1:4381/admin-form-style-gallery/?v=20261102#round=readonly&page=policy&region=main&theme=dark&view=side"
+  },
+  {
+    "badge": "对比已齐",
+    "images": [
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/location/before-light.jpg"
+      },
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/location/after-light.jpg"
+      }
+    ],
+    "title": "08 · 地点列表摘要",
+    "url": "http://127.0.0.1:4381/admin-form-style-gallery/?v=20261102#round=readonly&page=location&region=main&theme=light&view=side"
+  },
+  {
+    "badge": "对比已齐",
+    "images": [
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/location/before-dark.jpg"
+      },
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/location/after-dark.jpg"
+      }
+    ],
+    "title": "08 · 地点列表摘要",
+    "url": "http://127.0.0.1:4381/admin-form-style-gallery/?v=20261102#round=readonly&page=location&region=main&theme=dark&view=side"
+  },
+  {
+    "badge": "对比已齐",
+    "images": [
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/single-version/before-light.jpg"
+      },
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/single-version/after-light.jpg"
+      }
+    ],
+    "title": "09 · 当前版本单项",
+    "url": "http://127.0.0.1:4381/admin-form-style-gallery/?v=20261102#round=readonly&page=single-version&region=main&theme=light&view=side"
+  },
+  {
+    "badge": "对比已齐",
+    "images": [
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/single-version/before-dark.jpg"
+      },
+      {
+        "loaded": true,
+        "src": "../assets/admin-readonly-descriptions-2026-11-02/single-version/after-dark.jpg"
+      }
+    ],
+    "title": "09 · 当前版本单项",
+    "url": "http://127.0.0.1:4381/admin-form-style-gallery/?v=20261102#round=readonly&page=single-version&region=main&theme=dark&view=side"
+  }
+]

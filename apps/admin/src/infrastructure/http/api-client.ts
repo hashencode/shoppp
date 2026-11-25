@@ -20,6 +20,8 @@ const LOCAL_API_ERROR_CODES = [
   'storefront_theme_incompatible',
   'storefront_theme_preset_invalid',
   'storefront_experience_draft_conflict',
+  'storefront_experience_draft_busy',
+  'storefront_editor_session_unavailable',
   'storefront_experience_successor_source_invalid',
   'storefront_experience_validation_stale',
   'storefront_experience_validation_invalid',

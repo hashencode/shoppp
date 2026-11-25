@@ -1,5 +1,5 @@
 import type { CreatePrivacyRequest, PrivacyRequest } from '@shoppp/contracts'
-import { Button, Card, Form, Input, Modal, Select, Table, Tag, App } from 'antd'
+import { Button, Card, Form, Input, Modal, Select, Table, Tag, App, Typography } from 'antd'
 import dayjs from 'dayjs'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocalizedApiError } from '../../shared/i18n/api-error'
@@ -197,9 +197,9 @@ export const PrivacyPage = () => {
         keyboard={!privacyDialog.busy}
         onOk={() => form.submit()}
       >
-        <p className="mb-4 text-slate-500">
+        <Typography.Paragraph type="secondary">
           {t("Before proceeding, confirm that the requester's identity has been verified.")}
-        </p>
+        </Typography.Paragraph>
         <Form<FormValues>
           form={form}
           layout="vertical"

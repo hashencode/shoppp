@@ -55,6 +55,7 @@ describe("Fashion Store exact package registry", () => {
       themeVersion: "1.2.0",
     });
     expect(fashionStoreDirectMigrationBoundaries).toEqual([
+      { source: { configurationSchemaVersion: 3, themeVersion: "1.2.0" }, target: { configurationSchemaVersion: 4, themeVersion: "1.3.0" }, themeId: "fashion-store" },
       {
         source: { configurationSchemaVersion: 1, themeVersion: "1.0.0" },
         target: { configurationSchemaVersion: 2, themeVersion: "1.1.0" },
@@ -88,6 +89,7 @@ describe("Fashion Store exact package registry", () => {
         schemaVersion: 3,
         themeVersion: "1.2.0",
       },
+      { lifecycle: "successor", schemaVersion: 4, themeVersion: "1.3.0" },
     ]);
     expect(Object.isFrozen(fashionStorePackageRegistrations)).toBe(true);
     expect(Object.isFrozen(fashionStoreDirectMigrationBoundaries)).toBe(true);
@@ -114,6 +116,7 @@ describe("Fashion Store exact package registry", () => {
 
   test("freezes the supported Release × Experience × Fashion reader matrix", () => {
     expect(fashionStoreReaderCompatibilityMatrix).toEqual([
+      { experienceSchemaVersion: 4, packageVersion: "1.3.0", reader: "canonical", releaseSchemaVersion: 3 },
       {
         experienceSchemaVersion: 1,
         packageVersion: "1.0.0",
@@ -149,8 +152,8 @@ describe("Fashion Store exact package registry", () => {
       ]),
     );
     for (const releaseSchemaVersion of [2, 3]) {
-      for (const experienceSchemaVersion of [1, 2, 3]) {
-        for (const packageVersion of ["1.0.0", "1.1.0", "1.2.0"]) {
+      for (const experienceSchemaVersion of [1, 2, 3, 4]) {
+        for (const packageVersion of ["1.0.0", "1.1.0", "1.2.0", "1.3.0"]) {
           expect(
             resolveFashionStoreReader({
               experienceSchemaVersion,
@@ -164,7 +167,7 @@ describe("Fashion Store exact package registry", () => {
         }
       }
     }
-    expect(supported.size).toBe(4);
+    expect(supported.size).toBe(5);
   });
 
   test("removes legacy claim writes while retaining presentation-only operations", () => {

@@ -1,0 +1,146 @@
+ M .gitignore
+ M apps/admin/docs/ai/ai-rules.md
+ M apps/admin/docs/ai/component-catalog.yaml
+ M apps/admin/docs/ai/drawer-form-layout-rules.md
+ M apps/admin/docs/ai/form-standard-adoption.md
+ M apps/admin/docs/ai/legacy-page-migration-checklist.md
+ M apps/admin/docs/ai/legacy-page-migration-error-patterns.md
+ M apps/admin/docs/ai/page-guardrail-recipes.md
+ M apps/admin/docs/ai/page-recipes.yaml
+ M apps/admin/package.json
+ M apps/admin/rsbuild.config.ts
+ M apps/admin/src/infrastructure/http/api-client.ts
+ M apps/admin/src/pages/auth/activate-account-page.tsx
+ M apps/admin/src/pages/auth/forgot-password-page.tsx
+ M apps/admin/src/pages/auth/login-page.tsx
+ M apps/admin/src/pages/auth/reset-password-page.tsx
+ M apps/admin/src/pages/catalog/catalog-form-page.test.tsx
+ M apps/admin/src/pages/catalog/catalog-form-page.tsx
+ M apps/admin/src/pages/catalog/catalog-list-page.tsx
+ M apps/admin/src/pages/catalog/collection-form-page.test.tsx
+ M apps/admin/src/pages/catalog/collection-form-page.tsx
+ M apps/admin/src/pages/catalog/collection-list-page.test.tsx
+ M apps/admin/src/pages/catalog/collection-list-page.tsx
+ M apps/admin/src/pages/catalog/published-product-revision-editor.tsx
+ M apps/admin/src/pages/catalog/review-moderation-page.tsx
+ M apps/admin/src/pages/content/content-editor-page.tsx
+ M apps/admin/src/pages/content/content-editor.browser.test.tsx
+ M apps/admin/src/pages/content/content-editor.test.tsx
+ M apps/admin/src/pages/iam/iam-form-drawers.browser.test.tsx
+ M apps/admin/src/pages/iam/iam-pages.test.tsx
+ M apps/admin/src/pages/iam/roles-page.tsx
+ M apps/admin/src/pages/iam/user-detail-page.tsx
+ M apps/admin/src/pages/orders/order-detail.tsx
+ M apps/admin/src/pages/privacy/privacy-page.tsx
+ M apps/admin/src/pages/settings/contact-settings-page.test.tsx
+ M apps/admin/src/pages/settings/contact-settings-page.tsx
+ M apps/admin/src/pages/settings/policies-page.test.tsx
+ M apps/admin/src/pages/settings/policies-page.tsx
+ M apps/admin/src/pages/settings/shipping-settings-page.tsx
+ M apps/admin/src/pages/storefront/catalog-media-picker.tsx
+ M apps/admin/src/pages/storefront/storefront-link-editor.tsx
+ M apps/admin/src/pages/storefront/storefront-resource-picker.tsx
+ M apps/admin/src/pages/storefront/theme-editor-page.browser.test.tsx
+ D apps/admin/src/pages/storefront/theme-editor-page.test.tsx
+ M apps/admin/src/pages/storefront/theme-editor-page.tsx
+ M apps/admin/src/pages/storefront/themes-page.test.tsx
+ M apps/admin/src/pages/storefront/themes-page.tsx
+ M apps/admin/src/services/storefront/api.ts
+ M apps/admin/src/shared/content/structured-content-editor.test.tsx
+ M apps/admin/src/shared/content/structured-content-editor.tsx
+ M apps/admin/src/shared/i18n/api-error.ts
+ M apps/admin/src/shared/i18n/translations.ts
+ M apps/admin/src/shared/template-kit/recipes/crud-form-drawer-recipe.tsx
+ M apps/admin/worker/index.ts
+ M apps/admin/wrangler.jsonc
+ M apps/api/src/generated/storefront-theme-catalog.ts
+ M apps/api/src/http/app.ts
+ M apps/api/src/publishing/storefront-publications.ts
+ M apps/api/src/settings/store-identity.ts
+ M apps/api/src/storefront-control/backlinks.ts
+ M apps/api/src/storefront-experience/build.ts
+ M apps/api/src/storefront-experience/catalog-resources.ts
+ M apps/api/src/storefront-experience/cleanup.ts
+ M apps/api/src/storefront-experience/service.ts
+ M apps/api/src/storefront/navigation.ts
+ M apps/api/src/testing/fashion-staging-catalog.ts
+ M apps/api/test/http/app.test.ts
+ M apps/api/test/security/storefront-backlinks.test.ts
+ M apps/api/test/storefront-experience/experience-api.test.ts
+ M apps/storefront/app/generated/theme-catalog.ts
+ M apps/storefront/app/theme-engine/composer.ts
+ M apps/storefront/app/theme-engine/registry.ts
+ M apps/storefront/app/theme-engine/renderer.vue
+ M apps/storefront/app/themes/fashion-store/components/FashionStoreDecorHero.vue
+ M apps/storefront/app/themes/fashion-store/components/sections/FashionStoreBrandStripSection.vue
+ M apps/storefront/app/themes/fashion-store/components/sections/FashionStoreCategoriesSection.vue
+ M apps/storefront/app/themes/fashion-store/components/sections/FashionStoreEditorialSection.vue
+ M apps/storefront/app/themes/fashion-store/components/sections/FashionStoreMarqueeSection.vue
+ M apps/storefront/app/themes/fashion-store/components/sections/FashionStoreProductsSection.vue
+ M apps/storefront/app/themes/fashion-store/components/sections/FashionStorePromotionSection.vue
+ M apps/storefront/app/themes/fashion-store/components/sections/FashionStoreServicesSection.vue
+ M apps/storefront/app/themes/fashion-store/components/shared/FashionStoreFooter.vue
+ M apps/storefront/app/themes/fashion-store/components/shared/FashionStoreHeader.vue
+ M apps/storefront/app/themes/fashion-store/migrations.ts
+ M apps/storefront/app/themes/fashion-store/package-registry.ts
+ M apps/storefront/scripts/prepare-experience.ts
+ M apps/storefront/scripts/verify-themes.ts
+ M apps/storefront/tests/fashion-store-package-registry.test.ts
+ M apps/storefront/tests/verify-themes.test.ts
+ M bun.lock
+ M docs/plans/2026-08-13-001-refactor-shoppp-product-master-plan.md
+ M docs/plans/2026-10-10-1950-refactor-shopify-style-storefront-editor-plan.md
+ M packages/contracts/src/admin.ts
+ M packages/contracts/src/index.ts
+ M packages/contracts/src/storefront-experience.ts
+ M packages/domain/src/storefront-experience.ts
+ M tools/check-admin-i18n.test.ts
+ M tools/check-admin-i18n.ts
+ M tools/create-fashion-u8-harness-manifest.ts
+ M tools/generate-storefront-theme-catalog.ts
+?? apps/admin/src/pages/settings/contact-location-drawer.tsx
+?? apps/admin/src/pages/storefront/storefront-field-group.tsx
+?? apps/admin/src/pages/storefront/theme-editor/
+?? apps/admin/src/test/admin-local-form-drawers.browser.test.tsx
+?? apps/api/src/storefront-experience/draft-library.ts
+?? apps/api/src/storefront-experience/editor-sessions.ts
+?? apps/storefront/app/theme-engine/editor-context.ts
+?? apps/storefront/app/theme-engine/editor-region.vue
+?? apps/storefront/app/theme-engine/section-blocks.ts
+?? apps/storefront/app/theme-engine/styles.ts
+?? apps/storefront/app/themes/fashion-store/authoring/
+?? apps/storefront/editor/
+?? apps/storefront/tests/fixtures/
+?? apps/storefront/tests/storefront-editor.test.ts
+?? docs/plans/2026-10-29-0018-refactor-admin-form-consistency-plan.md
+?? docs/plans/2026-10-31-0307-fix-admin-form-style-unification-plan.md
+?? docs/plans/2026-10-31-2103-fix-admin-form-visual-structure-plan.md
+?? docs/plans/2026-10-31-admin-end-to-end-experience-audit-plan.md
+?? docs/plans/2026-10-31-fix-admin-form-comparison-gallery-plan.md
+?? docs/plans/2026-10-31-fix-admin-form-style-1-local-plan.md
+?? docs/plans/2026-10-31-fix-admin-form-style-2-published-plan.md
+?? docs/plans/2026-10-31-fix-admin-form-style-3-content-plan.md
+?? docs/plans/2026-10-31-fix-admin-form-style-4-theme-plan.md
+?? docs/plans/2026-10-31-fix-admin-form-visual-structure-audit-findings-plan.md
+?? docs/plans/2026-10-31-refactor-admin-local-form-drawers-plan.md
+?? docs/plans/assets/
+?? docs/progress/2026-10-31-admin-description-candidates-screenshots.md
+?? docs/progress/2026-10-31-admin-form-style-audit.md
+?? docs/progress/2026-10-31-admin-form-style-comparisons.md
+?? docs/progress/2026-10-31-admin-form-style-unification-verification.md
+?? docs/progress/2026-10-31-admin-form-visual-structure-audit.md
+?? docs/progress/2026-10-31-admin-form-visual-structure-verification.md
+?? docs/progress/2026-10-31-admin-local-form-drawers-verification.md
+?? docs/progress/2026-10-31-storefront-visual-editor-verification.md
+?? docs/progress/admin-experience-audit/
+?? docs/progress/admin-form-style-gallery/
+?? docs/progress/assets/
+?? packages/contracts/src/storefront-editor.ts
+?? packages/contracts/test/storefront-editor.test.ts
+?? packages/db/migrations/0040_storefront_editor_lifecycle.sql
+?? packages/domain/test/storefront-editor-authoring.test.ts
+?? tools/admin-editor-entry.test.ts
+?? tools/build-storefront-editor.ts
+?? tools/verify-storefront-editor-public.ts
+?? tools/verify-storefront-editor-workspace.ts
+?? tools/verify-storefront-editor.ts
