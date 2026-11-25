@@ -60,9 +60,10 @@ Independent top-level entries must not repeat the page title in a breadcrumb. Ke
   region must be local to one interaction, convey an outcome that is not already exposed by a
   visible status or focused control, and have a focused regression test demonstrating that gap.
 - Use the existing feedback hierarchy: lightweight results use `message`; persistent or
-  decision-relevant state is visible in `Alert`, `Result`, field help, or page content; destructive
-  confirmation uses the existing modal primitives. Do not mirror the same outcome into a second
-  screen-reader-only channel.
+  decision-relevant state is visible in `Alert`, `Result`, field help, or page content. Choose
+  confirmation components by the ordinary-row and high-risk/security rules in
+  [AI rules](docs/ai/ai-rules.md#3-engineering-constraints). Do not mirror the same outcome into a
+  second screen-reader-only channel.
 - Preserve explicit, local focus corrections for validation summaries, conflict recovery, or
   removed triggers when their workflow requires them. Do not turn those exceptions into a generic
   focus manager.
