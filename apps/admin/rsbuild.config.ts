@@ -1,6 +1,13 @@
+import { createRequire } from 'node:module'
+import { dirname, resolve } from 'node:path'
 import { defineConfig, loadEnv } from '@rsbuild/core'
 import { pluginReact } from '@rsbuild/plugin-react'
 import { normalizeAppBasePath } from './src/shared/utils/normalize-app-base-path'
+
+const pdfCmaps = resolve(
+  dirname(createRequire(import.meta.url).resolve('pdfjs-dist/package.json')),
+  'cmaps'
+)
 
 const readPublicEnvValue = (publicVars: Record<string, string>, name: string) => {
   const value = publicVars[`import.meta.env.${name}`]
@@ -54,11 +61,13 @@ export default defineConfig(({ command, envMode }) => {
     resolve: {
       alias: {
         '@': './src',
+        'pdfjs-dist$': createRequire(import.meta.url).resolve('pdfjs-dist/legacy/build/pdf.mjs'),
       },
     },
     output: {
       legalComments: 'none',
       assetPrefix: `${appBasePath}/`,
+      copy: [{ from: pdfCmaps, to: 'static/pdf-cmaps' }],
     },
     server: apiProxyTarget
       ? {

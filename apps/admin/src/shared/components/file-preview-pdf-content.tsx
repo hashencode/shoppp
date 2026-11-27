@@ -2,6 +2,7 @@ import { Alert } from 'antd'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
+import { withAppBasePath } from '../utils/app-base'
 import { useI18n } from '../contexts/i18n-context'
 
 void React
@@ -13,6 +14,9 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 
 const PDF_PAGE_MAX_WIDTH = 800
 const PDF_PAGE_HORIZONTAL_PADDING = 32
+const PDF_DOCUMENT_OPTIONS = {
+  cMapUrl: withAppBasePath('/static/pdf-cmaps/'),
+}
 
 const useResponsivePdfPageWidth = (open: boolean) => {
   const observerRef = useRef<ResizeObserver | null>(null)
@@ -81,6 +85,7 @@ export const FilePreviewPdfContent = ({
       {open ? (
         <Document
           file={source}
+          options={PDF_DOCUMENT_OPTIONS}
           loading={null}
           error={
             <div className="flex h-full items-center justify-center p-6">

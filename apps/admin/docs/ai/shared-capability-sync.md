@@ -158,3 +158,11 @@ U5 本地实施与自检证据（宿主最终门禁前）：
 最终视觉检查包括真实业务组件（合成数据/拦截请求，无业务后台写入）、明暗主题及 390px 容器：PublishedProductRevisionEditor 商品媒体字段，选择长文件名后容器仍为 390/390px；原权限、暂存文件和业务保存由现有消费者测试保护。 普通附件、卡片、拖拽与 ListExcelActions Modal 另有相同文件/主题/尺寸的共享组件前后对照。截图及日志仅在忽略的 `.artifacts/screenshots/2026-10-23-upload-sync/` 和 `.artifacts/upload-sync/`，不提交；未执行真实后台、视频 SDK 云端或产品发布 E2E，不据此宣称全后台移动端或辅助技术认证。
 
 归属代码 ESLint 无错误；历史整文件格式差异保留，新增文件/本次修改区段格式和差异空白检查通过。
+
+## 2026-11-20 PDF 兼容构建增量采用
+
+用户批准本次独立同步，固定来源为 `codex-admin-quick-start@147b4e8f74d1de8cad39e3540baf31e190934a21`，差量起点为 `5db82a029d059b8ff2fae919b29ee34a181b4baf`；目标起点 `5ce6b154886612ede24cdab3df4d230649cd9143`，实施前 clean。只采用 Admin 的 legacy 主入口、CMap 资源及独立兼容绘制回归，不复制来源整文件或业务入口，不改变产品主计划与发布状态。
+
+生产与 Browser Mode 精确匹配 pdfjs-dist 包主入口，保留同版本 legacy Worker；中文 CMap 按本地 app base 访问。保留 useI18n/useCurrentTranslate、open/lazy、主题、source/session、三级回退、下载鉴权与资源清理；react-pdf、pdfjs-dist、锁文件、API、storefront 与 contracts 均未修改。
+
+本地 L3：7 suites / 70 unit、消费者及 i18n 测试，3 suites / 10 Browser 测试，Admin build:test（含类型检查）、修改代码 ESLint/Prettier/diff 均通过。实际 Rsbuild 配置打包的独立组件预览在子路径完成 8 场景，小米平板完成中文绘制、关闭重开和六页末页检查。复核 receipt `20261120-105539-2e7f5a56` 无 actionable findings。详细适配、原始失败、截图与验收限制见[验收记录](../../../../docs/progress/2026-11-20-admin-pdf-compat-sync-acceptance.md)。未推送或部署，不将独立组件预览视为业务后台附件联验。
